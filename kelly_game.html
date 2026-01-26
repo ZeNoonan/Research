@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Kelly Criterion Coin Flip Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2E86AB;
+            --secondary: #06A77D;
+            --danger: #C73E1D;
+            --warning: #F18F01;
+            --dark: #1a1a1a;
+            --light: #f5f5f5;
+            --gray: #6C757D;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 0;
+            color: var(--dark);
+            -webkit-font-smoothing: antialiased;
+            touch-action: manipulation;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tab {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat-box {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-value.positive {
+            color: var(--secondary);
+        }
+
+        .stat-value.negative {
+            color: var(--danger);
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .info-box.warning {
+            background: #fff3e0;
+            border-left-color: var(--warning);
+        }
+
+        .info-box.success {
+            background: #e8f5e9;
+            border-left-color: var(--secondary);
+        }
+
+        .coin-flip {
+            text-align: center;
+            padding: 30px;
+            font-size: 80px;
+            animation: flip 0.6s;
+        }
+
+        @keyframes flip {
+            0%, 100% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+        }
+
+        .result-win {
+            color: var(--secondary);
+        }
+
+        .result-loss {
+            color: var(--danger);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--light);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--secondary);
+            transition: width 0.3s;
+        }
+
+        .strategy-list {
+            list-style: none;
+        }
+
+        .strategy-item {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .strategy-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .strategy-stats {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--light);
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 8px 0;
+        }
+
+        input[type="range"] {
+            padding: 0;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        .formula {
+            background: var(--dark);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .bust-indicator {
+            background: var(--danger);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            margin: 10px 0;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+
+            .tabs {
+                gap: 3px;
+            }
+
+            .tab {
+                min-width: 100px;
+                padding: 10px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🪙 Kelly Criterion Game</h1>
+            <div class="subtitle">Optimal Betting Strategy Simulator</div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('play')">Play</button>
+            <button class="tab" onclick="switchTab('simulate')">Simulate</button>
+            <button class="tab" onclick="switchTab('learn')">Learn</button>
+            <button class="tab" onclick="switchTab('compare')">Compare</button>
+        </div>
+
+        <!-- Play Tab -->
+        <div id="play-tab" class="tab-content active">
+            <div class="card">
+                <h2 style="margin-bottom: 15px;">Interactive Mode</h2>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Bankroll</div>
+                        <div class="stat-value" id="play-bankroll">$100.00</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Flips</div>
+                        <div class="stat-value" id="play-flips">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Win Rate</div>
+                        <div class="stat-value" id="play-winrate">0%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">ROI</div>
+                        <div class="stat-value" id="play-roi">0%</div>
+                    </div>
+                </div>
+
+                <div id="play-result" class="hidden">
+                    <div class="coin-flip" id="coin-result"></div>
+                    <div class="info-box" id="flip-message"></div>
+                </div>
+
+                <div id="play-controls">
+                    <div class="info-box">
+                        <strong>Kelly Optimal:</strong> Bet <span id="kelly-amount">$20.00</span> (20% of bankroll)
+                    </div>
+
+                    <button class="btn btn-primary" onclick="playFlip('kelly')">
+                        Bet Kelly (20%)
+                    </button>
+                    <button class="btn btn-secondary" onclick="playFlip('half-kelly')">
+                        Bet Half Kelly (10%)
+                    </button>
+                    <button class="btn btn-warning" onclick="playFlip('custom')">
+                        Custom Bet
+                    </button>
+                    <button class="btn btn-danger" onclick="resetGame()">
+                        Reset Game
+                    </button>
+                </div>
+
+                <div id="custom-bet-input" class="hidden">
+                    <label>Custom Bet Amount ($):</label>
+                    <input type="number" id="custom-amount" min="0" step="0.01" placeholder="Enter amount">
+                    <button class="btn btn-primary" onclick="playCustomBet()">Place Bet</button>
+                    <button class="btn btn-danger" onclick="cancelCustomBet()">Cancel</button>
+                </div>
+
+                <div id="bust-message" class="hidden">
+                    <div class="bust-indicator">
+                        💀 BUSTED! You've lost all your money!
+                    </div>
+                    <button class="btn btn-primary" onclick="resetGame()">
+                        Start New Game
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 10px;">Performance Chart</h3>
+                <div class="chart-container">
+                    <canvas id="play-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulate Tab -->
+        <div id="simulate-tab" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 15px;">Run Simulation</h2>
+
+                <label>Number of Flips:</label>
+                <input type="range" id="sim-flips" min="10" max="1000" value="100" oninput="updateSimFlipsLabel()">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <strong id="sim-flips-label">100</strong> flips
+                </div>
+
+                <label>Win Probability (%):</label>
+                <input type="range" id="sim-prob" min="50" max="80" value="60" oninput="updateSimProbLabel()">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <strong id="sim-prob-label">60</strong>% win rate
+                </div>
+
+                <button class="btn btn-primary" onclick="runSimulation()">
+                    Run Simulation
+                </button>
+            </div>
+
+            <div id="sim-results" class="card hidden">
+                <h3 style="margin-bottom: 15px;">Simulation Results</h3>
+                <div id="sim-results-content"></div>
+
+                <div class="chart-container">
+                    <canvas id="sim-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learn Tab -->
+        <div id="learn-tab" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 15px;">What is the Kelly Criterion?</h2>
+
+                <p style="margin-bottom: 15px;">
+                    The Kelly Criterion is a mathematical formula that determines the optimal bet size
+                    to maximize long-term wealth growth while minimizing risk of ruin.
+                </p>
+
+                <div class="formula">
+                    f* = (bp - q) / b
+                </div>
+
+                <div style="margin: 15px 0;">
+                    <strong>Where:</strong>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>f*</strong> = optimal fraction of bankroll to bet</li>
+                        <li><strong>b</strong> = net odds (payout ratio)</li>
+                        <li><strong>p</strong> = probability of winning</li>
+                        <li><strong>q</strong> = probability of losing (1 - p)</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <strong>Example (60% win rate, even money):</strong><br>
+                    f* = (1.0 × 0.6 - 0.4) / 1.0 = 0.2 or <strong>20%</strong><br>
+                    → You should bet 20% of your bankroll!
+                </div>
+
+                <h3 style="margin: 20px 0 10px;">Why It Works</h3>
+
+                <div class="info-box success">
+                    <strong>✓ Optimal Growth:</strong> Maximizes long-term wealth growth rate
+                </div>
+
+                <div class="info-box warning">
+                    <strong>⚠️ Betting Too Much:</strong> Increases risk of ruin, even with an edge
+                </div>
+
+                <div class="info-box warning">
+                    <strong>⚠️ Betting Too Little:</strong> Leaves profits on the table, slower growth
+                </div>
+
+                <h3 style="margin: 20px 0 10px;">Practical Considerations</h3>
+
+                <p style="margin-bottom: 10px;">
+                    <strong>Full Kelly:</strong> Maximum growth, but high volatility<br>
+                    <strong>Half Kelly:</strong> 75% of growth, 50% of volatility<br>
+                    <strong>Quarter Kelly:</strong> More stable, much slower growth
+                </p>
+
+                <div class="info-box">
+                    Many professional gamblers use <strong>Half Kelly</strong> or <strong>Quarter Kelly</strong>
+                    to reduce psychological stress and account for estimation errors.
+                </div>
+            </div>
+        </div>
+
+        <!-- Compare Tab -->
+        <div id="compare-tab" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 15px;">Compare Strategies</h2>
+
+                <button class="btn btn-primary" onclick="runComparison()">
+                    Compare All Strategies (500 flips)
+                </button>
+            </div>
+
+            <div id="compare-results" class="card hidden">
+                <h3 style="margin-bottom: 15px;">Strategy Performance</h3>
+                <ul id="strategy-list" class="strategy-list"></ul>
+
+                <div class="chart-container">
+                    <canvas id="compare-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            bankroll: 100,
+            history: [100],
+            wins: 0,
+            losses: 0,
+            winProb: 0.6,
+            kellyFraction: 0.2
+        };
+
+        let playChart = null;
+        let simChart = null;
+        let compareChart = null;
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initPlayChart();
+            updateKellyAmount();
+        });
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // Kelly Calculation
+        function calculateKelly(winProb, payoutRatio = 1.0) {
+            const p = winProb;
+            const q = 1 - p;
+            const b = payoutRatio;
+            return Math.max(0, (b * p - q) / b);
+        }
+
+        // Coin Flip
+        function flipCoin(winProb) {
+            return Math.random() < winProb;
+        }
+
+        // Update Display
+        function updateDisplay() {
+            document.getElementById('play-bankroll').textContent = `$${gameState.bankroll.toFixed(2)}`;
+            document.getElementById('play-flips').textContent = gameState.wins + gameState.losses;
+
+            const totalFlips = gameState.wins + gameState.losses;
+            const winRate = totalFlips > 0 ? (gameState.wins / totalFlips * 100).toFixed(1) : 0;
+            document.getElementById('play-winrate').textContent = `${winRate}%`;
+
+            const roi = ((gameState.bankroll - 100) / 100 * 100).toFixed(1);
+            const roiElement = document.getElementById('play-roi');
+            roiElement.textContent = `${roi}%`;
+            roiElement.className = 'stat-value ' + (roi >= 0 ? 'positive' : 'negative');
+
+            updateKellyAmount();
+            updatePlayChart();
+        }
+
+        function updateKellyAmount() {
+            const kellyBet = gameState.bankroll * gameState.kellyFraction;
+            document.getElementById('kelly-amount').textContent = `$${kellyBet.toFixed(2)}`;
+        }
+
+        // Play Functions
+        function playFlip(strategy) {
+            if (gameState.bankroll <= 0.01) return;
+
+            let betSize;
+            if (strategy === 'kelly') {
+                betSize = gameState.bankroll * gameState.kellyFraction;
+            } else if (strategy === 'half-kelly') {
+                betSize = gameState.bankroll * (gameState.kellyFraction / 2);
+            }
+
+            executeBet(betSize);
+        }
+
+        function playCustomBet() {
+            document.getElementById('custom-bet-input').classList.add('hidden');
+            document.getElementById('play-controls').classList.remove('hidden');
+
+            const amount = parseFloat(document.getElementById('custom-amount').value);
+            if (isNaN(amount) || amount <= 0 || amount > gameState.bankroll) {
+                alert('Invalid bet amount!');
+                return;
+            }
+
+            executeBet(amount);
+        }
+
+        function cancelCustomBet() {
+            document.getElementById('custom-bet-input').classList.add('hidden');
+            document.getElementById('play-controls').classList.remove('hidden');
+        }
+
+        function executeBet(betSize) {
+            const won = flipCoin(gameState.winProb);
+
+            if (won) {
+                gameState.bankroll += betSize;
+                gameState.wins++;
+            } else {
+                gameState.bankroll -= betSize;
+                gameState.losses++;
+            }
+
+            gameState.history.push(gameState.bankroll);
+
+            // Show result
+            showFlipResult(won, betSize);
+            updateDisplay();
+
+            // Check for bust
+            if (gameState.bankroll <= 0.01) {
+                showBust();
+            }
+        }
+
+        function showFlipResult(won, betSize) {
+            const resultDiv = document.getElementById('play-result');
+            const coinDiv = document.getElementById('coin-result');
+            const messageDiv = document.getElementById('flip-message');
+
+            resultDiv.classList.remove('hidden');
+
+            if (won) {
+                coinDiv.textContent = '✓';
+                coinDiv.className = 'coin-flip result-win';
+                messageDiv.className = 'info-box success';
+                messageDiv.innerHTML = `<strong>WIN!</strong> You won $${betSize.toFixed(2)}`;
+            } else {
+                coinDiv.textContent = '✗';
+                coinDiv.className = 'coin-flip result-loss';
+                messageDiv.className = 'info-box warning';
+                messageDiv.innerHTML = `<strong>LOSS!</strong> You lost $${betSize.toFixed(2)}`;
+            }
+
+            setTimeout(() => {
+                resultDiv.classList.add('hidden');
+            }, 2000);
+        }
+
+        function showBust() {
+            document.getElementById('play-controls').classList.add('hidden');
+            document.getElementById('bust-message').classList.remove('hidden');
+        }
+
+        function resetGame() {
+            gameState = {
+                bankroll: 100,
+                history: [100],
+                wins: 0,
+                losses: 0,
+                winProb: 0.6,
+                kellyFraction: 0.2
+            };
+
+            document.getElementById('play-controls').classList.remove('hidden');
+            document.getElementById('bust-message').classList.add('hidden');
+            document.getElementById('play-result').classList.add('hidden');
+
+            updateDisplay();
+        }
+
+        // Custom Bet UI
+        document.querySelector('.btn-warning').addEventListener('click', function(e) {
+            if (e.target.textContent.includes('Custom Bet')) {
+                e.preventDefault();
+                document.getElementById('play-controls').classList.add('hidden');
+                document.getElementById('custom-bet-input').classList.remove('hidden');
+                document.getElementById('custom-amount').value = '';
+                document.getElementById('custom-amount').max = gameState.bankroll;
+            }
+        });
+
+        // Charts
+        function initPlayChart() {
+            const ctx = document.getElementById('play-chart').getContext('2d');
+            playChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [0],
+                    datasets: [{
+                        label: 'Bankroll',
+                        data: [100],
+                        borderColor: '#2E86AB',
+                        backgroundColor: 'rgba(46, 134, 171, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => '$' + value.toFixed(0)
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Flip Number'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updatePlayChart() {
+            if (!playChart) return;
+
+            playChart.data.labels = gameState.history.map((_, i) => i);
+            playChart.data.datasets[0].data = gameState.history;
+            playChart.update();
+        }
+
+        // Simulation
+        function updateSimFlipsLabel() {
+            const value = document.getElementById('sim-flips').value;
+            document.getElementById('sim-flips-label').textContent = value;
+        }
+
+        function updateSimProbLabel() {
+            const value = document.getElementById('sim-prob').value;
+            document.getElementById('sim-prob-label').textContent = value;
+        }
+
+        function runSimulation() {
+            const numFlips = parseInt(document.getElementById('sim-flips').value);
+            const winProb = parseFloat(document.getElementById('sim-prob').value) / 100;
+            const kelly = calculateKelly(winProb);
+
+            // Run simulations for different strategies
+            const strategies = {
+                'Kelly': kelly,
+                'Half Kelly': kelly / 2,
+                'Quarter Kelly': kelly / 4,
+                'Fixed 25%': 0.25
+            };
+
+            const results = {};
+
+            for (const [name, fraction] of Object.entries(strategies)) {
+                let bankroll = 100;
+                const history = [100];
+                let wins = 0;
+                let losses = 0;
+
+                for (let i = 0; i < numFlips; i++) {
+                    if (bankroll <= 0.01) break;
+
+                    const bet = bankroll * fraction;
+                    const won = flipCoin(winProb);
+
+                    if (won) {
+                        bankroll += bet;
+                        wins++;
+                    } else {
+                        bankroll -= bet;
+                        losses++;
+                    }
+
+                    history.push(bankroll);
+                }
+
+                results[name] = {
+                    bankroll,
+                    history,
+                    wins,
+                    losses,
+                    fraction
+                };
+            }
+
+            displaySimResults(results, numFlips, winProb);
+        }
+
+        function displaySimResults(results, numFlips, winProb) {
+            const container = document.getElementById('sim-results-content');
+            const sorted = Object.entries(results).sort((a, b) => b[1].bankroll - a[1].bankroll);
+
+            let html = '<div class="stats-grid" style="grid-template-columns: 1fr;">';
+
+            sorted.forEach(([name, data], index) => {
+                const roi = ((data.bankroll - 100) / 100 * 100).toFixed(1);
+                const winRate = ((data.wins / (data.wins + data.losses)) * 100).toFixed(1);
+                const roiClass = roi >= 0 ? 'positive' : 'negative';
+
+                html += `
+                    <div class="strategy-item">
+                        <div class="strategy-name">#${index + 1} - ${name}</div>
+                        <div class="strategy-stats">
+                            Final: $${data.bankroll.toFixed(2)} |
+                            ROI: <span class="${roiClass}">${roi}%</span> |
+                            Win Rate: ${winRate}%
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+
+            document.getElementById('sim-results').classList.remove('hidden');
+
+            // Update chart
+            updateSimChart(results);
+        }
+
+        function updateSimChart(results) {
+            const ctx = document.getElementById('sim-chart').getContext('2d');
+
+            if (simChart) {
+                simChart.destroy();
+            }
+
+            const datasets = [];
+            const colors = {
+                'Kelly': '#2E86AB',
+                'Half Kelly': '#06A77D',
+                'Quarter Kelly': '#A23B72',
+                'Fixed 25%': '#F18F01'
+            };
+
+            for (const [name, data] of Object.entries(results)) {
+                datasets.push({
+                    label: name,
+                    data: data.history,
+                    borderColor: colors[name] || '#000',
+                    backgroundColor: 'transparent',
+                    tension: 0.2
+                });
+            }
+
+            simChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.history.map((_, i) => i),
+                    datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            type: 'logarithmic',
+                            ticks: {
+                                callback: (value) => '$' + value.toFixed(0)
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Flip Number'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Comparison
+        function runComparison() {
+            const numFlips = 500;
+            const winProb = 0.6;
+            const kelly = calculateKelly(winProb);
+
+            const strategies = {
+                'Kelly Criterion': kelly,
+                'Half Kelly': kelly / 2,
+                'Quarter Kelly': kelly / 4,
+                'Fixed 10%': 0.10,
+                'Fixed 25%': 0.25,
+                'All-In': 1.0
+            };
+
+            const results = {};
+
+            for (const [name, fraction] of Object.entries(strategies)) {
+                let bankroll = 100;
+                const history = [100];
+                let wins = 0;
+                let losses = 0;
+
+                for (let i = 0; i < numFlips; i++) {
+                    if (bankroll <= 0.01) {
+                        history.push(0);
+                        continue;
+                    }
+
+                    const bet = bankroll * fraction;
+                    const won = flipCoin(winProb);
+
+                    if (won) {
+                        bankroll += bet;
+                        wins++;
+                    } else {
+                        bankroll -= bet;
+                        losses++;
+                    }
+
+                    history.push(bankroll);
+                }
+
+                results[name] = {
+                    bankroll,
+                    history,
+                    wins,
+                    losses,
+                    fraction
+                };
+            }
+
+            displayComparisonResults(results);
+        }
+
+        function displayComparisonResults(results) {
+            const container = document.getElementById('strategy-list');
+            const sorted = Object.entries(results).sort((a, b) => b[1].bankroll - a[1].bankroll);
+
+            let html = '';
+
+            sorted.forEach(([name, data], index) => {
+                const roi = ((data.bankroll - 100) / 100 * 100).toFixed(1);
+                const totalBets = data.wins + data.losses;
+                const winRate = totalBets > 0 ? ((data.wins / totalBets) * 100).toFixed(1) : '0';
+                const roiClass = roi >= 0 ? 'positive' : 'negative';
+                const bust = data.bankroll <= 0.01;
+
+                html += `
+                    <li class="strategy-item">
+                        <div class="strategy-name">#${index + 1} - ${name}</div>
+                        <div class="strategy-stats">
+                            Final: $${data.bankroll.toFixed(2)} |
+                            ROI: <span class="${roiClass}">${roi}%</span><br>
+                            Win Rate: ${winRate}% (${data.wins}/${totalBets} wins)
+                            ${bust ? ' | <span style="color: var(--danger); font-weight: bold;">BUSTED 💀</span>' : ''}
+                        </div>
+                    </li>
+                `;
+            });
+
+            container.innerHTML = html;
+            document.getElementById('compare-results').classList.remove('hidden');
+
+            updateCompareChart(results);
+        }
+
+        function updateCompareChart(results) {
+            const ctx = document.getElementById('compare-chart').getContext('2d');
+
+            if (compareChart) {
+                compareChart.destroy();
+            }
+
+            const labels = Object.keys(results);
+            const data = labels.map(name => results[name].bankroll);
+            const colors = {
+                'Kelly Criterion': '#2E86AB',
+                'Half Kelly': '#06A77D',
+                'Quarter Kelly': '#A23B72',
+                'Fixed 10%': '#F18F01',
+                'Fixed 25%': '#C73E1D',
+                'All-In': '#6C757D'
+            };
+
+            compareChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Final Bankroll',
+                        data,
+                        backgroundColor: labels.map(name => colors[name] || '#000')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => '$' + value.toFixed(0)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

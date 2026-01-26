@@ -27,23 +27,47 @@ Research/
 ├── CLAUDE.md                   # AI assistant guidelines and development conventions
 ├── README.md                   # This file
 ├── .gitignore                  # Git ignore patterns
-├── kelly_criterion_game.py     # Kelly Criterion coin flip simulation
-├── kelly_visualization.py      # Visualization tools for Kelly simulations
-└── KELLY_GAME_README.md        # Detailed documentation for Kelly game
+├── kelly_criterion_game.py     # Kelly Criterion coin flip simulation (Python)
+├── kelly_visualization.py      # Visualization tools for Kelly simulations (Python)
+├── kelly_game.html             # Kelly Criterion web app (mobile-friendly)
+├── KELLY_GAME_README.md        # Detailed documentation for Python version
+└── WEB_APP_README.md           # Web app documentation and usage guide
 ```
 
 ## Projects
 
 ### 🪙 Kelly Criterion Coin Flip Game
 
-An interactive Python simulation demonstrating optimal betting strategies using the Kelly Criterion. This educational tool shows how mathematical bet sizing can maximize long-term wealth growth.
+An interactive simulation demonstrating optimal betting strategies using the Kelly Criterion. Available in both **web** and **Python** versions!
+
+#### 📱 Web App (Mobile-Friendly)
+
+Play directly in your browser on any device - **perfect for phones!**
+
+**Quick Start:**
+```bash
+# Simply open in your browser
+open kelly_game.html
+```
 
 **Features:**
-- Interactive gameplay modes
-- Multiple betting strategy comparisons (Kelly, Half Kelly, Fixed %, All-In)
-- Real-time performance tracking and statistics
-- Visual charts (with matplotlib)
-- Educational explanations of the Kelly formula
+- 🎮 Four interactive tabs: Play, Simulate, Learn, Compare
+- 📱 Mobile-optimized responsive design
+- 📊 Real-time charts with Chart.js
+- ⚡ No installation required - just open and play
+- 🔒 Works offline after first load
+- 💾 Single 34KB file
+
+**To play on your phone:**
+- Transfer `kelly_game.html` to your phone via email, cloud storage, or AirDrop
+- Open in Safari (iOS) or Chrome (Android)
+- Or host locally and access via your network
+
+**Learn More:** See [WEB_APP_README.md](WEB_APP_README.md) for detailed web app guide.
+
+#### 🐍 Python CLI Version
+
+Full-featured command-line version with advanced simulation capabilities.
 
 **Quick Start:**
 ```bash
@@ -53,6 +77,13 @@ python3 kelly_criterion_game.py
 # Generate visualizations (requires matplotlib)
 python3 kelly_visualization.py
 ```
+
+**Features:**
+- Interactive gameplay modes
+- Multiple betting strategy comparisons (Kelly, Half Kelly, Fixed %, All-In)
+- Real-time performance tracking and statistics
+- Visual charts with matplotlib
+- Educational explanations of the Kelly formula
 
 **Learn More:** See [KELLY_GAME_README.md](KELLY_GAME_README.md) for comprehensive documentation.
 
@@ -97,6 +128,6 @@ _Contact information to be added_
 
 ---
 
-**Status**: Initial setup - Repository ready for development
+**Status**: Active - Kelly Criterion game available in web and Python versions
 
-**Last Updated**: 2026-01-22
+**Last Updated**: 2026-01-26
