@@ -24,15 +24,51 @@ cd Research
 
 ```
 Research/
-├── CLAUDE.md      # AI assistant guidelines and development conventions
-├── README.md      # This file
-├── .gitignore     # Git ignore patterns
-└── [Additional directories to be added as needed]
+├── CLAUDE.md                   # AI assistant guidelines and development conventions
+├── README.md                   # This file
+├── .gitignore                  # Git ignore patterns
+├── kelly_criterion_game.py     # Kelly Criterion coin flip simulation
+├── kelly_visualization.py      # Visualization tools for Kelly simulations
+└── KELLY_GAME_README.md        # Detailed documentation for Kelly game
 ```
+
+## Projects
+
+### 🪙 Kelly Criterion Coin Flip Game
+
+An interactive Python simulation demonstrating optimal betting strategies using the Kelly Criterion. This educational tool shows how mathematical bet sizing can maximize long-term wealth growth.
+
+**Features:**
+- Interactive gameplay modes
+- Multiple betting strategy comparisons (Kelly, Half Kelly, Fixed %, All-In)
+- Real-time performance tracking and statistics
+- Visual charts (with matplotlib)
+- Educational explanations of the Kelly formula
+
+**Quick Start:**
+```bash
+# Play the interactive game
+python3 kelly_criterion_game.py
+
+# Generate visualizations (requires matplotlib)
+python3 kelly_visualization.py
+```
+
+**Learn More:** See [KELLY_GAME_README.md](KELLY_GAME_README.md) for comprehensive documentation.
+
+**What is the Kelly Criterion?**
+```
+Formula: f* = (bp - q) / b
+
+Example with 60% win rate:
+f* = 0.2 or 20% of bankroll per bet
+```
+
+This demonstrates why proper bet sizing matters - bet too much and you risk ruin, bet too little and you leave profits on the table.
 
 ## Usage
 
-_Usage instructions will be documented as functionality is added_
+Refer to individual project documentation for specific usage instructions.
 
 ## Development
 
