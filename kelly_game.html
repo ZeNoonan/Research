@@ -360,7 +360,7 @@
                 <div class="stats-grid">
                     <div class="stat-box">
                         <div class="stat-label">Bankroll</div>
-                        <div class="stat-value" id="play-bankroll">$100.00</div>
+                        <div class="stat-value" id="play-bankroll">$100</div>
                     </div>
                     <div class="stat-box">
                         <div class="stat-label">Flips</div>
@@ -567,12 +567,44 @@
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
 
+        // Formatting Functions
+        function formatMoney(amount) {
+            // Format with thousand separator and 0 decimal places
+            return '$' + Math.round(amount).toLocaleString('en-US');
+        }
+
+        function formatMoneyDetailed(amount) {
+            // Format with thousand separator and 2 decimal places for small amounts
+            if (amount < 100) {
+                return '$' + amount.toFixed(2);
+            }
+            return formatMoney(amount);
+        }
+
         // Kelly Calculation
         function calculateKelly(winProb, payoutRatio = 1.0) {
             const p = winProb;
             const q = 1 - p;
             const b = payoutRatio;
             return Math.max(0, (b * p - q) / b);
+        }
+
+        // Expected Outcome Calculation
+        function calculateExpectedOutcome(fraction, winProb, numFlips, initialBankroll = 100) {
+            // Using Kelly growth formula: E[ln(wealth)] = n * (p*ln(1+f) + q*ln(1-f))
+            const p = winProb;
+            const q = 1 - p;
+
+            if (fraction >= 1.0) {
+                // All-in strategy will eventually bust
+                return 0;
+            }
+
+            const growthRate = p * Math.log(1 + fraction) + q * Math.log(1 - fraction);
+            const expectedLogWealth = numFlips * growthRate;
+            const expectedBankroll = initialBankroll * Math.exp(expectedLogWealth);
+
+            return expectedBankroll;
         }
 
         // Coin Flip
@@ -582,14 +614,14 @@
 
         // Update Display
         function updateDisplay() {
-            document.getElementById('play-bankroll').textContent = `$${gameState.bankroll.toFixed(2)}`;
+            document.getElementById('play-bankroll').textContent = formatMoney(gameState.bankroll);
             document.getElementById('play-flips').textContent = gameState.wins + gameState.losses;
 
             const totalFlips = gameState.wins + gameState.losses;
             const winRate = totalFlips > 0 ? (gameState.wins / totalFlips * 100).toFixed(1) : 0;
             document.getElementById('play-winrate').textContent = `${winRate}%`;
 
-            const roi = ((gameState.bankroll - 100) / 100 * 100).toFixed(1);
+            const roi = ((gameState.bankroll - 100) / 100 * 100).toFixed(0);
             const roiElement = document.getElementById('play-roi');
             roiElement.textContent = `${roi}%`;
             roiElement.className = 'stat-value ' + (roi >= 0 ? 'positive' : 'negative');
@@ -600,7 +632,7 @@
 
         function updateKellyAmount() {
             const kellyBet = gameState.bankroll * gameState.kellyFraction;
-            document.getElementById('kelly-amount').textContent = `$${kellyBet.toFixed(2)}`;
+            document.getElementById('kelly-amount').textContent = formatMoneyDetailed(kellyBet);
         }
 
         // Play Functions
@@ -669,12 +701,12 @@
                 coinDiv.textContent = '✓';
                 coinDiv.className = 'coin-flip result-win';
                 messageDiv.className = 'info-box success';
-                messageDiv.innerHTML = `<strong>WIN!</strong> You won $${betSize.toFixed(2)}`;
+                messageDiv.innerHTML = `<strong>WIN!</strong> You won ${formatMoneyDetailed(betSize)}`;
             } else {
                 coinDiv.textContent = '✗';
                 coinDiv.className = 'coin-flip result-loss';
                 messageDiv.className = 'info-box warning';
-                messageDiv.innerHTML = `<strong>LOSS!</strong> You lost $${betSize.toFixed(2)}`;
+                messageDiv.innerHTML = `<strong>LOSS!</strong> You lost ${formatMoneyDetailed(betSize)}`;
             }
 
             setTimeout(() => {
@@ -741,7 +773,7 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: (value) => '$' + value.toFixed(0)
+                                callback: (value) => '$' + Math.round(value).toLocaleString('en-US')
                             }
                         },
                         x: {
@@ -831,17 +863,23 @@
             let html = '<div class="stats-grid" style="grid-template-columns: 1fr;">';
 
             sorted.forEach(([name, data], index) => {
-                const roi = ((data.bankroll - 100) / 100 * 100).toFixed(1);
+                const roi = ((data.bankroll - 100) / 100 * 100).toFixed(0);
                 const winRate = ((data.wins / (data.wins + data.losses)) * 100).toFixed(1);
                 const roiClass = roi >= 0 ? 'positive' : 'negative';
+
+                // Calculate expected outcome
+                const expectedOutcome = calculateExpectedOutcome(data.fraction, winProb, numFlips);
+                const expectedRoi = ((expectedOutcome - 100) / 100 * 100).toFixed(0);
 
                 html += `
                     <div class="strategy-item">
                         <div class="strategy-name">#${index + 1} - ${name}</div>
                         <div class="strategy-stats">
-                            Final: $${data.bankroll.toFixed(2)} |
+                            Actual: ${formatMoney(data.bankroll)} |
                             ROI: <span class="${roiClass}">${roi}%</span> |
-                            Win Rate: ${winRate}%
+                            Win Rate: ${winRate}%<br>
+                            Expected: ${formatMoney(expectedOutcome)} |
+                            Expected ROI: ${expectedRoi}%
                         </div>
                     </div>
                 `;
@@ -897,7 +935,7 @@
                         y: {
                             type: 'logarithmic',
                             ticks: {
-                                callback: (value) => '$' + value.toFixed(0)
+                                callback: (value) => '$' + Math.round(value).toLocaleString('en-US')
                             }
                         },
                         x: {
@@ -973,7 +1011,7 @@
             let html = '';
 
             sorted.forEach(([name, data], index) => {
-                const roi = ((data.bankroll - 100) / 100 * 100).toFixed(1);
+                const roi = ((data.bankroll - 100) / 100 * 100).toFixed(0);
                 const totalBets = data.wins + data.losses;
                 const winRate = totalBets > 0 ? ((data.wins / totalBets) * 100).toFixed(1) : '0';
                 const roiClass = roi >= 0 ? 'positive' : 'negative';
@@ -983,7 +1021,7 @@
                     <li class="strategy-item">
                         <div class="strategy-name">#${index + 1} - ${name}</div>
                         <div class="strategy-stats">
-                            Final: $${data.bankroll.toFixed(2)} |
+                            Final: ${formatMoney(data.bankroll)} |
                             ROI: <span class="${roiClass}">${roi}%</span><br>
                             Win Rate: ${winRate}% (${data.wins}/${totalBets} wins)
                             ${bust ? ' | <span style="color: var(--danger); font-weight: bold;">BUSTED 💀</span>' : ''}
@@ -1036,7 +1074,7 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: (value) => '$' + value.toFixed(0)
+                                callback: (value) => '$' + Math.round(value).toLocaleString('en-US')
                             }
                         }
                     }
