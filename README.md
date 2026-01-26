@@ -30,6 +30,7 @@ Research/
 ├── kelly_criterion_game.py     # Kelly Criterion coin flip simulation (Python)
 ├── kelly_visualization.py      # Visualization tools for Kelly simulations (Python)
 ├── kelly_game.html             # Kelly Criterion web app (mobile-friendly)
+├── serve.py                    # Simple HTTP server for web app
 ├── KELLY_GAME_README.md        # Detailed documentation for Python version
 └── WEB_APP_README.md           # Web app documentation and usage guide
 ```
@@ -46,8 +47,12 @@ Play directly in your browser on any device - **perfect for phones!**
 
 **Quick Start:**
 ```bash
-# Simply open in your browser
+# Option 1: Open directly in browser
 open kelly_game.html
+
+# Option 2: Serve on local network (access from phone)
+python3 serve.py
+# Then visit http://YOUR_IP:8000/kelly_game.html from any device
 ```
 
 **Features:**
