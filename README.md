@@ -27,12 +27,14 @@ Research/
 ├── CLAUDE.md                   # AI assistant guidelines and development conventions
 ├── README.md                   # This file
 ├── .gitignore                  # Git ignore patterns
+├── index.html                  # Landing page for GitHub Pages
 ├── kelly_criterion_game.py     # Kelly Criterion coin flip simulation (Python)
 ├── kelly_visualization.py      # Visualization tools for Kelly simulations (Python)
 ├── kelly_game.html             # Kelly Criterion web app (mobile-friendly)
 ├── serve.py                    # Simple HTTP server for web app
 ├── KELLY_GAME_README.md        # Detailed documentation for Python version
-└── WEB_APP_README.md           # Web app documentation and usage guide
+├── WEB_APP_README.md           # Web app documentation and usage guide
+└── GITHUB_PAGES_SETUP.md       # GitHub Pages deployment guide
 ```
 
 ## Projects
@@ -47,10 +49,14 @@ Play directly in your browser on any device - **perfect for phones!**
 
 **Quick Start:**
 ```bash
-# Option 1: Open directly in browser
+# Option 1: Play online (GitHub Pages)
+# Visit: https://zenoonan.github.io/Research/
+# (See GITHUB_PAGES_SETUP.md for deployment instructions)
+
+# Option 2: Open directly in browser
 open kelly_game.html
 
-# Option 2: Serve on local network (access from phone)
+# Option 3: Serve on local network (access from phone)
 python3 serve.py
 # Then visit http://YOUR_IP:8000/kelly_game.html from any device
 ```
