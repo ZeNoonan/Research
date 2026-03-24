@@ -590,10 +590,27 @@
         }
 
         // Expected Outcome Calculation
-        function calculateExpectedOutcome(fraction, winProb, numFlips, initialBankroll = 100) {
+        function calculateExpectedOutcome(strategy, winProb, numFlips, initialBankroll = 100) {
             // Using Kelly growth formula: E[ln(wealth)] = n * (p*ln(1+f) + q*ln(1-f))
             const p = winProb;
             const q = 1 - p;
+
+            // For flat stakes, we need a different calculation
+            if (strategy.type === 'flat') {
+                // Flat stake strategy - constant bet size
+                const flatBet = strategy.value;
+
+                // Expected change per flip: p * flatBet - q * flatBet = (p - q) * flatBet
+                const expectedChangePerFlip = (p - q) * flatBet;
+                const expectedBankroll = initialBankroll + (numFlips * expectedChangePerFlip);
+
+                // But we need to account for the possibility of going bust
+                // Simple approximation: if expected goes negative, return 0
+                return Math.max(0, expectedBankroll);
+            }
+
+            // For percentage-based strategies
+            const fraction = strategy.value;
 
             if (fraction >= 1.0) {
                 // All-in strategy will eventually bust
@@ -813,15 +830,15 @@
 
             // Run simulations for different strategies
             const strategies = {
-                'Kelly': kelly,
-                'Half Kelly': kelly / 2,
-                'Quarter Kelly': kelly / 4,
-                'Fixed 25%': 0.25
+                'Kelly': { type: 'percentage', value: kelly },
+                'Half Kelly': { type: 'percentage', value: kelly / 2 },
+                'Quarter Kelly': { type: 'percentage', value: kelly / 4 },
+                'Flat $50': { type: 'flat', value: 50 }
             };
 
             const results = {};
 
-            for (const [name, fraction] of Object.entries(strategies)) {
+            for (const [name, strategy] of Object.entries(strategies)) {
                 let bankroll = 100;
                 const history = [100];
                 let wins = 0;
@@ -830,7 +847,14 @@
                 for (let i = 0; i < numFlips; i++) {
                     if (bankroll <= 0.01) break;
 
-                    const bet = bankroll * fraction;
+                    // Calculate bet based on strategy type
+                    let bet;
+                    if (strategy.type === 'flat') {
+                        bet = Math.min(strategy.value, bankroll);
+                    } else {
+                        bet = bankroll * strategy.value;
+                    }
+
                     const won = flipCoin(winProb);
 
                     if (won) {
@@ -849,7 +873,7 @@
                     history,
                     wins,
                     losses,
-                    fraction
+                    strategy
                 };
             }
 
@@ -868,7 +892,7 @@
                 const roiClass = roi >= 0 ? 'positive' : 'negative';
 
                 // Calculate expected outcome
-                const expectedOutcome = calculateExpectedOutcome(data.fraction, winProb, numFlips);
+                const expectedOutcome = calculateExpectedOutcome(data.strategy, winProb, numFlips);
                 const expectedRoi = ((expectedOutcome - 100) / 100 * 100).toFixed(0);
 
                 html += `
@@ -906,7 +930,7 @@
                 'Kelly': '#2E86AB',
                 'Half Kelly': '#06A77D',
                 'Quarter Kelly': '#A23B72',
-                'Fixed 25%': '#F18F01'
+                'Flat $50': '#F18F01'
             };
 
             for (const [name, data] of Object.entries(results)) {
@@ -956,17 +980,17 @@
             const kelly = calculateKelly(winProb);
 
             const strategies = {
-                'Kelly Criterion': kelly,
-                'Half Kelly': kelly / 2,
-                'Quarter Kelly': kelly / 4,
-                'Fixed 10%': 0.10,
-                'Fixed 25%': 0.25,
-                'All-In': 1.0
+                'Kelly Criterion': { type: 'percentage', value: kelly },
+                'Half Kelly': { type: 'percentage', value: kelly / 2 },
+                'Quarter Kelly': { type: 'percentage', value: kelly / 4 },
+                'Flat $50': { type: 'flat', value: 50 },
+                'Flat $25': { type: 'flat', value: 25 },
+                'All-In': { type: 'percentage', value: 1.0 }
             };
 
             const results = {};
 
-            for (const [name, fraction] of Object.entries(strategies)) {
+            for (const [name, strategy] of Object.entries(strategies)) {
                 let bankroll = 100;
                 const history = [100];
                 let wins = 0;
@@ -978,7 +1002,14 @@
                         continue;
                     }
 
-                    const bet = bankroll * fraction;
+                    // Calculate bet based on strategy type
+                    let bet;
+                    if (strategy.type === 'flat') {
+                        bet = Math.min(strategy.value, bankroll);
+                    } else {
+                        bet = bankroll * strategy.value;
+                    }
+
                     const won = flipCoin(winProb);
 
                     if (won) {
@@ -997,7 +1028,7 @@
                     history,
                     wins,
                     losses,
-                    fraction
+                    strategy
                 };
             }
 
@@ -1049,8 +1080,8 @@
                 'Kelly Criterion': '#2E86AB',
                 'Half Kelly': '#06A77D',
                 'Quarter Kelly': '#A23B72',
-                'Fixed 10%': '#F18F01',
-                'Fixed 25%': '#C73E1D',
+                'Flat $50': '#F18F01',
+                'Flat $25': '#C73E1D',
                 'All-In': '#6C757D'
             };
 
