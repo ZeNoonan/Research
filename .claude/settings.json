@@ -1,0 +1,10 @@
+{
+  "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "stats.unitedrugby.com",
+        "*.unitedrugby.com"
+      ]
+    }
+  }
+}
