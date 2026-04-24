@@ -24,17 +24,19 @@ cd Research
 
 ```
 Research/
-├── CLAUDE.md                   # AI assistant guidelines and development conventions
-├── README.md                   # This file
-├── .gitignore                  # Git ignore patterns
-├── index.html                  # Landing page for GitHub Pages
-├── kelly_criterion_game.py     # Kelly Criterion coin flip simulation (Python)
-├── kelly_visualization.py      # Visualization tools for Kelly simulations (Python)
-├── kelly_game.html             # Kelly Criterion web app (mobile-friendly)
-├── serve.py                    # Simple HTTP server for web app
-├── KELLY_GAME_README.md        # Detailed documentation for Python version
-├── WEB_APP_README.md           # Web app documentation and usage guide
-└── GITHUB_PAGES_SETUP.md       # GitHub Pages deployment guide
+├── CLAUDE.md                       # AI assistant guidelines and development conventions
+├── README.md                       # This file
+├── .gitignore                      # Git ignore patterns
+├── index.html                      # Root landing page (redirects to kelly_sim/)
+└── kelly_sim/                      # Kelly Criterion simulation project
+    ├── index.html                  # Landing page for the web app
+    ├── kelly_criterion_game.py     # Kelly Criterion coin flip simulation (Python)
+    ├── kelly_visualization.py      # Visualization tools for Kelly simulations (Python)
+    ├── kelly_game.html             # Kelly Criterion web app (mobile-friendly)
+    ├── serve.py                    # Simple HTTP server for web app
+    ├── KELLY_GAME_README.md        # Detailed documentation for Python version
+    ├── WEB_APP_README.md           # Web app documentation and usage guide
+    └── GITHUB_PAGES_SETUP.md       # GitHub Pages deployment guide
 ```
 
 ## Projects
@@ -51,13 +53,13 @@ Play directly in your browser on any device - **perfect for phones!**
 ```bash
 # Option 1: Play online (GitHub Pages)
 # Visit: https://zenoonan.github.io/Research/
-# (See GITHUB_PAGES_SETUP.md for deployment instructions)
+# (See kelly_sim/GITHUB_PAGES_SETUP.md for deployment instructions)
 
 # Option 2: Open directly in browser
-open kelly_game.html
+open kelly_sim/kelly_game.html
 
 # Option 3: Serve on local network (access from phone)
-python3 serve.py
+cd kelly_sim && python3 serve.py
 # Then visit http://YOUR_IP:8000/kelly_game.html from any device
 ```
 
@@ -70,11 +72,11 @@ python3 serve.py
 - 💾 Single 34KB file
 
 **To play on your phone:**
-- Transfer `kelly_game.html` to your phone via email, cloud storage, or AirDrop
+- Transfer `kelly_sim/kelly_game.html` to your phone via email, cloud storage, or AirDrop
 - Open in Safari (iOS) or Chrome (Android)
 - Or host locally and access via your network
 
-**Learn More:** See [WEB_APP_README.md](WEB_APP_README.md) for detailed web app guide.
+**Learn More:** See [kelly_sim/WEB_APP_README.md](kelly_sim/WEB_APP_README.md) for detailed web app guide.
 
 #### 🐍 Python CLI Version
 
@@ -83,10 +85,10 @@ Full-featured command-line version with advanced simulation capabilities.
 **Quick Start:**
 ```bash
 # Play the interactive game
-python3 kelly_criterion_game.py
+python3 kelly_sim/kelly_criterion_game.py
 
 # Generate visualizations (requires matplotlib)
-python3 kelly_visualization.py
+python3 kelly_sim/kelly_visualization.py
 ```
 
 **Features:**
@@ -96,7 +98,7 @@ python3 kelly_visualization.py
 - Visual charts with matplotlib
 - Educational explanations of the Kelly formula
 
-**Learn More:** See [KELLY_GAME_README.md](KELLY_GAME_README.md) for comprehensive documentation.
+**Learn More:** See [kelly_sim/KELLY_GAME_README.md](kelly_sim/KELLY_GAME_README.md) for comprehensive documentation.
 
 **What is the Kelly Criterion?**
 ```

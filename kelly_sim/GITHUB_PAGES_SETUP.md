@@ -2,23 +2,20 @@
 
 This guide will help you deploy the Kelly Criterion game to GitHub Pages so you can play it from any device with a simple URL.
 
+## Repository Layout
+
+The web app lives in the `kelly_sim/` folder. A lightweight `index.html` at the repository root redirects to `kelly_sim/kelly_game.html`, so the GitHub Pages URL below works out of the box without any extra configuration.
+
 ## Quick Setup (5 minutes)
 
 ### Step 1: Merge to Main Branch
 
-Since the code is currently on a `claude/` branch, you need to merge it to your main branch:
+If your changes are on a feature branch (for example, `claude/...`), merge them into `main` first:
 
 1. Go to your GitHub repository: https://github.com/ZeNoonan/Research
-2. Click on **"Pull requests"** tab
-3. Click **"New pull request"**
-4. Set:
-   - **Base branch**: `main` (or `master`)
-   - **Compare branch**: `claude/claude-md-mkpygsdlfw9patex-qULHg`
-5. Click **"Create pull request"**
-6. Add a title like: "Add Kelly Criterion Game"
-7. Click **"Create pull request"** again
-8. Click **"Merge pull request"**
-9. Click **"Confirm merge"**
+2. Open the **"Pull requests"** tab and click **"New pull request"**
+3. Set the base branch to `main` and the compare branch to your feature branch
+4. Create and merge the pull request
 
 **Note:** If `main` branch doesn't exist, GitHub will create it automatically when you merge.
 
@@ -44,26 +41,9 @@ Once deployed, visit:
 https://zenoonan.github.io/Research/
 ```
 
-The `index.html` will automatically redirect to the game, or you can directly access:
+The root `index.html` redirects to the game, or you can go directly to:
 ```
-https://zenoonan.github.io/Research/kelly_game.html
-```
-
----
-
-## Alternative: Deploy from Claude Branch Directly
-
-If you want to deploy directly from the current branch without merging:
-
-1. Go to **Settings** → **Pages**
-2. Under **"Source"**, select:
-   - **Branch**: `claude/claude-md-mkpygsdlfw9patex-qULHg`
-   - **Folder**: `/ (root)`
-3. Click **"Save"**
-
-**URL will be the same:**
-```
-https://zenoonan.github.io/Research/
+https://zenoonan.github.io/Research/kelly_sim/kelly_game.html
 ```
 
 ---
@@ -76,7 +56,7 @@ https://zenoonan.github.io/Research/
 
 ### "404 - Page not found"
 - Wait a few more minutes for deployment to complete
-- Check that `index.html` and `kelly_game.html` are in the repository root
+- Check that the root `index.html` and `kelly_sim/kelly_game.html` are committed
 - Refresh the GitHub Pages settings page to see deployment status
 
 ### "Site not updating"
@@ -95,8 +75,9 @@ If you want a custom domain like `kelly.yourdomain.com`:
 ## Files Included
 
 Your repository now includes:
-- ✅ `index.html` - Landing page (auto-redirects to game)
-- ✅ `kelly_game.html` - Main game application
+- ✅ `index.html` - Root landing page (auto-redirects to the game)
+- ✅ `kelly_sim/index.html` - Folder-level landing page
+- ✅ `kelly_sim/kelly_game.html` - Main game application
 - ✅ All supporting documentation (README, guides, etc.)
 
 ---
@@ -105,7 +86,7 @@ Your repository now includes:
 
 Once deployed, share your game URL with anyone:
 - **Main URL**: `https://zenoonan.github.io/Research/`
-- **Direct link**: `https://zenoonan.github.io/Research/kelly_game.html`
+- **Direct link**: `https://zenoonan.github.io/Research/kelly_sim/kelly_game.html`
 
 Anyone with the link can play on:
 - 📱 Mobile phones (iOS/Android)
