@@ -93,3 +93,6 @@ ENV/
 experiments/results/*.tmp
 scratch/
 temp_data/
+
+# Browser automation session state (rodney)
+.rodney/
