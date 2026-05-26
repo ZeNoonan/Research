@@ -223,17 +223,18 @@ with tab_progress:
         "##### Table — rows are teams (in final adjusted order), "
         "columns are the 38 games"
     )
+    styled_matrix = (
+        matrix.style.background_gradient(cmap="RdYlGn", axis=0).format("{:.0f}")
+    )
     st.dataframe(
-        matrix.reset_index(),
-        hide_index=True,
+        styled_matrix,
         use_container_width=True,
         height=740,
-        column_config={
-            col: st.column_config.NumberColumn(format="%.2f") for col in matrix.columns
-        },
     )
 
     st.markdown("##### Trend — every team's cumulative adjusted points")
+    st.caption("Click a team in the legend to highlight its line (shift-click for several).")
+    highlight = alt.selection_point(fields=["team"], bind="legend")
     trend_df = games[["team", "match_no", "cum_adjusted_points"]].copy()
     trend = (
         alt.Chart(trend_df)
@@ -246,13 +247,15 @@ with tab_progress:
             ),
             y=alt.Y("cum_adjusted_points:Q", title="Cumulative adjusted points"),
             color=alt.Color("team:N", title="Team", sort=team_order),
+            opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.12)),
+            strokeWidth=alt.condition(highlight, alt.value(3.5), alt.value(1.0)),
             tooltip=[
                 alt.Tooltip("team:N", title="Team"),
                 alt.Tooltip("match_no:Q", title="Game"),
                 alt.Tooltip("cum_adjusted_points:Q", title="Adj pts", format=".2f"),
             ],
         )
+        .add_params(highlight)
         .properties(height=600)
-        .interactive()
     )
     st.altair_chart(trend, use_container_width=True)
