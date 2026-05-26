@@ -21,7 +21,9 @@ st.caption(
     f"{GAMES_PER_SEASON} games (handicap ÷ {GAMES_PER_SEASON} per game)."
 )
 
-tab_table, tab_games = st.tabs(["Adjusted league table", "Game-by-game"])
+tab_table, tab_games, tab_progress = st.tabs(
+    ["Adjusted league table", "Game-by-game", "Season progression"]
+)
 
 # --- Adjusted league table ------------------------------------------------
 with tab_table:
@@ -203,3 +205,54 @@ with tab_games:
         .properties(height=380)
     )
     st.altair_chart(line, use_container_width=True)
+
+# --- Season progression ----------------------------------------------------
+with tab_progress:
+    st.subheader("Cumulative adjusted points after each game")
+
+    team_order = standings["team"].tolist()
+
+    matrix = (
+        games.pivot(index="team", columns="match_no", values="cum_adjusted_points")
+        .reindex(team_order)
+    )
+    matrix.columns = [f"G{c}" for c in matrix.columns]
+    matrix.index.name = "Team"
+
+    st.markdown(
+        "##### Table — rows are teams (in final adjusted order), "
+        "columns are the 38 games"
+    )
+    st.dataframe(
+        matrix.reset_index(),
+        hide_index=True,
+        use_container_width=True,
+        height=740,
+        column_config={
+            col: st.column_config.NumberColumn(format="%.2f") for col in matrix.columns
+        },
+    )
+
+    st.markdown("##### Trend — every team's cumulative adjusted points")
+    trend_df = games[["team", "match_no", "cum_adjusted_points"]].copy()
+    trend = (
+        alt.Chart(trend_df)
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "match_no:Q",
+                title="Game number",
+                scale=alt.Scale(domain=[1, GAMES_PER_SEASON]),
+            ),
+            y=alt.Y("cum_adjusted_points:Q", title="Cumulative adjusted points"),
+            color=alt.Color("team:N", title="Team", sort=team_order),
+            tooltip=[
+                alt.Tooltip("team:N", title="Team"),
+                alt.Tooltip("match_no:Q", title="Game"),
+                alt.Tooltip("cum_adjusted_points:Q", title="Adj pts", format=".2f"),
+            ],
+        )
+        .properties(height=600)
+        .interactive()
+    )
+    st.altair_chart(trend, use_container_width=True)
