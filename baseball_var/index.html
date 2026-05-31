@@ -165,6 +165,26 @@
   .note{font-size:13px;color:var(--gray);background:#fffbe8;border:1px solid #efe4b0;border-radius:8px;padding:10px 12px;margin:10px 0}
   .prose{font-size:14px}
   .prose p{margin:8px 0}
+
+  /* glossary */
+  .gloss-group{margin:16px 0}
+  .gloss-group h3{
+    font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--dirt);
+    margin:0 0 4px;border-bottom:1px solid var(--line);padding-bottom:5px;
+  }
+  .gloss-group .ghint{font-size:12px;color:var(--gray);margin:0 0 8px}
+  .gentry{padding:9px 0;border-bottom:1px solid #efece3}
+  .gentry:last-child{border-bottom:none}
+  .gterm{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .gterm b{
+    background:var(--green);color:#fff;font-size:13px;padding:2px 9px;border-radius:6px;
+    font-variant-numeric:tabular-nums;flex:none;
+  }
+  .gterm span{font-weight:700;font-size:14px;color:var(--ink)}
+  .gentry p{margin:5px 0 0;font-size:13.5px;color:#3a4039}
+  .gentry p em{color:var(--green2);font-style:normal;font-weight:600}
+  .g-input .gterm b{background:var(--blue)}
+  .g-model .gterm b{background:var(--dirt)}
   footer{text-align:center;font-size:12px;color:var(--gray);padding:10px 16px 30px}
   a{color:var(--blue)}
 </style>
@@ -186,6 +206,91 @@
       <p><strong>This won't be comparable to big-league WAR.</strong> A regular MLB player gets ~10× the plate appearances, so their WAR is ~10× bigger. Look at WAR per game or per PA instead. And no stat ports cleanly — hitting .300 in Little League ≠ ready to hit .300 for the Dodgers.</p>
       <p><strong>It's fuzzy.</strong> Even over a full MLB career, Baseball Reference and FanGraphs disagree. With one Little League season and the issues above, reasonable people will get very different numbers.</p>
       <p>The point is to learn the math — not to rate kids who should be playing for fun. Change a weight, watch a kid's WAR move, and ask <em>why</em>.</p>
+    </div>
+  </section>
+
+  <!-- GLOSSARY -->
+  <section>
+    <button class="sec-head collapsed" data-toggle><span>🔤 Glossary (plain English)</span><span class="chev">▾</span></button>
+    <div class="sec-body">
+      <p class="sub">Never watched baseball? Start here. Every abbreviation on this site, what it stands for, and — more importantly — what it actually <em>is</em>.</p>
+
+      <div class="gloss-group g-input">
+        <h3>Stats you type in (straight from GameChanger)</h3>
+        <p class="ghint">These describe what a kid did at bat or on the mound.</p>
+        <div class="gentry"><div class="gterm"><b>PA</b><span>Plate Appearance</span></div>
+          <p>One turn at bat. Every time the kid steps up to face the pitcher, that's one PA — whether it ends in a hit, a walk, or an out. It's the basic "how many chances did they get" count.</p></div>
+        <div class="gentry"><div class="gterm"><b>1B</b><span>Single</span></div>
+          <p>A hit where the batter reaches <em>first</em> base safely. The most common kind of hit.</p></div>
+        <div class="gentry"><div class="gterm"><b>2B</b><span>Double</span></div>
+          <p>A hit good enough to reach <em>second</em> base in one go. Better than a single.</p></div>
+        <div class="gentry"><div class="gterm"><b>3B</b><span>Triple</span></div>
+          <p>A hit good enough to reach <em>third</em> base. Rare and exciting — usually needs real speed.</p></div>
+        <div class="gentry"><div class="gterm"><b>HR</b><span>Home Run</span></div>
+          <p>The best outcome: the batter rounds <em>all</em> the bases and scores, normally by hitting the ball out of the park. An automatic run.</p></div>
+        <div class="gentry"><div class="gterm"><b>BB+HBP</b><span>Walk + Hit By Pitch</span></div>
+          <p>Two ways to reach first base <em>without</em> hitting the ball. A <em>walk</em> (BB, "base on balls") is when the pitcher throws four bad pitches, so the batter gets first base free. <em>Hit by pitch</em> (HBP) is exactly that — the pitch hits the batter, who also gets first base. We lump them together.</p></div>
+        <div class="gentry"><div class="gterm"><b>SB</b><span>Stolen Base</span></div>
+          <p>A runner already on base sprints to the next base on their own — no hit needed — and makes it safely. Risky but valuable.</p></div>
+        <div class="gentry"><div class="gterm"><b>CS</b><span>Caught Stealing</span></div>
+          <p>The runner <em>tried</em> to steal a base but got tagged out. A failed steal — it costs the team, so the model gives it a negative value.</p></div>
+        <div class="gentry"><div class="gterm"><b>Out</b><span>Out</span></div>
+          <p>A turn at bat that didn't reach base (struck out, caught, thrown out, etc.). The site works this out for you: PA minus all the times they reached base.</p></div>
+        <div class="gentry"><div class="gterm"><b>IP</b><span>Innings Pitched</span></div>
+          <p>How many innings the kid spent <em>pitching</em> (throwing to the other team's batters). Only matters for pitchers; leave it 0 for everyone else.</p></div>
+        <div class="gentry"><div class="gterm"><b>R</b><span>Runs Allowed</span></div>
+          <p>While this kid was pitching, how many runs the <em>other</em> team scored. Fewer is better — it's the main measure of how well someone pitched.</p></div>
+      </div>
+
+      <div class="gloss-group">
+        <h3>Positions (where they stand on the field)</h3>
+        <p class="ghint">Some spots are much harder than others, so the model hands out a bonus or penalty for each — see "Position runs" below.</p>
+        <div class="gentry"><div class="gterm"><b>P</b><span>Pitcher</span></div>
+          <p>Throws the ball to the batter to start every play. The most important defensive job.</p></div>
+        <div class="gentry"><div class="gterm"><b>C</b><span>Catcher</span></div>
+          <p>Crouches behind home plate and catches every pitch the batter doesn't hit. Physically brutal and skill-heavy — gets the <em>biggest</em> position bonus.</p></div>
+        <div class="gentry"><div class="gterm"><b>1B / 2B / 3B</b><span>First / Second / Third Base</span></div>
+          <p>The three "corners and middle" infield spots, named after the base they guard. First base is the easiest (small bonus or penalty); second and third are tougher.</p></div>
+        <div class="gentry"><div class="gterm"><b>SS</b><span>Shortstop</span></div>
+          <p>Fields the area between second and third base. Lots of action and long throws — one of the hardest spots, so it earns a healthy bonus.</p></div>
+        <div class="gentry"><div class="gterm"><b>LF / CF / RF</b><span>Left / Center / Right Field</span></div>
+          <p>The three outfielders, standing far back to chase long hits. Center field covers the most ground (a bonus); the corners are easier (a small penalty).</p></div>
+        <div class="gentry"><div class="gterm"><b>DH</b><span>Designated Hitter</span></div>
+          <p>A player who <em>only</em> bats and never fields. Because they skip the hard part, the model subtracts the most runs from them.</p></div>
+      </div>
+
+      <div class="gloss-group g-model">
+        <h3>The model's terms (what the math builds)</h3>
+        <p class="ghint">These are the outputs and the ideas behind them — the stuff the gray boxes calculate.</p>
+        <div class="gentry"><div class="gterm"><b>WAR</b><span>Wins Above Replacement</span></div>
+          <p>The headline number. Roughly: <em>how many extra wins did this kid give the team</em> compared with a freely-available, below-average fill-in player. Bigger = more valuable. A 0.0 means "about as good as a spare-part player."</p></div>
+        <div class="gentry"><div class="gterm"><b>WAA</b><span>Wins Above Average</span></div>
+          <p>The same idea, but measured against an <em>average</em> player instead of a replacement-level one. A tougher bar, so the numbers come out lower.</p></div>
+        <div class="gentry"><div class="gterm"><b>RAR</b><span>Runs Above Replacement</span></div>
+          <p>WAR's twin, but counted in <em>runs</em> instead of wins. We total up every run the kid created at bat and saved while pitching (beyond a replacement player), then convert runs → wins to get WAR.</p></div>
+        <div class="gentry"><div class="gterm"><b>RPW</b><span>Runs Per Win</span></div>
+          <p>The exchange rate between runs and wins — about 17 runs ≈ 1 win here. Little League is high-scoring, so it takes a lot of runs to "buy" one win. Dividing RAR by RPW gives WAR.</p></div>
+        <div class="gentry"><div class="gterm"><b>Linear weights</b><span>Run values</span></div>
+          <p>A simple points system: each good thing (single, walk, home run…) is worth a set number of runs, and each out costs runs. Add them all up and you've valued a hitter in runs.</p></div>
+        <div class="gentry"><div class="gterm"><b>BatRuns</b><span>Batting Runs</span></div>
+          <p>The total run value of everything the kid did at the plate, using those linear weights. Pure offense, before comparing to anyone.</p></div>
+        <div class="gentry"><div class="gterm"><b>Baseline</b><span>The average bar</span></div>
+          <p>The average runs-per-turn for <em>this roster</em> — the line everyone is measured against. There's one baseline for hitting and one for pitching.</p></div>
+        <div class="gentry"><div class="gterm"><b>BatRAB</b><span>Batting Runs Above Baseline</span></div>
+          <p>How many runs better (or worse) than the team's average hitter. Positive = above average bat, negative = below.</p></div>
+        <div class="gentry"><div class="gterm"><b>PosRuns</b><span>Position Runs</span></div>
+          <p>A fairness adjustment for how hard the kid's position is. Catchers and shortstops get runs <em>added</em>; first basemen and DHs get runs <em>subtracted</em> — because the same bat is worth more from a tough position.</p></div>
+        <div class="gentry"><div class="gterm"><b>PitchRAB</b><span>Pitching Runs Above Baseline</span></div>
+          <p>For pitchers only: how many runs they saved compared with a baseline pitcher. Allow <em>fewer</em> runs than expected and this is positive.</p></div>
+        <div class="gentry"><div class="gterm"><b>Replacement gap</b><span>The "spare-part" penalty</span></div>
+          <p>How much worse a replacement fill-in is than average. We add a little of this when setting the bar, so "replacement level" sits below average. Hitting and pitching have their own gaps.</p></div>
+        <div class="gentry"><div class="gterm"><b>Full-season PA</b><span>A full season's at-bats</span></div>
+          <p>How many plate appearances count as a "whole season." Used to scale the position bonus so a kid who played half a season gets half the position credit.</p></div>
+        <div class="gentry"><div class="gterm"><b>Pythag</b><span>Pythagorean exponent</span></div>
+          <p>A number from a famous baseball formula (by Bill James) that links runs to win percentage — named because it resembles the Pythagorean theorem. It quietly sets the runs-per-win exchange rate above.</p></div>
+      </div>
+
+      <p class="note">🎨 Badge colours match the rest of the site: <span style="color:var(--blue);font-weight:700">blue</span> = numbers you type in, <span style="color:var(--green);font-weight:700">green</span> = positions, <span style="color:var(--dirt);font-weight:700">brown</span> = things the model calculates.</p>
     </div>
   </section>
 

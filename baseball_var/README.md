@@ -10,7 +10,7 @@ The goal is to **teach the math**, not to rate kids who should be playing for fu
 
 | File | What it is |
 |------|------------|
-| `index.html` | The whole interactive site — one self-contained file, no internet needed once loaded. Open it on your phone. |
+| `index.html` | The whole interactive site — one self-contained file, no internet needed once loaded. Open it on your phone. Includes a plain-English **glossary** explaining every abbreviation for non-baseball readers. |
 | `war_model.py` | A Python reference of the same calculations, cell-for-cell with the Excel workbook. Run it to verify the numbers. |
 
 ## View it on your phone
