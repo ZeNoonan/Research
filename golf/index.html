@@ -354,13 +354,25 @@ function renderForm(filter) {
   thead.innerHTML = "<tr><th class='player'>Player</th>" +
     EVENTS.map(e => `<th>${e}</th>`).join("") + "</tr>";
   const q = (filter || "").trim().toLowerCase();
-  const rows = FORM.filter(r => !q || r[0].toLowerCase().includes(q));
+  const rows = sortedForm().filter(r => !q || r[0].toLowerCase().includes(q));
   tbody.innerHTML = rows.map(r => {
+    const rank = cutRank.get(r[0]);
+    const rankCell = rank ? `<small style="color:var(--muted);font-weight:400;">#${rank} · </small>` : "";
     const cells = r.slice(1).map(v => `<td class="${cellClass(v)}">${v}</td>`).join("");
-    return `<tr><td class="player">${r[0]}</td>${cells}</tr>`;
+    return `<tr><td class="player">${rankCell}${r[0]}</td>${cells}</tr>`;
   }).join("");
   document.getElementById("count").textContent =
-    `${rows.length} of ${FORM.length} players`;
+    `${rows.length} of ${FORM.length} players · sorted by cut% rank`;
+}
+
+const cutRank = new Map(CUT.map(r => [r[1], r[0]]));
+function sortedForm() {
+  return [...FORM].sort((a, b) => {
+    const ra = cutRank.get(a[0]) ?? Infinity;
+    const rb = cutRank.get(b[0]) ?? Infinity;
+    if (ra !== rb) return ra - rb;
+    return a[0].localeCompare(b[0]);
+  });
 }
 
 function renderCut() {
