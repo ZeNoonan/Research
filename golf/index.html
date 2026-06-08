@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shinnecock Hills 2026 — Form Tables</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --ink: #1b1b1f;
+    --muted: #5b6470;
+    --border: #e3e5ea;
+    --green-bg: #e3f4e3;
+    --green-fg: #1b5e20;
+    --red-bg: #fde2e2;
+    --red-fg: #8b1a1a;
+    --grey-bg: #eceff1;
+    --grey-fg: #607d8b;
+    --amber-bg: #fff8e1;
+    --amber-fg: #9e7700;
+    --accent: #2e5a87;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  header {
+    background: linear-gradient(135deg, #1f3a5f 0%, #2e5a87 100%);
+    color: #fff;
+    padding: 28px 20px;
+  }
+  header h1 {
+    margin: 0 0 8px 0;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    margin: 0;
+    opacity: 0.92;
+    font-size: 14px;
+    max-width: 900px;
+  }
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 18px 22px;
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin: 0 0 6px 0;
+    font-size: 17px;
+  }
+  section .lede {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 14px 0;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 8px;
+    font-size: 12px;
+  }
+  .legend span {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 10px 0 14px;
+  }
+  .controls input {
+    flex: 1;
+    max-width: 320px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .controls input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  .controls .count {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 7px 9px;
+    text-align: center;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: #f1f3f6;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  td.player, th.player {
+    text-align: left;
+    font-weight: 600;
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 2;
+    box-shadow: 1px 0 0 var(--border);
+  }
+  th.player { background: #f1f3f6; z-index: 3; }
+  tbody tr:hover td { background: #fafbfd; }
+  tbody tr:hover td.player { background: #fafbfd; }
+
+  .cell-top { background: var(--green-bg); color: var(--green-fg); font-weight: 700; }
+  .cell-mc  { background: var(--red-bg);   color: var(--red-fg);   font-weight: 600; }
+  .cell-nif { background: var(--grey-bg);  color: var(--grey-fg); }
+  .cell-q   { background: var(--amber-bg); color: var(--amber-fg); }
+
+  .bar {
+    position: relative;
+    height: 18px;
+    background: #eef1f5;
+    border-radius: 4px;
+    min-width: 90px;
+    overflow: hidden;
+  }
+  .bar > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(90deg, #4f8acb, #2e5a87);
+    border-radius: 4px;
+  }
+  .bar > em {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+  }
+  .footnote {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 24px 16px 40px;
+  }
+  @media (max-width: 640px) {
+    header h1 { font-size: 18px; }
+    header p  { font-size: 13px; }
+    section h2 { font-size: 15px; }
+    th, td { padding: 6px 7px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Shinnecock Hills 2026 — Architectural Proxy Form Table</h1>
+  <p>Twelve proxy events covering the closest architectural fits to Flynn-designed Shinnecock: three Open Championships (links), three Genesis Scottish Opens at Renaissance Club (Doak links), three Pebble Beach Pro-Ams (Golden Age coastal), and the three most recent US Opens (LACC = George Thomas Golden Age, Pinehurst No. 2 = crowned-greens analog, Oakmont = US Open setup).</p>
+</header>
+
+<main>
+  <section>
+    <h2>Form Table (50 × 12)</h2>
+    <p class="lede">Position number = made cut. <strong>MC</strong> = missed cut. <strong>NIF</strong> = not in field. <strong>?</strong> = unverified (mostly LIV golfers in non-major weeks, or rookies pre-promotion).</p>
+    <div class="legend">
+      <span class="cell-top">Top 10</span>
+      <span class="cell-mc">MC</span>
+      <span class="cell-nif">NIF</span>
+      <span class="cell-q">?</span>
+    </div>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search player…" autocomplete="off">
+      <span class="count" id="count"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="form-table"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cut% Leaderboard (min 5 verified events)</h2>
+    <p class="lede">Ranked by cut%, then made-cut count, then top-10s as tiebreaker. LIV golfers excluded from most non-major events, so verified-event counts vary.</p>
+    <div class="table-wrap">
+      <table id="cut-table"><thead></thead><tbody></tbody></table>
+    </div>
+    <p class="footnote">Excluded for &lt;5 verified events: Gotterup (4), Reed (4), Knapp (3), Penge (4), Bridgeman (2), DJ (4).</p>
+    <p class="footnote">Gotterup looks better than 4 verified events implies — his record is 3-1-T23-T37 across his four entries, including a Scottish Open win and Open Championship third place. Tiny sample, but every one of those is at a Shinnecock-style proxy.</p>
+  </section>
+</main>
+
+<footer>Built from <code>data/shinnecock_form_tables.md</code> · view source on GitHub</footer>
+
+<script>
+const EVENTS = ["23OC","24OC","25OC","23Sc","24Sc","25Sc","23US","24US","25US","24PB","25PB","26PB"];
+
+const FORM = [
+  ["Scheffler","T23","T7","1","T3","?","T8","3","T41","T8","T4","T10","T4"],
+  ["McIlroy","T6","MC","T7","1","T4","T2","2","2","T19","NIF","1","T14"],
+  ["DeChambeau","T60","MC","T10","NIF","NIF","NIF","T20","1","T13","NIF","NIF","NIF"],
+  ["Rahm","T2","T7","T34","NIF","NIF","NIF","T10","MC","T8","NIF","NIF","NIF"],
+  ["C.Young","T8","T31","MC","?","?","?","T32","T67","T4","70","?","55"],
+  ["Schauffele","T17","1","T7","T42","T15","T8","T10","T7","T13","T54","T19","T19"],
+  ["Aberg","NIF","MC","T23","MC","T4","T8","NIF","T12","MC","2","?","T37"],
+  ["Fitzpatrick","T41","T50","T4","?","T39","T4","T17","T64","T38","T11","MC","T14"],
+  ["Morikawa","MC","T16","MC","?","T4","?","T14","T14","T23","T14","T17","1"],
+  ["J.Thomas","MC","T31","T34","60","T62","T22","MC","MC","MC","T6","T48","?"],
+  ["Fleetwood","T10","MC","T16","T6","T34","T34","T5","T16","MC","T31","T22","T4"],
+  ["Rose","MC","T2","T16","MC","?","6","MC","MC","MC","T11","T3","T37"],
+  ["Koepka","T64","T43","MC","NIF","NIF","NIF","T17","T26","T13","NIF","NIF","NIF"],
+  ["Gotterup","NIF","NIF","3","NIF","NIF","1","NIF","NIF","T23","NIF","NIF","T37"],
+  ["Hovland","T13","MC","T63","T25","T46","T11","19","MC","3","T58","?","T58"],
+  ["Matsuyama","T13","T66","T16","?","MC","?","T32","6","T42","T71","?","T8"],
+  ["Niemann","MC","T58","MC","NIF","NIF","NIF","T32","MC","MC","NIF","NIF","NIF"],
+  ["Cantlay","T33","T25","MC","MC","?","?","T14","T3","MC","T11","T33","T14"],
+  ["Hatton","T20","MC","T16","T6","?","?","T27","T26","T4","?","?","?"],
+  ["Griffin","MC","MC","MC","T25","T39","?","MC","MC","T10","T58","?","T37"],
+  ["Conners","T52","T25","T10","T19","T10","T47","MC","T9","MC","T31","T47","70"],
+  ["Reed","T33","NIF","MC","NIF","NIF","NIF","T56","NIF","T23","NIF","NIF","NIF"],
+  ["Henley","MC","5","T10","?","?","?","T14","T7","T10","T11","T5","T19"],
+  ["Burns","MC","T31","T45","T19","?","T47","T32","T9","T4","10","T22","T6"],
+  ["Lowry","MC","6","T40","T12","?","?","T20","T19","MC","T58","2","T8"],
+  ["Spieth","T23","T25","T40","?","?","?","MC","T41","T23","T39","?","T29"],
+  ["MacIntyre","T71","T50","T7","2","1","T65","?","?","2","T31","T40","T37"],
+  ["Straka","T2","T22","T52","?","MC","7","MC","T56","MC","T26","T7","T2"],
+  ["SW Kim","MC","T43","MC","?","T26","T34","T39","T32","T42","T14","12","T45"],
+  ["Knapp","NIF","NIF","NIF","NIF","NIF","T22","NIF","NIF","NIF","?","T33","T8"],
+  ["Bhatia","NIF","MC","T30","NIF","NIF","?","NIF","T16","?","T22","T22","T6"],
+  ["C.Smith","T33","MC","MC","NIF","NIF","NIF","4","T32","NIF","NIF","NIF","NIF"],
+  ["Berger","NIF","NIF","T30","NIF","NIF","T55","NIF","T21","T46","?","?","75"],
+  ["Day","T2","T13","MC","?","?","?","MC","T6","T23","T6","T13","T24"],
+  ["Penge","MC","NIF","MC","NIF","NIF","T2","NIF","NIF","NIF","NIF","NIF","64"],
+  ["Homa","T10","T43","NIF","T12","T70","NIF","MC","MC","NIF","T66","?","?"],
+  ["Im","T20","T7","T52","?","T4","?","MC","MC","T57","T66","T33","?"],
+  ["Woodland","T55","T50","?","T25","T67","T60","T49","?","?","?","?","?"],
+  ["Spaun","NIF","NIF","T23","NIF","NIF","?","NIF","NIF","1","T54","T33","T45"],
+  ["Bridgeman","NIF","NIF","NIF","NIF","NIF","T75","NIF","NIF","NIF","NIF","?","T8"],
+  ["McNealy","NIF","MC","T23","NIF","?","T22","NIF","NIF","37","T39","?","T29"],
+  ["MW Lee","T41","MC","MC","T35","73","?","T5","T21","?","?","T17","T2"],
+  ["Clark","T33","MC","T4","T25","T10","T11","1","T56","?","1","T69","T58"],
+  ["Scott","T33","T10","MC","MC","2","T17","MC","T32","T10","T20","?","?"],
+  ["Harman","1","T60","T10","T12","T21","T50","T43","T21","T59","?","T40","T19"],
+  ["Bradley","MC","MC","T30","?","?","?","MC","T32","T33","T8","?","T29"],
+  ["English","MC","T50","2","?","T34","T22","T8","T41","T59","76","?","T24"],
+  ["DJ","MC","T31","T23","NIF","NIF","NIF","T10","NIF","NIF","NIF","NIF","NIF"],
+  ["Rai","NIF","T75","T34","MC","T4","T47","NIF","T19","T33","?","T40","T73"],
+  ["Fowler","T23","71","T14","T42","?","?","T5","?","?","T47","?","T19"]
+];
+
+const CUT = [
+  [1,"Schauffele",12,12,100.0,5,10],
+  [2,"Scheffler",11,11,100.0,9,10],
+  [3,"Harman",11,11,100.0,2,6],
+  [4,"MacIntyre",10,10,100.0,4,4],
+  [5,"Fowler",7,7,100.0,1,4],
+  [6,"Woodland",6,6,100.0,0,1],
+  [7,"Spaun",5,5,100.0,1,2],
+  [8,"Berger",5,5,100.0,0,1],
+  [9,"McIlroy",10,11,90.9,8,10],
+  [10,"Burns",10,11,90.9,4,6],
+  [11,"Clark",10,11,90.9,4,6],
+  [12,"Fitzpatrick",10,11,90.9,2,5],
+  [13,"English",9,10,90.0,2,4],
+  [14,"Henley",8,9,88.9,5,8],
+  [15,"Matsuyama",8,9,88.9,2,4],
+  [16,"Rai",8,9,88.9,1,2],
+  [17,"C.Young",7,8,87.5,2,2],
+  [18,"Spieth",7,8,87.5,0,3],
+  [19,"Hatton",6,7,85.7,2,4],
+  [20,"Fleetwood",10,12,83.3,4,7],
+  [21,"Conners",10,12,83.3,3,5],
+  [22,"Rahm",5,6,83.3,4,4],
+  [23,"DeChambeau",5,6,83.3,2,4],
+  [24,"Bhatia",5,6,83.3,1,4],
+  [25,"Koepka",5,6,83.3,0,2],
+  [26,"McNealy",5,6,83.3,0,2],
+  [27,"Hovland",9,11,81.8,1,5],
+  [28,"SW Kim",9,11,81.8,0,2],
+  [29,"Lowry",8,10,80.0,3,6],
+  [30,"Morikawa",8,10,80.0,2,8],
+  [31,"Day",7,9,77.8,3,7],
+  [32,"Im",7,9,77.8,2,3],
+  [33,"MW Lee",7,9,77.8,2,4],
+  [34,"Straka",8,11,72.7,4,5],
+  [35,"Homa",5,7,71.4,1,2],
+  [36,"Scott",7,10,70.0,3,5],
+  [37,"Cantlay",7,10,70.0,1,5],
+  [38,"Aberg",6,9,66.7,3,5],
+  [39,"J.Thomas",7,11,63.6,1,2],
+  [40,"Bradley",5,8,62.5,1,1],
+  [41,"C.Smith",3,5,60.0,1,1],
+  [42,"Rose",6,11,54.5,3,5],
+  [43,"Griffin",5,10,50.0,1,2],
+  [44,"Niemann",2,6,33.3,0,0]
+];
+
+function cellClass(val) {
+  if (val === "MC") return "cell-mc";
+  if (val === "NIF") return "cell-nif";
+  if (val === "?") return "cell-q";
+  if (val === "1") return "cell-top";
+  if (val.startsWith("T")) {
+    const n = parseInt(val.slice(1), 10);
+    if (!isNaN(n) && n <= 10) return "cell-top";
+  }
+  const n = parseInt(val, 10);
+  if (!isNaN(n) && String(n) === val && n <= 10) return "cell-top";
+  return "";
+}
+
+function renderForm(filter) {
+  const thead = document.querySelector("#form-table thead");
+  const tbody = document.querySelector("#form-table tbody");
+  thead.innerHTML = "<tr><th class='player'>Player</th>" +
+    EVENTS.map(e => `<th>${e}</th>`).join("") + "</tr>";
+  const q = (filter || "").trim().toLowerCase();
+  const rows = FORM.filter(r => !q || r[0].toLowerCase().includes(q));
+  tbody.innerHTML = rows.map(r => {
+    const cells = r.slice(1).map(v => `<td class="${cellClass(v)}">${v}</td>`).join("");
+    return `<tr><td class="player">${r[0]}</td>${cells}</tr>`;
+  }).join("");
+  document.getElementById("count").textContent =
+    `${rows.length} of ${FORM.length} players`;
+}
+
+function renderCut() {
+  const thead = document.querySelector("#cut-table thead");
+  const tbody = document.querySelector("#cut-table tbody");
+  const cols = ["#","Player","Made","Played","Cut%","Top-10","Top-25"];
+  thead.innerHTML = "<tr>" + cols.map(c => `<th>${c}</th>`).join("") + "</tr>";
+  tbody.innerHTML = CUT.map(r => {
+    const pct = r[4];
+    const bar = `<div class="bar"><span style="width:${pct}%"></span><em>${pct.toFixed(1)}%</em></div>`;
+    return `<tr>
+      <td>${r[0]}</td>
+      <td class="player">${r[1]}</td>
+      <td>${r[2]}</td>
+      <td>${r[3]}</td>
+      <td>${bar}</td>
+      <td>${r[5]}</td>
+      <td>${r[6]}</td>
+    </tr>`;
+  }).join("");
+}
+
+document.getElementById("search").addEventListener("input", e => renderForm(e.target.value));
+renderForm("");
+renderCut();
+</script>
+</body>
+</html>

@@ -7,6 +7,7 @@ Workspace for golf form and course-fit research.
 ```
 golf/
 ├── app.py                          # Streamlit viewer for the form tables
+├── index.html                      # Static viewer (GitHub Pages-friendly)
 ├── requirements.txt                # Python dependencies
 ├── data/
 │   └── shinnecock_form_tables.md   # Shinnecock Hills 2026 proxy form data
@@ -23,13 +24,22 @@ US Opens):
 - **Form Table (50 × 12)** — finishing position per player per proxy event.
 - **Cut% Leaderboard** — made-cut rate ranked among players with 5+ verified events.
 
-## Running the viewer
+## Viewing the data
+
+### Static page (mobile-friendly, no install)
+
+Open `golf/index.html` in any browser. It's a self-contained page — no build,
+no server, no Python — so it also works on GitHub Pages at
+`https://<user>.github.io/Research/golf/`.
+
+Includes a player search, colour-coded results (top-10s green, missed cuts
+red, NIF grey, unverified amber), and a progress-bar cut% leaderboard.
+
+### Streamlit app
 
 ```bash
 pip install -r golf/requirements.txt
 streamlit run golf/app.py
 ```
 
-The app renders the narrative, an interactive/searchable form table with
-results colour-coded (top-10s green, missed cuts red), and the cut% leaderboard
-with a progress-bar column.
+Same data and styling, with Streamlit's interactive dataframes.
