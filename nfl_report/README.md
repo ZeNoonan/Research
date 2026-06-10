@@ -98,6 +98,8 @@ nfl_report/
 ├── model.py           # the five-factor engine (the system logic)
 ├── validate.py        # rebuild columns and compare to the published reports
 ├── app.py             # Streamlit viewer for the replicated reports
+├── build_site.py      # data CSVs -> index.html (static mobile-friendly report)
+├── index.html         # generated web view of the analysis (works on phones)
 ├── data/
 │   ├── report_2015.csv
 │   └── report_2016.csv
@@ -108,6 +110,18 @@ nfl_report/
     └── Wilmott_NFL_Article.docx   # the published article
 ```
 
+## View on a phone
+
+`index.html` is a self-contained, mobile-friendly page with the season
+summaries, cumulative-profit charts and the full game-by-game tables. It is
+generated from the data CSVs by `build_site.py` (rerun it after the data
+changes).
+
+- While this work lives on a feature branch, view it via
+  [raw.githack](https://raw.githack.com/ZeNoonan/Research/claude/laughing-hopper-eujimb/nfl_report/index.html).
+- Once merged into the default branch, the GitHub Pages URL (same setup as
+  `kelly_sim/`) is permanent: <https://zenoonan.github.io/Research/nfl_report/>.
+
 ## Run
 
 ```bash
@@ -115,6 +129,7 @@ pip install -r requirements.txt
 
 python validate.py        # print the replication scorecard above
 python parse_reports.py   # regenerate the CSVs from the PDFs (needs pymupdf)
+python build_site.py      # regenerate index.html, the static web view
 streamlit run app.py      # browse the replicated reports
 ```
 
