@@ -12,17 +12,22 @@ following columns, in order:
 favoured by that many points, positive means the home team is an underdog
 getting that many points.
 
-PDF quirk
----------
-When extracted with PyMuPDF the table is a flat stream of cell tokens. Every
-game is exactly ten numeric cells (Line, two scores, six factor values and the
-System #) optionally followed by a Bet (team name) and Result (``W``/``L``).
-The wrinkle is that the report's two tracking teams, the **Seahawks** and
-**Steelers**, are rendered in a separate text layer: their *team-column*
-occurrences are pulled out of the row and dumped at the foot of each page. So
-games involving those teams have a blank home or away slot, and each page ends
-with a pile of ``Seahawks``/``Steelers`` tokens. We strip that footer pile and,
-where possible, recover the missing name from the Bet column.
+How the parse works
+-------------------
+The numeric cells, the Bet (team name) and the Result (``W``/``L``) are read
+from the flat token stream PyMuPDF produces: every game is exactly ten numeric
+cells (Line, two scores, six factor values and the System #) optionally followed
+by a Bet and Result.
+
+Team names are read separately, from word **coordinates**. The report's two
+tracking teams, the **Seahawks** and **Steelers**, live on a separate text layer
+whose words are emitted out of order in the flat stream (they pile up at the foot
+of each page), which is why a naive linear parse leaves those rows' home/away
+cells blank. But every name keeps its true position, so we group words into rows
+by their y-coordinate and pick the home name from the home column (x ~ 97) and
+the away name from the away column (x ~ 145). This recovers every name except two
+games where the tracking team's word is dropped from the PDF entirely; those two
+are filled from ``STRAGGLERS`` below.
 
 This script only needs to run when regenerating the CSVs; the committed CSVs in
 ``data/`` make the rest of the project self-contained.
@@ -43,6 +48,24 @@ DATE_RE = re.compile(r"^\d{2}-\d{2}-\d{2}$")
 NUMERIC_RE = re.compile(r"^-?\d+(?:\.\d+)?$")
 FOOTER_TEAMS = {"Seahawks", "Steelers"}
 
+# Column x-windows (PDF points) for the team-name cells. Names are left-aligned,
+# so a cell's left edge is stable regardless of name length; the date sits at
+# x ~ 67 and the first numeric column (Line) at x >= ~190, so these windows
+# contain team names only.
+DATE_X = (55, 86)
+HOME_X = (86, 135)
+AWAY_X = (135, 186)
+
+# Two games drop the tracking team's name from the PDF text layer entirely (the
+# word is absent, not merely repositioned). Each is pinned down two ways: the
+# *other* tracking team already appears on that date, and the blank side's power
+# rating continues the remaining team's week-to-week trajectory. Both also match
+# the historical schedule. Keyed by (year, date) -> (side, team).
+STRAGGLERS = {
+    (2016, "16-10-23"): ("home", "Steelers"),   # New England @ Pittsburgh
+    (2015, "15-10-22"): ("away", "Seahawks"),   # Seattle @ San Francisco
+}
+
 COLUMNS = [
     "date", "home", "away", "line", "home_score", "away_score",
     "home_lgt", "home_stdc", "home_power",
@@ -61,6 +84,8 @@ def _is_date(token: str) -> bool:
     return bool(DATE_RE.match(token.split()[0]))
 
 
+# --- numeric / bet / result, from the flat token stream ----------------------
+
 def _page_tokens(page_text: str) -> list[str]:
     """Cell tokens for one page, with header and footer junk removed."""
     tokens = [ln.strip() for ln in page_text.splitlines() if ln.strip()]
@@ -76,44 +101,33 @@ def _page_tokens(page_text: str) -> list[str]:
     return tokens[:end]
 
 
-def _split_date_token(token: str) -> tuple[str, str | None]:
-    """A date cell is either ``YY-MM-DD`` or ``YY-MM-DD HomeTeam``."""
-    parts = token.split(maxsplit=1)
-    date = parts[0]
-    home = parts[1] if len(parts) > 1 else None
-    return date, home
+def _parse_numeric_rows(tokens: list[str]) -> list[dict]:
+    """One dict per game with the numeric fields, system_bet and result.
 
-
-def _parse_games(tokens: list[str]) -> list[dict]:
-    games: list[dict] = []
-    i = 0
-    n = len(tokens)
+    Team names are intentionally ignored here; they come from coordinates. The
+    leading date cell and the optional away-name cell are skipped over.
+    """
+    rows: list[dict] = []
+    i, n = 0, len(tokens)
     while i < n:
-        token = tokens[i]
-        if not _is_date(token):
+        if not _is_date(tokens[i]):
             i += 1
             continue
-
-        date, home = _split_date_token(token)
+        date = tokens[i].split()[0]
         i += 1
 
-        # An away team name sits between the date and the numeric block; if the
-        # next cell is already numeric the away slot was blank (a footer team).
-        away = None
+        # Skip an away-name cell if present (the date cell already carried any
+        # home name); a numeric next cell means the name slot was blank.
         if i < n and not NUMERIC_RE.match(tokens[i]) and not _is_date(tokens[i]):
-            away = tokens[i]
             i += 1
 
-        # Exactly ten numeric cells.
         nums: list[float] = []
         while i < n and len(nums) < 10 and NUMERIC_RE.match(tokens[i]):
             nums.append(float(tokens[i]))
             i += 1
         if len(nums) < 10:
-            # Malformed row; skip what we have and resync on the next date.
-            continue
+            continue  # malformed; resync on the next date
 
-        # Optional Bet (team) and Result (W/L).
         bet = result = None
         if i < n and not NUMERIC_RE.match(tokens[i]) and not _is_date(tokens[i]):
             bet = tokens[i]
@@ -122,30 +136,66 @@ def _parse_games(tokens: list[str]) -> list[dict]:
                 result = tokens[i]
                 i += 1
 
-        row = {"date": date, "home": home, "away": away}
+        row = {"date": date}
         row.update(dict(zip(NUMERIC_FIELDS, nums)))
         row["system_bet"] = bet
         row["result"] = result
-
-        # Recover a blank home/away name from the Bet column when the bet was on
-        # the missing side (the Bet cell keeps its text even when the team cell
-        # was pulled to the footer).
-        if bet:
-            if home is None and row["system_num"] > 0:
-                row["home"] = bet
-            elif away is None and row["system_num"] < 0:
-                row["away"] = bet
-        games.append(row)
-    return games
+        rows.append(row)
+    return rows
 
 
-def parse_report(pdf_path: Path) -> pd.DataFrame:
-    doc = fitz.open(pdf_path)
-    games: list[dict] = []
+# --- team names, from word coordinates ---------------------------------------
+
+def _name_rows(doc: fitz.Document) -> list[dict]:
+    """One dict per game ``{date, home, away}`` in reading order, from positions."""
+    rows: list[dict] = []
     for page in doc:
-        games.extend(_parse_games(_page_tokens(page.get_text())))
+        bands: dict[int, list[tuple[float, str]]] = {}
+        for x0, y0, x1, y1, text, *_ in page.get_text("words"):
+            bands.setdefault(round(y0 / 2) * 2, []).append((x0, text))
+        for y in sorted(bands):
+            cells = bands[y]
+            date = next(
+                (t for x, t in cells if DATE_X[0] <= x <= DATE_X[1] and DATE_RE.match(t)),
+                None,
+            )
+            if not date:
+                continue  # page title / column-header / non-data band
+            home = next((t for x, t in cells if HOME_X[0] < x <= HOME_X[1]), None)
+            away = next((t for x, t in cells if AWAY_X[0] < x <= AWAY_X[1]), None)
+            rows.append({"date": date, "home": home, "away": away})
+    return rows
+
+
+def parse_report(pdf_path: Path, year: int) -> pd.DataFrame:
+    doc = fitz.open(pdf_path)
+    numeric_rows: list[dict] = []
+    for page in doc:
+        numeric_rows.extend(_parse_numeric_rows(_page_tokens(page.get_text())))
+    name_rows = _name_rows(doc)
+
+    if len(numeric_rows) != len(name_rows):
+        raise ValueError(
+            f"{pdf_path.name}: {len(numeric_rows)} numeric rows vs "
+            f"{len(name_rows)} name rows"
+        )
+
+    games: list[dict] = []
+    for nrow, name in zip(numeric_rows, name_rows):
+        if nrow["date"] != name["date"]:
+            raise ValueError(
+                f"{pdf_path.name}: date misalignment {nrow['date']} vs {name['date']}"
+            )
+        home, away = name["home"], name["away"]
+        if home is None or away is None:
+            side, team = STRAGGLERS.get((year, nrow["date"]), (None, None))
+            if side == "home":
+                home = team
+            elif side == "away":
+                away = team
+        games.append({**nrow, "home": home, "away": away})
+
     df = pd.DataFrame(games, columns=COLUMNS)
-    # Scores are whole numbers; keep them as nullable ints for clean display.
     for col in ("home_score", "away_score", "system_num"):
         df[col] = df[col].astype("Int64")
     return df
@@ -155,15 +205,12 @@ def main() -> None:
     DATA_DIR.mkdir(exist_ok=True)
     for year in (2015, 2016):
         pdf = REFERENCE_DIR / f"NFL_Report_{year}.pdf"
-        df = parse_report(pdf)
+        df = parse_report(pdf, year)
         out = DATA_DIR / f"report_{year}.csv"
         df.to_csv(out, index=False)
         bets = df["system_bet"].notna().sum()
         missing = (df["home"].isna() | df["away"].isna()).sum()
-        print(
-            f"{year}: {len(df)} games, {bets} bets, "
-            f"{missing} rows with an unrecovered team name -> {out.name}"
-        )
+        print(f"{year}: {len(df)} games, {bets} bets, {missing} blank team names -> {out.name}")
 
 
 if __name__ == "__main__":

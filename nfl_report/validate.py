@@ -30,7 +30,7 @@ def _published_side(row) -> str | None:
         return "home"
     if isinstance(row.away, str) and row.system_bet == row.away:
         return "away"
-    # Bet recorded but the team name was lost in the PDF; fall back to the sign.
+    # Safety net (not normally hit now names are recovered): infer from the sign.
     return "home" if row.system_num > 0 else "away"
 
 
@@ -43,17 +43,19 @@ def validate_year(year: int) -> None:
     # 1. System # ------------------------------------------------------------
     num_match = (df["system_num_calc"] == df["system_num"]).sum()
 
-    # 2. Bet side ------------------------------------------------------------
-    pub_side = [_published_side(r) for r in df.itertuples()]
-    side_match = sum(p == c for p, c in zip(pub_side, df["pick_calc"]))
+    # 2. Bet side (over the games the report actually bet) -------------------
+    bet_mask = df["system_bet"].notna()
+    pub_side = pd.Series([_published_side(r) for r in df.itertuples()], index=df.index)
+    side_match = (pub_side[bet_mask] == df.loc[bet_mask, "pick_calc"]).sum()
 
     # 3. Result (only graded over games the report actually bet) -------------
-    bet_mask = df["system_bet"].notna()
     res_pub = df.loc[bet_mask, "result"]
     res_calc = df.loc[bet_mask, "result_calc"]
     res_match = (res_pub.fillna("-") == res_calc.fillna("-")).sum()
 
-    # 4. STDC reconstruction (only where both names survived the PDF) --------
+    # 4. STDC reconstructed from prior scores and lines. The denominator is the
+    # games we can track: a team's first game of the season has no prior covers,
+    # so it is left out (its true STDC is 0 by definition).
     home_ok = df["home_stdc_calc"].notna()
     away_ok = df["away_stdc_calc"].notna()
     home_stdc_match = (df.loc[home_ok, "home_stdc_calc"] == df.loc[home_ok, "home_stdc"]).sum()
@@ -61,10 +63,10 @@ def validate_year(year: int) -> None:
 
     print(f"\n===== {year} ({n} games) =====")
     print(f"System #   : {num_match}/{n} ({num_match / n:.1%})")
-    print(f"Bet side   : {side_match}/{n} ({side_match / n:.1%})")
+    print(f"Bet side   : {side_match}/{bet_mask.sum()} bets")
     print(f"Result     : {res_match}/{bet_mask.sum()} graded bets")
-    print(f"STDC home  : {home_stdc_match}/{home_ok.sum()} (names known)")
-    print(f"STDC away  : {away_stdc_match}/{away_ok.sum()} (names known)")
+    print(f"STDC home  : {home_stdc_match}/{home_ok.sum()} trackable")
+    print(f"STDC away  : {away_stdc_match}/{away_ok.sum()} trackable")
 
     mism = df[df["system_num_calc"] != df["system_num"]]
     if len(mism):
