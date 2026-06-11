@@ -70,23 +70,30 @@ the published reports:
 | **System #** (from LGT/STDC/Power + line) | 265/267 (99.3%) | **267/267 (100%)** |
 | **Bet side** (from System #) | 90/90 bets | 85/85 bets |
 | **Result** (from scores + line + #) | 90/90 | 85/85 |
-| **STDC** rebuilt independently from scores + lines | ~92% | ~92% |
+| **STDC** rebuilt independently from scores + lines | ~90% | ~92% |
 
 So the **betting logic is fully reproduced**. The two 2015 `System #` misses are
 the rounded-power ties noted above. The STDC reconstruction — done from scratch,
-using only prior scores and lines — lands ~92%; the gap comes from (a) the
-Seahawks/Steelers PDF quirk below and (b) occasional half-point/push differences
-between the displayed `Line` and the spread used for an earlier game's cover.
-Closing those is a Phase 2 data task.
+using only prior scores and lines — lands ~90–92%; the remaining gap comes from
+occasional half-point/push differences between the displayed `Line` and the
+spread used to grade an earlier game's cover. Closing that is a Phase 2 data
+task. (The denominator excludes each team's first game of the season, whose true
+STDC is 0 by definition.)
 
-### Known data quirk: Seahawks & Steelers
+### Data note: the Seahawks & Steelers names
 
-In the source PDFs the two tracking teams, **Seahawks** and **Steelers**, are on
-a separate text layer; their *team-name* cells are pulled out of each row and
-dumped at the foot of the page. The parser strips that footer and recovers the
-name from the `Bet` column where it can; the rest are left blank. This affects
-only some team *labels* — every numeric column is intact, so the model
-validation above is unaffected.
+In the source PDFs the two tracking teams, **Seahawks** and **Steelers**, sit on
+a separate text layer, so in the flat text stream their *team-name* cells are
+emitted out of order (they pile up at the foot of each page) rather than in their
+rows. The parser therefore reads **team names from word coordinates** — grouping
+words into rows by their y-position and taking the home/away name from the home
+(x ≈ 97) and away (x ≈ 145) columns — which places every name correctly. Two
+games drop the tracking team's name from the PDF entirely; those two are filled
+explicitly (see `STRAGGLERS` in `parse_reports.py`), each verified both from the
+schedule and from internal evidence (the other tracking team already appears on
+that date, and the blank side's power rating continues the remaining team's
+week-to-week trajectory). All team names are now recovered — there are no blank
+cells.
 
 ## Files
 
