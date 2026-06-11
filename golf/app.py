@@ -122,6 +122,12 @@ def main():
         display_df = df.map(clean_markup)
 
         if heading.lower().startswith("form table"):
+            # Display columns Pebble -> US Opens -> Scottish -> Opens.
+            event_order = ["24PB", "25PB", "26PB", "23US", "24US", "25US",
+                           "23Sc", "24Sc", "25Sc", "23OC", "24OC", "25OC"]
+            ordered = [c for c in ("#", "Player") if c in display_df.columns]
+            ordered += [c for c in event_order if c in display_df.columns]
+            display_df = display_df[ordered]
             with st.expander("Filter players", expanded=False):
                 query = st.text_input("Search by name", "")
             if query:

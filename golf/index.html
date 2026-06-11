@@ -217,7 +217,7 @@
 <main>
   <section>
     <h2>Form table</h2>
-    <p class="lede">Number = finishing position (made cut/finished). <strong>MC</strong> = missed cut. <strong>NIF</strong> = not in field. <strong>WD</strong> = withdrew. <strong>?</strong> = could not verify. Rows are ordered by verified cut% (players with ≥5 verified events first).</p>
+    <p class="lede">Number = finishing position (made cut/finished). <strong>MC</strong> = missed cut. <strong>NIF</strong> = not in field. <strong>WD</strong> = withdrew. <strong>?</strong> = could not verify. Rows are ordered by verified cut% (players with ≥5 verified events first). Columns run Pebble Beach → US Opens → Scottish Opens → Open Championships.</p>
     <div class="legend">
       <span class="cell-top">Top 10</span>
       <span class="cell-mc">MC</span>
@@ -276,6 +276,10 @@
 
 <script>
 const EVENTS = ["23OC","24OC","25OC","23Sc","24Sc","25Sc","23US","24US","25US","24PB","25PB","26PB"];
+
+// Column display order: Pebble Beach, then US Opens, then Scottish, then Opens.
+const DISPLAY_EVENTS = ["24PB","25PB","26PB","23US","24US","25US","23Sc","24Sc","25Sc","23OC","24OC","25OC"];
+const DISPLAY_IDX = DISPLAY_EVENTS.map(e => EVENTS.indexOf(e));
 
 // Rows are pre-ordered by verified cut% (matches the source markdown).
 const FORM = [
@@ -401,13 +405,16 @@ function renderForm(filter) {
   const thead = document.querySelector("#form-table thead");
   const tbody = document.querySelector("#form-table tbody");
   thead.innerHTML = "<tr><th class='player'>Player</th>" +
-    EVENTS.map(e => `<th>${e}</th>`).join("") + "</tr>";
+    DISPLAY_EVENTS.map(e => `<th>${e}</th>`).join("") + "</tr>";
   const q = (filter || "").trim().toLowerCase();
   const rows = FORM.filter(r => !q || r[0].toLowerCase().includes(q));
   tbody.innerHTML = rows.map(r => {
     const rank = cutRank.get(r[0]);
     const rankCell = rank ? `<small style="color:var(--muted);font-weight:400;">#${rank} · </small>` : "";
-    const cells = r.slice(1).map(v => `<td class="${cellClass(v)}">${v}</td>`).join("");
+    const cells = DISPLAY_IDX.map(i => {
+      const v = r[i + 1];
+      return `<td class="${cellClass(v)}">${v}</td>`;
+    }).join("");
     return `<tr><td class="player">${rankCell}${r[0]}</td>${cells}</tr>`;
   }).join("");
   document.getElementById("count").textContent =
