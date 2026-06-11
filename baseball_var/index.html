@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d2e">
+<title>Little League WAR Explorer</title>
+<style>
+  :root{
+    --green:#0b3d2e;
+    --green2:#135c44;
+    --dirt:#b5651d;
+    --cream:#f6f3ea;
+    --ink:#1b2420;
+    --line:#d9d3c4;
+    --blue:#1452cc;      /* user inputs (the "blue" cells) */
+    --bluebg:#e8f0ff;
+    --gray:#6b7066;      /* auto-calculated */
+    --graybg:#eceae3;
+    --pos:#127a3e;
+    --neg:#c0392b;
+    --card:#ffffff;
+    --shadow:0 1px 3px rgba(0,0,0,.12);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    background:linear-gradient(135deg,var(--green) 0%,var(--green2) 100%);
+    color:#fff;
+    padding:22px 16px 18px;
+    text-align:center;
+    position:relative;
+  }
+  header h1{margin:0 0 4px;font-size:24px;letter-spacing:.3px}
+  header p{margin:0;font-size:13px;opacity:.85}
+  .ball{font-size:22px}
+  main{max-width:760px;margin:0 auto;padding:14px 12px 60px}
+
+  section{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    margin:14px 0;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .sec-head{
+    width:100%;
+    text-align:left;
+    background:none;border:none;
+    padding:14px 16px;
+    font-size:17px;font-weight:700;
+    color:var(--green);
+    display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;
+  }
+  .sec-head .chev{transition:transform .2s;font-size:14px;color:var(--gray)}
+  .sec-head.collapsed .chev{transform:rotate(-90deg)}
+  .sec-body{padding:0 16px 16px}
+  .sec-body.hidden{display:none}
+  .sub{font-size:13px;color:var(--gray);margin:-2px 0 12px}
+
+  /* legend chips */
+  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin:10px 0 4px;padding:0 16px}
+  .chip{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+  .sw-blue{background:var(--bluebg)}
+  .sw-gray{background:var(--graybg)}
+
+  /* input grids */
+  .grid{display:grid;gap:8px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .field{display:flex;flex-direction:column;gap:3px}
+  .field label{font-size:12px;color:var(--gray);font-weight:600}
+  .field .hint{font-size:11px;color:#9a9588;font-weight:400}
+  input[type=number],input[type=text],select{
+    font-size:16px; /* >=16px stops iOS zoom-on-focus */
+    padding:8px 10px;
+    border:1.5px solid var(--blue);
+    background:var(--bluebg);
+    border-radius:8px;
+    width:100%;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--green);background:#fff}
+  .calc-box{
+    background:var(--graybg);
+    border:1px dashed #bdb8a8;
+    border-radius:8px;
+    padding:8px 10px;
+  }
+  .calc-box .v{font-size:18px;font-weight:700;color:var(--green)}
+  .calc-box .k{font-size:11px;color:var(--gray);font-weight:600}
+
+  /* player cards */
+  .player{
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin:10px 0;
+    overflow:hidden;
+  }
+  .player-top{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;
+    background:var(--graybg);
+    cursor:pointer;
+  }
+  .pname{font-weight:700;font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ppos{font-size:11px;background:var(--green);color:#fff;padding:2px 8px;border-radius:20px;font-weight:700}
+  .pwar{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+  .pwar small{font-size:10px;font-weight:600;color:var(--gray);display:block;text-align:right}
+  .player-body{padding:12px;display:none}
+  .player.open .player-body{display:block}
+  .player-body .grid{margin-bottom:10px}
+  .stat-out{
+    display:grid;grid-template-columns:1fr 1fr;gap:6px;
+    margin-top:6px;font-size:13px;
+  }
+  .stat-out div{display:flex;justify-content:space-between;background:var(--graybg);padding:5px 9px;border-radius:6px}
+  .stat-out b{font-variant-numeric:tabular-nums}
+  .rm{
+    background:#fff;border:1px solid var(--neg);color:var(--neg);
+    border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;
+  }
+  .pos{color:var(--pos)} .neg{color:var(--neg)}
+
+  /* leaderboard */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+  tbody tr:active{background:var(--bluebg)}
+  .bar-cell{position:relative}
+  .bar{height:6px;border-radius:3px;margin-top:3px}
+
+  .btn{
+    display:inline-block;background:var(--green);color:#fff;border:none;
+    padding:10px 16px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;
+  }
+  .btn.secondary{background:#fff;color:var(--green);border:1.5px solid var(--green)}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+  /* walkthrough */
+  .step{border-left:3px solid var(--green2);padding:8px 0 8px 12px;margin:10px 0}
+  .step h4{margin:0 0 4px;font-size:14px;color:var(--green)}
+  .formula{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12.5px;background:var(--graybg);padding:8px 10px;border-radius:6px;
+    overflow-x:auto;white-space:pre-wrap;word-break:break-word;
+  }
+  .formula .num{color:var(--blue);font-weight:700}
+  .result-line{font-size:15px;margin-top:6px}
+  .result-line b{font-size:18px;color:var(--green)}
+  .picker{margin-bottom:6px}
+  .note{font-size:13px;color:var(--gray);background:#fffbe8;border:1px solid #efe4b0;border-radius:8px;padding:10px 12px;margin:10px 0}
+  .prose{font-size:14px}
+  .prose p{margin:8px 0}
+  footer{text-align:center;font-size:12px;color:var(--gray);padding:10px 16px 30px}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="ball">⚾</span> Little League WAR Explorer</h1>
+  <p>An interactive way to understand the WAR / WAA spreadsheet</p>
+</header>
+
+<main>
+
+  <!-- ABOUT -->
+  <section>
+    <button class="sec-head collapsed" data-toggle><span>📖 What is this & the fine print</span><span class="chev">▾</span></button>
+    <div class="sec-body hidden prose">
+      <p>This rebuilds the WAR (Wins Above Replacement) spreadsheet so you can poke at every number on your phone and watch the answer change. <strong>Blue boxes</strong> are inputs you control; <strong>gray boxes</strong> calculate themselves — exactly like the original workbook.</p>
+      <p><strong>There is no true "replacement player" in Little League.</strong> With mandatory-play rules and good athletes who never sign up, the major-league baseline doesn't translate. So we measure against <em>average</em> (Wins Above Average) or against a hypothetical team that wins ~30% of games, and we borrow the parameters from MLB.</p>
+      <p><strong>This won't be comparable to big-league WAR.</strong> A regular MLB player gets ~10× the plate appearances, so their WAR is ~10× bigger. Look at WAR per game or per PA instead. And no stat ports cleanly — hitting .300 in Little League ≠ ready to hit .300 for the Dodgers.</p>
+      <p><strong>It's fuzzy.</strong> Even over a full MLB career, Baseball Reference and FanGraphs disagree. With one Little League season and the issues above, reasonable people will get very different numbers.</p>
+      <p>The point is to learn the math — not to rate kids who should be playing for fun. Change a weight, watch a kid's WAR move, and ask <em>why</em>.</p>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section>
+    <button class="sec-head" data-toggle><span>⚙️ Settings &amp; weights</span><span class="chev">▾</span></button>
+    <div class="legend">
+      <span class="chip"><span class="swatch sw-blue"></span>you change these</span>
+      <span class="chip"><span class="swatch sw-gray"></span>auto-calculated</span>
+    </div>
+    <div class="sec-body">
+      <p class="sub">Runs each event is worth (linear weights), in runs.</p>
+      <div class="grid g3" id="weights"></div>
+
+      <p class="sub" style="margin-top:16px">League settings</p>
+      <div class="grid g2" id="settings"></div>
+
+      <p class="sub" style="margin-top:16px">Auto-derived constants (gray = the sheet works these out)</p>
+      <div class="grid g2">
+        <div class="calc-box"><div class="k">Pythag exponent x = (2r)^0.287</div><div class="v" id="c-x">–</div></div>
+        <div class="calc-box"><div class="k">Runs per win (RPW) = 4r / x</div><div class="v" id="c-rpw">–</div></div>
+        <div class="calc-box"><div class="k">Baseline offense (runs/PA) − gap</div><div class="v" id="c-boff">–</div></div>
+        <div class="calc-box"><div class="k">Baseline RA per IP + gap</div><div class="v" id="c-bra">–</div></div>
+      </div>
+
+      <p class="sub" style="margin-top:16px">Position adjustment (runs per full season)</p>
+      <div class="grid g3" id="posadj"></div>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section>
+    <button class="sec-head" data-toggle><span>🏆 Leaderboard</span><span class="chev">▾</span></button>
+    <div class="sec-body">
+      <p class="sub">Tap a column idea: WAR is the bottom line. Sorted best → worst.</p>
+      <table id="board">
+        <thead><tr><th>Player</th><th>RAR</th><th>WAR</th><th>WAR/G*</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="sub" style="margin-top:8px">*WAR/G assumes a ~15-game season (full-season PA ÷ ~3.3 PA per game). Rough, for shape only.</p>
+    </div>
+  </section>
+
+  <!-- PLAYERS -->
+  <section>
+    <button class="sec-head" data-toggle><span>👤 Players (tap to edit)</span><span class="chev">▾</span></button>
+    <div class="sec-body">
+      <p class="sub">These are the GameChanger-style inputs. Tap a card to open the stats; WAR updates live.</p>
+      <div id="players"></div>
+      <div class="btn-row">
+        <button class="btn" id="addPlayer">+ Add player</button>
+        <button class="btn secondary" id="resetAll">Reset to sample</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- WALKTHROUGH -->
+  <section>
+    <button class="sec-head" data-toggle><span>🧮 Show me the math (step by step)</span><span class="chev">▾</span></button>
+    <div class="sec-body">
+      <div class="field picker">
+        <label>Pick a player to trace</label>
+        <select id="traceSel"></select>
+      </div>
+      <div id="trace"></div>
+    </div>
+  </section>
+
+  <footer>
+    Built to teach the math, not to rate kids. Numbers are illustrative.<br>
+    Everything runs on your phone — no internet needed once loaded.
+  </footer>
+</main>
+
+<script>
+/* ----------------------------------------------------------------------------
+   MODEL — mirrors the Excel workbook exactly.
+   Cell map (for reference vs the original sheet):
+     B2..B9  weights   |  B11..B16 settings   |  A18:B27 position table
+     B28 baseline offense rate   B29 baseline RA per IP
+   Player columns A..S = name,pos,PA,1B,2B,3B,HR,BBHBP,SB,CS,IP,R,Outs,
+     BatRuns,BatRAB,PosRuns,PitchRAB,RAR,WAR
+---------------------------------------------------------------------------- */
+
+const DEFAULTS = {
+  weights: { out:-0.1, bbhbp:0.3, single:0.45, double:0.75, triple:1, hr:1.4, sb:0.2, cs:-0.4 },
+  settings:{ r:10, gapOff:0.05, gapPit:0.15, fullPA:50 },
+  posadj:  { C:9, SS:6, CF:5, "2B":3, "3B":2, LF:-5, RF:-4, "1B":-7, DH:-8, P:0 },
+  players: [
+    {name:"Mateo", pos:"SS", PA:52, b1:12, b2:5, b3:1, hr:3, bb:14, sb:9, cs:2, ip:0,  r:0},
+    {name:"Liam",  pos:"C",  PA:48, b1:10, b2:3, b3:0, hr:1, bb:12, sb:3, cs:1, ip:0,  r:0},
+    {name:"Ethan", pos:"1B", PA:47, b1:9,  b2:4, b3:0, hr:2, bb:8,  sb:1, cs:0, ip:0,  r:0},
+    {name:"Noah",  pos:"P",  PA:46, b1:9,  b2:2, b3:0, hr:2, bb:10, sb:4, cs:1, ip:30, r:18},
+    {name:"Lucas", pos:"LF", PA:42, b1:6,  b2:1, b3:0, hr:0, bb:6,  sb:2, cs:1, ip:0,  r:0}
+  ]
+};
+
+const WEIGHT_META = [
+  ["out","Out","incl. CS-style outs"],
+  ["bbhbp","BB + HBP","walk / hit-by-pitch"],
+  ["single","Single",""],
+  ["double","Double",""],
+  ["triple","Triple",""],
+  ["hr","Home run",""],
+  ["sb","Stolen base",""],
+  ["cs","Caught stealing",""]
+];
+const SETTING_META = [
+  ["r","Runs per team per game (r)","drives RPW & Pythag"],
+  ["gapOff","Replacement gap — offense","runs / PA"],
+  ["gapPit","Replacement gap — pitching","runs / IP"],
+  ["fullPA","Full-season PA","scales position adj"]
+];
+const STAT_META = [
+  ["PA","PA"],["b1","1B"],["b2","2B"],["b3","3B"],["hr","HR"],
+  ["bb","BB+HBP"],["sb","SB"],["cs","CS"],["ip","IP"],["r","R allowed"]
+];
+const GAMES_PER_SEASON = 15; // rough, for WAR/G shape only
+
+let state = load();
+
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem("llwar")); if(s&&s.players) return s; }catch(e){}
+  return structuredClone(DEFAULTS);
+}
+function save(){ localStorage.setItem("llwar", JSON.stringify(state)); }
+
+/* ---- the calculation engine ---- */
+function derive(){
+  const w=state.weights, s=state.settings;
+  // constants
+  const x   = Math.pow(2*s.r, 0.287);          // B15 Pythag exponent
+  const rpw = x>0 ? 4*s.r/x : 0;               // B16 runs per win
+  // per-player base stats first
+  const rows = state.players.map(p=>{
+    const reached = p.b1+p.b2+p.b3+p.hr+p.bb;
+    const outs = Math.max(0, p.PA - reached);   // col M
+    const batRuns = w.out*outs + w.bbhbp*p.bb + w.single*p.b1 + w.double*p.b2
+                  + w.triple*p.b3 + w.hr*p.hr + w.sb*p.sb + w.cs*p.cs; // col N
+    return {...p, outs, batRuns};
+  });
+  // baselines (need league totals)
+  const sumPA  = rows.reduce((a,r)=>a+r.PA,0);
+  const sumBR  = rows.reduce((a,r)=>a+r.batRuns,0);
+  const sumIP  = rows.reduce((a,r)=>a+r.ip,0);
+  const sumR   = rows.reduce((a,r)=>a+r.r,0);
+  const baseOff = sumPA>0 ? sumBR/sumPA - s.gapOff : 0;   // B28
+  const baseRA  = sumIP>0 ? sumR/sumIP + s.gapPit : 0;    // B29
+  // finish each player
+  rows.forEach(r=>{
+    r.batRAB   = r.batRuns - baseOff*r.PA;                          // col O
+    const adj  = state.posadj[r.pos] ?? 0;
+    r.posRuns  = s.fullPA>0 ? adj*r.PA/s.fullPA : 0;                // col P
+    r.pitchRAB = r.ip>0 ? (baseRA - r.r/r.ip)*r.ip : 0;            // col Q
+    r.rar      = r.batRAB + r.posRuns + r.pitchRAB;                 // col R
+    r.war      = rpw>0 ? r.rar/rpw : 0;                             // col S
+    r.warG     = r.war / GAMES_PER_SEASON;
+    r.posAdj   = adj;
+  });
+  return {rows, x, rpw, baseOff, baseRA, sumPA, sumBR, sumIP, sumR};
+}
+
+/* ---- formatting helpers ---- */
+const f1=n=>(Math.round(n*10)/10).toFixed(1);
+const f2=n=>(Math.round(n*100)/100).toFixed(2);
+const f3=n=>(Math.round(n*1000)/1000).toFixed(3);
+const sign=n=>(n>=0?"+":"")+f2(n);
+const cls=n=>n>=0?"pos":"neg";
+
+/* ---- rendering ---- */
+function render(){
+  const d = derive();
+  renderWeights();
+  renderSettings();
+  renderConstants(d);
+  renderPosadj();
+  renderBoard(d);
+  renderPlayers(d);
+  renderTraceOptions();
+  renderTrace(d);
+  save();
+}
+
+function renderWeights(){
+  const el=document.getElementById("weights"); el.innerHTML="";
+  WEIGHT_META.forEach(([k,lab,hint])=>{
+    el.appendChild(numField(`w-${k}`, lab, hint, state.weights[k], 0.05, v=>{state.weights[k]=v;}));
+  });
+}
+function renderSettings(){
+  const el=document.getElementById("settings"); el.innerHTML="";
+  SETTING_META.forEach(([k,lab,hint])=>{
+    el.appendChild(numField(`s-${k}`, lab, hint, state.settings[k], 1, v=>{state.settings[k]=v;}));
+  });
+}
+function renderConstants(d){
+  document.getElementById("c-x").textContent   = f3(d.x);
+  document.getElementById("c-rpw").textContent = f2(d.rpw);
+  document.getElementById("c-boff").textContent= f3(d.baseOff)+" /PA";
+  document.getElementById("c-bra").textContent = f3(d.baseRA)+" /IP";
+}
+function renderPosadj(){
+  const el=document.getElementById("posadj"); el.innerHTML="";
+  Object.keys(state.posadj).forEach(pos=>{
+    el.appendChild(numField(`p-${pos}`, pos, "runs/season", state.posadj[pos], 1, v=>{state.posadj[pos]=v;}));
+  });
+}
+
+function numField(id,label,hint,val,step,onchange){
+  const wrap=document.createElement("div"); wrap.className="field";
+  const lab=document.createElement("label"); lab.textContent=label;
+  if(hint){ const h=document.createElement("span"); h.className="hint"; h.textContent=hint; lab.appendChild(document.createTextNode(" ")); lab.appendChild(h); }
+  const inp=document.createElement("input");
+  inp.type="number"; inp.id=id; inp.value=val; inp.step=step; inp.inputMode="decimal";
+  inp.addEventListener("input",()=>{ const v=parseFloat(inp.value); onchange(isNaN(v)?0:v); render(); });
+  wrap.append(lab,inp); return wrap;
+}
+
+function renderBoard(d){
+  const tb=document.querySelector("#board tbody"); tb.innerHTML="";
+  const sorted=[...d.rows].sort((a,b)=>b.war-a.war);
+  const maxAbs=Math.max(0.01,...sorted.map(r=>Math.abs(r.war)));
+  sorted.forEach(r=>{
+    const tr=document.createElement("tr");
+    const pct=Math.abs(r.war)/maxAbs*100;
+    const color=r.war>=0?"var(--pos)":"var(--neg)";
+    tr.innerHTML=`<td>${esc(r.name)} <span class="ppos">${esc(r.pos||"–")}</span></td>
+      <td class="${cls(r.rar)}">${sign(r.rar)}</td>
+      <td class="bar-cell"><b class="${cls(r.war)}">${sign(r.war)}</b>
+        <div class="bar" style="width:${pct}%;background:${color}"></div></td>
+      <td class="${cls(r.warG)}">${f3(r.warG)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function renderPlayers(d){
+  const host=document.getElementById("players");
+  const openIds=[...host.querySelectorAll(".player.open")].map(e=>+e.dataset.i);
+  host.innerHTML="";
+  d.rows.forEach((r,i)=>{
+    const card=document.createElement("div");
+    card.className="player"+(openIds.includes(i)?" open":"");
+    card.dataset.i=i;
+    card.innerHTML=`
+      <div class="player-top">
+        <span class="pname">${esc(r.name||"(unnamed)")}</span>
+        <span class="ppos">${esc(r.pos||"–")}</span>
+        <span class="pwar ${cls(r.war)}">${sign(r.war)}<small>WAR</small></span>
+      </div>
+      <div class="player-body"></div>`;
+    card.querySelector(".player-top").addEventListener("click",()=>card.classList.toggle("open"));
+    const body=card.querySelector(".player-body");
+
+    // name + pos
+    const idRow=document.createElement("div"); idRow.className="grid g2";
+    const nf=document.createElement("div"); nf.className="field";
+    nf.innerHTML=`<label>Name</label>`;
+    const nin=document.createElement("input"); nin.type="text"; nin.value=r.name;
+    nin.addEventListener("input",()=>{state.players[i].name=nin.value; renderBoardOnly();});
+    nin.addEventListener("change",render);
+    nf.appendChild(nin);
+    const pf=document.createElement("div"); pf.className="field";
+    pf.innerHTML=`<label>Position</label>`;
+    const psel=document.createElement("select");
+    Object.keys(state.posadj).forEach(pos=>{
+      const o=document.createElement("option"); o.value=pos; o.textContent=pos;
+      if(pos===r.pos)o.selected=true; psel.appendChild(o);
+    });
+    psel.addEventListener("change",()=>{state.players[i].pos=psel.value; render();});
+    pf.appendChild(psel);
+    idRow.append(nf,pf); body.appendChild(idRow);
+
+    // stat inputs
+    const grid=document.createElement("div"); grid.className="grid g3";
+    STAT_META.forEach(([k,lab])=>{
+      grid.appendChild(numField(`pl-${i}-${k}`,lab,"",state.players[i][k],1,v=>{state.players[i][k]=v;}));
+    });
+    body.appendChild(grid);
+
+    // derived readout
+    const out=document.createElement("div"); out.className="stat-out";
+    out.innerHTML=`
+      <div><span>Outs made</span><b>${r.outs}</b></div>
+      <div><span>Batting runs</span><b>${f2(r.batRuns)}</b></div>
+      <div><span>Bat vs baseline</span><b class="${cls(r.batRAB)}">${sign(r.batRAB)}</b></div>
+      <div><span>Position runs</span><b class="${cls(r.posRuns)}">${sign(r.posRuns)}</b></div>
+      <div><span>Pitching runs</span><b class="${cls(r.pitchRAB)}">${sign(r.pitchRAB)}</b></div>
+      <div><span>RAR (total)</span><b class="${cls(r.rar)}">${sign(r.rar)}</b></div>`;
+    body.appendChild(out);
+
+    const rm=document.createElement("button"); rm.className="rm"; rm.textContent="🗑 Remove player";
+    rm.addEventListener("click",()=>{ state.players.splice(i,1); render(); });
+    body.appendChild(rm);
+
+    host.appendChild(card);
+  });
+}
+
+// light update of just the board + card headers while typing a name
+function renderBoardOnly(){ const d=derive(); renderBoard(d); }
+
+function renderTraceOptions(){
+  const sel=document.getElementById("traceSel");
+  const prev=sel.value;
+  sel.innerHTML="";
+  state.players.forEach((p,i)=>{
+    const o=document.createElement("option"); o.value=i; o.textContent=p.name||`Player ${i+1}`;
+    sel.appendChild(o);
+  });
+  if(prev!==""&&+prev<state.players.length) sel.value=prev;
+  sel.onchange=()=>renderTrace(derive());
+}
+
+function renderTrace(d){
+  const sel=document.getElementById("traceSel");
+  const i=Math.min(+sel.value||0, d.rows.length-1);
+  const host=document.getElementById("trace");
+  if(i<0||!d.rows[i]){host.innerHTML="<p class='sub'>Add a player to trace.</p>";return;}
+  const r=d.rows[i], w=state.weights, s=state.settings;
+  const N=v=>`<span class="num">${v}</span>`;
+
+  host.innerHTML=`
+    <div class="note">Following <b>${esc(r.name||"this player")}</b> (${esc(r.pos)}) — every number below is live. Change a stat above and come back.</div>
+
+    <div class="step">
+      <h4>1 · Outs made</h4>
+      <div class="formula">outs = PA − (1B+2B+3B+HR+BB)
+     = ${N(r.PA)} − (${N(r.b1)}+${N(r.b2)}+${N(r.b3)}+${N(r.hr)}+${N(r.bb)})</div>
+      <div class="result-line">→ <b>${r.outs}</b> outs</div>
+    </div>
+
+    <div class="step">
+      <h4>2 · Batting runs (linear weights)</h4>
+      <div class="formula">= out·${N(w.out)} + BB·${N(w.bbhbp)} + 1B·${N(w.single)} + 2B·${N(w.double)}
+  + 3B·${N(w.triple)} + HR·${N(w.hr)} + SB·${N(w.sb)} + CS·${N(w.cs)}
+= ${f2(w.out*r.outs)} + ${f2(w.bbhbp*r.bb)} + ${f2(w.single*r.b1)} + ${f2(w.double*r.b2)} + ${f2(w.triple*r.b3)} + ${f2(w.hr*r.hr)} + ${f2(w.sb*r.sb)} + ${f2(w.cs*r.cs)}</div>
+      <div class="result-line">→ <b>${f2(r.batRuns)}</b> batting runs</div>
+    </div>
+
+    <div class="step">
+      <h4>3 · Above the league baseline</h4>
+      <div class="formula">league baseline = (Σ batRuns ÷ Σ PA) − offense gap
+              = (${f2(d.sumBR)} ÷ ${d.sumPA}) − ${N(s.gapOff)} = ${f3(d.baseOff)} runs/PA
+batRAB = batRuns − baseline·PA = ${f2(r.batRuns)} − ${f3(d.baseOff)}·${r.PA}</div>
+      <div class="result-line">→ <b class="${cls(r.batRAB)}">${sign(r.batRAB)}</b> batting runs above baseline</div>
+    </div>
+
+    <div class="step">
+      <h4>4 · Position adjustment</h4>
+      <div class="formula">posRuns = posAdj(${esc(r.pos)}) · PA ÷ fullPA
+        = ${N(r.posAdj)} · ${r.PA} ÷ ${N(s.fullPA)}</div>
+      <div class="result-line">→ <b class="${cls(r.posRuns)}">${sign(r.posRuns)}</b> runs (catchers/SS get credit; corners pay it back)</div>
+    </div>
+
+    <div class="step">
+      <h4>5 · Pitching runs ${r.ip>0?"":"<small style='color:var(--gray)'>(not a pitcher — 0)</small>"}</h4>
+      <div class="formula">RA baseline = (Σ R ÷ Σ IP) + pitch gap = (${d.sumR} ÷ ${d.sumIP||0}) + ${N(s.gapPit)} = ${f3(d.baseRA)} /IP
+pitchRAB = (baseline − R÷IP)·IP ${r.ip>0?`= (${f3(d.baseRA)} − ${r.r}÷${r.ip})·${r.ip}`:""}</div>
+      <div class="result-line">→ <b class="${cls(r.pitchRAB)}">${sign(r.pitchRAB)}</b> runs saved vs baseline</div>
+    </div>
+
+    <div class="step">
+      <h4>6 · Runs Above Replacement (RAR)</h4>
+      <div class="formula">RAR = batRAB + posRuns + pitchRAB
+    = ${sign(r.batRAB)} + ${sign(r.posRuns)} + ${sign(r.pitchRAB)}</div>
+      <div class="result-line">→ <b class="${cls(r.rar)}">${sign(r.rar)}</b> runs</div>
+    </div>
+
+    <div class="step">
+      <h4>7 · Convert runs to wins → WAR</h4>
+      <div class="formula">Pythag exponent x = (2r)^0.287 = (2·${N(s.r)})^0.287 = ${f3(d.x)}
+Runs per win  = 4r ÷ x = 4·${N(s.r)} ÷ ${f3(d.x)} = ${f2(d.rpw)}
+WAR = RAR ÷ RPW = ${f2(r.rar)} ÷ ${f2(d.rpw)}</div>
+      <div class="result-line">→ <b class="${cls(r.war)}">${sign(r.war)} WAR</b></div>
+    </div>
+
+    <div class="note">💡 Why runs-per-win ≈ ${f2(d.rpw)}? It falls out of the Pythagorean win formula at ${s.r} runs/game. Score more per game and each extra run is worth a bit less of a win.</div>
+  `;
+}
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ---- top-level buttons & collapsibles ---- */
+document.getElementById("addPlayer").addEventListener("click",()=>{
+  state.players.push({name:"New player",pos:"DH",PA:0,b1:0,b2:0,b3:0,hr:0,bb:0,sb:0,cs:0,ip:0,r:0});
+  render();
+  // open the new card
+  const cards=document.querySelectorAll("#players .player");
+  if(cards.length) cards[cards.length-1].classList.add("open");
+});
+document.getElementById("resetAll").addEventListener("click",()=>{
+  if(confirm("Reset all weights, settings and players back to the sample data?")){
+    state=structuredClone(DEFAULTS); render();
+  }
+});
+document.querySelectorAll("[data-toggle]").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    btn.classList.toggle("collapsed");
+    const body=btn.nextElementSibling.classList.contains("legend")
+      ? btn.nextElementSibling.nextElementSibling
+      : btn.nextElementSibling;
+    body.classList.toggle("hidden");
+  });
+});
+
+render();
+</script>
+</body>
+</html>
