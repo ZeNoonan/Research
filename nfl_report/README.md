@@ -53,12 +53,17 @@ The intuitions, straight from the source:
 - **`power`** — team power rating in points. The power-implied line is
   `away_power − home_power` (see note below).
 
-> **Power factor detail.** The write-up describes a 3-point home-field
-> advantage, but the *published reports* compare the line to the raw power
-> difference `away_power − home_power` with **no** extra home-field term — it is
-> already absorbed into the fitted ratings. Using the raw difference reproduces
-> 532/534 published `System #` values; the 2 misses are exact ties created by
-> the power column being rounded to one decimal in the PDF.
+> **Power factor detail.** The 3-point home-field advantage lives *inside the
+> rating fit* (the ratings are neutral-field), but at pick time the published
+> reports compare the line to the raw power difference `away_power − home_power`
+> with **no** home-field term re-added. Refitting ratings from the reports' own
+> lines (4-week window, weights 1/½/¼/⅛, 3-point HFA) reproduces the published
+> implied lines at 0.999 correlation from week 5 on. Because no HFA is re-added,
+> the comparison carries a ~2-point average home-edge residual and the power
+> factor leans away (2016: 195 away votes vs 72 home) — a genuine feature of the
+> published system. Using the raw difference reproduces 532/534 published
+> `System #` values; the 2 misses are exact ties created by the power column
+> being rounded to one decimal in the PDF.
 
 ## Replication status
 
