@@ -77,6 +77,7 @@ def clean_markup(value):
 RESULT_STYLES = {
     "MC": ("#fde2e2", "#8b1a1a"),
     "NIF": ("#eceff1", "#607d8b"),
+    "WD": ("#ede7f6", "#5e35b1"),
     "?": ("#fff8e1", "#9e7700"),
 }
 
@@ -120,18 +121,19 @@ def main():
 
         display_df = df.map(clean_markup)
 
-        if heading.startswith("Form Table"):
+        if heading.lower().startswith("form table"):
             with st.expander("Filter players", expanded=False):
                 query = st.text_input("Search by name", "")
             if query:
                 mask = display_df["Player"].str.contains(query, case=False, na=False)
                 display_df = display_df[mask]
             styled = display_df.style.map(
-                style_form_cell, subset=[c for c in display_df.columns if c != "Player"]
+                style_form_cell,
+                subset=[c for c in display_df.columns if c not in ("#", "Player")],
             )
             st.dataframe(styled, use_container_width=True, hide_index=True,
                          height=min(60 + 35 * len(display_df), 900))
-        elif heading.startswith("Cut%"):
+        elif heading.lower().startswith("cut"):
             cut_values = display_df["Cut%"].str.rstrip("%").astype(float) / 100.0
             grid = display_df.assign(**{"Cut%": cut_values})
             st.dataframe(
