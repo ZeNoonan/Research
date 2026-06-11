@@ -10,7 +10,8 @@ golf/
 ├── index.html                      # Static viewer (GitHub Pages-friendly)
 ├── requirements.txt                # Python dependencies
 ├── data/
-│   └── shinnecock_form_tables.md   # Shinnecock Hills 2026 proxy form data
+│   ├── shinnecock_form_tables.md   # Shinnecock Hills 2026 proxy form data (audited)
+│   └── changelog.md                # Cell-by-cell data-integrity audit log
 └── README.md
 ```
 
@@ -21,8 +22,13 @@ Flynn-designed Shinnecock Hills using twelve architectural-proxy events
 (Open Championships, Genesis Scottish Opens, Pebble Beach Pro-Ams, and recent
 US Opens):
 
-- **Form Table (50 × 12)** — finishing position per player per proxy event.
-- **Cut% Leaderboard** — made-cut rate ranked among players with 5+ verified events.
+- **Form table (50 × 12)** — finishing position per player per proxy event,
+  ordered by verified cut%.
+- **Cut-make leaderboard** — made-cut rate ranked among players with 5+
+  verified events (NIF/WD/? excluded from the denominator).
+
+All 600 cells were audited against full final leaderboards (590 verified,
+10 left as `?`); see `data/changelog.md` for every correction.
 
 ## Viewing the data
 
