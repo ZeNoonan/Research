@@ -314,6 +314,7 @@ def build_reports(warn: list | None = None) -> dict[int, pd.DataFrame]:
 
         reports[year] = pd.DataFrame({
             "date": pd.to_datetime(season["date"]).dt.strftime("%y-%m-%d"),
+            "week": season["week"],
             "home": season["home"], "away": season["away"], "line": season["line"],
             "home_score": season["home_score"], "away_score": season["away_score"],
             "home_lgt": season["home_lgt"], "home_stdc": season["home_stdc"],

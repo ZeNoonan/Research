@@ -110,6 +110,7 @@ nfl_report/
 ├── model.py           # the five-factor engine (the system logic)
 ├── season_report.py   # raw odds + results -> data/report_<year>.csv (Phase 2)
 ├── factor_analysis.py # Brown's factor diagnostics (marginal contributions)
+├── heatmaps.py        # team x week STDC / power pivots + RdYlGn heatmaps
 ├── validate.py        # rebuild columns and compare to the published reports
 ├── app.py             # Streamlit viewer for the replicated reports
 ├── build_site.py      # data CSVs -> index.html (static mobile-friendly report)
@@ -199,6 +200,16 @@ Table 3 of the Wilmott article: **all ten published 2015/2016 values are
 reproduced exactly**. (The article's prose suggests neutral factors also get
 blocking credit; that variant does *not* reproduce the published table.)
 Both tables render in the web view's "Factor diagnostics" section.
+
+## Heatmaps
+
+Each season tab also shows two **team × week heatmaps** (`heatmaps.py`): the
+season-to-date cover (STDC) and the power rating, one value per team per week
+on a red-yellow-green diverging scale centred at zero, with teams sorted by
+their season mean. STDC green = a team that has been covering ("fat", which the
+hunger factor fades); red = "hungry". Power green = strong. Week numbers come
+from the generated reports (authoritative, from pro-football-reference) and are
+derived from the date for the published 2015/2016 reports.
 
 ## Roadmap
 
