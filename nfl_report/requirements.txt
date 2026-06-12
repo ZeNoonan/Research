@@ -1,3 +1,5 @@
 pandas>=2.0
+numpy>=1.24
 streamlit>=1.40
 pymupdf>=1.23   # only needed to re-parse the report PDFs (parse_reports.py)
+openpyxl>=3.1   # only needed to re-slim raw Excel exports into data/*.csv

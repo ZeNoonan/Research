@@ -15,8 +15,16 @@ from pathlib import Path
 import pandas as pd
 
 HERE = Path(__file__).parent
-SEASONS = (2016, 2015)  # display order: most recent first
+SEASONS = (2025, 2016, 2015)  # display order: most recent first
 JUICE = 1.1  # units lost per losing bet at full 10% juice
+
+SEASON_LABELS = {2025: "2025–26", 2016: "2016", 2015: "2015"}
+SEASON_NOTES = {
+    2025: ("Generated from raw odds + results data by <code>season_report.py</code> "
+           "(not a published sheet). Week 1 LGT/Power await the 2024 season file; "
+           "the odds export has no lines for the 14 week-5 games, so they are "
+           "shown but not bettable."),
+}
 
 CSS = """
 :root {
@@ -72,6 +80,7 @@ body.betsonly tr.nobet { display: none; }
 .factors { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px 14px; margin-top: 12px; font-size: 14px; }
 .factors li { margin: 8px 0; }
 .factors b { color: var(--accent); }
+.seasonnote { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
 footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
 """
 
@@ -95,6 +104,11 @@ def fmt_signed(x: float) -> str:
     """LGT/STDC values: whole numbers, sign shown, 0 plain."""
     n = int(x)
     return str(n) if n == 0 else f"{n:+d}"
+
+
+def fmt_pts(x: float) -> str:
+    """Line/power values: one decimal with sign, blank cells as a dash."""
+    return "—" if pd.isna(x) else f"{x:+.1f}"
 
 
 def fmt_date(d: str) -> str:
@@ -165,14 +179,14 @@ def game_row(r) -> str:
         f'<td class="l">{fmt_date(r.date)}</td>'
         f'<td class="l">{team(r.home)}</td>'
         f'<td class="l">{team(r.away)}</td>'
-        f"<td>{r.line:+.1f}</td>"
+        f"<td>{fmt_pts(r.line)}</td>"
         f"<td>{r.home_score}&ndash;{r.away_score}</td>"
         f"<td>{fmt_signed(r.home_lgt)}</td>"
         f"<td>{fmt_signed(r.home_stdc)}</td>"
-        f"<td>{r.home_power:+.1f}</td>"
+        f"<td>{fmt_pts(r.home_power)}</td>"
         f"<td>{fmt_signed(r.away_lgt)}</td>"
         f"<td>{fmt_signed(r.away_stdc)}</td>"
-        f"<td>{r.away_power:+.1f}</td>"
+        f"<td>{fmt_pts(r.away_power)}</td>"
         f"<td>{r.system_num:+d}</td>"
         f'<td class="l">{team(r.system_bet) if is_bet else ""}</td>'
         f"<td>{result}</td>"
@@ -194,16 +208,18 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
         <div class="lbl">Profit at full juice</div></div>
     </div>"""
 
+    note = SEASON_NOTES.get(year)
+    note_html = f'\n    <p class="seasonnote">{note}</p>' if note else ""
     rows = "\n".join(game_row(r) for r in df.itertuples())
     return f"""
   <section class="panel{" active" if active else ""}" id="season-{year}">
-    {cards}
+    {cards}{note_html}
     <div class="chart-card">
       {profit_chart(df)}
       <div class="cap">Cumulative units over the season&rsquo;s {s["wins"] + s["losses"]} graded bets
       (win +1, loss &minus;{JUICE}). Dashed line is break-even.</div>
     </div>
-    <h2>Game by game &mdash; {year}</h2>
+    <h2>Game by game &mdash; {SEASON_LABELS.get(year, year)}</h2>
     <label class="toggle"><input type="checkbox" checked onchange="toggleBets(this)">
       Show only games the system bet</label>
     <div class="tablewrap">
@@ -227,14 +243,22 @@ def build() -> Path:
     data = {year: pd.read_csv(HERE / "data" / f"report_{year}.csv") for year in SEASONS}
     stats = {year: season_stats(df) for year, df in data.items()}
 
-    total_bets = sum(s["bets"] for s in stats.values())
-    total_w = sum(s["wins"] for s in stats.values())
-    total_l = sum(s["losses"] for s in stats.values())
-    total_profit = sum(s["profit"] for s in stats.values())
+    replicated = [y for y in (2015, 2016) if y in stats]
+    total_bets = sum(stats[y]["bets"] for y in replicated)
+    total_w = sum(stats[y]["wins"] for y in replicated)
+    total_l = sum(stats[y]["losses"] for y in replicated)
+    total_profit = sum(stats[y]["profit"] for y in replicated)
+
+    s25 = stats.get(2025)
+    banner_2025 = (
+        f" The 2025&ndash;26 season is generated from raw data by the same engine: "
+        f"{s25['bets']} bets, {s25['wins']}&ndash;{s25['losses']} "
+        f"({s25['winrate']:.1%}), {s25['profit']:+.1f} units." if s25 else ""
+    )
 
     tabs = "\n".join(
         f'<button data-year="{year}"{" class=" + chr(34) + "active" + chr(34) if i == 0 else ""} '
-        f'onclick="showSeason({year})">{year}</button>'
+        f'onclick="showSeason({year})">{SEASON_LABELS.get(year, year)}</button>'
         for i, year in enumerate(SEASONS)
     )
     panels = "\n".join(
@@ -253,15 +277,15 @@ def build() -> Path:
 <div class="wrap">
   <header>
     <h1>NFL Report &mdash; five-factor system</h1>
-    <p class="sub">Replication of Aaron Brown&rsquo;s demonstration NFL betting system
-    (Wilmott magazine) &mdash; 2015 &amp; 2016 seasons.</p>
+    <p class="sub">Aaron Brown&rsquo;s demonstration NFL betting system (Wilmott magazine):
+    replicated 2015 &amp; 2016 reports, plus the 2025&ndash;26 season generated from raw data.</p>
   </header>
 
   <div class="banner">
-    Replication: every published bet and result is reproduced &mdash; {total_bets} bets,
-    {total_w}&ndash;{total_l} ({total_w / (total_w + total_l):.1%}), {total_profit:+.1f} units
-    at full juice. System # matches 532/534 games (the 2 misses are rounding ties in the
-    published power column).
+    Replication (2015 &amp; 2016): every published bet and result is reproduced &mdash;
+    {total_bets} bets, {total_w}&ndash;{total_l} ({total_w / (total_w + total_l):.1%}),
+    {total_profit:+.1f} units at full juice. System # matches 532/534 games (the 2 misses
+    are rounding ties in the published power column).{banner_2025}
   </div>
 
   <div class="tabs">
