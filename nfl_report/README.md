@@ -1,9 +1,10 @@
 # NFL Report — replicating Aaron Brown's demonstration system
 
-A project to **replicate the published `NFL Report 2016`** (and its 2015
-sibling): a weekly NFL against-the-spread betting system built by Aaron Brown as
-a public demonstration that a simple, additive, binary-factor model can beat the
-spread. The source write-ups are in [`reference/`](reference/).
+A project to **replicate Aaron Brown's published `NFL Report`** sheets
+(2010–2016): a weekly NFL against-the-spread betting system built as a public
+demonstration that a simple, additive, binary-factor model can beat the spread,
+then extended to generate the same report from raw data for 2019–2025. The
+source write-ups are in [`reference/`](reference/).
 
 The reports are tables of one row per game. This project reproduces, in
 particular, the columns we set out to replicate:
@@ -67,18 +68,19 @@ The intuitions, straight from the source:
 
 ## Replication status
 
-`validate.py` rebuilds the derived columns from raw inputs and compares them to
-the published reports:
+`validate.py` rebuilds the derived columns from each published report and
+compares them to Brown's values, for all seven sheets (2010–2016):
 
-| Check | 2015 | 2016 |
-|---|---|---|
-| **System #** (from LGT/STDC/Power + line) | 265/267 (99.3%) | **267/267 (100%)** |
-| **Bet side** (from System #) | 90/90 bets | 85/85 bets |
-| **Result** (from scores + line + #) | 90/90 | 85/85 |
-| **STDC** rebuilt independently from scores + lines | ~90% | ~92% |
+| Check | result across 2010–2016 |
+|---|---|
+| **System #** (from LGT/STDC/Power + line) | **1846/1869 (98.8%)** |
+| **Bet side** (from System #) | 595/599 bets |
+| **Result** (from scores + line + #) | 595/599 graded bets |
+| **STDC** rebuilt independently from scores + lines | ~90% |
 
-So the **betting logic is fully reproduced**. The two 2015 `System #` misses are
-the rounded-power ties noted above. The STDC reconstruction — done from scratch,
+So the **betting logic is fully reproduced**. The handful of `System #` misses are
+the rounded-power ties noted above (a power column shown to one decimal creates
+the occasional exact tie). The STDC reconstruction — done from scratch,
 using only prior scores and lines — lands ~90–92%; the remaining gap comes from
 occasional half-point/push differences between the displayed `Line` and the
 spread used to grade an earlier game's cover. Closing that is a Phase 2 data
@@ -196,9 +198,10 @@ own betting rule over all games). The marginal accounting is pure
 leave-one-out — on a bet made at exactly ±3 every aligned factor is charged
 the result; on a near-miss at ±2 every *opposing* factor is charged the
 opposite of what the blocked bet would have done — and is validated against
-Table 3 of the Wilmott article: **all ten published 2015/2016 values are
-reproduced exactly**. (The article's prose suggests neutral factors also get
-blocking credit; that variant does *not* reproduce the published table.)
+Table 3 of the Wilmott article: **every value Brown published is reproduced
+exactly — all 35 (seven seasons 2010–2016 × five factors)**. (The article's
+prose suggests neutral factors also get blocking credit; that variant does
+*not* reproduce the published table.)
 Both tables render in the web view's "Factor diagnostics" section.
 
 ## Heatmaps

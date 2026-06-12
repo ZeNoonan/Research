@@ -78,7 +78,7 @@ def validate_year(year: int) -> None:
 
 
 def main() -> None:
-    for year in (2015, 2016):
+    for year in (2010, 2011, 2012, 2013, 2014, 2015, 2016):
         validate_year(year)
 
 
