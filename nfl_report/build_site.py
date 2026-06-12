@@ -298,7 +298,7 @@ def heatmaps_block(df: pd.DataFrame) -> str:
     <p class="diagnote">Each team&rsquo;s fitted power rating (points above/below average) each
     week. <span style="color:#1a9850;font-weight:600">Green</span> = strong,
     <span style="color:#d73027;font-weight:600">red</span> = weak. Sorted by season mean.</p>
-    {heatmaps.heatmap_html(power, decimals=1)}"""
+    {heatmaps.heatmap_html(power, decimals=0)}"""
 
 
 def diagnostics_section() -> str:
@@ -325,7 +325,7 @@ def diagnostics_section() -> str:
     s_rows = ""
     for key in factor_analysis.FACTORS:
         cells = "".join(
-            cell(v * 100, "{:.1f}", v >= 0.52, v < 0.48)
+            cell(v * 100, "{:.0f}", v >= 0.52, v < 0.48)
             for v in (standalone.loc[key, y] for y in years)
         )
         s_rows += f'<tr><td class="l">{factor_analysis.FACTOR_LABELS[key]}</td>{cells}</tr>\n'
