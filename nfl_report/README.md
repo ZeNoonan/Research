@@ -53,12 +53,17 @@ The intuitions, straight from the source:
 - **`power`** — team power rating in points. The power-implied line is
   `away_power − home_power` (see note below).
 
-> **Power factor detail.** The write-up describes a 3-point home-field
-> advantage, but the *published reports* compare the line to the raw power
-> difference `away_power − home_power` with **no** extra home-field term — it is
-> already absorbed into the fitted ratings. Using the raw difference reproduces
-> 532/534 published `System #` values; the 2 misses are exact ties created by
-> the power column being rounded to one decimal in the PDF.
+> **Power factor detail.** The 3-point home-field advantage lives *inside the
+> rating fit* (the ratings are neutral-field), but at pick time the published
+> reports compare the line to the raw power difference `away_power − home_power`
+> with **no** home-field term re-added. Refitting ratings from the reports' own
+> lines (4-week window, weights 1/½/¼/⅛, 3-point HFA) reproduces the published
+> implied lines at 0.999 correlation from week 5 on. Because no HFA is re-added,
+> the comparison carries a ~2-point average home-edge residual and the power
+> factor leans away (2016: 195 away votes vs 72 home) — a genuine feature of the
+> published system. Using the raw difference reproduces 532/534 published
+> `System #` values; the 2 misses are exact ties created by the power column
+> being rounded to one decimal in the PDF.
 
 ## Replication status
 
@@ -103,19 +108,48 @@ nfl_report/
 ├── requirements.txt
 ├── parse_reports.py   # PDFs -> data/report_2015.csv, report_2016.csv
 ├── model.py           # the five-factor engine (the system logic)
+├── season_report.py   # raw odds + results -> data/report_2025.csv (Phase 2)
 ├── validate.py        # rebuild columns and compare to the published reports
 ├── app.py             # Streamlit viewer for the replicated reports
 ├── build_site.py      # data CSVs -> index.html (static mobile-friendly report)
 ├── index.html         # generated web view of the analysis (works on phones)
 ├── data/
-│   ├── report_2015.csv
-│   └── report_2016.csv
+│   ├── report_2015.csv    # parsed from the published PDF
+│   ├── report_2016.csv    # parsed from the published PDF
+│   ├── report_2025.csv    # generated from raw data by season_report.py
+│   ├── results_2025.csv   # raw: pro-football-reference games + turnovers
+│   └── odds_2025.csv      # raw: aussportsbetting odds (Home Line Close)
 └── reference/         # source material
     ├── NFL_Report_2015.pdf
     ├── NFL_Report_2016.pdf
     ├── NFL_Demonstration.pdf      # how the system is built
     └── Wilmott_NFL_Article.docx   # the published article
 ```
+
+## The 2025–26 season, generated from raw data
+
+`season_report.py` produces the same report table for the 2025–26 season from
+two raw inputs (slimmed to CSV in `data/`): a pro-football-reference games
+table with turnovers, and an aussportsbetting odds export whose spread is
+**`Home Line Close`** (falling back to `Home Line Open` where the close is
+missing). The two files cross-validate each other on scores; games are matched
+on team pair within ±1 day because the odds export dates some games (late and
+international kick-offs) a day differently, and neutral-venue games are
+re-oriented to the odds file's designated home team.
+
+Power ratings are fit per week exactly as the demonstration describes — a
+weighted least-squares fit of the last four weeks' lines (weights 1, ½, ¼, ⅛)
+with the 3-point home-field advantage inside the fit (0 for neutral venues) —
+the construction verified above at 0.999 correlation against the published
+2016 implied lines.
+
+Current caveats, all data-driven:
+
+- **Week 1** has no last-game turnovers and no power ratings until the
+  2024–25 season file is added (the published reports carry both across from
+  the prior season); weeks 2–4 fit power on shortened windows.
+- The odds export has **no lines for the 14 week-5 games**; they appear in the
+  report but recommend no bet, and count as pushes in STDC.
 
 ## View on a phone
 
@@ -136,23 +170,20 @@ pip install -r requirements.txt
 
 python validate.py        # print the replication scorecard above
 python parse_reports.py   # regenerate the CSVs from the PDFs (needs pymupdf)
+python season_report.py   # regenerate report_2025.csv from the raw data
 python build_site.py      # regenerate index.html, the static web view
 streamlit run app.py      # browse the replicated reports
 ```
 
 ## Roadmap
 
-The current work replicates the reports **from their own published factor
-columns**, proving the system logic end to end. The next phase is to rebuild
-those factor columns **from raw data**, so the whole report can be produced for
-any season without the published sheet:
-
-1. **Game results & closing spreads** — to compute covers (STDC) and grade
-   results without the published `Line`.
-2. **Per-game turnovers** — fumbles lost + interceptions, to compute LGT.
-3. **Power ratings** — weighted (1, ½, ¼, ⅛) least-squares fit to the last four
-   weeks of lines, as described in the demonstration, to compute the Power
-   column and the over-reaction factor from scratch.
-
-With those three inputs the model in `model.py` produces every column in the
-report directly.
+1. ~~**Game results & closing spreads** — to compute covers (STDC) and grade
+   results without the published `Line`.~~ ✅ Done for 2025–26.
+2. ~~**Per-game turnovers** — fumbles lost + interceptions, to compute LGT.~~
+   ✅ Done for 2025–26.
+3. ~~**Power ratings** — weighted (1, ½, ¼, ⅛) least-squares fit to the last
+   four weeks of lines, as described in the demonstration.~~ ✅ Done, and
+   verified against the published 2016 implied lines (0.999 correlation).
+4. **Prior-season carryover** — add the 2024–25 files so week 1 has LGT and
+   power ratings, as in the published reports.
+5. **Fill the missing week-5 lines** in the odds export.

@@ -58,12 +58,17 @@ def power_factor(home_power: float, away_power: float, line: float) -> int:
     home team versus the ratings, so we back the home team (+1); if it leaves
     them a bigger favourite, we back the away team (-1).
 
-    Note: the write-up describes a 3-point home-field advantage, but the
-    published reports compare the line to the raw power difference with *no*
-    extra home-field term (it is already absorbed into the fitted ratings).
-    Using ``away_power - home_power`` reproduces 532/534 of the published
-    System # values; the two misses are exact ties created by the power column
-    being rounded to one decimal in the PDF.
+    Note: the write-up describes a 3-point home-field advantage *inside the
+    rating fit* (the ratings are neutral-field), but at pick time the published
+    reports compare the line to the raw power difference with no home-field
+    term re-added. Refitting ratings from the reports' own lines confirms this:
+    a weighted fit with a 3-point HFA reproduces the published implied lines at
+    0.999 correlation (weeks 5+). The raw comparison leaves a ~2-point average
+    home-edge residual, so the published power factor genuinely leans away
+    (2016: 195 away votes vs 72 home). Using ``away_power - home_power``
+    reproduces 532/534 of the published System # values; the two misses are
+    exact ties created by the power column being rounded to one decimal in the
+    PDF.
     """
     implied_line = away_power - home_power
     return _sign(line - implied_line)
