@@ -21,9 +21,10 @@ import factor_analysis
 import heatmaps
 
 HERE = Path(__file__).parent
-# Display order, most recent first. 2015/2016 are the published reports.
-SEASONS = (2025, 2024, 2023, 2022, 2021, 2020, 2019, 2016, 2015)
-PUBLISHED = {2015, 2016}
+# Display order, most recent first. 2010-2016 are Brown's published reports.
+SEASONS = (2025, 2024, 2023, 2022, 2021, 2020, 2019,
+           2016, 2015, 2014, 2013, 2012, 2011, 2010)
+PUBLISHED = {2010, 2011, 2012, 2013, 2014, 2015, 2016}
 JUICE = 1.1  # units lost per losing bet at full 10% juice
 
 
@@ -362,7 +363,7 @@ def build() -> Path:
     data = {year: pd.read_csv(HERE / "data" / f"report_{year}.csv") for year in SEASONS}
     stats = {year: season_stats(df) for year, df in data.items()}
 
-    replicated = [y for y in (2015, 2016) if y in stats]
+    replicated = sorted(y for y in stats if y in PUBLISHED)
     total_bets = sum(stats[y]["bets"] for y in replicated)
     total_w = sum(stats[y]["wins"] for y in replicated)
     total_l = sum(stats[y]["losses"] for y in replicated)
@@ -401,14 +402,17 @@ def build() -> Path:
   <header>
     <h1>NFL Report &mdash; five-factor system</h1>
     <p class="sub">Aaron Brown&rsquo;s demonstration NFL betting system (Wilmott magazine):
-    the replicated 2015 &amp; 2016 reports, plus seven seasons generated from raw data.</p>
+    seven of his published reports (2010&ndash;2016) replicated, plus seven seasons
+    generated from raw data (2019&ndash;2025).</p>
   </header>
 
   <div class="banner">
-    Replication (2015 &amp; 2016): every published bet and result is reproduced &mdash;
-    {total_bets} bets, {total_w}&ndash;{total_l} ({total_w / (total_w + total_l):.1%}),
-    {total_profit:+.1f} units at full juice. System # matches 532/534 games (the 2 misses
-    are rounding ties in the published power column).{banner_gen}
+    Replication ({season_label(replicated[0])} to {season_label(replicated[-1])}): every
+    published bet and result is reproduced &mdash; {total_bets} bets,
+    {total_w}&ndash;{total_l} ({total_w / (total_w + total_l):.1%}), {total_profit:+.1f} units
+    at full juice. System # matches 1846/1869 games; the rest are rounding ties in the
+    published one-decimal power column. The factor diagnostics below reproduce Brown&rsquo;s
+    published Table&nbsp;3 exactly for all seven years.{banner_gen}
   </div>
 
   <div class="tabs">

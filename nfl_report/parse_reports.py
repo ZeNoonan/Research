@@ -64,6 +64,10 @@ AWAY_X = (135, 186)
 STRAGGLERS = {
     (2016, "16-10-23"): ("home", "Steelers"),   # New England @ Pittsburgh
     (2015, "15-10-22"): ("away", "Seahawks"),   # Seattle @ San Francisco
+    (2014, "14-09-14"): ("away", "Seahawks"),   # Seattle @ San Diego
+    (2013, "13-10-28"): ("away", "Seahawks"),   # Seattle @ St. Louis
+    (2013, "13-11-17"): ("home", "Steelers"),   # Detroit @ Pittsburgh
+    (2010, "10-12-05"): ("away", "Steelers"),   # Pittsburgh @ Baltimore
 }
 
 COLUMNS = [
@@ -203,7 +207,8 @@ def parse_report(pdf_path: Path, year: int) -> pd.DataFrame:
 
 def main() -> None:
     DATA_DIR.mkdir(exist_ok=True)
-    for year in (2015, 2016):
+    years = sorted(int(p.stem.split("_")[-1]) for p in REFERENCE_DIR.glob("NFL_Report_*.pdf"))
+    for year in years:
         pdf = REFERENCE_DIR / f"NFL_Report_{year}.pdf"
         df = parse_report(pdf, year)
         out = DATA_DIR / f"report_{year}.csv"

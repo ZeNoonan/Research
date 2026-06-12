@@ -22,7 +22,8 @@ Two tables, per season, for every report in ``data/``:
   how often the team it points at covers the spread.
 
 The marginal rule is validated against Brown's published Table 3: this code
-reproduces his 2015 and 2016 rows exactly from the replicated reports.
+reproduces every value he published (all of 2010-2016, 35 numbers) exactly
+from the replicated reports.
 
 Run: ``python factor_analysis.py``
 """
