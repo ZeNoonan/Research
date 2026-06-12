@@ -1,9 +1,12 @@
-"""Generate a self-contained, mobile-friendly HTML view of the replicated reports.
+"""Generate a self-contained, mobile-friendly HTML view of the reports.
 
-Reads data/report_2015.csv and data/report_2016.csv and writes index.html:
-season summary cards, a cumulative-profit chart, the five-factor explainer and
-the full game-by-game tables with the system's bets highlighted. No external
-assets, so the page can be served from GitHub Pages or opened as a file.
+Reads every data/report_<year>.csv and writes index.html: season summary cards,
+a cumulative-profit chart, the five-factor explainer and the full game-by-game
+tables with the system's bets highlighted. No external assets, so the page can
+be served from GitHub Pages or opened as a file.
+
+2015 and 2016 are parsed from Aaron Brown's published reports (the replication
+target); the other seasons are generated from raw data by season_report.py.
 """
 
 from __future__ import annotations
@@ -15,16 +18,31 @@ from pathlib import Path
 import pandas as pd
 
 HERE = Path(__file__).parent
-SEASONS = (2025, 2016, 2015)  # display order: most recent first
+# Display order, most recent first. 2015/2016 are the published reports.
+SEASONS = (2025, 2023, 2022, 2021, 2020, 2019, 2016, 2015)
+PUBLISHED = {2015, 2016}
 JUICE = 1.1  # units lost per losing bet at full 10% juice
 
-SEASON_LABELS = {2025: "2025–26", 2016: "2016", 2015: "2015"}
-SEASON_NOTES = {
-    2025: ("Generated from raw odds + results data by <code>season_report.py</code> "
-           "(not a published sheet). Week 1 LGT/Power await the 2024 season file; "
-           "the odds export has no lines for the 14 week-5 games, so they are "
-           "shown but not bettable."),
-}
+
+def season_label(year: int) -> str:
+    """Start year -> 'YYYY–YY' span (a season runs Sept–Feb)."""
+    return f"{year}–{str(year + 1)[2:]}"
+
+
+def season_note(year: int) -> str | None:
+    if year in PUBLISHED:
+        return ("Parsed from Aaron Brown’s published report — the replication "
+                "target. Every bet and result here is reproduced by the model.")
+    base = ("Generated from raw odds + results data by <code>season_report.py</code>, "
+            "not a published sheet.")
+    if year == 2019:
+        return base + (" No prior-season file, so week 1 has no last-game turnovers "
+                       "or power ratings.")
+    if year == 2025:
+        return base + (" The 2024 season file is missing, so week 1 has no last-game "
+                       "turnovers or power ratings, and 14 week-5 games have no line "
+                       "in the odds export (shown but not bettable).")
+    return base + " Week 1 is seeded from the prior season (last-game turnovers and power)."
 
 CSS = """
 :root {
@@ -208,7 +226,7 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
         <div class="lbl">Profit at full juice</div></div>
     </div>"""
 
-    note = SEASON_NOTES.get(year)
+    note = season_note(year)
     note_html = f'\n    <p class="seasonnote">{note}</p>' if note else ""
     rows = "\n".join(game_row(r) for r in df.itertuples())
     return f"""
@@ -219,7 +237,7 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
       <div class="cap">Cumulative units over the season&rsquo;s {s["wins"] + s["losses"]} graded bets
       (win +1, loss &minus;{JUICE}). Dashed line is break-even.</div>
     </div>
-    <h2>Game by game &mdash; {SEASON_LABELS.get(year, year)}</h2>
+    <h2>Game by game &mdash; {season_label(year)}</h2>
     <label class="toggle"><input type="checkbox" checked onchange="toggleBets(this)">
       Show only games the system bet</label>
     <div class="tablewrap">
@@ -249,16 +267,20 @@ def build() -> Path:
     total_l = sum(stats[y]["losses"] for y in replicated)
     total_profit = sum(stats[y]["profit"] for y in replicated)
 
-    s25 = stats.get(2025)
-    banner_2025 = (
-        f" The 2025&ndash;26 season is generated from raw data by the same engine: "
-        f"{s25['bets']} bets, {s25['wins']}&ndash;{s25['losses']} "
-        f"({s25['winrate']:.1%}), {s25['profit']:+.1f} units." if s25 else ""
+    gen = sorted(y for y in stats if y not in PUBLISHED)
+    g_bets = sum(stats[y]["bets"] for y in gen)
+    g_w = sum(stats[y]["wins"] for y in gen)
+    g_l = sum(stats[y]["losses"] for y in gen)
+    g_profit = sum(stats[y]["profit"] for y in gen)
+    banner_gen = (
+        f" Six further seasons ({season_label(gen[0])} to {season_label(gen[-1])}) are "
+        f"generated from raw data by the same engine: {g_bets} bets, {g_w}&ndash;{g_l} "
+        f"({g_w / (g_w + g_l):.1%}), {g_profit:+.1f} units." if gen else ""
     )
 
     tabs = "\n".join(
         f'<button data-year="{year}"{" class=" + chr(34) + "active" + chr(34) if i == 0 else ""} '
-        f'onclick="showSeason({year})">{SEASON_LABELS.get(year, year)}</button>'
+        f'onclick="showSeason({year})">{season_label(year)}</button>'
         for i, year in enumerate(SEASONS)
     )
     panels = "\n".join(
@@ -278,14 +300,14 @@ def build() -> Path:
   <header>
     <h1>NFL Report &mdash; five-factor system</h1>
     <p class="sub">Aaron Brown&rsquo;s demonstration NFL betting system (Wilmott magazine):
-    replicated 2015 &amp; 2016 reports, plus the 2025&ndash;26 season generated from raw data.</p>
+    the replicated 2015 &amp; 2016 reports, plus six seasons generated from raw data.</p>
   </header>
 
   <div class="banner">
     Replication (2015 &amp; 2016): every published bet and result is reproduced &mdash;
     {total_bets} bets, {total_w}&ndash;{total_l} ({total_w / (total_w + total_l):.1%}),
     {total_profit:+.1f} units at full juice. System # matches 532/534 games (the 2 misses
-    are rounding ties in the published power column).{banner_2025}
+    are rounding ties in the published power column).{banner_gen}
   </div>
 
   <div class="tabs">
