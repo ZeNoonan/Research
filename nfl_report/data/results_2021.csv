@@ -1,0 +1,286 @@
+Week,Day,Date,Time,Winner/tie,venue_marker,Loser/tie,Pts,Pts.1,TOW,TOL
+1,Thu,2021-09-09,8:20PM,Tampa Bay Buccaneers,,Dallas Cowboys,31.0,29.0,4.0,1.0
+1,Sun,2021-09-12,1:00PM,Philadelphia Eagles,@,Atlanta Falcons,32.0,6.0,0.0,0.0
+1,Sun,2021-09-12,1:00PM,Pittsburgh Steelers,@,Buffalo Bills,23.0,16.0,0.0,1.0
+1,Sun,2021-09-12,1:00PM,Carolina Panthers,,New York Jets,19.0,14.0,1.0,1.0
+1,Sun,2021-09-12,1:00PM,Cincinnati Bengals,,Minnesota Vikings,27.0,24.0,0.0,1.0
+1,Sun,2021-09-12,1:00PM,Seattle Seahawks,@,Indianapolis Colts,28.0,16.0,1.0,1.0
+1,Sun,2021-09-12,1:00PM,Arizona Cardinals,@,Tennessee Titans,38.0,13.0,1.0,3.0
+1,Sun,2021-09-12,1:00PM,San Francisco 49ers,@,Detroit Lions,41.0,33.0,2.0,1.0
+1,Sun,2021-09-12,1:00PM,Houston Texans,,Jacksonville Jaguars,37.0,21.0,0.0,3.0
+1,Sun,2021-09-12,1:00PM,Los Angeles Chargers,@,Washington Football Team,20.0,16.0,2.0,1.0
+1,Sun,2021-09-12,4:25PM,Kansas City Chiefs,,Cleveland Browns,33.0,29.0,0.0,2.0
+1,Sun,2021-09-12,4:25PM,Denver Broncos,@,New York Giants,27.0,13.0,1.0,1.0
+1,Sun,2021-09-12,4:25PM,New Orleans Saints,,Green Bay Packers,38.0,3.0,0.0,3.0
+1,Sun,2021-09-12,4:25PM,Miami Dolphins,@,New England Patriots,17.0,16.0,1.0,2.0
+1,Sun,2021-09-12,8:20PM,Los Angeles Rams,,Chicago Bears,34.0,14.0,0.0,2.0
+1,Mon,2021-09-13,8:15PM,Las Vegas Raiders,,Baltimore Ravens,33.0,27.0,1.0,2.0
+2,Thu,2021-09-16,8:20PM,Washington Football Team,,New York Giants,30.0,29.0,1.0,0.0
+2,Sun,2021-09-19,1:00PM,Buffalo Bills,@,Miami Dolphins,35.0,0.0,2.0,3.0
+2,Sun,2021-09-19,1:00PM,Carolina Panthers,,New Orleans Saints,26.0,7.0,1.0,2.0
+2,Sun,2021-09-19,1:00PM,Chicago Bears,,Cincinnati Bengals,20.0,17.0,1.0,4.0
+2,Sun,2021-09-19,1:00PM,Cleveland Browns,,Houston Texans,31.0,21.0,2.0,2.0
+2,Sun,2021-09-19,1:00PM,Los Angeles Rams,@,Indianapolis Colts,27.0,24.0,2.0,2.0
+2,Sun,2021-09-19,1:00PM,Denver Broncos,@,Jacksonville Jaguars,23.0,13.0,0.0,2.0
+2,Sun,2021-09-19,1:00PM,New England Patriots,@,New York Jets,25.0,6.0,0.0,4.0
+2,Sun,2021-09-19,1:00PM,San Francisco 49ers,@,Philadelphia Eagles,17.0,11.0,0.0,0.0
+2,Sun,2021-09-19,1:00PM,Las Vegas Raiders,@,Pittsburgh Steelers,26.0,17.0,0.0,1.0
+2,Sun,2021-09-19,4:05PM,Tampa Bay Buccaneers,,Atlanta Falcons,48.0,25.0,1.0,3.0
+2,Sun,2021-09-19,4:05PM,Arizona Cardinals,,Minnesota Vikings,34.0,33.0,2.0,0.0
+2,Sun,2021-09-19,4:25PM,Dallas Cowboys,@,Los Angeles Chargers,20.0,17.0,1.0,2.0
+2,Sun,2021-09-19,4:25PM,Tennessee Titans,@,Seattle Seahawks,33.0,30.0,1.0,0.0
+2,Sun,2021-09-19,8:20PM,Baltimore Ravens,,Kansas City Chiefs,36.0,35.0,2.0,2.0
+2,Mon,2021-09-20,8:15PM,Green Bay Packers,,Detroit Lions,35.0,17.0,0.0,2.0
+3,Thu,2021-09-23,8:20PM,Carolina Panthers,@,Houston Texans,24.0,9.0,0.0,0.0
+3,Sun,2021-09-26,1:00PM,Atlanta Falcons,@,New York Giants,17.0,14.0,1.0,1.0
+3,Sun,2021-09-26,1:00PM,Buffalo Bills,,Washington Football Team,43.0,21.0,0.0,3.0
+3,Sun,2021-09-26,1:00PM,Cleveland Browns,,Chicago Bears,26.0,6.0,0.0,0.0
+3,Sun,2021-09-26,1:00PM,Cincinnati Bengals,@,Pittsburgh Steelers,24.0,10.0,1.0,2.0
+3,Sun,2021-09-26,1:00PM,Tennessee Titans,,Indianapolis Colts,25.0,16.0,3.0,0.0
+3,Sun,2021-09-26,1:00PM,Arizona Cardinals,@,Jacksonville Jaguars,31.0,19.0,1.0,4.0
+3,Sun,2021-09-26,1:00PM,Baltimore Ravens,@,Detroit Lions,19.0,17.0,1.0,0.0
+3,Sun,2021-09-26,1:00PM,Los Angeles Chargers,@,Kansas City Chiefs,30.0,24.0,0.0,4.0
+3,Sun,2021-09-26,1:00PM,New Orleans Saints,@,New England Patriots,28.0,13.0,0.0,3.0
+3,Sun,2021-09-26,4:05PM,Denver Broncos,,New York Jets,26.0,0.0,1.0,2.0
+3,Sun,2021-09-26,4:05PM,Las Vegas Raiders,,Miami Dolphins,31.0,28.0,1.0,0.0
+3,Sun,2021-09-26,4:25PM,Minnesota Vikings,,Seattle Seahawks,30.0,17.0,0.0,0.0
+3,Sun,2021-09-26,4:25PM,Los Angeles Rams,,Tampa Bay Buccaneers,34.0,24.0,0.0,0.0
+3,Sun,2021-09-26,8:20PM,Green Bay Packers,@,San Francisco 49ers,30.0,28.0,0.0,2.0
+3,Mon,2021-09-27,8:15PM,Dallas Cowboys,,Philadelphia Eagles,41.0,21.0,1.0,2.0
+4,Thu,2021-09-30,8:20PM,Cincinnati Bengals,,Jacksonville Jaguars,24.0,21.0,0.0,0.0
+4,Sun,2021-10-03,1:00PM,Washington Football Team,@,Atlanta Falcons,34.0,30.0,0.0,0.0
+4,Sun,2021-10-03,1:00PM,Buffalo Bills,,Houston Texans,40.0,0.0,1.0,5.0
+4,Sun,2021-10-03,1:00PM,Dallas Cowboys,,Carolina Panthers,36.0,28.0,0.0,2.0
+4,Sun,2021-10-03,1:00PM,Chicago Bears,,Detroit Lions,24.0,14.0,1.0,2.0
+4,Sun,2021-10-03,1:00PM,Cleveland Browns,@,Minnesota Vikings,14.0,7.0,0.0,1.0
+4,Sun,2021-10-03,1:00PM,Indianapolis Colts,@,Miami Dolphins,27.0,17.0,1.0,2.0
+4,Sun,2021-10-03,1:00PM,Kansas City Chiefs,@,Philadelphia Eagles,42.0,30.0,1.0,0.0
+4,Sun,2021-10-03,1:00PM,New York Giants,@,New Orleans Saints,27.0,21.0,1.0,1.0
+4,Sun,2021-10-03,1:00PM,New York Jets,,Tennessee Titans,27.0,24.0,1.0,0.0
+4,Sun,2021-10-03,4:05PM,Arizona Cardinals,@,Los Angeles Rams,37.0,20.0,0.0,2.0
+4,Sun,2021-10-03,4:05PM,Seattle Seahawks,@,San Francisco 49ers,28.0,21.0,0.0,2.0
+4,Sun,2021-10-03,4:25PM,Baltimore Ravens,@,Denver Broncos,23.0,7.0,0.0,1.0
+4,Sun,2021-10-03,4:25PM,Green Bay Packers,,Pittsburgh Steelers,27.0,17.0,1.0,2.0
+4,Sun,2021-10-03,8:20PM,Tampa Bay Buccaneers,@,New England Patriots,19.0,17.0,0.0,2.0
+4,Mon,2021-10-04,8:15PM,Los Angeles Chargers,,Las Vegas Raiders,28.0,14.0,0.0,1.0
+5,Thu,2021-10-07,8:20PM,Los Angeles Rams,@,Seattle Seahawks,26.0,17.0,1.0,2.0
+5,Sun,2021-10-10,9:30AM,Atlanta Falcons,,New York Jets,27.0,20.0,2.0,1.0
+5,Sun,2021-10-10,1:00PM,Philadelphia Eagles,@,Carolina Panthers,21.0,18.0,2.0,3.0
+5,Sun,2021-10-10,1:00PM,Green Bay Packers,@,Cincinnati Bengals,25.0,22.0,1.0,2.0
+5,Sun,2021-10-10,1:00PM,Pittsburgh Steelers,,Denver Broncos,27.0,19.0,1.0,1.0
+5,Sun,2021-10-10,1:00PM,Minnesota Vikings,,Detroit Lions,19.0,17.0,2.0,2.0
+5,Sun,2021-10-10,1:00PM,New England Patriots,@,Houston Texans,25.0,22.0,2.0,1.0
+5,Sun,2021-10-10,1:00PM,Tennessee Titans,@,Jacksonville Jaguars,37.0,19.0,0.0,2.0
+5,Sun,2021-10-10,1:00PM,Tampa Bay Buccaneers,,Miami Dolphins,45.0,17.0,0.0,2.0
+5,Sun,2021-10-10,1:00PM,New Orleans Saints,@,Washington Football Team,33.0,22.0,2.0,2.0
+5,Sun,2021-10-10,4:05PM,Chicago Bears,@,Las Vegas Raiders,20.0,9.0,0.0,1.0
+5,Sun,2021-10-10,4:05PM,Los Angeles Chargers,,Cleveland Browns,47.0,42.0,1.0,0.0
+5,Sun,2021-10-10,4:25PM,Arizona Cardinals,,San Francisco 49ers,17.0,10.0,1.0,1.0
+5,Sun,2021-10-10,4:25PM,Dallas Cowboys,,New York Giants,44.0,20.0,2.0,2.0
+5,Sun,2021-10-10,8:20PM,Buffalo Bills,@,Kansas City Chiefs,38.0,20.0,0.0,4.0
+5,Mon,2021-10-11,8:15PM,Baltimore Ravens,,Indianapolis Colts,31.0,25.0,1.0,1.0
+6,Thu,2021-10-14,8:20PM,Tampa Bay Buccaneers,@,Philadelphia Eagles,28.0,22.0,1.0,1.0
+6,Sun,2021-10-17,9:30AM,Jacksonville Jaguars,,Miami Dolphins,23.0,20.0,1.0,1.0
+6,Sun,2021-10-17,1:00PM,Minnesota Vikings,@,Carolina Panthers,34.0,28.0,1.0,3.0
+6,Sun,2021-10-17,1:00PM,Green Bay Packers,@,Chicago Bears,24.0,14.0,0.0,1.0
+6,Sun,2021-10-17,1:00PM,Cincinnati Bengals,@,Detroit Lions,34.0,11.0,1.0,1.0
+6,Sun,2021-10-17,1:00PM,Indianapolis Colts,,Houston Texans,31.0,3.0,0.0,3.0
+6,Sun,2021-10-17,1:00PM,Kansas City Chiefs,@,Washington Football Team,31.0,13.0,3.0,2.0
+6,Sun,2021-10-17,1:00PM,Los Angeles Rams,@,New York Giants,38.0,11.0,2.0,4.0
+6,Sun,2021-10-17,1:00PM,Baltimore Ravens,,Los Angeles Chargers,34.0,6.0,2.0,1.0
+6,Sun,2021-10-17,4:05PM,Arizona Cardinals,@,Cleveland Browns,37.0,14.0,0.0,3.0
+6,Sun,2021-10-17,4:25PM,Dallas Cowboys,@,New England Patriots,35.0,29.0,2.0,2.0
+6,Sun,2021-10-17,4:25PM,Las Vegas Raiders,@,Denver Broncos,34.0,24.0,0.0,4.0
+6,Sun,2021-10-17,8:20PM,Pittsburgh Steelers,,Seattle Seahawks,23.0,20.0,1.0,1.0
+6,Mon,2021-10-18,8:15PM,Tennessee Titans,,Buffalo Bills,34.0,31.0,1.0,1.0
+7,Thu,2021-10-21,8:20PM,Cleveland Browns,,Denver Broncos,17.0,14.0,0.0,1.0
+7,Sun,2021-10-24,1:00PM,Atlanta Falcons,@,Miami Dolphins,30.0,28.0,2.0,2.0
+7,Sun,2021-10-24,1:00PM,New York Giants,,Carolina Panthers,25.0,3.0,0.0,1.0
+7,Sun,2021-10-24,1:00PM,Cincinnati Bengals,@,Baltimore Ravens,41.0,17.0,1.0,0.0
+7,Sun,2021-10-24,1:00PM,Green Bay Packers,,Washington Football Team,24.0,10.0,1.0,2.0
+7,Sun,2021-10-24,1:00PM,Tennessee Titans,,Kansas City Chiefs,27.0,3.0,1.0,3.0
+7,Sun,2021-10-24,1:00PM,New England Patriots,,New York Jets,54.0,13.0,0.0,3.0
+7,Sun,2021-10-24,4:05PM,Los Angeles Rams,,Detroit Lions,28.0,19.0,0.0,2.0
+7,Sun,2021-10-24,4:05PM,Las Vegas Raiders,,Philadelphia Eagles,33.0,22.0,1.0,2.0
+7,Sun,2021-10-24,4:25PM,Tampa Bay Buccaneers,,Chicago Bears,38.0,3.0,1.0,5.0
+7,Sun,2021-10-24,4:25PM,Arizona Cardinals,,Houston Texans,31.0,5.0,1.0,1.0
+7,Sun,2021-10-24,8:20PM,Indianapolis Colts,@,San Francisco 49ers,30.0,18.0,2.0,4.0
+7,Mon,2021-10-25,8:15PM,New Orleans Saints,@,Seattle Seahawks,13.0,10.0,1.0,0.0
+8,Thu,2021-10-28,8:20PM,Green Bay Packers,@,Arizona Cardinals,24.0,21.0,0.0,3.0
+8,Sun,2021-10-31,1:00PM,Carolina Panthers,@,Atlanta Falcons,19.0,13.0,1.0,2.0
+8,Sun,2021-10-31,1:00PM,Buffalo Bills,,Miami Dolphins,26.0,11.0,0.0,2.0
+8,Sun,2021-10-31,1:00PM,San Francisco 49ers,@,Chicago Bears,33.0,22.0,0.0,1.0
+8,Sun,2021-10-31,1:00PM,New York Jets,,Cincinnati Bengals,34.0,31.0,3.0,1.0
+8,Sun,2021-10-31,1:00PM,Pittsburgh Steelers,@,Cleveland Browns,15.0,10.0,0.0,1.0
+8,Sun,2021-10-31,1:00PM,Tennessee Titans,@,Indianapolis Colts,34.0,31.0,2.0,3.0
+8,Sun,2021-10-31,1:00PM,Philadelphia Eagles,@,Detroit Lions,44.0,6.0,0.0,1.0
+8,Sun,2021-10-31,1:00PM,Los Angeles Rams,@,Houston Texans,38.0,22.0,0.0,1.0
+8,Sun,2021-10-31,4:05PM,Seattle Seahawks,,Jacksonville Jaguars,31.0,7.0,0.0,1.0
+8,Sun,2021-10-31,4:05PM,New England Patriots,@,Los Angeles Chargers,27.0,24.0,1.0,2.0
+8,Sun,2021-10-31,4:25PM,New Orleans Saints,,Tampa Bay Buccaneers,36.0,27.0,0.0,3.0
+8,Sun,2021-10-31,4:25PM,Denver Broncos,,Washington Football Team,17.0,10.0,1.0,2.0
+8,Sun,2021-10-31,8:20PM,Dallas Cowboys,@,Minnesota Vikings,20.0,16.0,2.0,0.0
+8,Mon,2021-11-01,8:15PM,Kansas City Chiefs,,New York Giants,20.0,17.0,2.0,1.0
+9,Thu,2021-11-04,8:20PM,Indianapolis Colts,,New York Jets,45.0,30.0,0.0,2.0
+9,Sun,2021-11-07,1:00PM,Atlanta Falcons,@,New Orleans Saints,27.0,25.0,0.0,1.0
+9,Sun,2021-11-07,1:00PM,Jacksonville Jaguars,,Buffalo Bills,9.0,6.0,1.0,3.0
+9,Sun,2021-11-07,1:00PM,Denver Broncos,@,Dallas Cowboys,30.0,16.0,0.0,2.0
+9,Sun,2021-11-07,1:00PM,Baltimore Ravens,,Minnesota Vikings,34.0,31.0,2.0,0.0
+9,Sun,2021-11-07,1:00PM,New England Patriots,@,Carolina Panthers,24.0,6.0,2.0,3.0
+9,Sun,2021-11-07,1:00PM,Cleveland Browns,@,Cincinnati Bengals,41.0,16.0,0.0,3.0
+9,Sun,2021-11-07,1:00PM,Miami Dolphins,,Houston Texans,17.0,9.0,5.0,4.0
+9,Sun,2021-11-07,1:00PM,New York Giants,,Las Vegas Raiders,23.0,16.0,1.0,3.0
+9,Sun,2021-11-07,4:05PM,Los Angeles Chargers,@,Philadelphia Eagles,27.0,24.0,0.0,0.0
+9,Sun,2021-11-07,4:25PM,Arizona Cardinals,@,San Francisco 49ers,31.0,17.0,0.0,3.0
+9,Sun,2021-11-07,4:25PM,Kansas City Chiefs,,Green Bay Packers,13.0,7.0,0.0,2.0
+9,Sun,2021-11-07,8:20PM,Tennessee Titans,@,Los Angeles Rams,28.0,16.0,1.0,2.0
+9,Mon,2021-11-08,8:15PM,Pittsburgh Steelers,,Chicago Bears,29.0,27.0,1.0,2.0
+10,Thu,2021-11-11,8:20PM,Miami Dolphins,,Baltimore Ravens,22.0,10.0,0.0,2.0
+10,Sun,2021-11-14,1:00PM,Dallas Cowboys,,Atlanta Falcons,43.0,3.0,1.0,3.0
+10,Sun,2021-11-14,1:00PM,Buffalo Bills,@,New York Jets,45.0,17.0,2.0,5.0
+10,Sun,2021-11-14,1:00PM,Pittsburgh Steelers,,Detroit Lions,16.0,16.0,3.0,0.0
+10,Sun,2021-11-14,1:00PM,Tennessee Titans,,New Orleans Saints,23.0,21.0,0.0,1.0
+10,Sun,2021-11-14,1:00PM,Washington Football Team,,Tampa Bay Buccaneers,29.0,19.0,1.0,2.0
+10,Sun,2021-11-14,1:00PM,New England Patriots,,Cleveland Browns,45.0,7.0,0.0,1.0
+10,Sun,2021-11-14,1:00PM,Indianapolis Colts,,Jacksonville Jaguars,23.0,17.0,0.0,1.0
+10,Sun,2021-11-14,4:05PM,Minnesota Vikings,@,Los Angeles Chargers,27.0,20.0,1.0,1.0
+10,Sun,2021-11-14,4:05PM,Carolina Panthers,@,Arizona Cardinals,34.0,10.0,2.0,2.0
+10,Sun,2021-11-14,4:25PM,Philadelphia Eagles,@,Denver Broncos,30.0,13.0,1.0,1.0
+10,Sun,2021-11-14,4:25PM,Green Bay Packers,,Seattle Seahawks,17.0,0.0,1.0,2.0
+10,Sun,2021-11-14,8:20PM,Kansas City Chiefs,@,Las Vegas Raiders,41.0,14.0,1.0,2.0
+10,Mon,2021-11-15,8:15PM,San Francisco 49ers,,Los Angeles Rams,31.0,10.0,0.0,2.0
+11,Thu,2021-11-18,8:20PM,New England Patriots,@,Atlanta Falcons,25.0,0.0,1.0,4.0
+11,Sun,2021-11-21,1:00PM,Indianapolis Colts,@,Buffalo Bills,41.0,15.0,0.0,4.0
+11,Sun,2021-11-21,1:00PM,Baltimore Ravens,@,Chicago Bears,16.0,13.0,1.0,1.0
+11,Sun,2021-11-21,1:00PM,Houston Texans,@,Tennessee Titans,22.0,13.0,0.0,5.0
+11,Sun,2021-11-21,1:00PM,San Francisco 49ers,@,Jacksonville Jaguars,30.0,10.0,0.0,2.0
+11,Sun,2021-11-21,1:00PM,Philadelphia Eagles,,New Orleans Saints,40.0,29.0,1.0,3.0
+11,Sun,2021-11-21,1:00PM,Washington Football Team,@,Carolina Panthers,27.0,21.0,1.0,0.0
+11,Sun,2021-11-21,1:00PM,Cleveland Browns,,Detroit Lions,13.0,10.0,2.0,2.0
+11,Sun,2021-11-21,1:00PM,Minnesota Vikings,,Green Bay Packers,34.0,31.0,0.0,0.0
+11,Sun,2021-11-21,1:00PM,Miami Dolphins,@,New York Jets,24.0,17.0,1.0,1.0
+11,Sun,2021-11-21,4:05PM,Cincinnati Bengals,@,Las Vegas Raiders,32.0,13.0,1.0,2.0
+11,Sun,2021-11-21,4:25PM,Kansas City Chiefs,,Dallas Cowboys,19.0,9.0,2.0,3.0
+11,Sun,2021-11-21,4:25PM,Arizona Cardinals,@,Seattle Seahawks,23.0,13.0,0.0,0.0
+11,Sun,2021-11-21,8:20PM,Los Angeles Chargers,,Pittsburgh Steelers,41.0,37.0,1.0,0.0
+11,Mon,2021-11-22,8:15PM,Tampa Bay Buccaneers,,New York Giants,30.0,10.0,1.0,3.0
+12,Thu,2021-11-25,12:30PM,Chicago Bears,@,Detroit Lions,16.0,14.0,1.0,1.0
+12,Thu,2021-11-25,4:30PM,Las Vegas Raiders,@,Dallas Cowboys,36.0,33.0,0.0,0.0
+12,Thu,2021-11-25,8:20PM,Buffalo Bills,@,New Orleans Saints,31.0,6.0,2.0,1.0
+12,Sun,2021-11-28,1:00PM,Atlanta Falcons,@,Jacksonville Jaguars,21.0,14.0,1.0,2.0
+12,Sun,2021-11-28,1:00PM,Cincinnati Bengals,,Pittsburgh Steelers,41.0,10.0,1.0,3.0
+12,Sun,2021-11-28,1:00PM,New York Jets,@,Houston Texans,21.0,14.0,1.0,1.0
+12,Sun,2021-11-28,1:00PM,New York Giants,,Philadelphia Eagles,13.0,7.0,0.0,4.0
+12,Sun,2021-11-28,1:00PM,Miami Dolphins,,Carolina Panthers,33.0,10.0,1.0,3.0
+12,Sun,2021-11-28,1:00PM,Tampa Bay Buccaneers,@,Indianapolis Colts,38.0,31.0,2.0,5.0
+12,Sun,2021-11-28,1:00PM,New England Patriots,,Tennessee Titans,36.0,13.0,0.0,4.0
+12,Sun,2021-11-28,4:05PM,Denver Broncos,,Los Angeles Chargers,28.0,13.0,1.0,2.0
+12,Sun,2021-11-28,4:25PM,San Francisco 49ers,,Minnesota Vikings,34.0,26.0,1.0,2.0
+12,Sun,2021-11-28,4:25PM,Green Bay Packers,,Los Angeles Rams,36.0,28.0,1.0,3.0
+12,Sun,2021-11-28,8:20PM,Baltimore Ravens,,Cleveland Browns,16.0,10.0,4.0,2.0
+12,Mon,2021-11-29,8:15PM,Washington Football Team,,Seattle Seahawks,17.0,15.0,1.0,1.0
+13,Thu,2021-12-02,8:20PM,Dallas Cowboys,@,New Orleans Saints,27.0,17.0,1.0,4.0
+13,Sun,2021-12-05,1:00PM,Tampa Bay Buccaneers,@,Atlanta Falcons,30.0,17.0,1.0,1.0
+13,Sun,2021-12-05,1:00PM,Arizona Cardinals,@,Chicago Bears,33.0,22.0,0.0,4.0
+13,Sun,2021-12-05,1:00PM,Los Angeles Chargers,@,Cincinnati Bengals,41.0,22.0,3.0,4.0
+13,Sun,2021-12-05,1:00PM,Detroit Lions,,Minnesota Vikings,29.0,27.0,2.0,1.0
+13,Sun,2021-12-05,1:00PM,Philadelphia Eagles,@,New York Jets,33.0,18.0,0.0,1.0
+13,Sun,2021-12-05,1:00PM,Indianapolis Colts,@,Houston Texans,31.0,0.0,1.0,2.0
+13,Sun,2021-12-05,1:00PM,Miami Dolphins,,New York Giants,20.0,9.0,0.0,1.0
+13,Sun,2021-12-05,4:00PM,Seattle Seahawks,,San Francisco 49ers,30.0,23.0,3.0,3.0
+13,Sun,2021-12-05,4:05PM,Washington Football Team,@,Las Vegas Raiders,17.0,15.0,1.0,0.0
+13,Sun,2021-12-05,4:25PM,Los Angeles Rams,,Jacksonville Jaguars,37.0,7.0,0.0,2.0
+13,Sun,2021-12-05,4:25PM,Pittsburgh Steelers,,Baltimore Ravens,20.0,19.0,0.0,1.0
+13,Sun,2021-12-05,8:20PM,Kansas City Chiefs,,Denver Broncos,22.0,9.0,1.0,3.0
+13,Mon,2021-12-06,8:15PM,New England Patriots,@,Buffalo Bills,14.0,10.0,1.0,1.0
+14,Thu,2021-12-09,8:20PM,Minnesota Vikings,,Pittsburgh Steelers,36.0,28.0,2.0,1.0
+14,Sun,2021-12-12,1:00PM,Atlanta Falcons,@,Carolina Panthers,29.0,21.0,1.0,3.0
+14,Sun,2021-12-12,1:00PM,San Francisco 49ers,@,Cincinnati Bengals,26.0,23.0,0.0,2.0
+14,Sun,2021-12-12,1:00PM,Cleveland Browns,,Baltimore Ravens,24.0,22.0,1.0,2.0
+14,Sun,2021-12-12,1:00PM,Dallas Cowboys,@,Washington Football Team,27.0,20.0,2.0,4.0
+14,Sun,2021-12-12,1:00PM,Seattle Seahawks,@,Houston Texans,33.0,13.0,0.0,0.0
+14,Sun,2021-12-12,1:00PM,Tennessee Titans,,Jacksonville Jaguars,20.0,0.0,0.0,4.0
+14,Sun,2021-12-12,1:00PM,Kansas City Chiefs,,Las Vegas Raiders,48.0,9.0,0.0,5.0
+14,Sun,2021-12-12,1:00PM,New Orleans Saints,@,New York Jets,30.0,9.0,0.0,0.0
+14,Sun,2021-12-12,4:05PM,Denver Broncos,,Detroit Lions,38.0,10.0,0.0,2.0
+14,Sun,2021-12-12,4:05PM,Los Angeles Chargers,,New York Giants,37.0,21.0,0.0,2.0
+14,Sun,2021-12-12,4:25PM,Tampa Bay Buccaneers,,Buffalo Bills,33.0,27.0,0.0,1.0
+14,Sun,2021-12-12,8:20PM,Green Bay Packers,,Chicago Bears,45.0,30.0,0.0,3.0
+14,Mon,2021-12-13,8:15PM,Los Angeles Rams,@,Arizona Cardinals,30.0,23.0,0.0,2.0
+15,Thu,2021-12-16,8:20PM,Kansas City Chiefs,@,Los Angeles Chargers,34.0,28.0,2.0,2.0
+15,Sat,2021-12-18,8:20PM,Indianapolis Colts,,New England Patriots,27.0,17.0,1.0,2.0
+15,Sun,2021-12-19,1:00PM,Buffalo Bills,,Carolina Panthers,31.0,14.0,1.0,1.0
+15,Sun,2021-12-19,1:00PM,Detroit Lions,,Arizona Cardinals,30.0,12.0,1.0,1.0
+15,Sun,2021-12-19,1:00PM,Dallas Cowboys,@,New York Giants,21.0,6.0,1.0,4.0
+15,Sun,2021-12-19,1:00PM,Green Bay Packers,@,Baltimore Ravens,31.0,30.0,0.0,0.0
+15,Sun,2021-12-19,1:00PM,Houston Texans,@,Jacksonville Jaguars,30.0,16.0,1.0,0.0
+15,Sun,2021-12-19,1:00PM,Miami Dolphins,,New York Jets,31.0,24.0,3.0,1.0
+15,Sun,2021-12-19,1:00PM,Pittsburgh Steelers,,Tennessee Titans,19.0,13.0,0.0,4.0
+15,Sun,2021-12-19,4:05PM,San Francisco 49ers,,Atlanta Falcons,31.0,13.0,1.0,1.0
+15,Sun,2021-12-19,4:05PM,Cincinnati Bengals,@,Denver Broncos,15.0,10.0,0.0,1.0
+15,Sun,2021-12-19,8:20PM,New Orleans Saints,@,Tampa Bay Buccaneers,9.0,0.0,0.0,2.0
+15,Mon,2021-12-20,5:00PM,Las Vegas Raiders,@,Cleveland Browns,16.0,14.0,2.0,0.0
+15,Mon,2021-12-20,8:15PM,Minnesota Vikings,@,Chicago Bears,17.0,9.0,1.0,3.0
+15,Tue,2021-12-21,7:00PM,Philadelphia Eagles,,Washington Football Team,27.0,17.0,2.0,0.0
+15,Tue,2021-12-21,7:00PM,Los Angeles Rams,,Seattle Seahawks,20.0,10.0,1.0,1.0
+16,Thu,2021-12-23,8:20PM,Tennessee Titans,,San Francisco 49ers,20.0,17.0,0.0,2.0
+16,Sat,2021-12-25,4:30PM,Green Bay Packers,,Cleveland Browns,24.0,22.0,0.0,4.0
+16,Sat,2021-12-25,8:15PM,Indianapolis Colts,@,Arizona Cardinals,22.0,16.0,0.0,0.0
+16,Sun,2021-12-26,1:00PM,Atlanta Falcons,,Detroit Lions,20.0,16.0,1.0,1.0
+16,Sun,2021-12-26,1:00PM,Buffalo Bills,@,New England Patriots,33.0,21.0,0.0,2.0
+16,Sun,2021-12-26,1:00PM,Tampa Bay Buccaneers,@,Carolina Panthers,32.0,6.0,0.0,1.0
+16,Sun,2021-12-26,1:00PM,Cincinnati Bengals,,Baltimore Ravens,41.0,21.0,0.0,1.0
+16,Sun,2021-12-26,1:00PM,Houston Texans,,Los Angeles Chargers,41.0,29.0,0.0,3.0
+16,Sun,2021-12-26,1:00PM,New York Jets,,Jacksonville Jaguars,26.0,21.0,0.0,1.0
+16,Sun,2021-12-26,1:00PM,Los Angeles Rams,@,Minnesota Vikings,30.0,23.0,3.0,1.0
+16,Sun,2021-12-26,1:00PM,Philadelphia Eagles,,New York Giants,34.0,10.0,0.0,2.0
+16,Sun,2021-12-26,4:05PM,Chicago Bears,@,Seattle Seahawks,25.0,24.0,0.0,0.0
+16,Sun,2021-12-26,4:25PM,Las Vegas Raiders,,Denver Broncos,17.0,13.0,3.0,0.0
+16,Sun,2021-12-26,4:25PM,Kansas City Chiefs,,Pittsburgh Steelers,36.0,10.0,0.0,3.0
+16,Sun,2021-12-26,8:20PM,Dallas Cowboys,,Washington Football Team,56.0,14.0,0.0,2.0
+16,Mon,2021-12-27,8:15PM,Miami Dolphins,@,New Orleans Saints,20.0,3.0,1.0,2.0
+17,Sun,2022-01-02,1:00PM,Buffalo Bills,,Atlanta Falcons,29.0,15.0,3.0,1.0
+17,Sun,2022-01-02,1:00PM,New Orleans Saints,,Carolina Panthers,18.0,10.0,0.0,2.0
+17,Sun,2022-01-02,1:00PM,Chicago Bears,,New York Giants,29.0,3.0,2.0,4.0
+17,Sun,2022-01-02,1:00PM,Cincinnati Bengals,,Kansas City Chiefs,34.0,31.0,0.0,0.0
+17,Sun,2022-01-02,1:00PM,Las Vegas Raiders,@,Indianapolis Colts,23.0,20.0,2.0,0.0
+17,Sun,2022-01-02,1:00PM,New England Patriots,,Jacksonville Jaguars,50.0,10.0,0.0,3.0
+17,Sun,2022-01-02,1:00PM,Tennessee Titans,,Miami Dolphins,34.0,3.0,0.0,2.0
+17,Sun,2022-01-02,1:00PM,Tampa Bay Buccaneers,@,New York Jets,28.0,24.0,1.0,1.0
+17,Sun,2022-01-02,1:00PM,Philadelphia Eagles,@,Washington Football Team,20.0,16.0,0.0,1.0
+17,Sun,2022-01-02,4:05PM,Los Angeles Chargers,,Denver Broncos,34.0,13.0,0.0,1.0
+17,Sun,2022-01-02,4:05PM,San Francisco 49ers,,Houston Texans,23.0,7.0,1.0,1.0
+17,Sun,2022-01-02,4:25PM,Arizona Cardinals,@,Dallas Cowboys,25.0,22.0,0.0,1.0
+17,Sun,2022-01-02,4:25PM,Seattle Seahawks,,Detroit Lions,51.0,29.0,0.0,3.0
+17,Sun,2022-01-02,4:25PM,Los Angeles Rams,@,Baltimore Ravens,20.0,19.0,3.0,2.0
+17,Sun,2022-01-02,8:20PM,Green Bay Packers,,Minnesota Vikings,37.0,10.0,0.0,0.0
+17,Mon,2022-01-03,8:15PM,Pittsburgh Steelers,,Cleveland Browns,26.0,14.0,1.0,2.0
+18,Sat,2022-01-08,4:30PM,Kansas City Chiefs,@,Denver Broncos,28.0,24.0,0.0,1.0
+18,Sat,2022-01-08,8:15PM,Dallas Cowboys,@,Philadelphia Eagles,51.0,26.0,0.0,1.0
+18,Sun,2022-01-09,1:00PM,New Orleans Saints,@,Atlanta Falcons,30.0,20.0,0.0,3.0
+18,Sun,2022-01-09,1:00PM,Tampa Bay Buccaneers,,Carolina Panthers,41.0,17.0,0.0,2.0
+18,Sun,2022-01-09,1:00PM,Minnesota Vikings,,Chicago Bears,31.0,17.0,0.0,2.0
+18,Sun,2022-01-09,1:00PM,Cleveland Browns,,Cincinnati Bengals,21.0,16.0,2.0,0.0
+18,Sun,2022-01-09,1:00PM,Jacksonville Jaguars,,Indianapolis Colts,26.0,11.0,0.0,2.0
+18,Sun,2022-01-09,1:00PM,Detroit Lions,,Green Bay Packers,37.0,30.0,0.0,3.0
+18,Sun,2022-01-09,1:00PM,Tennessee Titans,@,Houston Texans,28.0,25.0,0.0,0.0
+18,Sun,2022-01-09,1:00PM,Miami Dolphins,,New England Patriots,33.0,24.0,0.0,3.0
+18,Sun,2022-01-09,1:00PM,Washington Football Team,@,New York Giants,22.0,7.0,0.0,3.0
+18,Sun,2022-01-09,1:00PM,Pittsburgh Steelers,@,Baltimore Ravens,16.0,13.0,1.0,3.0
+18,Sun,2022-01-09,4:25PM,Buffalo Bills,,New York Jets,27.0,10.0,0.0,0.0
+18,Sun,2022-01-09,4:25PM,Seattle Seahawks,@,Arizona Cardinals,38.0,30.0,2.0,1.0
+18,Sun,2022-01-09,4:25PM,San Francisco 49ers,@,Los Angeles Rams,27.0,24.0,2.0,2.0
+18,Sun,2022-01-09,8:25PM,Las Vegas Raiders,,Los Angeles Chargers,35.0,32.0,0.0,2.0
+WildCard,Sat,2022-01-15,4:30PM,Cincinnati Bengals,,Las Vegas Raiders,26.0,19.0,0.0,2.0
+WildCard,Sat,2022-01-15,8:15PM,Buffalo Bills,,New England Patriots,47.0,17.0,0.0,2.0
+WildCard,Sun,2022-01-16,1:00PM,Tampa Bay Buccaneers,,Philadelphia Eagles,31.0,15.0,0.0,3.0
+WildCard,Sun,2022-01-16,4:40PM,San Francisco 49ers,@,Dallas Cowboys,23.0,17.0,1.0,1.0
+WildCard,Sun,2022-01-16,8:15PM,Kansas City Chiefs,,Pittsburgh Steelers,42.0,21.0,2.0,1.0
+WildCard,Mon,2022-01-17,8:15PM,Los Angeles Rams,,Arizona Cardinals,34.0,11.0,0.0,2.0
+Division,Sat,2022-01-22,4:30PM,Cincinnati Bengals,@,Tennessee Titans,19.0,16.0,1.0,3.0
+Division,Sat,2022-01-22,8:15PM,San Francisco 49ers,@,Green Bay Packers,13.0,10.0,1.0,1.0
+Division,Sun,2022-01-23,3:00PM,Los Angeles Rams,@,Tampa Bay Buccaneers,30.0,27.0,4.0,2.0
+Division,Sun,2022-01-23,6:30PM,Kansas City Chiefs,,Buffalo Bills,42.0,36.0,0.0,0.0
+ConfChamp,Sun,2022-01-30,3:00PM,Cincinnati Bengals,@,Kansas City Chiefs,27.0,24.0,1.0,2.0
+ConfChamp,Sun,2022-01-30,6:30PM,Los Angeles Rams,,San Francisco 49ers,20.0,17.0,1.0,1.0
+SuperBowl,Sun,2022-02-13,6:30PM,Los Angeles Rams,N,Cincinnati Bengals,23.0,20.0,2.0,0.0

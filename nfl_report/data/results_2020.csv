@@ -1,0 +1,270 @@
+Week,Day,Date,Time,Winner/tie,venue_marker,Loser/tie,Pts,Pts.1,TOW,TOL
+1,Thu,2020-09-10,8:20PM,Kansas City Chiefs,,Houston Texans,34.0,20.0,0.0,1.0
+1,Sun,2020-09-13,1:00PM,Seattle Seahawks,@,Atlanta Falcons,38.0,25.0,0.0,2.0
+1,Sun,2020-09-13,1:00PM,Buffalo Bills,,New York Jets,27.0,17.0,2.0,2.0
+1,Sun,2020-09-13,1:00PM,Las Vegas Raiders,@,Carolina Panthers,34.0,30.0,0.0,0.0
+1,Sun,2020-09-13,1:00PM,Chicago Bears,@,Detroit Lions,27.0,23.0,0.0,1.0
+1,Sun,2020-09-13,1:00PM,Baltimore Ravens,,Cleveland Browns,38.0,6.0,1.0,3.0
+1,Sun,2020-09-13,1:00PM,Jacksonville Jaguars,,Indianapolis Colts,27.0,20.0,0.0,2.0
+1,Sun,2020-09-13,1:00PM,Green Bay Packers,@,Minnesota Vikings,43.0,34.0,0.0,1.0
+1,Sun,2020-09-13,1:00PM,New England Patriots,,Miami Dolphins,21.0,11.0,1.0,3.0
+1,Sun,2020-09-13,1:00PM,Washington Football Team,,Philadelphia Eagles,27.0,17.0,0.0,3.0
+1,Sun,2020-09-13,4:05PM,Los Angeles Chargers,@,Cincinnati Bengals,16.0,13.0,0.0,2.0
+1,Sun,2020-09-13,4:25PM,Arizona Cardinals,@,San Francisco 49ers,24.0,20.0,1.0,0.0
+1,Sun,2020-09-13,4:25PM,New Orleans Saints,,Tampa Bay Buccaneers,34.0,23.0,0.0,3.0
+1,Sun,2020-09-13,8:20PM,Los Angeles Rams,,Dallas Cowboys,20.0,17.0,1.0,0.0
+1,Mon,2020-09-14,7:15PM,Pittsburgh Steelers,@,New York Giants,26.0,16.0,1.0,2.0
+1,Mon,2020-09-14,10:10PM,Tennessee Titans,@,Denver Broncos,16.0,14.0,0.0,1.0
+2,Thu,2020-09-17,8:20PM,Cleveland Browns,,Cincinnati Bengals,35.0,30.0,1.0,1.0
+2,Sun,2020-09-20,1:00PM,Dallas Cowboys,,Atlanta Falcons,40.0,39.0,3.0,0.0
+2,Sun,2020-09-20,1:00PM,Buffalo Bills,@,Miami Dolphins,31.0,28.0,1.0,0.0
+2,Sun,2020-09-20,1:00PM,Tampa Bay Buccaneers,,Carolina Panthers,31.0,17.0,2.0,4.0
+2,Sun,2020-09-20,1:00PM,Chicago Bears,,New York Giants,17.0,13.0,2.0,2.0
+2,Sun,2020-09-20,1:00PM,Indianapolis Colts,,Minnesota Vikings,28.0,11.0,1.0,3.0
+2,Sun,2020-09-20,1:00PM,Pittsburgh Steelers,,Denver Broncos,26.0,21.0,2.0,2.0
+2,Sun,2020-09-20,1:00PM,Green Bay Packers,,Detroit Lions,42.0,21.0,0.0,1.0
+2,Sun,2020-09-20,1:00PM,Tennessee Titans,,Jacksonville Jaguars,33.0,30.0,0.0,2.0
+2,Sun,2020-09-20,1:00PM,San Francisco 49ers,@,New York Jets,31.0,13.0,1.0,0.0
+2,Sun,2020-09-20,1:00PM,Los Angeles Rams,@,Philadelphia Eagles,37.0,19.0,1.0,3.0
+2,Sun,2020-09-20,4:05PM,Arizona Cardinals,,Washington Football Team,30.0,15.0,1.0,2.0
+2,Sun,2020-09-20,4:25PM,Baltimore Ravens,@,Houston Texans,33.0,16.0,0.0,2.0
+2,Sun,2020-09-20,4:25PM,Kansas City Chiefs,@,Los Angeles Chargers,23.0,20.0,0.0,1.0
+2,Sun,2020-09-20,8:20PM,Seattle Seahawks,,New England Patriots,35.0,30.0,1.0,1.0
+2,Mon,2020-09-21,8:15PM,Las Vegas Raiders,,New Orleans Saints,34.0,24.0,1.0,1.0
+3,Thu,2020-09-24,8:20PM,Miami Dolphins,@,Jacksonville Jaguars,31.0,13.0,0.0,2.0
+3,Sun,2020-09-27,1:00PM,Chicago Bears,@,Atlanta Falcons,30.0,26.0,2.0,1.0
+3,Sun,2020-09-27,1:00PM,Buffalo Bills,,Los Angeles Rams,35.0,32.0,2.0,2.0
+3,Sun,2020-09-27,1:00PM,Philadelphia Eagles,,Cincinnati Bengals,23.0,23.0,2.0,0.0
+3,Sun,2020-09-27,1:00PM,Cleveland Browns,,Washington Football Team,34.0,20.0,0.0,5.0
+3,Sun,2020-09-27,1:00PM,Pittsburgh Steelers,,Houston Texans,28.0,21.0,0.0,1.0
+3,Sun,2020-09-27,1:00PM,Tennessee Titans,@,Minnesota Vikings,31.0,30.0,1.0,3.0
+3,Sun,2020-09-27,1:00PM,New England Patriots,,Las Vegas Raiders,36.0,20.0,1.0,3.0
+3,Sun,2020-09-27,1:00PM,San Francisco 49ers,@,New York Giants,36.0,9.0,0.0,3.0
+3,Sun,2020-09-27,4:05PM,Carolina Panthers,@,Los Angeles Chargers,21.0,16.0,0.0,4.0
+3,Sun,2020-09-27,4:05PM,Indianapolis Colts,,New York Jets,36.0,7.0,0.0,3.0
+3,Sun,2020-09-27,4:25PM,Detroit Lions,@,Arizona Cardinals,26.0,23.0,0.0,3.0
+3,Sun,2020-09-27,4:25PM,Seattle Seahawks,,Dallas Cowboys,38.0,31.0,1.0,3.0
+3,Sun,2020-09-27,4:25PM,Tampa Bay Buccaneers,@,Denver Broncos,28.0,10.0,0.0,2.0
+3,Sun,2020-09-27,8:20PM,Green Bay Packers,@,New Orleans Saints,37.0,30.0,0.0,1.0
+3,Mon,2020-09-28,8:15PM,Kansas City Chiefs,@,Baltimore Ravens,34.0,20.0,1.0,1.0
+4,Thu,2020-10-01,8:20PM,Denver Broncos,@,New York Jets,37.0,28.0,3.0,0.0
+4,Sun,2020-10-04,1:00PM,Carolina Panthers,,Arizona Cardinals,31.0,21.0,1.0,1.0
+4,Sun,2020-10-04,1:00PM,Indianapolis Colts,@,Chicago Bears,19.0,11.0,0.0,1.0
+4,Sun,2020-10-04,1:00PM,Cincinnati Bengals,,Jacksonville Jaguars,33.0,25.0,1.0,1.0
+4,Sun,2020-10-04,1:00PM,Cleveland Browns,@,Dallas Cowboys,49.0,38.0,0.0,3.0
+4,Sun,2020-10-04,1:00PM,New Orleans Saints,@,Detroit Lions,35.0,29.0,1.0,1.0
+4,Sun,2020-10-04,1:00PM,Minnesota Vikings,@,Houston Texans,31.0,23.0,0.0,1.0
+4,Sun,2020-10-04,1:00PM,Seattle Seahawks,@,Miami Dolphins,31.0,23.0,1.0,2.0
+4,Sun,2020-10-04,1:00PM,Baltimore Ravens,@,Washington Football Team,31.0,17.0,2.0,1.0
+4,Sun,2020-10-04,1:00PM,Tampa Bay Buccaneers,,Los Angeles Chargers,38.0,31.0,1.0,2.0
+4,Sun,2020-10-04,4:05PM,Los Angeles Rams,,New York Giants,17.0,9.0,1.0,1.0
+4,Sun,2020-10-04,4:25PM,Buffalo Bills,@,Las Vegas Raiders,30.0,23.0,0.0,2.0
+4,Sun,2020-10-04,8:20PM,Philadelphia Eagles,@,San Francisco 49ers,25.0,20.0,1.0,3.0
+4,Mon,2020-10-05,7:05PM,Kansas City Chiefs,,New England Patriots,26.0,10.0,1.0,4.0
+4,Mon,2020-10-05,8:15PM,Green Bay Packers,,Atlanta Falcons,30.0,16.0,0.0,0.0
+5,Thu,2020-10-08,8:20PM,Chicago Bears,,Tampa Bay Buccaneers,20.0,19.0,1.0,1.0
+5,Sun,2020-10-11,1:00PM,Carolina Panthers,@,Atlanta Falcons,23.0,16.0,0.0,1.0
+5,Sun,2020-10-11,1:00PM,Baltimore Ravens,,Cincinnati Bengals,27.0,3.0,1.0,3.0
+5,Sun,2020-10-11,1:00PM,Arizona Cardinals,@,New York Jets,30.0,10.0,1.0,0.0
+5,Sun,2020-10-11,1:00PM,Houston Texans,,Jacksonville Jaguars,30.0,14.0,2.0,2.0
+5,Sun,2020-10-11,1:00PM,Las Vegas Raiders,@,Kansas City Chiefs,40.0,32.0,1.0,1.0
+5,Sun,2020-10-11,1:00PM,Pittsburgh Steelers,,Philadelphia Eagles,38.0,29.0,1.0,2.0
+5,Sun,2020-10-11,1:00PM,Los Angeles Rams,@,Washington Football Team,30.0,10.0,1.0,0.0
+5,Sun,2020-10-11,4:05PM,Miami Dolphins,@,San Francisco 49ers,43.0,17.0,0.0,3.0
+5,Sun,2020-10-11,4:25PM,Cleveland Browns,,Indianapolis Colts,32.0,23.0,2.0,2.0
+5,Sun,2020-10-11,4:25PM,Dallas Cowboys,,New York Giants,37.0,34.0,2.0,1.0
+5,Sun,2020-10-11,8:20PM,Seattle Seahawks,,Minnesota Vikings,27.0,26.0,1.0,2.0
+5,Mon,2020-10-12,8:15PM,New Orleans Saints,,Los Angeles Chargers,30.0,27.0,1.0,0.0
+5,Tue,2020-10-13,7:00PM,Tennessee Titans,,Buffalo Bills,42.0,16.0,0.0,3.0
+6,Sun,2020-10-18,1:00PM,Denver Broncos,@,New England Patriots,18.0,12.0,2.0,3.0
+6,Sun,2020-10-18,1:00PM,Detroit Lions,@,Jacksonville Jaguars,34.0,16.0,1.0,2.0
+6,Sun,2020-10-18,1:00PM,Atlanta Falcons,@,Minnesota Vikings,40.0,23.0,1.0,3.0
+6,Sun,2020-10-18,1:00PM,Chicago Bears,@,Carolina Panthers,23.0,16.0,1.0,3.0
+6,Sun,2020-10-18,1:00PM,Indianapolis Colts,,Cincinnati Bengals,31.0,27.0,2.0,1.0
+6,Sun,2020-10-18,1:00PM,Pittsburgh Steelers,,Cleveland Browns,38.0,7.0,0.0,2.0
+6,Sun,2020-10-18,1:00PM,Tennessee Titans,,Houston Texans,42.0,36.0,2.0,0.0
+6,Sun,2020-10-18,1:00PM,New York Giants,,Washington Football Team,20.0,19.0,1.0,2.0
+6,Sun,2020-10-18,1:00PM,Baltimore Ravens,@,Philadelphia Eagles,30.0,28.0,0.0,1.0
+6,Sun,2020-10-18,4:05PM,Miami Dolphins,,New York Jets,24.0,0.0,2.0,1.0
+6,Sun,2020-10-18,4:25PM,Tampa Bay Buccaneers,,Green Bay Packers,38.0,10.0,0.0,2.0
+6,Sun,2020-10-18,8:20PM,San Francisco 49ers,,Los Angeles Rams,24.0,16.0,0.0,1.0
+6,Mon,2020-10-19,5:00PM,Kansas City Chiefs,@,Buffalo Bills,26.0,17.0,1.0,1.0
+6,Mon,2020-10-19,8:15PM,Arizona Cardinals,@,Dallas Cowboys,38.0,10.0,0.0,4.0
+7,Thu,2020-10-22,8:20PM,Philadelphia Eagles,,New York Giants,22.0,21.0,1.0,3.0
+7,Sun,2020-10-25,1:00PM,Green Bay Packers,@,Houston Texans,35.0,20.0,0.0,1.0
+7,Sun,2020-10-25,1:00PM,Pittsburgh Steelers,@,Tennessee Titans,27.0,24.0,3.0,0.0
+7,Sun,2020-10-25,1:00PM,Detroit Lions,@,Atlanta Falcons,23.0,22.0,0.0,1.0
+7,Sun,2020-10-25,1:00PM,Buffalo Bills,@,New York Jets,18.0,10.0,1.0,2.0
+7,Sun,2020-10-25,1:00PM,New Orleans Saints,,Carolina Panthers,27.0,24.0,1.0,0.0
+7,Sun,2020-10-25,1:00PM,Cleveland Browns,@,Cincinnati Bengals,37.0,34.0,1.0,2.0
+7,Sun,2020-10-25,1:00PM,Washington Football Team,,Dallas Cowboys,25.0,3.0,0.0,1.0
+7,Sun,2020-10-25,4:05PM,Tampa Bay Buccaneers,@,Las Vegas Raiders,45.0,20.0,0.0,1.0
+7,Sun,2020-10-25,4:25PM,Kansas City Chiefs,@,Denver Broncos,43.0,16.0,1.0,4.0
+7,Sun,2020-10-25,4:25PM,San Francisco 49ers,@,New England Patriots,33.0,6.0,2.0,4.0
+7,Sun,2020-10-25,4:25PM,Los Angeles Chargers,,Jacksonville Jaguars,39.0,29.0,0.0,1.0
+7,Sun,2020-10-25,8:20PM,Arizona Cardinals,,Seattle Seahawks,37.0,34.0,2.0,3.0
+7,Mon,2020-10-26,8:15PM,Los Angeles Rams,,Chicago Bears,24.0,10.0,1.0,2.0
+8,Thu,2020-10-29,8:20PM,Atlanta Falcons,@,Carolina Panthers,25.0,17.0,1.0,1.0
+8,Sun,2020-11-01,1:00PM,Indianapolis Colts,@,Detroit Lions,41.0,21.0,0.0,2.0
+8,Sun,2020-11-01,1:00PM,Minnesota Vikings,@,Green Bay Packers,28.0,22.0,0.0,1.0
+8,Sun,2020-11-01,1:00PM,Miami Dolphins,,Los Angeles Rams,28.0,17.0,2.0,4.0
+8,Sun,2020-11-01,1:00PM,Pittsburgh Steelers,@,Baltimore Ravens,28.0,24.0,1.0,4.0
+8,Sun,2020-11-01,1:00PM,Buffalo Bills,,New England Patriots,24.0,21.0,1.0,1.0
+8,Sun,2020-11-01,1:00PM,Cincinnati Bengals,,Tennessee Titans,31.0,20.0,0.0,1.0
+8,Sun,2020-11-01,1:00PM,Las Vegas Raiders,@,Cleveland Browns,16.0,6.0,0.0,1.0
+8,Sun,2020-11-01,1:00PM,Kansas City Chiefs,,New York Jets,35.0,9.0,0.0,1.0
+8,Sun,2020-11-01,4:05PM,Denver Broncos,,Los Angeles Chargers,31.0,30.0,1.0,2.0
+8,Sun,2020-11-01,4:25PM,Seattle Seahawks,,San Francisco 49ers,37.0,27.0,0.0,2.0
+8,Sun,2020-11-01,4:25PM,New Orleans Saints,@,Chicago Bears,26.0,23.0,0.0,1.0
+8,Sun,2020-11-01,8:20PM,Philadelphia Eagles,,Dallas Cowboys,23.0,9.0,4.0,2.0
+8,Mon,2020-11-02,8:15PM,Tampa Bay Buccaneers,@,New York Giants,25.0,23.0,1.0,2.0
+9,Thu,2020-11-05,8:20PM,Green Bay Packers,@,San Francisco 49ers,34.0,17.0,0.0,2.0
+9,Sun,2020-11-08,1:00PM,Baltimore Ravens,@,Indianapolis Colts,24.0,10.0,1.0,2.0
+9,Sun,2020-11-08,1:00PM,Minnesota Vikings,,Detroit Lions,34.0,20.0,0.0,3.0
+9,Sun,2020-11-08,1:00PM,Houston Texans,@,Jacksonville Jaguars,27.0,25.0,1.0,1.0
+9,Sun,2020-11-08,1:00PM,Atlanta Falcons,,Denver Broncos,34.0,27.0,1.0,1.0
+9,Sun,2020-11-08,1:00PM,Buffalo Bills,,Seattle Seahawks,44.0,34.0,0.0,4.0
+9,Sun,2020-11-08,1:00PM,Kansas City Chiefs,,Carolina Panthers,33.0,31.0,1.0,0.0
+9,Sun,2020-11-08,1:00PM,Tennessee Titans,,Chicago Bears,24.0,17.0,0.0,2.0
+9,Sun,2020-11-08,1:00PM,New York Giants,@,Washington Football Team,23.0,20.0,0.0,5.0
+9,Sun,2020-11-08,4:05PM,Las Vegas Raiders,@,Los Angeles Chargers,31.0,26.0,1.0,1.0
+9,Sun,2020-11-08,4:25PM,Miami Dolphins,@,Arizona Cardinals,34.0,31.0,0.0,1.0
+9,Sun,2020-11-08,4:25PM,Pittsburgh Steelers,@,Dallas Cowboys,24.0,19.0,0.0,2.0
+9,Sun,2020-11-08,8:20PM,New Orleans Saints,@,Tampa Bay Buccaneers,38.0,3.0,2.0,3.0
+9,Mon,2020-11-09,8:15PM,New England Patriots,@,New York Jets,30.0,27.0,0.0,1.0
+10,Thu,2020-11-12,8:20PM,Indianapolis Colts,@,Tennessee Titans,34.0,17.0,0.0,0.0
+10,Sun,2020-11-15,1:00PM,Cleveland Browns,,Houston Texans,10.0,7.0,0.0,0.0
+10,Sun,2020-11-15,1:00PM,Detroit Lions,,Washington Football Team,30.0,27.0,0.0,1.0
+10,Sun,2020-11-15,1:00PM,Green Bay Packers,,Jacksonville Jaguars,24.0,20.0,2.0,1.0
+10,Sun,2020-11-15,1:00PM,Tampa Bay Buccaneers,@,Carolina Panthers,46.0,23.0,1.0,1.0
+10,Sun,2020-11-15,1:00PM,New York Giants,,Philadelphia Eagles,27.0,17.0,0.0,0.0
+10,Sun,2020-11-15,4:05PM,Las Vegas Raiders,,Denver Broncos,37.0,12.0,0.0,5.0
+10,Sun,2020-11-15,4:05PM,Miami Dolphins,,Los Angeles Chargers,29.0,21.0,1.0,1.0
+10,Sun,2020-11-15,4:05PM,Arizona Cardinals,,Buffalo Bills,32.0,30.0,2.0,2.0
+10,Sun,2020-11-15,4:25PM,Pittsburgh Steelers,,Cincinnati Bengals,36.0,10.0,0.0,2.0
+10,Sun,2020-11-15,4:25PM,New Orleans Saints,,San Francisco 49ers,27.0,13.0,2.0,4.0
+10,Sun,2020-11-15,4:25PM,Los Angeles Rams,,Seattle Seahawks,23.0,16.0,1.0,3.0
+10,Sun,2020-11-15,8:20PM,New England Patriots,,Baltimore Ravens,23.0,17.0,0.0,1.0
+10,Mon,2020-11-16,8:15PM,Minnesota Vikings,@,Chicago Bears,19.0,13.0,2.0,2.0
+11,Thu,2020-11-19,8:20PM,Seattle Seahawks,,Arizona Cardinals,28.0,21.0,0.0,0.0
+11,Sun,2020-11-22,1:00PM,New Orleans Saints,,Atlanta Falcons,24.0,9.0,1.0,2.0
+11,Sun,2020-11-22,1:00PM,Washington Football Team,,Cincinnati Bengals,20.0,9.0,1.0,2.0
+11,Sun,2020-11-22,1:00PM,Cleveland Browns,,Philadelphia Eagles,22.0,17.0,1.0,3.0
+11,Sun,2020-11-22,1:00PM,Houston Texans,,New England Patriots,27.0,20.0,0.0,0.0
+11,Sun,2020-11-22,1:00PM,Pittsburgh Steelers,@,Jacksonville Jaguars,27.0,3.0,1.0,4.0
+11,Sun,2020-11-22,1:00PM,Tennessee Titans,@,Baltimore Ravens,30.0,24.0,1.0,1.0
+11,Sun,2020-11-22,1:00PM,Carolina Panthers,,Detroit Lions,20.0,0.0,2.0,1.0
+11,Sun,2020-11-22,4:05PM,Denver Broncos,,Miami Dolphins,20.0,13.0,2.0,1.0
+11,Sun,2020-11-22,4:05PM,Los Angeles Chargers,,New York Jets,34.0,28.0,1.0,1.0
+11,Sun,2020-11-22,4:25PM,Indianapolis Colts,,Green Bay Packers,34.0,31.0,2.0,4.0
+11,Sun,2020-11-22,4:25PM,Dallas Cowboys,@,Minnesota Vikings,31.0,28.0,1.0,2.0
+11,Sun,2020-11-22,8:20PM,Kansas City Chiefs,@,Las Vegas Raiders,35.0,31.0,1.0,1.0
+11,Mon,2020-11-23,8:15PM,Los Angeles Rams,@,Tampa Bay Buccaneers,27.0,24.0,2.0,2.0
+12,Thu,2020-11-26,12:30PM,Houston Texans,@,Detroit Lions,41.0,25.0,1.0,3.0
+12,Thu,2020-11-26,4:30PM,Washington Football Team,@,Dallas Cowboys,41.0,16.0,1.0,2.0
+12,Sun,2020-11-29,1:00PM,Atlanta Falcons,,Las Vegas Raiders,43.0,6.0,1.0,5.0
+12,Sun,2020-11-29,1:00PM,Buffalo Bills,,Los Angeles Chargers,27.0,17.0,3.0,1.0
+12,Sun,2020-11-29,1:00PM,New York Giants,@,Cincinnati Bengals,19.0,17.0,1.0,3.0
+12,Sun,2020-11-29,1:00PM,Cleveland Browns,@,Jacksonville Jaguars,27.0,25.0,1.0,0.0
+12,Sun,2020-11-29,1:00PM,Tennessee Titans,@,Indianapolis Colts,45.0,26.0,0.0,1.0
+12,Sun,2020-11-29,1:00PM,New England Patriots,,Arizona Cardinals,20.0,17.0,2.0,1.0
+12,Sun,2020-11-29,1:00PM,Miami Dolphins,@,New York Jets,20.0,3.0,2.0,2.0
+12,Sun,2020-11-29,1:00PM,Minnesota Vikings,,Carolina Panthers,28.0,27.0,3.0,1.0
+12,Sun,2020-11-29,4:05PM,New Orleans Saints,@,Denver Broncos,31.0,3.0,1.0,3.0
+12,Sun,2020-11-29,4:05PM,San Francisco 49ers,@,Los Angeles Rams,23.0,20.0,3.0,4.0
+12,Sun,2020-11-29,4:25PM,Kansas City Chiefs,@,Tampa Bay Buccaneers,27.0,24.0,1.0,2.0
+12,Sun,2020-11-29,8:20PM,Green Bay Packers,,Chicago Bears,41.0,25.0,0.0,3.0
+12,Mon,2020-11-30,8:15PM,Seattle Seahawks,@,Philadelphia Eagles,23.0,17.0,0.0,1.0
+12,Wed,2020-12-02,3:40PM,Pittsburgh Steelers,,Baltimore Ravens,19.0,14.0,2.0,2.0
+13,Sun,2020-12-06,1:00PM,New Orleans Saints,@,Atlanta Falcons,21.0,16.0,1.0,1.0
+13,Sun,2020-12-06,1:00PM,Detroit Lions,@,Chicago Bears,34.0,30.0,1.0,1.0
+13,Sun,2020-12-06,1:00PM,Miami Dolphins,,Cincinnati Bengals,19.0,7.0,1.0,2.0
+13,Sun,2020-12-06,1:00PM,Cleveland Browns,@,Tennessee Titans,41.0,35.0,1.0,3.0
+13,Sun,2020-12-06,1:00PM,Indianapolis Colts,@,Houston Texans,26.0,20.0,0.0,2.0
+13,Sun,2020-12-06,1:00PM,Minnesota Vikings,,Jacksonville Jaguars,27.0,24.0,2.0,4.0
+13,Sun,2020-12-06,1:00PM,Las Vegas Raiders,@,New York Jets,31.0,28.0,2.0,3.0
+13,Sun,2020-12-06,4:05PM,Los Angeles Rams,@,Arizona Cardinals,38.0,28.0,1.0,2.0
+13,Sun,2020-12-06,4:05PM,New York Giants,@,Seattle Seahawks,17.0,12.0,1.0,2.0
+13,Sun,2020-12-06,4:25PM,Green Bay Packers,,Philadelphia Eagles,30.0,16.0,0.0,1.0
+13,Sun,2020-12-06,4:25PM,New England Patriots,@,Los Angeles Chargers,45.0,0.0,0.0,2.0
+13,Sun,2020-12-06,8:20PM,Kansas City Chiefs,,Denver Broncos,22.0,16.0,0.0,2.0
+13,Mon,2020-12-07,5:00PM,Washington Football Team,@,Pittsburgh Steelers,23.0,17.0,0.0,1.0
+13,Mon,2020-12-07,8:15PM,Buffalo Bills,@,San Francisco 49ers,34.0,24.0,1.0,2.0
+13,Tue,2020-12-08,8:05PM,Baltimore Ravens,,Dallas Cowboys,34.0,17.0,1.0,1.0
+14,Thu,2020-12-10,8:20PM,Los Angeles Rams,,New England Patriots,24.0,3.0,1.0,1.0
+14,Sun,2020-12-13,1:00PM,Denver Broncos,@,Carolina Panthers,32.0,27.0,1.0,0.0
+14,Sun,2020-12-13,1:00PM,Chicago Bears,,Houston Texans,36.0,7.0,0.0,2.0
+14,Sun,2020-12-13,1:00PM,Dallas Cowboys,@,Cincinnati Bengals,30.0,7.0,0.0,3.0
+14,Sun,2020-12-13,1:00PM,Arizona Cardinals,@,New York Giants,26.0,7.0,0.0,3.0
+14,Sun,2020-12-13,1:00PM,Tennessee Titans,@,Jacksonville Jaguars,31.0,10.0,1.0,1.0
+14,Sun,2020-12-13,1:00PM,Kansas City Chiefs,@,Miami Dolphins,33.0,27.0,4.0,1.0
+14,Sun,2020-12-13,1:00PM,Tampa Bay Buccaneers,,Minnesota Vikings,26.0,14.0,0.0,1.0
+14,Sun,2020-12-13,4:05PM,Indianapolis Colts,@,Las Vegas Raiders,44.0,27.0,0.0,3.0
+14,Sun,2020-12-13,4:05PM,Seattle Seahawks,,New York Jets,40.0,3.0,1.0,1.0
+14,Sun,2020-12-13,4:25PM,Los Angeles Chargers,,Atlanta Falcons,20.0,17.0,1.0,3.0
+14,Sun,2020-12-13,4:25PM,Green Bay Packers,@,Detroit Lions,31.0,24.0,0.0,0.0
+14,Sun,2020-12-13,4:25PM,Philadelphia Eagles,,New Orleans Saints,24.0,21.0,1.0,2.0
+14,Sun,2020-12-13,4:25PM,Washington Football Team,@,San Francisco 49ers,23.0,15.0,1.0,3.0
+14,Sun,2020-12-13,8:20PM,Buffalo Bills,,Pittsburgh Steelers,26.0,15.0,2.0,2.0
+14,Mon,2020-12-14,8:15PM,Baltimore Ravens,@,Cleveland Browns,47.0,42.0,0.0,1.0
+15,Thu,2020-12-17,8:20PM,Los Angeles Chargers,@,Las Vegas Raiders,30.0,27.0,0.0,1.0
+15,Sat,2020-12-19,4:30PM,Buffalo Bills,@,Denver Broncos,48.0,19.0,1.0,1.0
+15,Sat,2020-12-19,8:15PM,Green Bay Packers,,Carolina Panthers,24.0,16.0,0.0,1.0
+15,Sun,2020-12-20,1:00PM,Tampa Bay Buccaneers,@,Atlanta Falcons,31.0,27.0,0.0,0.0
+15,Sun,2020-12-20,1:00PM,Chicago Bears,@,Minnesota Vikings,33.0,27.0,1.0,1.0
+15,Sun,2020-12-20,1:00PM,Indianapolis Colts,,Houston Texans,27.0,20.0,0.0,2.0
+15,Sun,2020-12-20,1:00PM,Dallas Cowboys,,San Francisco 49ers,41.0,33.0,0.0,4.0
+15,Sun,2020-12-20,1:00PM,Tennessee Titans,,Detroit Lions,46.0,25.0,0.0,3.0
+15,Sun,2020-12-20,1:00PM,Baltimore Ravens,,Jacksonville Jaguars,40.0,14.0,1.0,1.0
+15,Sun,2020-12-20,1:00PM,Miami Dolphins,,New England Patriots,22.0,12.0,1.0,1.0
+15,Sun,2020-12-20,1:00PM,Seattle Seahawks,@,Washington Football Team,20.0,15.0,1.0,2.0
+15,Sun,2020-12-20,4:05PM,Arizona Cardinals,,Philadelphia Eagles,33.0,26.0,3.0,0.0
+15,Sun,2020-12-20,4:05PM,New York Jets,@,Los Angeles Rams,23.0,20.0,0.0,1.0
+15,Sun,2020-12-20,4:25PM,Kansas City Chiefs,@,New Orleans Saints,32.0,29.0,1.0,1.0
+15,Sun,2020-12-20,8:20PM,Cleveland Browns,@,New York Giants,20.0,6.0,0.0,0.0
+15,Mon,2020-12-21,8:15PM,Cincinnati Bengals,,Pittsburgh Steelers,27.0,17.0,0.0,3.0
+16,Fri,2020-12-25,4:30PM,New Orleans Saints,,Minnesota Vikings,52.0,33.0,2.0,0.0
+16,Sat,2020-12-26,1:00PM,Tampa Bay Buccaneers,@,Detroit Lions,47.0,7.0,0.0,2.0
+16,Sat,2020-12-26,4:30PM,San Francisco 49ers,@,Arizona Cardinals,20.0,12.0,1.0,2.0
+16,Sat,2020-12-26,8:15PM,Miami Dolphins,@,Las Vegas Raiders,26.0,25.0,0.0,1.0
+16,Sun,2020-12-27,1:00PM,Kansas City Chiefs,,Atlanta Falcons,17.0,14.0,2.0,1.0
+16,Sun,2020-12-27,1:00PM,Chicago Bears,@,Jacksonville Jaguars,41.0,17.0,1.0,2.0
+16,Sun,2020-12-27,1:00PM,Cincinnati Bengals,@,Houston Texans,37.0,31.0,0.0,1.0
+16,Sun,2020-12-27,1:00PM,New York Jets,,Cleveland Browns,23.0,16.0,0.0,2.0
+16,Sun,2020-12-27,1:00PM,Pittsburgh Steelers,,Indianapolis Colts,28.0,24.0,0.0,2.0
+16,Sun,2020-12-27,1:00PM,Baltimore Ravens,,New York Giants,27.0,13.0,1.0,0.0
+16,Sun,2020-12-27,4:05PM,Carolina Panthers,@,Washington Football Team,20.0,13.0,2.0,4.0
+16,Sun,2020-12-27,4:05PM,Los Angeles Chargers,,Denver Broncos,19.0,16.0,0.0,2.0
+16,Sun,2020-12-27,4:25PM,Dallas Cowboys,,Philadelphia Eagles,37.0,17.0,1.0,3.0
+16,Sun,2020-12-27,4:25PM,Seattle Seahawks,,Los Angeles Rams,20.0,9.0,0.0,1.0
+16,Sun,2020-12-27,8:20PM,Green Bay Packers,,Tennessee Titans,40.0,14.0,1.0,2.0
+16,Mon,2020-12-28,8:15PM,Buffalo Bills,@,New England Patriots,38.0,9.0,0.0,0.0
+17,Sun,2021-01-03,1:00PM,Tampa Bay Buccaneers,,Atlanta Falcons,44.0,27.0,1.0,2.0
+17,Sun,2021-01-03,1:00PM,Buffalo Bills,,Miami Dolphins,56.0,26.0,2.0,4.0
+17,Sun,2021-01-03,1:00PM,Baltimore Ravens,@,Cincinnati Bengals,38.0,3.0,1.0,2.0
+17,Sun,2021-01-03,1:00PM,Cleveland Browns,,Pittsburgh Steelers,24.0,22.0,0.0,1.0
+17,Sun,2021-01-03,1:00PM,New York Giants,,Dallas Cowboys,23.0,19.0,2.0,1.0
+17,Sun,2021-01-03,1:00PM,Minnesota Vikings,@,Detroit Lions,37.0,35.0,0.0,2.0
+17,Sun,2021-01-03,1:00PM,New England Patriots,,New York Jets,28.0,14.0,0.0,2.0
+17,Sun,2021-01-03,4:25PM,New Orleans Saints,@,Carolina Panthers,33.0,7.0,0.0,5.0
+17,Sun,2021-01-03,4:25PM,Green Bay Packers,@,Chicago Bears,35.0,16.0,1.0,2.0
+17,Sun,2021-01-03,4:25PM,Indianapolis Colts,,Jacksonville Jaguars,28.0,14.0,1.0,1.0
+17,Sun,2021-01-03,4:25PM,Los Angeles Rams,,Arizona Cardinals,18.0,7.0,2.0,1.0
+17,Sun,2021-01-03,4:25PM,Las Vegas Raiders,@,Denver Broncos,32.0,31.0,4.0,0.0
+17,Sun,2021-01-03,4:25PM,Tennessee Titans,@,Houston Texans,41.0,38.0,1.0,1.0
+17,Sun,2021-01-03,4:25PM,Los Angeles Chargers,@,Kansas City Chiefs,38.0,21.0,0.0,1.0
+17,Sun,2021-01-03,4:25PM,Seattle Seahawks,@,San Francisco 49ers,26.0,23.0,0.0,1.0
+17,Sun,2021-01-03,8:20PM,Washington Football Team,@,Philadelphia Eagles,20.0,14.0,2.0,3.0
+WildCard,Sat,2021-01-09,1:05PM,Buffalo Bills,,Indianapolis Colts,27.0,24.0,0.0,0.0
+WildCard,Sat,2021-01-09,4:40PM,Los Angeles Rams,@,Seattle Seahawks,30.0,20.0,0.0,2.0
+WildCard,Sat,2021-01-09,8:15PM,Tampa Bay Buccaneers,@,Washington Football Team,31.0,23.0,1.0,1.0
+WildCard,Sun,2021-01-10,1:05PM,Baltimore Ravens,@,Tennessee Titans,20.0,13.0,1.0,1.0
+WildCard,Sun,2021-01-10,4:40PM,New Orleans Saints,,Chicago Bears,21.0,9.0,1.0,0.0
+WildCard,Sun,2021-01-10,8:15PM,Cleveland Browns,@,Pittsburgh Steelers,48.0,37.0,0.0,5.0
+Division,Sat,2021-01-16,4:35PM,Green Bay Packers,,Los Angeles Rams,32.0,18.0,0.0,0.0
+Division,Sat,2021-01-16,8:15PM,Buffalo Bills,,Baltimore Ravens,17.0,3.0,0.0,1.0
+Division,Sun,2021-01-17,3:05PM,Kansas City Chiefs,,Cleveland Browns,22.0,17.0,1.0,2.0
+Division,Sun,2021-01-17,6:40PM,Tampa Bay Buccaneers,@,New Orleans Saints,30.0,20.0,0.0,4.0
+ConfChamp,Sun,2021-01-24,3:05PM,Tampa Bay Buccaneers,@,Green Bay Packers,31.0,26.0,3.0,2.0
+ConfChamp,Sun,2021-01-24,6:40PM,Kansas City Chiefs,,Buffalo Bills,38.0,24.0,1.0,1.0
+SuperBowl,Sun,2021-02-07,6:30PM,Tampa Bay Buccaneers,N,Kansas City Chiefs,31.0,9.0,0.0,2.0
