@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>March Madness 2019 — Factor Bracket Model</title>
+<style>
+:root {
+  --bg: #f4f6f8; --card: #ffffff; --ink: #1c2733; --muted: #5f6b76;
+  --accent: #134074; --gold: #c9920a; --good: #1e7d46; --bad: #b3372f;
+  --border: #dce3ea; --hl: #fdf6e3; --chip: #eef4fb;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 16px; }
+header h1 { margin: 8px 0 2px; font-size: 26px; color: var(--accent); }
+header p.sub { margin: 0 0 14px; color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; margin: 14px 0; }
+.card h2 { margin: 0 0 8px; font-size: 18px; color: var(--accent); }
+.card h3 { margin: 14px 0 6px; font-size: 15px; }
+.cols { display: flex; gap: 14px; flex-wrap: wrap; }
+.cols > .card { flex: 1 1 320px; margin: 0; }
+.controls label { display: inline-flex; flex-direction: column; gap: 2px;
+  font-size: 12px; color: var(--muted); margin: 4px 10px 4px 0; }
+.controls input[type=number] { width: 64px; padding: 4px 6px; font-size: 14px;
+  border: 1px solid var(--border); border-radius: 6px; }
+.controls .row { display: flex; flex-wrap: wrap; align-items: flex-end; }
+button { background: var(--accent); color: #fff; border: 0; border-radius: 6px;
+  padding: 6px 12px; font-size: 13px; cursor: pointer; }
+button.secondary { background: var(--chip); color: var(--accent); }
+.mode-toggle { display: inline-flex; border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; }
+.mode-toggle button { border-radius: 0; background: var(--card); color: var(--ink); }
+.mode-toggle button.active { background: var(--accent); color: #fff; }
+.big { font-size: 30px; font-weight: 700; color: var(--accent); }
+.stat { margin-right: 22px; display: inline-block; }
+.stat .lbl { font-size: 12px; color: var(--muted); display: block; }
+.counts span { display: inline-block; margin-right: 10px; font-size: 13px;
+  padding: 1px 8px; border-radius: 10px; background: var(--chip); }
+.counts span.bad { background: #fbeae8; color: var(--bad); font-weight: 600; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.region th, .region td { border-bottom: 1px solid var(--border);
+  padding: 3px 6px; text-align: left; white-space: nowrap; }
+.region tr.gline td { border-bottom: 2px solid #b9c4cf; }
+.region th { background: var(--chip); position: sticky; top: 0; }
+.region td.rc { text-align: center; min-width: 86px; }
+.region .stars { color: var(--gold); letter-spacing: 1px; font-size: 13px; }
+.region .pick { accent-color: var(--accent); }
+.region td.seed { color: var(--muted); width: 26px; text-align: right; }
+.region tr.detail-row td { background: #f8fafc; white-space: normal; }
+.region tr:hover td { background: #f2f7fc; }
+.region .teamname { cursor: pointer; font-weight: 600; color: var(--accent); }
+.region .changed { outline: 2px dashed var(--gold); outline-offset: -2px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 980px) { .grid2 { grid-template-columns: 1fr; } }
+.detail-table th, .detail-table td { border: 1px solid var(--border);
+  padding: 2px 7px; font-size: 12px; text-align: right; }
+.detail-table th:first-child, .detail-table td:first-child { text-align: left; }
+.factor-cards { display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.factor-cards .fc { border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; background: #fbfcfe; }
+.fc b { color: var(--accent); }
+.fc p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+code { background: var(--chip); padding: 1px 5px; border-radius: 4px;
+  font-size: 12.5px; }
+.note { font-size: 13px; color: var(--muted); }
+.bugbox { border-left: 4px solid var(--gold); }
+.flagdiff { font-size: 13px; }
+.flagdiff td, .flagdiff th { border-bottom: 1px solid var(--border);
+  padding: 2px 8px; text-align: left; }
+.ok { color: var(--good); font-weight: 600; }
+footer { color: var(--muted); font-size: 12.5px; margin: 20px 0; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+<h1>March Madness 2019 — factor-investing bracket model</h1>
+<p class="sub">Aaron Brown&rsquo;s <em>&ldquo;Quants go mad in March&rdquo;</em>
+spreadsheet (March&nbsp;18, 2019 version), re-implemented and verified
+cell-by-cell, with the Variance-difference bug fixed.
+Source: <a href="reference/March_Madness_20190318.xlsx">original workbook</a>,
+<a href="March_Madness_20190318_fixed.xlsx">fixed workbook</a>,
+<a href="reference/Quants_Mad_March.pdf">the paper</a>.</p>
+</header>
+
+<div class="cols">
+<div class="card controls">
+<h2>Inputs</h2>
+<div class="row" id="points-inputs"><label style="width:100%">Points per round</label></div>
+<div class="row">
+<label>Effective pool size<input type="number" id="poolsize" min="2" step="1"></label>
+<label>Variance-difference formula<span class="mode-toggle">
+<button data-mode="fixed" class="active">Fixed</button>
+<button data-mode="published">As published</button></span></label>
+<label>&nbsp;<button class="secondary" id="reset-picks">Reset picks to sheet defaults</button></label>
+</div>
+<p class="note">Stars are factor counts (0&ndash;5) per team per round:
+Quality + Size + Momentum (team-level) and Value + Bet-against-beta
+(slot-level, these react to the round points). Tick a checkbox to pick that
+team to win that round; the win probability updates live. Cells outlined in
+gold differ between the published and fixed formulas.</p>
+</div>
+<div class="card">
+<h2>Your estimated chance of winning the pool</h2>
+<span class="big" id="winprob"></span>
+<span class="note" id="winprob-x"></span>
+<div style="margin-top:8px">
+<span class="stat"><span class="lbl">Expected points — you</span><b id="exp-you"></b></span>
+<span class="stat"><span class="lbl">Expected points — field</span><b id="exp-field"></b></span>
+<span class="stat"><span class="lbl">Std dev — you vs field</span><b id="sd-you"></b></span>
+<span class="stat"><span class="lbl">Std dev — field</span><b id="sd-field"></b></span>
+</div>
+<h3>Pick counts</h3>
+<div class="counts" id="pickcounts"></div>
+<p class="note">The Read&nbsp;Me&rsquo;s guidance: a good bracket has an
+estimated win probability around 2&ndash;3&times; that of a random entry.
+Don&rsquo;t chase the maximum &mdash; the whole point is to exploit
+deviations from the probability and frequency assumptions.</p>
+</div>
+</div>
+
+<div class="card bugbox">
+<h2>The Variance-difference anomaly (and what was fixed)</h2>
+<p>The <em>Slot calculations</em> tab, columns <code>AL:AQ</code>
+(&ldquo;Variance difference&rdquo;), computes the variance gained by picking
+team <em>i</em> instead of the slot favorite. The paper&rsquo;s formula is
+&Delta;Var&nbsp;=&nbsp;(p&minus;p&#8320;)(1+2S)&nbsp;&minus;&nbsp;p&sup2;+p&#8320;&sup2;&nbsp;&minus;&nbsp;2(pf&nbsp;&minus;&nbsp;p&#8320;f&#8320;),
+where S is the slot&rsquo;s expected wins for the average entry &mdash; the
+value already computed in column&nbsp;B of the same row.</p>
+<p><b>Bug&nbsp;1 (the one you spotted):</b> <code>AL3</code> reads
+<code>(1+2*B41)</code> &mdash; the S of the team <em>38 rows further down</em>
+&mdash; instead of <code>(1+2*B3)</code>. Filled down, the reference walks off
+the data: from row&nbsp;29 onward it points at empty cells, so more than half
+the teams were computed with S&nbsp;=&nbsp;0. Fixed to the same-row
+<code>B3</code> reference.</p>
+<p><b>Bug&nbsp;2 (surfaced by fixing bug&nbsp;1):</b> the Value flag
+(<code>BD:BI</code>) tests <code>ratio &gt; 1</code>, where ratio =
+cumulative &Delta;Var &divide; cumulative &Delta;EV. But the sheet stores
+&Delta;EV as a <em>negative</em> number for non-favorites, so the paper&rsquo;s
+rule &mdash; &ldquo;variance gain at least as large as the expected-value
+loss&rdquo; &mdash; corresponds to <code>ratio &le; &minus;1</code>. As
+published, the flag fired only for picks whose variance <em>loss</em> exceeded
+the EV loss: the exact opposite. Fixed to
+<code>IF(OR(ratio=0, ratio&le;&minus;1),1,0)</code>.</p>
+<p><b>Effect:</b> 100 of 384 Value flags change (98 gained, 2 lost). As
+published, the only championship-column Value pick was Duke. Fixed, the
+championship Value picks are Duke, Virginia&nbsp;Tech, Michigan&nbsp;State,
+Gonzaga, Texas&nbsp;Tech, Michigan, Virginia and Kentucky &mdash; and the 2019
+tournament was won by <span class="ok">Virginia</span> over
+<span class="ok">Texas&nbsp;Tech</span>, with
+<span class="ok">Michigan&nbsp;State</span> also in the Final&nbsp;Four.
+Texas&nbsp;Tech becomes the only 5-star champion pick on the board. Use the
+&ldquo;As published&rdquo; toggle above to compare; changed cells are outlined
+in gold.</p>
+</div>
+
+<div class="card">
+<h2>The five factors</h2>
+<div class="factor-cards">
+<div class="fc"><b>Quality</b><p>ESPN Basketball Power Index above the median
+of the four teams sharing the seed. High-BPI halves of each seed won 1.35
+games per tournament vs 0.58 for low-BPI halves (1986&ndash;2017).</p></div>
+<div class="fc"><b>Size</b><p>Recent tournament success (exponentially
+weighted) above seed median. Surprisingly, the &ldquo;big&rdquo;, familiar
+programs outperform: 24 of 32 champions were top-two in size for their
+seed.</p></div>
+<div class="fc"><b>Momentum</b><p>Wins in the last five regular-season games.
+Good for top-8 seeds (want 4&ndash;5); <em>inverted</em> for bottom-8 seeds
+(want &le;3), because weak finishers there earned their bid without an
+automatic conference win.</p></div>
+<div class="fc"><b>Value</b><p>Slot-level: the pick increases the variance of
+your score versus the pool average by at least as much as it costs in
+expected points &mdash; or it is the favorite. Every champion since 1985 has
+been a Value pick.</p></div>
+<div class="fc"><b>Bet against beta</b><p>Slot-level: a non-favorite within
+0.5 win probability of the favorite that the field picks <em>less</em> often
+relative to its probability. Differentiates your bracket without Gaussian
+assumptions.</p></div>
+</div>
+</div>
+
+<h2 style="margin:18px 0 0">Bracket &amp; star ratings</h2>
+<p class="note">Click a team name for its full slot-calculation detail
+(probabilities, frequencies, &Delta;EV, &Delta;Var, ratio and flags by
+round).</p>
+<div class="grid2" id="bracket"></div>
+
+<div class="card">
+<h2>Data notes</h2>
+<ul class="note">
+<li>Probabilities, pick frequencies, factor values, default picks, round
+points and pool size all come from the March&nbsp;18, 2019 workbook (ESPN pool
+data for frequencies).</li>
+<li>Play-in slots (NDS/NCC, FD/PV, Bel/Tem, AS/SJ) carry the average
+Quality/Size/Momentum of the two candidate teams, as in the workbook.</li>
+<li>* The South 8&nbsp;seed is listed as &ldquo;Mississippi State&rdquo; in
+the workbook &mdash; a duplicate of the East 5&nbsp;seed. The actual 2019
+South 8&nbsp;seed was Mississippi (Ole&nbsp;Miss); its Quality/Size/Momentum
+lookups therefore return Mississippi State&rsquo;s values. Kept as-is, noted
+for transparency.</li>
+<li>The Python re-implementation (<code>extract_model.py</code>) reproduces
+all 4,224 Slot-calculation cells and all 384 star ratings of the published
+workbook exactly, and the win-probability block to within Excel&rsquo;s own
+NORMSINV precision (&asymp;4&times;10&#8315;&#8312;).</li>
+</ul>
+</div>
+
+<footer>
+Built 2026-06-12 &middot; <code>python3 extract_model.py &amp;&amp; python3
+build_site.py</code> regenerates this page &middot;
+<code>fix_workbook.py</code> writes the corrected workbook.
+</footer>
+
+</div>
+<script>
+const MODEL = {"year":2019,"rounds":["R64","R32","S16","E8","F4","C6"],"points":[2,3,5,8,13,21],"poolSize":100,"teams":[{"seed":1,"name":"Duke","longName":"Duke","region":"East","prob":[0.99,0.9,0.72,0.53,0.32,0.184],"freq":[0.976,0.945,0.88,0.731,0.592,0.424],"quality":21.7,"size":139.19143911798722,"mom":4,"picks":[1,1,1,1,1,1]},{"seed":16,"name":"NDS/NCC","longName":"N Dakota St./NC Central","region":"East","prob":[0.010000000000000009,0.01,0.003,0.0002,0.0006666666666666666,0.0001],"freq":[0.024,0.012,0.008,0.006,0.003,0.001],"quality":-3.45,"size":1.3471088640000006,"mom":4,"picks":[0,0,0,0,0,0]},{"seed":8,"name":"VCU","longName":"VCU","region":"East","prob":[0.53,0.05,0.02,0.008,0.002,0.0001],"freq":[0.467,0.02,0.009,0.004,0.002,0.001],"quality":10.4,"size":16.819504775620995,"mom":4,"picks":[1,0,0,0,0,0]},{"seed":9,"name":"UCF","longName":"UCF","region":"East","prob":[0.47,0.04,0.01,0.004,0.001,0.0001],"freq":[0.533,0.023,0.01,0.004,0.002,0.001],"quality":9.6,"size":0.11105711061219364,"mom":3,"picks":[0,0,0,0,0,0]},{"seed":5,"name":"Mississippi State","longName":"Mississippi State","region":"East","prob":[0.82,0.38,0.08,0.03,0.01,0.005],"freq":[0.751,0.24,0.019,0.007,0.003,0.001],"quality":13,"size":1.5081805300038122,"mom":2,"picks":[1,1,0,0,0,0]},{"seed":12,"name":"Liberty","longName":"Liberty","region":"East","prob":[0.18,0.04,0.004,0.0002,0.0006666666666666666,0.0001],"freq":[0.249,0.053,0.007,0.003,0.001,0.001],"quality":7.2,"size":0.04870283159390972,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":4,"name":"Virginia Tech","longName":"Virginia Tech","region":"East","prob":[0.87,0.55,0.16,0.09,0.04,0.02],"freq":[0.874,0.659,0.06,0.024,0.009,0.004],"quality":16.5,"size":2.1745382811231924,"mom":3,"picks":[1,0,0,0,0,0]},{"seed":13,"name":"Saint Louis","longName":"Saint Louis","region":"East","prob":[0.13,0.03,0.003,0.0002,0.0006666666666666666,0.0001],"freq":[0.126,0.049,0.007,0.003,0.001,0.001],"quality":4.5,"size":4.090161457590976,"mom":4,"picks":[0,0,0,0,0,0]},{"seed":6,"name":"Maryland","longName":"Maryland","region":"East","prob":[0.64,0.32,0.13,0.04,0.01,0.004],"freq":[0.769,0.249,0.05,0.009,0.004,0.002],"quality":12.2,"size":16.3785145256262,"mom":2,"picks":[1,1,1,0,0,0]},{"seed":11,"name":"Bel/Tem","longName":"Belmont/Temple","region":"East","prob":[0.36,0.14,0.015,0.003,0.001,0.0001],"freq":[0.231,0.064,0.009,0.003,0.001,0.001],"quality":7.800000000000001,"size":3.1000107293655237,"mom":3.5,"picks":[0,0,0,0,0,0]},{"seed":3,"name":"LSU","longName":"LSU","region":"East","prob":[0.85,0.5,0.16,0.04,0.01,0.005],"freq":[0.854,0.633,0.198,0.036,0.017,0.007],"quality":12.8,"size":4.567944798532153,"mom":4,"picks":[1,0,0,0,0,0]},{"seed":14,"name":"Yale","longName":"Yale","region":"East","prob":[0.15,0.04,0.006,0.0002,0.0006666666666666666,0.0001],"freq":[0.146,0.054,0.01,0.004,0.002,0.001],"quality":6.1,"size":2.5600000000000005,"mom":3,"picks":[0,0,0,0,0,0]},{"seed":7,"name":"Louisville","longName":"Louisville","region":"East","prob":[0.66,0.19,0.11,0.03,0.01,0.004],"freq":[0.67,0.116,0.058,0.011,0.005,0.002],"quality":13.8,"size":81.20354562214273,"mom":2,"picks":[1,1,0,0,0,0]},{"seed":10,"name":"Minnesota","longName":"Minnesota","region":"East","prob":[0.34,0.07,0.02,0.004,0.001,0.0001],"freq":[0.33,0.038,0.014,0.004,0.002,0.001],"quality":8.1,"size":2.989192965268275,"mom":3,"picks":[0,0,0,0,0,0]},{"seed":2,"name":"Michigan State","longName":"Michigan State","region":"East","prob":[0.96,0.73,0.54,0.22,0.12,0.07],"freq":[0.958,0.827,0.649,0.15,0.09,0.043],"quality":19.6,"size":75.86457725459033,"mom":5,"picks":[1,0,0,0,0,0]},{"seed":15,"name":"Bradley","longName":"Bradley","region":"East","prob":[0.04,0.01,0.019,0.0002,0.0006666666666666666,0.0001],"freq":[0.042,0.019,0.011,0.003,0.001,0.001],"quality":-0.6,"size":0.6989805315293408,"mom":4,"picks":[0,0,0,0,0,0]},{"seed":1,"name":"Gonzaga","longName":"Gonzaga","region":"West","prob":[0.99,0.869,0.69,0.48,0.26,0.15],"freq":[0.972,0.828,0.632,0.426,0.131,0.076],"quality":22.8,"size":111.88728052603959,"mom":4,"picks":[1,1,1,1,0,0]},{"seed":16,"name":"FD/PV","longName":"F Dickinson/P View A&M","region":"West","prob":[0.010000000000000009,0.001,0.001,0.0005,0.0006666666666666666,0.0001],"freq":[0.029,0.013,0.008,0.006,0.002,0.001],"quality":-1.9,"size":0.03995288841016828,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":8,"name":"Syracuse","longName":"Syracuse","region":"West","prob":[0.52,0.07,0.03,0.01,0.004,0.001],"freq":[0.688,0.122,0.053,0.021,0.006,0.004],"quality":10.9,"size":72.11033354659509,"mom":2,"picks":[1,0,0,0,0,0]},{"seed":9,"name":"Baylor","longName":"Baylor","region":"West","prob":[0.48,0.06,0.03,0.009,0.002,0.0001],"freq":[0.312,0.037,0.015,0.006,0.002,0.001],"quality":9.9,"size":22.814767642439293,"mom":1,"picks":[0,0,0,0,0,0]},{"seed":5,"name":"Marquette","longName":"Marquette","region":"West","prob":[0.68,0.3,0.07,0.03,0.009,0.004],"freq":[0.585,0.217,0.054,0.021,0.005,0.002],"quality":12.3,"size":15.752678958583132,"mom":1,"picks":[1,1,0,0,0,0]},{"seed":12,"name":"Murray State","longName":"Murray State","region":"West","prob":[0.32,0.1,0.02,0.005,0.001,0.0001],"freq":[0.415,0.139,0.032,0.013,0.004,0.002],"quality":8.9,"size":2.9139053511689936,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":4,"name":"Florida State","longName":"Florida State","region":"West","prob":[0.79,0.52,0.15,0.07,0.03,0.01],"freq":[0.887,0.608,0.198,0.092,0.016,0.006],"quality":14.3,"size":28.819628315418456,"mom":4,"picks":[1,0,0,0,0,0]},{"seed":13,"name":"Vermont","longName":"Vermont","region":"West","prob":[0.21,0.08,0.009,0.002,0.0006666666666666666,0.0001],"freq":[0.113,0.036,0.008,0.003,0.001,0.001],"quality":8,"size":1.5289833227550726,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":6,"name":"Buffalo","longName":"Buffalo","region":"West","prob":[0.69,0.25,0.09,0.03,0.009,0.003],"freq":[0.803,0.265,0.073,0.019,0.004,0.002],"quality":12.9,"size":5.152,"mom":5,"picks":[1,1,1,0,0,0]},{"seed":11,"name":"AS/SJ","longName":"Arizona St./St. John's","region":"West","prob":[0.31000000000000005,0.04,0.013000000000000001,0.0025,0.001,0.0001],"freq":[0.197,0.039,0.009,0.003,0.001,0.001],"quality":7.050000000000001,"size":1.211500247771839,"mom":2,"picks":[0,0,0,0,0,0]},{"seed":3,"name":"Texas Tech","longName":"Texas Tech","region":"West","prob":[0.91,0.68,0.34,0.14,0.06,0.03],"freq":[0.918,0.667,0.234,0.094,0.019,0.008],"quality":16.9,"size":23.55871549432962,"mom":4,"picks":[1,0,0,0,0,0]},{"seed":14,"name":"Northern Kentucky","longName":"Northern Kentucky","region":"West","prob":[0.09,0.03,0.004,0.0005,0.0006666666666666666,0.0001],"freq":[0.082,0.029,0.007,0.003,0.001,0.001],"quality":4.8,"size":0.8,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":7,"name":"Nevada","longName":"Nevada","region":"West","prob":[0.58,0.18,0.1,0.04,0.01,0.004],"freq":[0.505,0.111,0.052,0.017,0.004,0.002],"quality":13.2,"size":11.872657662381716,"mom":3,"picks":[1,1,0,0,0,0]},{"seed":10,"name":"Florida","longName":"Florida","region":"West","prob":[0.42,0.11,0.04,0.01,0.003,0.001],"freq":[0.495,0.093,0.042,0.012,0.004,0.002],"quality":11.5,"size":80.28104915369937,"mom":2,"picks":[0,0,0,0,0,0]},{"seed":2,"name":"Michigan","longName":"Michigan","region":"West","prob":[0.94,0.7,0.411,0.17,0.08,0.04],"freq":[0.957,0.778,0.573,0.262,0.064,0.031],"quality":18,"size":145.11826373531431,"mom":3,"picks":[1,0,0,0,0,0]},{"seed":15,"name":"Montana","longName":"Montana","region":"West","prob":[0.06,0.01,0.002,0.0005,0.0006666666666666666,0.0001],"freq":[0.043,0.018,0.011,0.003,0.001,0.001],"quality":3.2,"size":2.130260684228987,"mom":4,"picks":[0,0,0,0,0,0]},{"seed":1,"name":"Virginia","longName":"Virginia","region":"South","prob":[0.98,0.88,0.72,0.49,0.3047,0.1647],"freq":[0.964,0.897,0.746,0.426,0.218,0.067],"quality":23.7,"size":25.293997191548744,"mom":4,"picks":[1,1,1,1,1,0]},{"seed":16,"name":"Gardner-Webb","longName":"Gardner-Webb","region":"South","prob":[0.02,0.01,0.004,0.0002,0.0006666666666666666,0.0001],"freq":[0.036,0.017,0.01,0.007,0.003,0.002],"quality":1.8,"size":0,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":8,"name":"Mississippi State","longName":"Mississippi State","region":"South","prob":[0.47,0.05,0.02,0.006,0.002,0.0001],"freq":[0.518,0.041,0.017,0.005,0.002,0.001],"quality":13,"size":1.5081805300038122,"mom":2,"picks":[1,0,0,0,0,0],"note":"Listed as 'Mississippi State' in the source workbook; the 2019 South 8 seed was Mississippi (Ole Miss). Its Quality/Size/Momentum values are Mississippi State's."},{"seed":9,"name":"Oklahoma","longName":"Oklahoma","region":"South","prob":[0.53,0.06,0.03,0.008,0.003,0.0001],"freq":[0.482,0.045,0.018,0.006,0.002,0.001],"quality":10.1,"size":42.47937150717699,"mom":2,"picks":[0,0,0,0,0,0]},{"seed":5,"name":"Wisconsin","longName":"Wisconsin","region":"South","prob":[0.55,0.31,0.08,0.04,0.02,0.007],"freq":[0.613,0.307,0.07,0.024,0.008,0.003],"quality":14.8,"size":91.85341328533532,"mom":4,"picks":[1,1,0,0,0,0]},{"seed":12,"name":"Oregon","longName":"Oregon","region":"South","prob":[0.45,0.24,0.04,0.01,0.004,0.001],"freq":[0.387,0.177,0.037,0.013,0.004,0.002],"quality":10.1,"size":60.51870647010536,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":4,"name":"Kansas State","longName":"Kansas State","region":"South","prob":[0.77,0.38,0.1,0.04,0.02,0.007],"freq":[0.822,0.459,0.091,0.03,0.008,0.003],"quality":12.7,"size":29.591035435766265,"mom":3,"picks":[1,0,0,0,0,0]},{"seed":13,"name":"UC Irvine","longName":"UC Irvine","region":"South","prob":[0.23,0.07,0.006,0.0002,0.0006666666666666666,0.0001],"freq":[0.178,0.057,0.011,0.004,0.002,0.001],"quality":5.6,"size":0.5120000000000001,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":6,"name":"Villanova","longName":"Villanova","region":"South","prob":[0.75,0.39,0.14,0.05,0.02,0.007],"freq":[0.773,0.397,0.149,0.067,0.021,0.007],"quality":13.1,"size":224.3387190386241,"mom":4,"picks":[1,1,1,0,0,0]},{"seed":11,"name":"Saint Mary's","longName":"Saint Mary's","region":"South","prob":[0.25,0.08,0.02,0.005,0.002,0.0001],"freq":[0.227,0.075,0.017,0.006,0.002,0.001],"quality":10.7,"size":5.640666160874764,"mom":4,"picks":[0,0,0,0,0,0]},{"seed":3,"name":"Purdue","longName":"Purdue","region":"South","prob":[0.88,0.5,0.245,0.1,0.05,0.02],"freq":[0.899,0.499,0.16,0.068,0.02,0.007],"quality":16.5,"size":25.854503346598197,"mom":3,"picks":[1,0,0,0,0,0]},{"seed":14,"name":"Old Dominion","longName":"Old Dominion","region":"South","prob":[0.12,0.03,0.004,0.0002,0.0006666666666666666,0.0001],"freq":[0.102,0.029,0.007,0.003,0.001,0.001],"quality":3.6,"size":1.0613392381097253,"mom":3,"picks":[0,0,0,0,0,0]},{"seed":7,"name":"Cincinnati","longName":"Cincinnati","region":"South","prob":[0.66,0.21,0.1,0.03,0.01,0.004],"freq":[0.674,0.12,0.05,0.017,0.004,0.002],"quality":11.3,"size":15.479879013841,"mom":3,"picks":[1,1,0,0,0,0]},{"seed":10,"name":"Iowa","longName":"Iowa","region":"South","prob":[0.34,0.07,0.03,0.006,0.002,0.0001],"freq":[0.326,0.047,0.015,0.005,0.002,0.001],"quality":10.2,"size":5.1109457071176285,"mom":1,"picks":[0,0,0,0,0,0]},{"seed":2,"name":"Tennessee","longName":"Tennessee","region":"South","prob":[0.95,0.71,0.46,0.2142,0.12,0.06],"freq":[0.957,0.814,0.591,0.315,0.124,0.043],"quality":17.9,"size":14.611918336701198,"mom":3,"picks":[1,0,0,0,0,0]},{"seed":15,"name":"Colgate","longName":"Colgate","region":"South","prob":[0.05,0.01,0.001,0.0002,0.0006666666666666666,0.0001],"freq":[0.043,0.019,0.011,0.003,0.001,0.001],"quality":2.4,"size":0.01328165573307091,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":1,"name":"North Carolina","longName":"North Carolina","region":"Midwest","prob":[0.98,0.86,0.57,0.35,0.18,0.09],"freq":[0.971,0.925,0.779,0.574,0.355,0.143],"quality":19.3,"size":217.4590476532198,"mom":4,"picks":[1,1,1,1,0,0]},{"seed":16,"name":"Iona","longName":"Iona","region":"Midwest","prob":[0.02,0.01,0.004,0.004666666666666667,0.0006666666666666666,0.0001],"freq":[0.029,0.015,0.009,0.006,0.003,0.002],"quality":-1,"size":2.889094913728518,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":8,"name":"Utah State","longName":"Utah State","region":"Midwest","prob":[0.51,0.07,0.02,0.007,0.002,0.0001],"freq":[0.507,0.031,0.013,0.005,0.002,0.001],"quality":9.3,"size":0.7914380643558787,"mom":5,"picks":[1,0,0,0,0,0]},{"seed":9,"name":"Washington","longName":"Washington","region":"Midwest","prob":[0.49,0.06,0.02,0.006,0.002,0.0001],"freq":[0.493,0.03,0.013,0.005,0.003,0.001],"quality":8.4,"size":4.4655141345525715,"mom":3,"picks":[0,0,0,0,0,0]},{"seed":5,"name":"Auburn","longName":"Auburn","region":"Midwest","prob":[0.76,0.48,0.2,0.1,0.04,0.02],"freq":[0.823,0.421,0.085,0.04,0.018,0.007],"quality":15,"size":4.6006981200392385,"mom":5,"picks":[1,1,0,0,0,0]},{"seed":12,"name":"New Mexico State","longName":"New Mexico State","region":"Midwest","prob":[0.24,0.09,0.02,0.005,0.001,0.0001],"freq":[0.177,0.058,0.01,0.004,0.001,0.001],"quality":7.7,"size":3.6339162423966176,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":4,"name":"Kansas","longName":"Kansas","region":"Midwest","prob":[0.83,0.39,0.16,0.08,0.03,0.01],"freq":[0.899,0.493,0.086,0.041,0.02,0.008],"quality":13.5,"size":138.4116206426499,"mom":3,"picks":[1,0,0,0,0,0]},{"seed":13,"name":"Northeastern","longName":"Northeastern","region":"Midwest","prob":[0.17,0.04,0.006,0.001,0.0006666666666666666,0.0001],"freq":[0.101,0.028,0.007,0.003,0.001,0.001],"quality":5.7,"size":0.5168343105959144,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":6,"name":"Iowa State","longName":"Iowa State","region":"Midwest","prob":[0.67,0.32,0.14,0.06,0.02,0.009],"freq":[0.711,0.291,0.084,0.021,0.008,0.003],"quality":14.4,"size":17.378602592223867,"mom":3,"picks":[1,1,1,0,0,0]},{"seed":11,"name":"Ohio State","longName":"Ohio State","region":"Midwest","prob":[0.33,0.11,0.04,0.01,0.003,0.0001],"freq":[0.289,0.092,0.021,0.007,0.003,0.002],"quality":9.9,"size":38.95869047047481,"mom":1,"picks":[0,0,0,0,0,0]},{"seed":3,"name":"Houston","longName":"Houston","region":"Midwest","prob":[0.9,0.55,0.24,0.1,0.04,0.01],"freq":[0.91,0.588,0.181,0.057,0.024,0.007],"quality":15.3,"size":4.1737191078918485,"mom":4,"picks":[1,0,0,0,0,0]},{"seed":14,"name":"Georgia State","longName":"Georgia State","region":"Midwest","prob":[0.1,0.02,0.003,0.004666666666666667,0.0006666666666666666,0.0001],"freq":[0.09,0.029,0.007,0.003,0.001,0.001],"quality":4.1,"size":3.14048984418664,"mom":5,"picks":[0,0,0,0,0,0]},{"seed":7,"name":"Wofford","longName":"Wofford","region":"Midwest","prob":[0.63,0.19,0.08,0.02,0.007,0.002],"freq":[0.528,0.081,0.035,0.011,0.004,0.002],"quality":14.1,"size":1.2990873600000006,"mom":5,"picks":[1,1,0,0,0,0]},{"seed":10,"name":"Seton Hall","longName":"Seton Hall","region":"Midwest","prob":[0.37,0.08,0.03,0.007,0.002,0.0001],"freq":[0.472,0.054,0.021,0.006,0.002,0.001],"quality":8.3,"size":6.118444857829617,"mom":4,"picks":[0,0,0,0,0,0]},{"seed":2,"name":"Kentucky","longName":"Kentucky","region":"Midwest","prob":[0.97,0.726,0.466,0.24,0.11,0.05],"freq":[0.963,0.847,0.641,0.216,0.131,0.05],"quality":17.7,"size":146.03904771648143,"mom":3,"picks":[1,0,0,0,0,0]},{"seed":15,"name":"Abilene Christian","longName":"Abilene Christian","region":"Midwest","prob":[0.03,0.004,0.001,0.004666666666666667,0.0006666666666666666,0.0001],"freq":[0.037,0.018,0.011,0.003,0.002,0.001],"quality":1.7,"size":0,"mom":5,"picks":[0,0,0,0,0,0]}]};
+const ROUNDS = MODEL.rounds;                  // ["R64",...,"C6"]
+const RLABEL = ["Round of 64","Round of 32","Sweet 16","Elite 8","Final 4","Champion"];
+const N = 64, BUG_OFFSET = 38;
+const REGION_NAMES = ["East","West","South","Midwest"];
+
+const state = {
+  mode: "fixed",                              // "fixed" | "published"
+  points: MODEL.points.slice(),
+  poolSize: MODEL.poolSize,
+  picks: MODEL.teams.map(t => t.picks.slice()),
+  openDetail: null,
+};
+
+/* ---- spreadsheet maths (mirrors extract_model.py, verified vs xlsx) ---- */
+
+// Excel compares numbers only to 15 significant digits
+function excelLt(a, b) {
+  if (a === b) return false;
+  const s = Math.max(Math.abs(a), Math.abs(b));
+  if (s && Math.abs(a - b) / s < 1e-14) return false;
+  return a < b;
+}
+
+function slotCalcs(mode, points) {
+  const T = MODEL.teams;
+  const S = [], P0 = [], P0F0 = [];
+  for (let i = 0; i < N; i++) { S.push([]); P0.push([]); P0F0.push([]); }
+  for (let k = 0; k < 6; k++) {
+    const size = 2 ** (k + 1);
+    for (let g = 0; g < N; g += size) {
+      let s = 0, mx = -Infinity;
+      for (let i = g; i < g + size; i++) {
+        s += T[i].prob[k] * T[i].freq[k];
+        if (T[i].prob[k] > mx) mx = T[i].prob[k];
+      }
+      let fs = 0, fn = 0;
+      for (let i = g; i < g + size; i++)
+        if (T[i].prob[k] === mx) { fs += T[i].freq[k]; fn++; }
+      const pf = fs / fn * mx;
+      for (let i = g; i < g + size; i++) { S[i][k] = s; P0[i][k] = mx; P0F0[i][k] = pf; }
+    }
+  }
+  const out = [];
+  for (let i = 0; i < N; i++) {
+    const t = T[i], expDiff = [], varOne = [], varDiff = [];
+    for (let k = 0; k < 6; k++) {
+      const p = t.prob[k], f = t.freq[k], s = S[i][k];
+      expDiff.push(points[k] * (p - P0[i][k]));
+      varOne.push(p * (1 - p - 2 * f + 2 * s) + s - s * s);
+      let sUsed = s;
+      if (mode === "published") {            // AL3 references B41: 38 rows down,
+        const j = i + BUG_OFFSET;            // empty (=0) past the last team
+        sUsed = j < N ? S[j][k] : 0;
+      }
+      varDiff.push(points[k] ** 2 * ((p - P0[i][k]) * (1 + 2 * sUsed)
+        - p * p + P0[i][k] ** 2 - 2 * (p * f - P0F0[i][k])));
+    }
+    const cumExp = [], cumVar = [];
+    let ce = 0, cv = 0;
+    for (let k = 0; k < 6; k++) { ce += expDiff[k]; cv += varDiff[k]; cumExp.push(ce); cumVar.push(cv); }
+    const ratio = cumExp.map((e, k) => e === 0 ? 0 : cumVar[k] / e);
+    const value = ratio.map(r => mode === "published"
+      ? ((r === 0 || r > 1) ? 1 : 0)         // as released
+      : ((r === 0 || r <= -1) ? 1 : 0));     // paper's rule: var gain >= EV loss
+    const bab = [];
+    for (let k = 0; k < 6; k++) {
+      const p = t.prob[k], f = t.freq[k];
+      bab.push(excelLt(P0[i][k] - 0.5, p)
+        && excelLt(f / p, P0F0[i][k] / P0[i][k] ** 2) ? 1 : 0);
+    }
+    out.push({ S: S[i], p0: P0[i], p0f0: P0F0[i], expDiff, cumExp,
+               variance: varOne, varDiff, cumVar, ratio, value, bab });
+  }
+  return out;
+}
+
+function factorIndicators() {
+  const T = MODEL.teams, medQ = {}, medS = {};
+  for (let seed = 1; seed <= 16; seed++) {
+    const qs = T.filter(t => t.seed === seed).map(t => t.quality).sort((a, b) => a - b);
+    const ss = T.filter(t => t.seed === seed).map(t => t.size).sort((a, b) => a - b);
+    medQ[seed] = (qs[1] + qs[2]) / 2;
+    medS[seed] = (ss[1] + ss[2]) / 2;
+  }
+  return { medQ, medS, ind: T.map(t => ({
+    quality: t.quality > medQ[t.seed] ? 1 : 0,
+    size: t.size > medS[t.seed] ? 1 : 0,
+    mom: ((t.seed < 9 && t.mom > 3) || (t.seed > 8 && t.mom < 4)) ? 1 : 0,
+  })) };
+}
+
+/* normal distribution helpers (Acklam inverse + erfc, ample for display) */
+function erfc(x) {
+  const z = Math.abs(x), t = 1 / (1 + z / 2);
+  const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196
+    + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398
+    + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+  return x >= 0 ? r : 2 - r;
+}
+function normCdf(x, mu, sigma) { return 0.5 * erfc(-(x - mu) / (sigma * Math.SQRT2)); }
+function normInv(p) {
+  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+             1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+             6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+             -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
+             3.754408661907416e+00];
+  const pl = 0.02425;
+  let q, x;
+  if (p < pl) {
+    q = Math.sqrt(-2 * Math.log(p));
+    x = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  } else if (p <= 1 - pl) {
+    q = p - 0.5; const r = q * q;
+    x = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+        (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  } else {
+    q = Math.sqrt(-2 * Math.log(1 - p));
+    x = -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+         ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  return x;
+}
+
+function winProbability(slots, picks, points, n) {
+  const T = MODEL.teams;
+  let youMean = 0, fieldMean = 0, youVar = 0, fieldVar = 0;
+  for (let i = 0; i < N; i++) for (let k = 0; k < 6; k++) {
+    youMean += points[k] * picks[i][k] * T[i].prob[k];
+    fieldMean += points[k] * T[i].prob[k] * T[i].freq[k];
+    youVar += points[k] ** 2 * picks[i][k] * slots[i].variance[k];
+    fieldVar += points[k] ** 2 * T[i].freq[k] * slots[i].variance[k];
+  }
+  const d10 = youMean - fieldMean, e10 = Math.sqrt(youVar), e11 = Math.sqrt(fieldVar);
+  const totalPts = 32 * points[0] + 16 * points[1] + 8 * points[2]
+    + 4 * points[3] + 2 * points[4] + points[5];
+  let qs = [1 / n];
+  for (let j = 0; j < 6; j++) qs.push(Math.min(1, 2 * qs[qs.length - 1]));
+  qs.reverse();
+  for (let j = 0; j < 6; j++) qs.push(qs[qs.length - 1] / 2);
+  qs.push(0);
+  const xs = [-totalPts], Fs = [0];
+  for (let j = 1; j < 13; j++) {
+    const x = d10 + normInv(1 - qs[j]) * e10;
+    xs.push(x);
+    Fs.push(Math.pow(normCdf(x, 0, e11), n - 1));
+  }
+  xs.push(totalPts); Fs.push(1);
+  let win = 0;
+  for (let j = 1; j < 14; j++) win += (qs[j - 1] - qs[j]) * (Fs[j - 1] + Fs[j]) / 2;
+  return { youMean, fieldMean, youVar, fieldVar, winProb: win };
+}
+
+/* ------------------------------ rendering ------------------------------ */
+
+const FACTORS = factorIndicators();
+let slotsFixed, slotsPublished;
+
+function starCount(slots, i, k) {
+  const f = FACTORS.ind[i];
+  return f.quality + f.size + f.mom + slots[i].value[k] + slots[i].bab[k];
+}
+
+function starTitle(slots, i, k) {
+  const f = FACTORS.ind[i], parts = [];
+  if (f.quality) parts.push("Quality");
+  if (f.size) parts.push("Size");
+  if (f.mom) parts.push("Momentum");
+  if (slots[i].value[k]) parts.push("Value");
+  if (slots[i].bab[k]) parts.push("Bet-against-beta");
+  return parts.length ? parts.join(" + ") : "no factors";
+}
+
+function fmt(x, dp = 3) {
+  return (Math.round(x * 10 ** dp) / 10 ** dp).toFixed(dp);
+}
+function pct(x, dp = 2) { return (100 * x).toFixed(dp) + "%"; }
+
+function recompute() {
+  slotsFixed = slotCalcs("fixed", state.points);
+  slotsPublished = slotCalcs("published", state.points);
+}
+
+function activeSlots() { return state.mode === "fixed" ? slotsFixed : slotsPublished; }
+
+function renderSummary() {
+  const wp = winProbability(activeSlots(), state.picks, state.points, state.poolSize);
+  document.getElementById("winprob").textContent = pct(wp.winProb);
+  document.getElementById("winprob-x").textContent =
+    "= " + (wp.winProb * state.poolSize).toFixed(2) +
+    "× a random entry in a pool of " + state.poolSize;
+  document.getElementById("exp-you").textContent = fmt(wp.youMean, 1);
+  document.getElementById("exp-field").textContent = fmt(wp.fieldMean, 1);
+  document.getElementById("sd-you").textContent = fmt(Math.sqrt(wp.youVar), 1);
+  document.getElementById("sd-field").textContent = fmt(Math.sqrt(wp.fieldVar), 1);
+
+  const want = [32, 16, 8, 4, 2, 1];
+  const counts = ROUNDS.map((_, k) =>
+    state.picks.reduce((a, p) => a + (p[k] ? 1 : 0), 0));
+  document.getElementById("pickcounts").innerHTML = ROUNDS.map((r, k) =>
+    `<span class="${counts[k] === want[k] ? "" : "bad"}">${r}: ${counts[k]}/${want[k]}</span>`
+  ).join("");
+}
+
+function renderBracket() {
+  const slots = activeSlots(), other = state.mode === "fixed" ? slotsPublished : slotsFixed;
+  const host = document.getElementById("bracket");
+  host.innerHTML = "";
+  for (let rgn = 0; rgn < 4; rgn++) {
+    const div = document.createElement("div");
+    div.className = "card";
+    let h = `<h2>${REGION_NAMES[rgn]}</h2><table class="region"><thead><tr>` +
+      `<th></th><th>Team</th>` + ROUNDS.map(r => `<th>${r}</th>`).join("") +
+      `</tr></thead><tbody>`;
+    for (let j = 0; j < 16; j++) {
+      const i = rgn * 16 + j, t = MODEL.teams[i];
+      const gline = j % 2 === 1 ? " gline" : "";
+      h += `<tr class="teamrow${gline}" data-i="${i}">` +
+        `<td class="seed">${t.seed}</td>` +
+        `<td><span class="teamname" data-i="${i}" title="click for slot detail">` +
+        `${t.name}${t.note ? "*" : ""}</span></td>`;
+      for (let k = 0; k < 6; k++) {
+        const n = starCount(slots, i, k);
+        const changed = n !== starCount(other, i, k) ? " changed" : "";
+        h += `<td class="rc${changed}" title="${starTitle(slots, i, k)}">` +
+          `<input type="checkbox" class="pick" data-i="${i}" data-k="${k}"` +
+          `${state.picks[i][k] ? " checked" : ""}>` +
+          ` <span class="stars">${"★".repeat(n)}</span></td>`;
+      }
+      h += "</tr>";
+      if (state.openDetail === i) h += detailRow(i, slots);
+    }
+    h += "</tbody></table>";
+    div.innerHTML = h;
+    host.appendChild(div);
+  }
+  host.querySelectorAll(".pick").forEach(cb => cb.addEventListener("change", e => {
+    const i = +e.target.dataset.i, k = +e.target.dataset.k;
+    state.picks[i][k] = e.target.checked ? 1 : 0;
+    renderSummary();
+  }));
+  host.querySelectorAll(".teamname").forEach(el => el.addEventListener("click", e => {
+    const i = +e.target.dataset.i;
+    state.openDetail = state.openDetail === i ? null : i;
+    renderBracket();
+  }));
+}
+
+function detailRow(i, slots) {
+  const t = MODEL.teams[i], f = FACTORS.ind[i], s = slots[i];
+  const head = `<b>${t.longName}</b> &mdash; ` +
+    `Quality ${fmt(t.quality, 1)} (seed median ${fmt(FACTORS.medQ[t.seed], 1)})` +
+    `${f.quality ? " ✓" : ""} &middot; ` +
+    `Size ${fmt(t.size, 1)} (median ${fmt(FACTORS.medS[t.seed], 1)})` +
+    `${f.size ? " ✓" : ""} &middot; ` +
+    `Momentum ${t.mom} of last 5 (${t.seed < 9 ? "top-8 seed wants &gt;3" : "bottom-8 seed wants &lt;4"})` +
+    `${f.mom ? " ✓" : ""}` +
+    (t.note ? `<br><span class="note">* ${t.note}</span>` : "");
+  let tbl = `<table class="detail-table"><tr><th>Round</th><th>p win</th>` +
+    `<th>pick freq</th><th>p0 (fav)</th><th>S</th><th>cum ΔEV pts</th>` +
+    `<th>cum ΔVar</th><th>ratio</th><th>Value</th><th>BAB</th></tr>`;
+  for (let k = 0; k < 6; k++) {
+    tbl += `<tr><td>${RLABEL[k]}</td><td>${fmt(t.prob[k])}</td>` +
+      `<td>${fmt(t.freq[k])}</td><td>${fmt(s.p0[k])}</td><td>${fmt(s.S[k])}</td>` +
+      `<td>${fmt(s.cumExp[k], 2)}</td><td>${fmt(s.cumVar[k], 2)}</td>` +
+      `<td>${fmt(s.ratio[k], 2)}</td>` +
+      `<td>${s.value[k] ? "★" : ""}</td><td>${s.bab[k] ? "★" : ""}</td></tr>`;
+  }
+  tbl += "</table>";
+  return `<tr class="detail-row"><td colspan="8">${head}${tbl}</td></tr>`;
+}
+
+function renderAll() {
+  recompute();
+  renderBracket();
+  renderSummary();
+}
+
+/* ------------------------------- controls ------------------------------ */
+
+function initControls() {
+  const pts = document.getElementById("points-inputs");
+  ROUNDS.forEach((r, k) => {
+    const lab = document.createElement("label");
+    lab.innerHTML = `${r}<input type="number" min="0" step="1" value="${state.points[k]}" data-k="${k}">`;
+    pts.appendChild(lab);
+  });
+  pts.querySelectorAll("input").forEach(inp => inp.addEventListener("change", e => {
+    state.points[+e.target.dataset.k] = +e.target.value || 0;
+    renderAll();
+  }));
+  const pool = document.getElementById("poolsize");
+  pool.value = state.poolSize;
+  pool.addEventListener("change", e => {
+    state.poolSize = Math.max(2, Math.round(+e.target.value || 2));
+    e.target.value = state.poolSize;
+    renderSummary();
+  });
+  document.querySelectorAll(".mode-toggle button").forEach(b =>
+    b.addEventListener("click", e => {
+      state.mode = e.target.dataset.mode;
+      document.querySelectorAll(".mode-toggle button").forEach(x =>
+        x.classList.toggle("active", x.dataset.mode === state.mode));
+      renderAll();
+    }));
+  document.getElementById("reset-picks").addEventListener("click", () => {
+    state.picks = MODEL.teams.map(t => t.picks.slice());
+    renderAll();
+  });
+}
+
+initControls();
+renderAll();
+</script>
+</body>
+</html>
