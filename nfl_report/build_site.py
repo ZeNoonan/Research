@@ -19,7 +19,7 @@ import pandas as pd
 
 HERE = Path(__file__).parent
 # Display order, most recent first. 2015/2016 are the published reports.
-SEASONS = (2025, 2023, 2022, 2021, 2020, 2019, 2016, 2015)
+SEASONS = (2025, 2024, 2023, 2022, 2021, 2020, 2019, 2016, 2015)
 PUBLISHED = {2015, 2016}
 JUICE = 1.1  # units lost per losing bet at full 10% juice
 
@@ -39,9 +39,9 @@ def season_note(year: int) -> str | None:
         return base + (" No prior-season file, so week 1 has no last-game turnovers "
                        "or power ratings.")
     if year == 2025:
-        return base + (" The 2024 season file is missing, so week 1 has no last-game "
-                       "turnovers or power ratings, and 14 week-5 games have no line "
-                       "in the odds export (shown but not bettable).")
+        return base + (" Week 1 is seeded from the prior season (last-game turnovers "
+                       "and power), but 14 week-5 games have no line in the odds "
+                       "export (shown but not bettable).")
     return base + " Week 1 is seeded from the prior season (last-game turnovers and power)."
 
 CSS = """
@@ -273,7 +273,7 @@ def build() -> Path:
     g_l = sum(stats[y]["losses"] for y in gen)
     g_profit = sum(stats[y]["profit"] for y in gen)
     banner_gen = (
-        f" Six further seasons ({season_label(gen[0])} to {season_label(gen[-1])}) are "
+        f" {len(gen)} further seasons ({season_label(gen[0])} to {season_label(gen[-1])}) are "
         f"generated from raw data by the same engine: {g_bets} bets, {g_w}&ndash;{g_l} "
         f"({g_w / (g_w + g_l):.1%}), {g_profit:+.1f} units." if gen else ""
     )
@@ -300,7 +300,7 @@ def build() -> Path:
   <header>
     <h1>NFL Report &mdash; five-factor system</h1>
     <p class="sub">Aaron Brown&rsquo;s demonstration NFL betting system (Wilmott magazine):
-    the replicated 2015 &amp; 2016 reports, plus six seasons generated from raw data.</p>
+    the replicated 2015 &amp; 2016 reports, plus seven seasons generated from raw data.</p>
   </header>
 
   <div class="banner">
