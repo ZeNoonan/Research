@@ -59,6 +59,9 @@ body.betsonly tr.nobet { display: none; }
 .factors li { margin: 8px 0; }
 .factors b { color: var(--accent); }
 .seasonnote { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
+table.diag td.pos { color: var(--win); font-weight: 600; }
+table.diag td.neg { color: var(--loss); font-weight: 600; }
+.diagnote { font-size: 13px; color: var(--muted); margin: 8px 2px 14px; }
 footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
 </style>
 </head>
@@ -2897,6 +2900,43 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       </table>
     </div>
   </section>
+
+  <h2>Factor diagnostics</h2>
+  <p class="diagnote">Brown&rsquo;s own monitoring tools, rebuilt. <b>Marginal
+  contribution</b> charges a factor only on close calls its vote alone decided:
+  on a bet made at exactly &plusmn;3 every aligned factor earns the result, and on a
+  near-miss at &plusmn;2 every opposing factor earns the opposite of what the blocked bet
+  would have done. This accounting reproduces the published Table&nbsp;3 values for
+  2015 and 2016 exactly.</p>
+  <div class="tablewrap">
+    <table class="diag">
+      <thead><tr><th class="l">Net wins charged</th><th>2015–16</th><th>2016–17</th><th>2019–20</th><th>2020–21</th><th>2021–22</th><th>2022–23</th><th>2023–24</th><th>2024–25</th><th>2025–26</th></tr></thead>
+      <tbody>
+<tr><td class="l">Power</td><td class="pos">+3</td><td class="pos">+13</td><td class="pos">+7</td><td class="pos">+4</td><td class="neg">-1</td><td class="neg">-4</td><td>+0</td><td class="neg">-7</td><td class="pos">+8</td></tr>
+<tr><td class="l">Turnover — home</td><td class="neg">-5</td><td class="neg">-2</td><td>+0</td><td class="neg">-1</td><td class="pos">+7</td><td class="neg">-7</td><td class="pos">+1</td><td class="neg">-5</td><td class="pos">+2</td></tr>
+<tr><td class="l">Turnover — away</td><td class="neg">-4</td><td class="pos">+5</td><td class="neg">-10</td><td class="pos">+7</td><td class="neg">-1</td><td class="neg">-4</td><td class="neg">-1</td><td class="neg">-7</td><td class="pos">+12</td></tr>
+<tr><td class="l">Hunger — home</td><td>+0</td><td class="pos">+9</td><td>+0</td><td class="pos">+7</td><td class="neg">-4</td><td class="pos">+3</td><td class="pos">+1</td><td class="neg">-11</td><td class="pos">+3</td></tr>
+<tr><td class="l">Hunger — away</td><td class="pos">+2</td><td class="pos">+10</td><td class="neg">-1</td><td>+0</td><td class="neg">-1</td><td class="neg">-2</td><td class="neg">-1</td><td class="neg">-3</td><td class="pos">+2</td></tr>
+<tr><td class="l"><b>Total</b></td><td class="neg">-4</td><td class="pos">+35</td><td class="neg">-4</td><td class="pos">+17</td><td>+0</td><td class="neg">-14</td><td>+0</td><td class="neg">-33</td><td class="pos">+27</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="diagnote" style="margin-top:14px"><b>Standalone success</b> treats each factor
+  as its own betting rule over all games: the share of its votes that cover the spread.
+  Brown&rsquo;s bar for a useful factor was 52% (green); below 48% is red.</p>
+  <div class="tablewrap">
+    <table class="diag">
+      <thead><tr><th class="l">% of votes that cover</th><th>2015–16</th><th>2016–17</th><th>2019–20</th><th>2020–21</th><th>2021–22</th><th>2022–23</th><th>2023–24</th><th>2024–25</th><th>2025–26</th></tr></thead>
+      <tbody>
+<tr><td class="l">Power</td><td class="pos">57.3</td><td>51.8</td><td>51.5</td><td>51.9</td><td>49.8</td><td class="neg">47.4</td><td>48.3</td><td>50.4</td><td>48.7</td></tr>
+<tr><td class="l">Turnover — home</td><td>48.8</td><td class="neg">45.6</td><td>48.3</td><td>51.0</td><td class="pos">54.1</td><td>49.5</td><td class="neg">46.0</td><td class="neg">43.0</td><td>49.1</td></tr>
+<tr><td class="l">Turnover — away</td><td>48.4</td><td>48.6</td><td class="neg">46.2</td><td class="pos">56.5</td><td class="pos">53.4</td><td>49.3</td><td class="neg">47.5</td><td class="neg">47.2</td><td class="pos">53.9</td></tr>
+<tr><td class="l">Hunger — home</td><td class="pos">53.6</td><td>51.0</td><td>51.4</td><td>51.9</td><td class="pos">54.2</td><td class="pos">52.4</td><td>50.7</td><td class="neg">43.4</td><td>51.4</td></tr>
+<tr><td class="l">Hunger — away</td><td>51.0</td><td>51.2</td><td>48.8</td><td>51.4</td><td class="pos">54.0</td><td class="pos">52.9</td><td>48.9</td><td>49.1</td><td>50.9</td></tr>
+
+      </tbody>
+    </table>
+  </div>
 
   <h2>How the system works</h2>
   <div class="factors">

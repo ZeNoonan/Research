@@ -109,6 +109,7 @@ nfl_report/
 ├── parse_reports.py   # PDFs -> data/report_2015.csv, report_2016.csv
 ├── model.py           # the five-factor engine (the system logic)
 ├── season_report.py   # raw odds + results -> data/report_<year>.csv (Phase 2)
+├── factor_analysis.py # Brown's factor diagnostics (marginal contributions)
 ├── validate.py        # rebuild columns and compare to the published reports
 ├── app.py             # Streamlit viewer for the replicated reports
 ├── build_site.py      # data CSVs -> index.html (static mobile-friendly report)
@@ -184,6 +185,20 @@ python season_report.py   # regenerate every report_<year>.csv from the raw data
 python build_site.py      # regenerate index.html, the static web view
 streamlit run app.py      # browse the replicated reports
 ```
+
+## Factor diagnostics
+
+`factor_analysis.py` rebuilds Brown's two monitoring tools per season: the
+**marginal contribution** table (net wins charged to each factor on the close
+calls its vote alone decided) and **standalone success** (each factor as its
+own betting rule over all games). The marginal accounting is pure
+leave-one-out — on a bet made at exactly ±3 every aligned factor is charged
+the result; on a near-miss at ±2 every *opposing* factor is charged the
+opposite of what the blocked bet would have done — and is validated against
+Table 3 of the Wilmott article: **all ten published 2015/2016 values are
+reproduced exactly**. (The article's prose suggests neutral factors also get
+blocking credit; that variant does *not* reproduce the published table.)
+Both tables render in the web view's "Factor diagnostics" section.
 
 ## Roadmap
 

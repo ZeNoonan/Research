@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pandas as pd
 
+import factor_analysis
+
 HERE = Path(__file__).parent
 # Display order, most recent first. 2015/2016 are the published reports.
 SEASONS = (2025, 2024, 2023, 2022, 2021, 2020, 2019, 2016, 2015)
@@ -99,6 +101,9 @@ body.betsonly tr.nobet { display: none; }
 .factors li { margin: 8px 0; }
 .factors b { color: var(--accent); }
 .seasonnote { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
+table.diag td.pos { color: var(--win); font-weight: 600; }
+table.diag td.neg { color: var(--loss); font-weight: 600; }
+.diagnote { font-size: 13px; color: var(--muted); margin: 8px 2px 14px; }
 footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
 """
 
@@ -257,6 +262,64 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
   </section>"""
 
 
+def diagnostics_section() -> str:
+    """Brown's factor diagnostics: marginal contributions + standalone rates."""
+    marginal, standalone = factor_analysis.build_tables()
+    years = list(marginal.columns)
+    head = "".join(f"<th>{season_label(y)}</th>" for y in years)
+
+    def cell(value: float, fmt: str, pos: bool, neg: bool) -> str:
+        cls = ' class="pos"' if pos else ' class="neg"' if neg else ""
+        return f"<td{cls}>{fmt.format(value)}</td>"
+
+    m_rows = ""
+    for key in factor_analysis.FACTORS:
+        cells = "".join(
+            cell(v, "{:+d}", v > 0, v < 0) for v in (int(marginal.loc[key, y]) for y in years)
+        )
+        m_rows += f'<tr><td class="l">{factor_analysis.FACTOR_LABELS[key]}</td>{cells}</tr>\n'
+    totals = marginal.sum()
+    m_rows += ('<tr><td class="l"><b>Total</b></td>'
+               + "".join(cell(int(totals[y]), "{:+d}", totals[y] > 0, totals[y] < 0)
+                         for y in years) + "</tr>")
+
+    s_rows = ""
+    for key in factor_analysis.FACTORS:
+        cells = "".join(
+            cell(v * 100, "{:.1f}", v >= 0.52, v < 0.48)
+            for v in (standalone.loc[key, y] for y in years)
+        )
+        s_rows += f'<tr><td class="l">{factor_analysis.FACTOR_LABELS[key]}</td>{cells}</tr>\n'
+
+    return f"""
+  <h2>Factor diagnostics</h2>
+  <p class="diagnote">Brown&rsquo;s own monitoring tools, rebuilt. <b>Marginal
+  contribution</b> charges a factor only on close calls its vote alone decided:
+  on a bet made at exactly &plusmn;3 every aligned factor earns the result, and on a
+  near-miss at &plusmn;2 every opposing factor earns the opposite of what the blocked bet
+  would have done. This accounting reproduces the published Table&nbsp;3 values for
+  2015 and 2016 exactly.</p>
+  <div class="tablewrap">
+    <table class="diag">
+      <thead><tr><th class="l">Net wins charged</th>{head}</tr></thead>
+      <tbody>
+{m_rows}
+      </tbody>
+    </table>
+  </div>
+  <p class="diagnote" style="margin-top:14px"><b>Standalone success</b> treats each factor
+  as its own betting rule over all games: the share of its votes that cover the spread.
+  Brown&rsquo;s bar for a useful factor was 52% (green); below 48% is red.</p>
+  <div class="tablewrap">
+    <table class="diag">
+      <thead><tr><th class="l">% of votes that cover</th>{head}</tr></thead>
+      <tbody>
+{s_rows}
+      </tbody>
+    </table>
+  </div>"""
+
+
 def build() -> Path:
     data = {year: pd.read_csv(HERE / "data" / f"report_{year}.csv") for year in SEASONS}
     stats = {year: season_stats(df) for year, df in data.items()}
@@ -314,6 +377,7 @@ def build() -> Path:
 {tabs}
   </div>
 {panels}
+{diagnostics_section()}
 
   <h2>How the system works</h2>
   <div class="factors">
