@@ -18,6 +18,7 @@ from pathlib import Path
 import pandas as pd
 
 import factor_analysis
+import heatmaps
 
 HERE = Path(__file__).parent
 # Display order, most recent first. 2015/2016 are the published reports.
@@ -104,6 +105,12 @@ body.betsonly tr.nobet { display: none; }
 table.diag td.pos { color: var(--win); font-weight: 600; }
 table.diag td.neg { color: var(--loss); font-weight: 600; }
 .diagnote { font-size: 13px; color: var(--muted); margin: 8px 2px 14px; }
+table.heat { font-size: 11px; }
+table.heat th, table.heat td { padding: 3px 5px; text-align: center; border: 1px solid #fff; }
+table.heat th { background: var(--card); color: var(--muted); }
+table.heat td.l, table.heat th.l { text-align: left; white-space: nowrap; font-size: 12px; }
+table.heat td.hm { color: #1c2733; min-width: 26px; }
+table.heat td.hm.na { background: #f4f6f8; }
 footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
 """
 
@@ -259,7 +266,38 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
         </tbody>
       </table>
     </div>
+    {heatmaps_block(df)}
   </section>"""
+
+
+def with_week(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure a ``week`` column: generated reports carry it; derive it from the
+    date for the published reports (collision-free there)."""
+    if "week" in df.columns:
+        return df
+    df = df.copy()
+    d = pd.to_datetime(df["date"], format="%y-%m-%d")
+    anchor = d.min() - pd.Timedelta(days=(d.min().weekday() - 1) % 7)  # Tue <= first game
+    df["week"] = ((d - anchor).dt.days // 7 + 1).astype(int)
+    return df
+
+
+def heatmaps_block(df: pd.DataFrame) -> str:
+    df = with_week(df)
+    stdc = heatmaps.team_week_pivot(df, "stdc")
+    power = heatmaps.team_week_pivot(df, "power")
+    return f"""
+    <h2>Season-to-date cover by team &amp; week</h2>
+    <p class="diagnote">Each team&rsquo;s net covers entering that week &mdash;
+    <span style="color:#1a9850;font-weight:600">green</span> teams have been beating the
+    spread (&ldquo;fat&rdquo;), <span style="color:#d73027;font-weight:600">red</span> teams
+    failing to (&ldquo;hungry&rdquo;). The hunger factor backs the red ones. Sorted by season mean.</p>
+    {heatmaps.heatmap_html(stdc, decimals=0)}
+    <h2>Power rating by team &amp; week</h2>
+    <p class="diagnote">Each team&rsquo;s fitted power rating (points above/below average) each
+    week. <span style="color:#1a9850;font-weight:600">Green</span> = strong,
+    <span style="color:#d73027;font-weight:600">red</span> = weak. Sorted by season mean.</p>
+    {heatmaps.heatmap_html(power, decimals=1)}"""
 
 
 def diagnostics_section() -> str:
