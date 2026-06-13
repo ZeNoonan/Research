@@ -101,9 +101,44 @@ reference/         original workbook + Aaron Brown's paper
 Rebuild: `python3 extract_model.py && python3 build_site.py`
 (needs `openpyxl`).
 
-## Next
+## Next — validation against actual results
 
-Planned: validate the factor model against actual tournament results for
-recent years (probabilities/frequencies/factor inputs per season, then score
-the star ratings against what happened) — the same treatment as
-[`nfl_report/`](../nfl_report/).
+Planned: validate the factor model against real tournament outcomes for recent
+years (2021–2026; 2020 was cancelled), scoring the star ratings against what
+happened — the same treatment as [`nfl_report/`](../nfl_report/).
+
+Inputs needed per season, and where each comes from:
+
+| Input | Source | Status |
+|---|---|---|
+| Results (who beat whom) | public records | easy, exact |
+| **Size** factor | computed from prior results via Brown's formula | exact, no external data |
+| **Momentum** factor | last-5 regular-season records | exact, no external data |
+| Win probabilities (per round) | [FiveThirtyEight forecast archive](https://github.com/fivethirtyeight/data/tree/master/historical-ncaa-forecasts) (through 2023) | reachable |
+| **Quality** (BPI) | ESPN BPI / a public power rating | obtainable |
+| **Pick frequencies** | see below | the hard one |
+
+Only the **Value** and **Bet-against-beta** flags and the win-probability block
+need pick frequencies; Quality/Size/Momentum validate against results alone.
+
+### Pick-frequency data: two collection paths
+
+ESPN published "Who Picked Whom" (pick % per team per round) every year. We
+have 2019 complete from Brown's workbook (our calibration year). For the rest:
+
+- **`scrape_pick_frequencies.py`** — pulls archived ESPN Who-Picked-Whom pages
+  from the Wayback Machine (2010–2022, ex-2020) across the three URL hosts ESPN
+  used over the years. Needs `web.archive.org` network egress. Parser is
+  stubbed until we inspect one year's markup.
+- **`ingest_kaggle.py`** — fallback for years the Wayback route can't reach
+  (notably 2023+, after ESPN moved to a JS platform). Ingests a downloaded
+  Kaggle dataset (e.g. `nishaanamin/march-madness-data`) — works from a manual
+  browser download (no special egress) or the Kaggle API with a token. Run
+  `--inspect` first to see each CSV's schema, then ingest to
+  `data/pick_freq_<year>.csv`.
+
+Where no real frequencies exist, a **proxy** is planned (seed-level pick curves
+× within-seed allocation by win probability and Size/brand, with a
+championship-futures adjustment), fit and tested out-of-sample against the 2019
+ground-truth sheet so we can quantify how much the Value/BAB flags move when
+proxy frequencies replace real ones.
