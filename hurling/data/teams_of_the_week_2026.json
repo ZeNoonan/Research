@@ -1,0 +1,25 @@
+{
+  "season": 2026,
+  "competition": "GAA.ie Hurling Team of the Week",
+  "source": "https://www.gaa.ie/article/gaa-ie-hurling-team-of-the-week-x2851 (and weekly equivalents)",
+  "last_updated": "2026-06-24",
+  "notes": "Each week the GAA name a 15-player Hurling Team of the Week plus a Hurler of the Week. Positions follow the standard hurling numbering 1-15.",
+  "positions": [
+    { "no": 1, "name": "Goalkeeper" },
+    { "no": 2, "name": "Right corner-back" },
+    { "no": 3, "name": "Full-back" },
+    { "no": 4, "name": "Left corner-back" },
+    { "no": 5, "name": "Right half-back" },
+    { "no": 6, "name": "Centre half-back" },
+    { "no": 7, "name": "Left half-back" },
+    { "no": 8, "name": "Midfield" },
+    { "no": 9, "name": "Midfield" },
+    { "no": 10, "name": "Right half-forward" },
+    { "no": 11, "name": "Centre half-forward" },
+    { "no": 12, "name": "Left half-forward" },
+    { "no": 13, "name": "Right corner-forward" },
+    { "no": 14, "name": "Full-forward" },
+    { "no": 15, "name": "Left corner-forward" }
+  ],
+  "weeks": []
+}
