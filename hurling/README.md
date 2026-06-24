@@ -36,8 +36,16 @@ Each week is an object in `weeks[]`:
 `notes` is free text for extra detail (e.g. a player's scoreline). The standard 1–15 hurling
 position names are listed in the `positions` array at the top of the JSON.
 
-## Data status
-The data is **not yet populated**. The build environment's network policy blocks all direct
-web access (gaa.ie, Twitter/X, Facebook, Wikipedia, local county sites all return 403), and
-web search only returns short snippets — not the full 15-player team sheets. The full teams
-need to be supplied from an accessible source before the table can be filled in.
+## Data status — PARTIAL / INDICATIVE
+The table is **not complete**. The build environment's network policy blocks all direct web
+access (gaa.ie, Twitter/X, Facebook, Wikipedia and local county sites all return 403), and
+web search only returns short snippets — never the full 15-player team sheets.
+
+What's loaded is a **best-effort, partial set of individual selections** corroborated from
+county/news sources, with a `confidence` flag and a `source` link on each entry. They are
+**not full XVs**, positions/clubs are mostly unknown, and the search summariser was observed
+to hallucinate (e.g. it returned "Brian Hayes (Dublin)" — Hayes is a Cork player), so only
+corroborated entries were kept. **Verify everything against gaa.ie before relying on it.**
+
+To complete the table, paste the full weekly teams from gaa.ie (or have the network policy
+allow `gaa.ie`/`x.com` so they can be fetched directly).

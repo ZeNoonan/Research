@@ -86,6 +86,14 @@
   }
   .empty { text-align:center; color: var(--muted); padding: 40px 16px; line-height: 1.6; }
   footer { text-align:center; color: var(--muted); font-size: 12px; padding: 20px; }
+  .banner { background: #fff7e6; border: 1px solid #f0c36d; color: #5a4500; font-size: 12px; line-height: 1.5; padding: 10px 14px; margin: 12px; border-radius: 8px; }
+  .banner b { color: #7a3b00; }
+  .src a { color: var(--green-dark); text-decoration: none; font-size: 12px; }
+  .src a:hover { text-decoration: underline; }
+  .conf { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+  .conf.high { background: #d8f0dc; color: #0a6b3b; }
+  .conf.medium { background: #fdf0cf; color: #8a6d1a; }
+  .conf.low { background: #fbe0e0; color: #a23030; }
 </style>
 </head>
 <body>
@@ -93,6 +101,7 @@
   <h1>🏑 Hurling Team of the Week — 2026</h1>
   <p id="subtitle">GAA.ie weekly selections</p>
 </header>
+<div class="banner" id="banner" hidden></div>
 
 <div class="controls">
   <select id="weekFilter"><option value="">All weeks</option></select>
@@ -131,6 +140,8 @@ function flatten(data) {
         no: p.no, position: p.position || '',
         player: p.player || '', club: p.club || '', county: p.county || '',
         notes: p.notes || '',
+        source: p.source || w.source_url || '',
+        confidence: p.confidence || '',
         hotw: (w.hurler_of_the_week && (w.hurler_of_the_week.player === p.player)) || false
       });
     });
@@ -194,7 +205,7 @@ function render() {
       <td data-label="Club">${r.club}</td>
       <td data-label="County">${r.county}</td>
       <td data-label="Week">${r.weekLabel}</td>
-      <td data-label="Notes">${[r.round, r.notes].filter(Boolean).join(' · ')}</td>`;
+      <td data-label="Notes">${[r.notes].filter(Boolean).join(' · ')}${r.confidence ? ` <span class="conf ${r.confidence}">${r.confidence}</span>` : ''}${r.source ? ` <span class="src"><a href="${r.source}" target="_blank" rel="noopener">source ↗</a></span>` : ''}</td>`;
     body.appendChild(tr);
   });
 }
@@ -205,6 +216,11 @@ fetch('data/teams_of_the_week_2026.json')
     DATA = d; ROWS = flatten(d);
     document.getElementById('subtitle').textContent = d.competition || 'GAA.ie weekly selections';
     document.getElementById('updated').textContent = 'updated ' + (d.last_updated || '');
+    if (d.data_status) {
+      const b = document.getElementById('banner');
+      b.hidden = false;
+      b.innerHTML = '<b>⚠ Partial / indicative data.</b> ' + d.data_status;
+    }
     populateFilters();
     render();
   })

@@ -1,9 +1,10 @@
 {
   "season": 2026,
-  "competition": "GAA.ie Hurling Team of the Week",
+  "competition": "GAA.ie Hurling Team of the Week — 2026 Championship",
   "source": "https://www.gaa.ie/article/gaa-ie-hurling-team-of-the-week-x2851 (and weekly equivalents)",
   "last_updated": "2026-06-24",
-  "notes": "Each week the GAA name a 15-player Hurling Team of the Week plus a Hurler of the Week. Positions follow the standard hurling numbering 1-15.",
+  "data_status": "PARTIAL / INDICATIVE — assembled from news-site search snippets only. Direct access to gaa.ie, X/Twitter and Facebook is blocked in this environment, so the full 15-player team sheets could not be retrieved. These are individual selections that could be corroborated from county/news sources; they are NOT complete XVs. Positions and clubs are mostly unknown. Verify every entry against gaa.ie before relying on it.",
+  "notes": "Each week the GAA name a 15-player Hurling Team of the Week plus a Hurler of the Week. Positions follow standard hurling numbering 1-15. Only Championship weeks are included per request.",
   "positions": [
     { "no": 1, "name": "Goalkeeper" },
     { "no": 2, "name": "Right corner-back" },
@@ -21,5 +22,95 @@
     { "no": 14, "name": "Full-forward" },
     { "no": 15, "name": "Left corner-forward" }
   ],
-  "weeks": []
+  "weeks": [
+    {
+      "id": "munster-rr-waterford",
+      "label": "Munster SHC round-robin (late Apr 2026)",
+      "date": "2026-04-26",
+      "date_approx": true,
+      "round": "Munster SHC round-robin",
+      "partial": true,
+      "hurler_of_the_week": null,
+      "players": [
+        { "no": null, "position": "", "player": "Stephen Bennett", "club": "", "county": "Waterford", "notes": "Scored 3-12 v Clare; later named GAA/GPA Hurler of the Month for April. Hurler-of-the-Week nominee.", "confidence": "medium", "source": "https://www.gaa.ie/article/gaa-ie-hurler-of-the-week-nominees-x4450" }
+      ]
+    },
+    {
+      "id": "munster-rr-limerick-clare-ennis",
+      "label": "Munster SHC round-robin — Clare v Limerick (Ennis)",
+      "date": "2026-05-17",
+      "date_approx": true,
+      "round": "Munster SHC round-robin",
+      "partial": true,
+      "hurler_of_the_week": { "player": "Nickie Quaid", "county": "Limerick" },
+      "players": [
+        { "no": 1, "position": "Goalkeeper", "player": "Nickie Quaid", "club": "Effin", "county": "Limerick", "notes": "Man-of-the-match; voted GAA.ie Hurler of the Week after the win over Clare in Ennis.", "confidence": "high", "source": "https://www.gaa.ie/article/nickie-quaid-voted-gaa-ie-hurler-of-the-week" }
+      ]
+    },
+    {
+      "id": "munster-rr-limerick-cork",
+      "label": "Munster SHC round-robin — Limerick v Cork",
+      "date": "2026-05-24",
+      "date_approx": true,
+      "round": "Munster SHC round-robin",
+      "partial": true,
+      "hurler_of_the_week": null,
+      "players": [
+        { "no": 1, "position": "Goalkeeper", "player": "Nickie Quaid", "club": "Effin", "county": "Limerick", "notes": "One of four Limerick players named after an eight-point win over Cork.", "confidence": "medium", "source": "https://www.limerickleader.ie/news/hurling/2034522/four-limerick-hurlers-players-named-on-gaa-team-of-the-week.html" },
+        { "no": null, "position": "Midfield", "player": "Will O'Donoghue", "club": "", "county": "Limerick", "notes": "Named after the eight-point win over Cork.", "confidence": "medium", "source": "https://www.limerickleader.ie/news/hurling/2034522/four-limerick-hurlers-players-named-on-gaa-team-of-the-week.html" },
+        { "no": null, "position": "", "player": "Aidan O'Connor", "club": "", "county": "Limerick", "notes": "Named after the eight-point win over Cork.", "confidence": "medium", "source": "https://www.limerickleader.ie/news/hurling/2034522/four-limerick-hurlers-players-named-on-gaa-team-of-the-week.html" }
+      ]
+    },
+    {
+      "id": "leinster-r5-galway-wexford",
+      "label": "Leinster SHC Round 5 — Galway v Wexford",
+      "date": "2026-05-31",
+      "date_approx": true,
+      "round": "Leinster SHC Round 5",
+      "partial": true,
+      "hurler_of_the_week": null,
+      "players": [
+        { "no": null, "position": "", "player": "Tom Monaghan", "club": "", "county": "Galway", "notes": "0-6 from play in Galway's 2-31 to 3-20 win over Wexford.", "confidence": "high", "source": "https://www.connachttribune.ie/sport/galway-hurler-named-on-gaaie-team-of-the-week-8641428" }
+      ]
+    },
+    {
+      "id": "leinster-eoin-cody",
+      "label": "Leinster SHC round-robin (Kilkenny)",
+      "date": "2026-05-01",
+      "date_approx": true,
+      "round": "Leinster SHC round-robin",
+      "partial": true,
+      "hurler_of_the_week": null,
+      "players": [
+        { "no": null, "position": "", "player": "Eoin Cody", "club": "Ballyhale Shamrocks", "county": "Kilkenny", "notes": "Named on the GAA.ie hurling team of the week during the Leinster championship (week not pinned down).", "confidence": "low", "source": "https://www.gaa.ie/article/gaa-ie-hurling-team-of-the-week-x0341" }
+      ]
+    },
+    {
+      "id": "provincial-finals",
+      "label": "Provincial finals weekend (early Jun 2026)",
+      "date": "2026-06-07",
+      "date_approx": true,
+      "round": "Munster & Leinster SHC Finals",
+      "partial": true,
+      "hurler_of_the_week": { "player": "Nickie Quaid", "county": "Limerick" },
+      "players": [
+        { "no": 1, "position": "Goalkeeper", "player": "Nickie Quaid", "club": "Effin", "county": "Limerick", "notes": "Voted Hurler of the Week (2nd time in 2026) after his Munster SHC Final display v Cork at Páirc Uí Chaoimh; made several remarkable saves as Limerick prevailed.", "confidence": "high", "source": "https://www.limerickleader.ie/sport/hurling/limerick-star-named-gaa-hurler-of-the-week-after-remarkable-munster-final-display-8666410" }
+      ]
+    },
+    {
+      "id": "ai-shc-qf",
+      "label": "All-Ireland SHC Quarter-Finals (20-22 Jun 2026)",
+      "date": "2026-06-22",
+      "date_approx": false,
+      "round": "All-Ireland SHC Quarter-Finals",
+      "partial": true,
+      "hurler_of_the_week": { "player": "Brian Hayes", "county": "Cork" },
+      "source_url": "https://www.gaa.ie/article/gaa-ie-hurling-team-of-the-week-x2851",
+      "players": [
+        { "no": null, "position": "", "player": "Dónal Burke", "club": "Na Fianna", "county": "Dublin", "notes": "0-12 (9 frees) despite Dublin's defeat to Clare in the quarter-final.", "confidence": "high", "source": "https://www.dublingaa.ie/news/donal-burke-named-in-gaa-hurling-team-of-the-week" },
+        { "no": null, "position": "", "player": "Brian Hayes", "club": "", "county": "Cork", "notes": "Voted GAA.ie Hurler of the Week (3,424 votes), ahead of Clare's Éibhear Quilligan and Seán Rynne.", "confidence": "high", "source": "https://www.gaa.ie/article/gaa-ie-hurling-team-of-the-week-x2851" },
+        { "no": 1, "position": "Goalkeeper", "player": "Éibhear Quilligan", "club": "", "county": "Clare", "notes": "Seven saves / clean sheet in the QF win over Dublin; Hurler-of-the-Week nominee.", "confidence": "low", "source": "https://www.the42.ie/clare-beat-dublin-hurling-quarter-finals-7077111-Jun2026/" }
+      ]
+    }
+  ]
 }
