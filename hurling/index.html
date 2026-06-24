@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hurling Team of the Week 2026</title>
+<style>
+  :root {
+    --green: #0a6b3b;
+    --green-dark: #074d2a;
+    --accent: #f4c430;
+    --bg: #f5f7f5;
+    --line: #e0e4e0;
+    --text: #1a1a1a;
+    --muted: #667;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+  header {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    color: #fff;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; font-size: 13px; opacity: 0.85; }
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    padding: 10px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .controls select, .controls input {
+    font-size: 16px; /* >=16px stops iOS zoom-on-focus */
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+  .count { font-size: 12px; color: var(--muted); width: 100%; }
+  main { padding: 12px; max-width: 1100px; margin: 0 auto; }
+
+  /* Wide-screen table */
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  thead th {
+    background: var(--green); color: #fff; text-align: left;
+    padding: 10px 12px; font-size: 13px; position: sticky; top: 58px;
+  }
+  tbody td { padding: 10px 12px; border-top: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  tbody tr:nth-child(even) { background: #fafbfa; }
+  .pos-no { display:inline-block; min-width: 22px; text-align:center; background: var(--green); color:#fff; border-radius: 6px; padding: 1px 4px; font-size: 12px; font-weight: 700; }
+  .hotw-badge { background: var(--accent); color:#222; font-size: 11px; font-weight:700; padding: 1px 6px; border-radius: 6px; margin-left: 6px; }
+  .week-head { background: var(--green-dark); color:#fff; }
+  .week-head td { font-weight: 700; font-size: 14px; padding: 10px 12px; }
+  .week-head .sub { font-weight: 400; opacity: 0.85; font-size: 12px; }
+
+  /* Phone: stacked cards */
+  @media (max-width: 680px) {
+    thead { display: none; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    table { background: transparent; box-shadow: none; }
+    tbody tr { background: #fff; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; padding: 6px 4px; }
+    tbody tr:nth-child(even) { background: #fff; }
+    tbody td { border: none; padding: 4px 12px; font-size: 14px; }
+    tbody td::before {
+      content: attr(data-label);
+      display: inline-block; width: 90px; color: var(--muted); font-size: 12px; font-weight: 600;
+    }
+    .week-head { display: block; background: var(--green-dark); border-radius: 8px; margin: 14px 0 8px; }
+    .week-head td { display:block; color:#fff; }
+    .week-head td::before { content: none; }
+  }
+  .empty { text-align:center; color: var(--muted); padding: 40px 16px; line-height: 1.6; }
+  footer { text-align:center; color: var(--muted); font-size: 12px; padding: 20px; }
+  .banner { background: #fff7e6; border: 1px solid #f0c36d; color: #5a4500; font-size: 12px; line-height: 1.5; padding: 10px 14px; margin: 12px; border-radius: 8px; }
+  .banner b { color: #7a3b00; }
+  .src a { color: var(--green-dark); text-decoration: none; font-size: 12px; }
+  .src a:hover { text-decoration: underline; }
+  .conf { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+  .conf.high { background: #d8f0dc; color: #0a6b3b; }
+  .conf.medium { background: #fdf0cf; color: #8a6d1a; }
+  .conf.low { background: #fbe0e0; color: #a23030; }
+  .conf.unconfirmed { background: #fbe0e0; color: #a23030; }
+  .opp { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏑 Hurling Team of the Week — 2026</h1>
+  <p id="subtitle">GAA.ie weekly selections</p>
+</header>
+<div class="banner" id="banner" hidden></div>
+
+<div class="controls">
+  <select id="weekFilter"><option value="">All weeks</option></select>
+  <select id="countyFilter"><option value="">All counties</option></select>
+  <input id="search" type="search" placeholder="Search player / club…">
+  <div class="count" id="count"></div>
+</div>
+
+<main>
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th>Pos</th><th>Position</th><th>Player</th><th>Club</th><th>County</th><th>Opponent</th><th>Week</th><th>Round / notes</th>
+      </tr>
+    </thead>
+    <tbody id="body"></tbody>
+  </table>
+  <div class="empty" id="empty" hidden></div>
+</main>
+
+<footer>Data: GAA.ie Hurling Team of the Week · <span id="updated"></span></footer>
+
+<script>
+let DATA = null;
+let ROWS = [];
+
+function flatten(data) {
+  const rows = [];
+  (data.weeks || []).forEach(w => {
+    (w.players || []).forEach(p => {
+      rows.push({
+        weekId: w.id || w.date || w.label,
+        weekLabel: w.label || w.date || w.id,
+        date: w.date || '',
+        round: w.round || w.competition || '',
+        no: p.no, position: p.position || '',
+        player: p.player || '', club: p.club || '', county: p.county || '',
+        opponent: p.opponent || '',
+        notes: p.notes || '',
+        source: p.source || w.source_url || '',
+        confidence: p.confidence || '',
+        hotw: (w.hurler_of_the_week && (w.hurler_of_the_week.player === p.player)) || false
+      });
+    });
+  });
+  return rows;
+}
+
+function populateFilters() {
+  const wf = document.getElementById('weekFilter');
+  const cf = document.getElementById('countyFilter');
+  (DATA.weeks || []).forEach(w => {
+    const o = document.createElement('option');
+    o.value = w.id || w.date || w.label; o.textContent = w.label || w.date || w.id;
+    wf.appendChild(o);
+  });
+  [...new Set(ROWS.map(r => r.county).filter(Boolean))].sort().forEach(c => {
+    const o = document.createElement('option'); o.value = c; o.textContent = c; cf.appendChild(o);
+  });
+}
+
+function render() {
+  const wk = document.getElementById('weekFilter').value;
+  const co = document.getElementById('countyFilter').value;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const body = document.getElementById('body');
+  const empty = document.getElementById('empty');
+  body.innerHTML = '';
+
+  let filtered = ROWS.filter(r =>
+    (!wk || r.weekId === wk) && (!co || r.county === co) &&
+    (!q || r.player.toLowerCase().includes(q) || r.club.toLowerCase().includes(q))
+  );
+
+  document.getElementById('count').textContent =
+    filtered.length + ' selection' + (filtered.length === 1 ? '' : 's') +
+    ' · ' + new Set(filtered.map(r => r.weekId)).size + ' week(s)';
+
+  if (!ROWS.length) {
+    document.getElementById('tbl').hidden = true;
+    empty.hidden = false;
+    empty.innerHTML = 'No team data loaded yet.<br>Populate <code>data/teams_of_the_week_2026.json</code> to see the table.';
+    return;
+  }
+  empty.hidden = true;
+  document.getElementById('tbl').hidden = false;
+
+  let lastWeek = null;
+  filtered.forEach(r => {
+    if (!wk && r.weekId !== lastWeek) {
+      lastWeek = r.weekId;
+      const tr = document.createElement('tr');
+      tr.className = 'week-head';
+      tr.innerHTML = `<td colspan="8">${r.weekLabel}${r.round ? ` <span class="sub">— ${r.round}</span>` : ''}</td>`;
+      body.appendChild(tr);
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Pos"><span class="pos-no">${r.no ?? ''}</span></td>
+      <td data-label="Position">${r.position}</td>
+      <td data-label="Player">${r.player}${r.hotw ? '<span class="hotw-badge">Hurler of the Week</span>' : ''}</td>
+      <td data-label="Club">${r.club}</td>
+      <td data-label="County">${r.county}</td>
+      <td data-label="Opponent"><span class="opp">${r.opponent ? 'v ' + r.opponent : ''}</span></td>
+      <td data-label="Week">${r.weekLabel}</td>
+      <td data-label="Notes">${[r.notes].filter(Boolean).join(' · ')}${(r.confidence && r.confidence !== 'confirmed') ? ` <span class="conf ${r.confidence}">${r.confidence}</span>` : ''}${r.source ? ` <span class="src"><a href="${r.source}" target="_blank" rel="noopener">source ↗</a></span>` : ''}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+fetch('data/teams_of_the_week_2026.json')
+  .then(r => r.json())
+  .then(d => {
+    DATA = d; ROWS = flatten(d);
+    document.getElementById('subtitle').textContent = d.competition || 'GAA.ie weekly selections';
+    document.getElementById('updated').textContent = 'updated ' + (d.last_updated || '');
+    if (d.data_status) {
+      const b = document.getElementById('banner');
+      b.hidden = false;
+      b.innerHTML = '<b>ℹ Data note.</b> ' + d.data_status;
+    }
+    populateFilters();
+    render();
+  })
+  .catch(() => {
+    document.getElementById('tbl').hidden = true;
+    const e = document.getElementById('empty'); e.hidden = false;
+    e.textContent = 'Could not load data file. Serve this folder over HTTP (e.g. GitHub Pages) to view.';
+  });
+
+['weekFilter','countyFilter','search'].forEach(id =>
+  document.getElementById(id).addEventListener('input', render));
+</script>
+</body>
+</html>
