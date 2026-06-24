@@ -28,24 +28,29 @@ Each week is an object in `weeks[]`:
   "source_url": "https://www.gaa.ie/article/gaa-ie-hurling-team-of-the-week-x2851",
   "hurler_of_the_week": { "player": "Brian Hayes", "county": "Cork" },
   "players": [
-    { "no": 1, "position": "Goalkeeper", "player": "", "club": "", "county": "", "notes": "" }
+    { "no": 1, "position": "Goalkeeper", "player": "Éibhear Quilligan", "club": "",
+      "county": "Clare", "opponent": "Dublin", "notes": "", "confidence": "confirmed" }
   ]
 }
 ```
 
-`notes` is free text for extra detail (e.g. a player's scoreline). The standard 1–15 hurling
-position names are listed in the `positions` array at the top of the JSON.
+Per-player fields: `county` (blank when not yet confirmed), `opponent` (the team that county
+played in the round that earned the selection), `confidence` (`confirmed` or `unconfirmed`),
+`notes` (free text), and optional `club`/`source`. The standard 1–15 hurling position names
+are listed in the `positions` array at the top of the JSON.
 
-## Data status — PARTIAL / INDICATIVE
-The table is **not complete**. The build environment's network policy blocks all direct web
-access (gaa.ie, Twitter/X, Facebook, Wikipedia and local county sites all return 403), and
-web search only returns short snippets — never the full 15-player team sheets.
+## Data status
+Built from the official **GAA.ie Hurling Team of the Week graphics** (supplied as
+screenshots), championship weeks only. Player names are transcribed directly from each
+graphic, so the XVs are complete and accurate.
 
-What's loaded is a **best-effort, partial set of individual selections** corroborated from
-county/news sources, with a `confidence` flag and a `source` link on each entry. They are
-**not full XVs**, positions/clubs are mostly unknown, and the search summariser was observed
-to hallucinate (e.g. it returned "Brian Hayes (Dublin)" — Hayes is a Cork player), so only
-corroborated entries were kept. **Verify everything against gaa.ie before relying on it.**
+Two known gaps, both flagged in the data:
+- **Counties** that couldn't be read from the tiny on-graphic crest are left **blank** with
+  `confidence: "unconfirmed"` (shown with an "unconfirmed" chip on the page).
+- **Opponents** are filled from the Munster/Leinster SHC and All-Ireland QF results. Tier-2
+  players (Joe McDonagh Cup / Christy Ring) have a **blank opponent** where the fixture
+  couldn't be verified (direct access to gaa.ie/Wikipedia is blocked by the egress policy;
+  fixtures were reconstructed via web search).
 
-To complete the table, paste the full weekly teams from gaa.ie (or have the network policy
-allow `gaa.ie`/`x.com` so they can be fetched directly).
+Weeks before 20 April and after the quarter-finals (provincial finals, semi-finals, final)
+are not yet added — supply the graphic and they can be appended the same way.

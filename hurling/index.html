@@ -94,6 +94,8 @@
   .conf.high { background: #d8f0dc; color: #0a6b3b; }
   .conf.medium { background: #fdf0cf; color: #8a6d1a; }
   .conf.low { background: #fbe0e0; color: #a23030; }
+  .conf.unconfirmed { background: #fbe0e0; color: #a23030; }
+  .opp { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -114,7 +116,7 @@
   <table id="tbl">
     <thead>
       <tr>
-        <th>Pos</th><th>Position</th><th>Player</th><th>Club</th><th>County</th><th>Week</th><th>Round / notes</th>
+        <th>Pos</th><th>Position</th><th>Player</th><th>Club</th><th>County</th><th>Opponent</th><th>Week</th><th>Round / notes</th>
       </tr>
     </thead>
     <tbody id="body"></tbody>
@@ -139,6 +141,7 @@ function flatten(data) {
         round: w.round || w.competition || '',
         no: p.no, position: p.position || '',
         player: p.player || '', club: p.club || '', county: p.county || '',
+        opponent: p.opponent || '',
         notes: p.notes || '',
         source: p.source || w.source_url || '',
         confidence: p.confidence || '',
@@ -194,7 +197,7 @@ function render() {
       lastWeek = r.weekId;
       const tr = document.createElement('tr');
       tr.className = 'week-head';
-      tr.innerHTML = `<td colspan="7">${r.weekLabel}${r.round ? ` <span class="sub">— ${r.round}</span>` : ''}</td>`;
+      tr.innerHTML = `<td colspan="8">${r.weekLabel}${r.round ? ` <span class="sub">— ${r.round}</span>` : ''}</td>`;
       body.appendChild(tr);
     }
     const tr = document.createElement('tr');
@@ -204,6 +207,7 @@ function render() {
       <td data-label="Player">${r.player}${r.hotw ? '<span class="hotw-badge">Hurler of the Week</span>' : ''}</td>
       <td data-label="Club">${r.club}</td>
       <td data-label="County">${r.county}</td>
+      <td data-label="Opponent"><span class="opp">${r.opponent ? 'v ' + r.opponent : ''}</span></td>
       <td data-label="Week">${r.weekLabel}</td>
       <td data-label="Notes">${[r.notes].filter(Boolean).join(' · ')}${(r.confidence && r.confidence !== 'confirmed') ? ` <span class="conf ${r.confidence}">${r.confidence}</span>` : ''}${r.source ? ` <span class="src"><a href="${r.source}" target="_blank" rel="noopener">source ↗</a></span>` : ''}</td>`;
     body.appendChild(tr);
@@ -219,7 +223,7 @@ fetch('data/teams_of_the_week_2026.json')
     if (d.data_status) {
       const b = document.getElementById('banner');
       b.hidden = false;
-      b.innerHTML = '<b>⚠ Partial / indicative data.</b> ' + d.data_status;
+      b.innerHTML = '<b>ℹ Data note.</b> ' + d.data_status;
     }
     populateFilters();
     render();
