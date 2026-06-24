@@ -205,7 +205,7 @@ function render() {
       <td data-label="Club">${r.club}</td>
       <td data-label="County">${r.county}</td>
       <td data-label="Week">${r.weekLabel}</td>
-      <td data-label="Notes">${[r.notes].filter(Boolean).join(' · ')}${r.confidence ? ` <span class="conf ${r.confidence}">${r.confidence}</span>` : ''}${r.source ? ` <span class="src"><a href="${r.source}" target="_blank" rel="noopener">source ↗</a></span>` : ''}</td>`;
+      <td data-label="Notes">${[r.notes].filter(Boolean).join(' · ')}${(r.confidence && r.confidence !== 'confirmed') ? ` <span class="conf ${r.confidence}">${r.confidence}</span>` : ''}${r.source ? ` <span class="src"><a href="${r.source}" target="_blank" rel="noopener">source ↗</a></span>` : ''}</td>`;
     body.appendChild(tr);
   });
 }

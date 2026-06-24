@@ -99,17 +99,30 @@
     },
     {
       "id": "ai-shc-qf",
-      "label": "All-Ireland SHC Quarter-Finals (20-22 Jun 2026)",
-      "date": "2026-06-22",
+      "label": "All-Ireland SHC Quarter-Finals (21 Jun 2026)",
+      "date": "2026-06-21",
       "date_approx": false,
       "round": "All-Ireland SHC Quarter-Finals",
-      "partial": true,
+      "partial": false,
+      "confirmed": true,
       "hurler_of_the_week": { "player": "Brian Hayes", "county": "Cork" },
-      "source_url": "https://www.gaa.ie/article/gaa-ie-hurling-team-of-the-week-x2851",
+      "source_url": "Uploaded screenshot of GAA.ie Hurling Team of the Week graphic (21 Jun 2026)",
       "players": [
-        { "no": null, "position": "", "player": "Dónal Burke", "club": "Na Fianna", "county": "Dublin", "notes": "0-12 (9 frees) despite Dublin's defeat to Clare in the quarter-final.", "confidence": "high", "source": "https://www.dublingaa.ie/news/donal-burke-named-in-gaa-hurling-team-of-the-week" },
-        { "no": null, "position": "", "player": "Brian Hayes", "club": "", "county": "Cork", "notes": "Voted GAA.ie Hurler of the Week (3,424 votes), ahead of Clare's Éibhear Quilligan and Seán Rynne.", "confidence": "high", "source": "https://www.gaa.ie/article/gaa-ie-hurling-team-of-the-week-x2851" },
-        { "no": 1, "position": "Goalkeeper", "player": "Éibhear Quilligan", "club": "", "county": "Clare", "notes": "Seven saves / clean sheet in the QF win over Dublin; Hurler-of-the-Week nominee.", "confidence": "low", "source": "https://www.the42.ie/clare-beat-dublin-hurling-quarter-finals-7077111-Jun2026/" }
+        { "no": 1, "position": "Goalkeeper", "player": "Éibhear Quilligan", "club": "", "county": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 2, "position": "Right corner-back", "player": "Adam Hogan", "club": "", "county": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 3, "position": "Full-back", "player": "Damien Cahalane", "club": "", "county": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 4, "position": "Left corner-back", "player": "Seán O'Donoghue", "club": "", "county": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 5, "position": "Right half-back", "player": "Niall O'Farrell", "club": "", "county": "Clare", "notes": "County read from crest (matches Clare) — verify; could be Offaly.", "confidence": "medium", "source": "" },
+        { "no": 6, "position": "Centre half-back", "player": "Robert Downey", "club": "", "county": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 7, "position": "Left half-back", "player": "Mark Coleman", "club": "", "county": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 8, "position": "Midfield", "player": "Seán Rynne", "club": "", "county": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 9, "position": "Midfield", "player": "Tony Kelly", "club": "", "county": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 10, "position": "Right half-forward", "player": "Peter Duggan", "club": "", "county": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 11, "position": "Centre half-forward", "player": "Shane Barrett", "club": "", "county": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Dónal Burke", "club": "Na Fianna", "county": "Dublin", "notes": "0-12 (9 frees) v Clare.", "confidence": "confirmed", "source": "" },
+        { "no": 13, "position": "Right corner-forward", "player": "Shane O'Donnell", "club": "", "county": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 14, "position": "Full-forward", "player": "Brian Hayes", "club": "", "county": "Cork", "notes": "Voted GAA.ie Hurler of the Week.", "confidence": "confirmed", "source": "" },
+        { "no": 15, "position": "Left corner-forward", "player": "Alan Walsh", "club": "", "county": "Cork", "notes": "County read from Cork crest.", "confidence": "confirmed", "source": "" }
       ]
     }
   ]
