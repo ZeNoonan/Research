@@ -96,6 +96,8 @@
   .conf.low { background: #fbe0e0; color: #a23030; }
   .conf.unconfirmed { background: #fbe0e0; color: #a23030; }
   .opp { color: var(--muted); }
+  .rank { display:inline-block; min-width: 22px; text-align:center; background: var(--green-dark); color:#fff; border-radius: 6px; padding: 1px 6px; font-size: 12px; font-weight: 700; }
+  .cnt { font-weight: 700; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -106,6 +108,10 @@
 <div class="banner" id="banner" hidden></div>
 
 <div class="controls">
+  <select id="viewMode">
+    <option value="week">View: by week</option>
+    <option value="leader">View: most selected</option>
+  </select>
   <select id="weekFilter"><option value="">All weeks</option></select>
   <select id="countyFilter"><option value="">All counties</option></select>
   <input id="search" type="search" placeholder="Search player / club…">
@@ -120,6 +126,14 @@
       </tr>
     </thead>
     <tbody id="body"></tbody>
+  </table>
+  <table id="lead" hidden>
+    <thead>
+      <tr>
+        <th>#</th><th>Player</th><th>County</th><th>Selections</th><th>HotW</th><th>Weeks</th>
+      </tr>
+    </thead>
+    <tbody id="leadBody"></tbody>
   </table>
   <div class="empty" id="empty" hidden></div>
 </main>
@@ -165,7 +179,22 @@ function populateFilters() {
   });
 }
 
+function fmtDate(s) {
+  if (!s) return '';
+  const m = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+  const p = String(s).split('-');
+  return p.length === 3 ? (parseInt(p[2],10) + ' ' + (m[p[1]] || p[1])) : s;
+}
+
 function render() {
+  const mode = document.getElementById('viewMode').value;
+  document.getElementById('weekFilter').disabled = (mode === 'leader');
+  if (mode === 'leader') renderLeader(); else renderWeek();
+}
+
+function renderWeek() {
+  document.getElementById('tbl').hidden = false;
+  document.getElementById('lead').hidden = true;
   const wk = document.getElementById('weekFilter').value;
   const co = document.getElementById('countyFilter').value;
   const q = document.getElementById('search').value.trim().toLowerCase();
@@ -210,6 +239,53 @@ function render() {
       <td data-label="Opponent"><span class="opp">${r.opponent ? 'v ' + r.opponent : ''}</span></td>
       <td data-label="Week">${r.weekLabel}</td>
       <td data-label="Notes">${[r.notes].filter(Boolean).join(' · ')}${(r.confidence && r.confidence !== 'confirmed') ? ` <span class="conf ${r.confidence}">${r.confidence}</span>` : ''}${r.source ? ` <span class="src"><a href="${r.source}" target="_blank" rel="noopener">source ↗</a></span>` : ''}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function renderLeader() {
+  document.getElementById('tbl').hidden = true;
+  document.getElementById('lead').hidden = false;
+  const co = document.getElementById('countyFilter').value;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const body = document.getElementById('leadBody');
+  const empty = document.getElementById('empty');
+  body.innerHTML = '';
+
+  const map = new Map();
+  ROWS.forEach(r => {
+    const key = r.player + '||' + r.county;
+    if (!map.has(key)) map.set(key, { player: r.player, county: r.county, count: 0, hotw: 0, weeks: [] });
+    const e = map.get(key);
+    e.count++;
+    if (r.hotw) e.hotw++;
+    e.weeks.push(r.date || r.weekLabel);
+  });
+  let arr = [...map.values()].filter(e =>
+    (!co || e.county === co) && (!q || e.player.toLowerCase().includes(q))
+  );
+  arr.sort((a, b) => b.count - a.count || b.hotw - a.hotw || a.player.localeCompare(b.player));
+
+  document.getElementById('count').textContent =
+    arr.length + ' player' + (arr.length === 1 ? '' : 's') +
+    ' · ' + arr.reduce((s, e) => s + e.count, 0) + ' selections';
+
+  if (!arr.length) { empty.hidden = false; empty.textContent = 'No players match.'; return; }
+  empty.hidden = true;
+
+  let lastCount = null, rank = 0, shown = 0;
+  arr.forEach(e => {
+    shown++;
+    if (e.count !== lastCount) { rank = shown; lastCount = e.count; }
+    const weeks = e.weeks.slice().sort().map(fmtDate).join(', ');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Rank"><span class="rank">${rank}</span></td>
+      <td data-label="Player">${e.player}</td>
+      <td data-label="County">${e.county}</td>
+      <td data-label="Selections"><span class="cnt">${e.count}</span></td>
+      <td data-label="HotW">${e.hotw ? '<span class="hotw-badge">' + e.hotw + '</span>' : ''}</td>
+      <td data-label="Weeks"><span class="opp">${weeks}</span></td>`;
     body.appendChild(tr);
   });
 }
@@ -259,7 +335,7 @@ const d = {
         { "no": 9, "position": "Midfield", "player": "Conor Donohoe", "club": "", "county": "Dublin", "opponent": "Offaly", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 10, "position": "Right half-forward", "player": "Rory Burke", "club": "", "county": "Galway", "opponent": "Kilkenny", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 11, "position": "Centre half-forward", "player": "Lee Chin", "club": "", "county": "Wexford", "opponent": "Kildare", "notes": "", "confidence": "confirmed", "source": "" },
-        { "no": 12, "position": "Left half-forward", "player": "Sean Rynne", "club": "", "county": "Clare", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Seán Rynne", "club": "", "county": "Clare", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 13, "position": "Right corner-forward", "player": "William Buckley", "club": "", "county": "Cork", "opponent": "Tipperary", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 14, "position": "Full-forward", "player": "Stephen Bennett", "club": "", "county": "Waterford", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Charlie Mitchell", "club": "", "county": "Offaly", "opponent": "Dublin", "notes": "", "confidence": "confirmed", "source": "" }
@@ -311,7 +387,7 @@ const d = {
         { "no": 9, "position": "Midfield", "player": "Cian Kenny", "club": "", "county": "Kilkenny", "opponent": "Offaly", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 10, "position": "Right half-forward", "player": "Muiris Curtin", "club": "", "county": "Kildare", "opponent": "Galway", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 11, "position": "Centre half-forward", "player": "Martin Kavanagh", "club": "", "county": "Carlow", "opponent": "Down", "notes": "Joe McDonagh R3, 9 May — Kavanagh 1-10", "confidence": "confirmed", "source": "" },
-        { "no": 12, "position": "Left half-forward", "player": "Donal Burke", "club": "Na Fianna", "county": "Dublin", "opponent": "Wexford", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Dónal Burke", "club": "Na Fianna", "county": "Dublin", "opponent": "Wexford", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 13, "position": "Right corner-forward", "player": "Eoghan Cahill", "club": "", "county": "Offaly", "opponent": "Kilkenny", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 14, "position": "Full-forward", "player": "Conor Whelan", "club": "", "county": "Galway", "opponent": "Kildare", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Brian Hayes", "club": "", "county": "Cork", "opponent": "Waterford", "notes": "Cork's Brian Hayes.", "confidence": "confirmed", "source": "" }
@@ -337,7 +413,7 @@ const d = {
         { "no": 9, "position": "Midfield", "player": "Diarmuid Stritch", "club": "", "county": "Clare", "opponent": "Tipperary", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 10, "position": "Right half-forward", "player": "Gearóid Hegarty", "club": "", "county": "Limerick", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 11, "position": "Centre half-forward", "player": "Cian Lynch", "club": "", "county": "Limerick", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
-        { "no": 12, "position": "Left half-forward", "player": "Sean Rynne", "club": "", "county": "Clare", "opponent": "Tipperary", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Seán Rynne", "club": "", "county": "Clare", "opponent": "Tipperary", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 13, "position": "Right corner-forward", "player": "Eoghan Cahill", "club": "", "county": "Offaly", "opponent": "Wexford", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 14, "position": "Full-forward", "player": "Ronan Hayes", "club": "", "county": "Dublin", "opponent": "Galway", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Aaron Dunphy", "club": "", "county": "Laois", "opponent": "", "notes": "Opponent not determined (Joe McDonagh Cup) — verify.", "confidence": "confirmed", "source": "" }
@@ -391,7 +467,7 @@ const d = {
         { "no": 11, "position": "Centre half-forward", "player": "Conor Whelan", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
         { "no": 12, "position": "Left half-forward", "player": "Diarmuid Healy", "club": "", "county": "Cork", "opponent": "Offaly", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 13, "position": "Right corner-forward", "player": "Aaron Niland", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
-        { "no": 14, "position": "Full-forward", "player": "Gearoid Hegarty", "club": "", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 14, "position": "Full-forward", "player": "Gearóid Hegarty", "club": "", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Cillian Dunne", "club": "", "county": "Laois", "opponent": "Carlow", "notes": "Joe McDonagh Cup Final; county read from crest (matches Laois).", "confidence": "confirmed", "source": "" }
       ]
     },
@@ -430,7 +506,7 @@ if (d.data_status) { const b = document.getElementById('banner'); b.hidden = fal
 populateFilters();
 render();
 
-['weekFilter','countyFilter','search'].forEach(id =>
+['viewMode','weekFilter','countyFilter','search'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
 </script>
 </body>

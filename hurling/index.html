@@ -96,6 +96,8 @@
   .conf.low { background: #fbe0e0; color: #a23030; }
   .conf.unconfirmed { background: #fbe0e0; color: #a23030; }
   .opp { color: var(--muted); }
+  .rank { display:inline-block; min-width: 22px; text-align:center; background: var(--green-dark); color:#fff; border-radius: 6px; padding: 1px 6px; font-size: 12px; font-weight: 700; }
+  .cnt { font-weight: 700; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -106,6 +108,10 @@
 <div class="banner" id="banner" hidden></div>
 
 <div class="controls">
+  <select id="viewMode">
+    <option value="week">View: by week</option>
+    <option value="leader">View: most selected</option>
+  </select>
   <select id="weekFilter"><option value="">All weeks</option></select>
   <select id="countyFilter"><option value="">All counties</option></select>
   <input id="search" type="search" placeholder="Search player / club…">
@@ -120,6 +126,14 @@
       </tr>
     </thead>
     <tbody id="body"></tbody>
+  </table>
+  <table id="lead" hidden>
+    <thead>
+      <tr>
+        <th>#</th><th>Player</th><th>County</th><th>Selections</th><th>HotW</th><th>Weeks</th>
+      </tr>
+    </thead>
+    <tbody id="leadBody"></tbody>
   </table>
   <div class="empty" id="empty" hidden></div>
 </main>
@@ -165,7 +179,22 @@ function populateFilters() {
   });
 }
 
+function fmtDate(s) {
+  if (!s) return '';
+  const m = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+  const p = String(s).split('-');
+  return p.length === 3 ? (parseInt(p[2],10) + ' ' + (m[p[1]] || p[1])) : s;
+}
+
 function render() {
+  const mode = document.getElementById('viewMode').value;
+  document.getElementById('weekFilter').disabled = (mode === 'leader');
+  if (mode === 'leader') renderLeader(); else renderWeek();
+}
+
+function renderWeek() {
+  document.getElementById('tbl').hidden = false;
+  document.getElementById('lead').hidden = true;
   const wk = document.getElementById('weekFilter').value;
   const co = document.getElementById('countyFilter').value;
   const q = document.getElementById('search').value.trim().toLowerCase();
@@ -214,6 +243,53 @@ function render() {
   });
 }
 
+function renderLeader() {
+  document.getElementById('tbl').hidden = true;
+  document.getElementById('lead').hidden = false;
+  const co = document.getElementById('countyFilter').value;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const body = document.getElementById('leadBody');
+  const empty = document.getElementById('empty');
+  body.innerHTML = '';
+
+  const map = new Map();
+  ROWS.forEach(r => {
+    const key = r.player + '||' + r.county;
+    if (!map.has(key)) map.set(key, { player: r.player, county: r.county, count: 0, hotw: 0, weeks: [] });
+    const e = map.get(key);
+    e.count++;
+    if (r.hotw) e.hotw++;
+    e.weeks.push(r.date || r.weekLabel);
+  });
+  let arr = [...map.values()].filter(e =>
+    (!co || e.county === co) && (!q || e.player.toLowerCase().includes(q))
+  );
+  arr.sort((a, b) => b.count - a.count || b.hotw - a.hotw || a.player.localeCompare(b.player));
+
+  document.getElementById('count').textContent =
+    arr.length + ' player' + (arr.length === 1 ? '' : 's') +
+    ' · ' + arr.reduce((s, e) => s + e.count, 0) + ' selections';
+
+  if (!arr.length) { empty.hidden = false; empty.textContent = 'No players match.'; return; }
+  empty.hidden = true;
+
+  let lastCount = null, rank = 0, shown = 0;
+  arr.forEach(e => {
+    shown++;
+    if (e.count !== lastCount) { rank = shown; lastCount = e.count; }
+    const weeks = e.weeks.slice().sort().map(fmtDate).join(', ');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Rank"><span class="rank">${rank}</span></td>
+      <td data-label="Player">${e.player}</td>
+      <td data-label="County">${e.county}</td>
+      <td data-label="Selections"><span class="cnt">${e.count}</span></td>
+      <td data-label="HotW">${e.hotw ? '<span class="hotw-badge">' + e.hotw + '</span>' : ''}</td>
+      <td data-label="Weeks"><span class="opp">${weeks}</span></td>`;
+    body.appendChild(tr);
+  });
+}
+
 fetch('data/teams_of_the_week_2026.json')
   .then(r => r.json())
   .then(d => {
@@ -234,7 +310,7 @@ fetch('data/teams_of_the_week_2026.json')
     e.textContent = 'Could not load data file. Serve this folder over HTTP (e.g. GitHub Pages) to view.';
   });
 
-['weekFilter','countyFilter','search'].forEach(id =>
+['viewMode','weekFilter','countyFilter','search'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
 </script>
 </body>

@@ -43,7 +43,7 @@
         { "no": 9, "position": "Midfield", "player": "Conor Donohoe", "club": "", "county": "Dublin", "opponent": "Offaly", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 10, "position": "Right half-forward", "player": "Rory Burke", "club": "", "county": "Galway", "opponent": "Kilkenny", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 11, "position": "Centre half-forward", "player": "Lee Chin", "club": "", "county": "Wexford", "opponent": "Kildare", "notes": "", "confidence": "confirmed", "source": "" },
-        { "no": 12, "position": "Left half-forward", "player": "Sean Rynne", "club": "", "county": "Clare", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Seán Rynne", "club": "", "county": "Clare", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 13, "position": "Right corner-forward", "player": "William Buckley", "club": "", "county": "Cork", "opponent": "Tipperary", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 14, "position": "Full-forward", "player": "Stephen Bennett", "club": "", "county": "Waterford", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Charlie Mitchell", "club": "", "county": "Offaly", "opponent": "Dublin", "notes": "", "confidence": "confirmed", "source": "" }
@@ -95,7 +95,7 @@
         { "no": 9, "position": "Midfield", "player": "Cian Kenny", "club": "", "county": "Kilkenny", "opponent": "Offaly", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 10, "position": "Right half-forward", "player": "Muiris Curtin", "club": "", "county": "Kildare", "opponent": "Galway", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 11, "position": "Centre half-forward", "player": "Martin Kavanagh", "club": "", "county": "Carlow", "opponent": "Down", "notes": "Joe McDonagh R3, 9 May — Kavanagh 1-10", "confidence": "confirmed", "source": "" },
-        { "no": 12, "position": "Left half-forward", "player": "Donal Burke", "club": "Na Fianna", "county": "Dublin", "opponent": "Wexford", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Dónal Burke", "club": "Na Fianna", "county": "Dublin", "opponent": "Wexford", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 13, "position": "Right corner-forward", "player": "Eoghan Cahill", "club": "", "county": "Offaly", "opponent": "Kilkenny", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 14, "position": "Full-forward", "player": "Conor Whelan", "club": "", "county": "Galway", "opponent": "Kildare", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Brian Hayes", "club": "", "county": "Cork", "opponent": "Waterford", "notes": "Cork's Brian Hayes.", "confidence": "confirmed", "source": "" }
@@ -121,7 +121,7 @@
         { "no": 9, "position": "Midfield", "player": "Diarmuid Stritch", "club": "", "county": "Clare", "opponent": "Tipperary", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 10, "position": "Right half-forward", "player": "Gearóid Hegarty", "club": "", "county": "Limerick", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 11, "position": "Centre half-forward", "player": "Cian Lynch", "club": "", "county": "Limerick", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
-        { "no": 12, "position": "Left half-forward", "player": "Sean Rynne", "club": "", "county": "Clare", "opponent": "Tipperary", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Seán Rynne", "club": "", "county": "Clare", "opponent": "Tipperary", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 13, "position": "Right corner-forward", "player": "Eoghan Cahill", "club": "", "county": "Offaly", "opponent": "Wexford", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 14, "position": "Full-forward", "player": "Ronan Hayes", "club": "", "county": "Dublin", "opponent": "Galway", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Aaron Dunphy", "club": "", "county": "Laois", "opponent": "", "notes": "Opponent not determined (Joe McDonagh Cup) — verify.", "confidence": "confirmed", "source": "" }
@@ -175,7 +175,7 @@
         { "no": 11, "position": "Centre half-forward", "player": "Conor Whelan", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
         { "no": 12, "position": "Left half-forward", "player": "Diarmuid Healy", "club": "", "county": "Cork", "opponent": "Offaly", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 13, "position": "Right corner-forward", "player": "Aaron Niland", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
-        { "no": 14, "position": "Full-forward", "player": "Gearoid Hegarty", "club": "", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 14, "position": "Full-forward", "player": "Gearóid Hegarty", "club": "", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Cillian Dunne", "club": "", "county": "Laois", "opponent": "Carlow", "notes": "Joe McDonagh Cup Final; county read from crest (matches Laois).", "confidence": "confirmed", "source": "" }
       ]
     },
