@@ -154,6 +154,32 @@
       ]
     },
     {
+      "id": "rr-2026-06-08",
+      "label": "Championship Team of the Week (8 Jun 2026)",
+      "date": "2026-06-08",
+      "round": "Provincial finals (Munster / Leinster / Joe McDonagh)",
+      "confirmed": true,
+      "hurler_of_the_week": { "player": "Nickie Quaid", "county": "Limerick" },
+      "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (8 Jun 2026)",
+      "players": [
+        { "no": 1, "position": "Goalkeeper", "player": "Nickie Quaid", "club": "Effin", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final; voted GAA.ie Hurler of the Week.", "confidence": "confirmed", "source": "" },
+        { "no": 2, "position": "Right corner-back", "player": "Seán Finn", "club": "", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 3, "position": "Full-back", "player": "Darren Morrissey", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 4, "position": "Left corner-back", "player": "Fiachra C Fennell", "club": "", "county": "Laois", "opponent": "Carlow", "notes": "Joe McDonagh Cup Final.", "confidence": "confirmed", "source": "" },
+        { "no": 5, "position": "Right half-back", "player": "David Dooley", "club": "", "county": "Laois", "opponent": "Carlow", "notes": "Joe McDonagh Cup Final; county read from crest (matches Laois).", "confidence": "confirmed", "source": "" },
+        { "no": 6, "position": "Centre half-back", "player": "Rob Downey", "club": "", "county": "Cork", "opponent": "Limerick", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 7, "position": "Left half-back", "player": "Kyle Hayes", "club": "", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 8, "position": "Midfield", "player": "Darragh O'Donovan", "club": "", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 9, "position": "Midfield", "player": "Cathal Mannion", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 10, "position": "Right half-forward", "player": "Tom Monaghan", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 11, "position": "Centre half-forward", "player": "Conor Whelan", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Diarmuid Healy", "club": "", "county": "", "opponent": "", "notes": "Crest reads like Cork (red towers, white shield) — please confirm; not Offaly.", "confidence": "unconfirmed", "source": "" },
+        { "no": 13, "position": "Right corner-forward", "player": "Aaron Niland", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "Leinster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 14, "position": "Full-forward", "player": "Gearoid Hegarty", "club": "", "county": "Limerick", "opponent": "Cork", "notes": "Munster SHC Final.", "confidence": "confirmed", "source": "" },
+        { "no": 15, "position": "Left corner-forward", "player": "Cillian Dunne", "club": "", "county": "Laois", "opponent": "Carlow", "notes": "Joe McDonagh Cup Final; county read from crest (matches Laois).", "confidence": "confirmed", "source": "" }
+      ]
+    },
+    {
       "id": "ai-shc-qf",
       "label": "All-Ireland SHC Quarter-Finals (21 Jun 2026)",
       "date": "2026-06-21",
