@@ -68,15 +68,15 @@
   .week-head td { font-weight: 700; font-size: 14px; padding: 10px 12px; }
   .week-head .sub { font-weight: 400; opacity: 0.85; font-size: 12px; }
 
-  /* Phone: stacked cards */
+  /* Phone: stacked cards (only for the .cards tables, not the matrix) */
   @media (max-width: 680px) {
-    thead { display: none; }
-    table, tbody, tr, td { display: block; width: 100%; }
-    table { background: transparent; box-shadow: none; }
-    tbody tr { background: #fff; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; padding: 6px 4px; }
-    tbody tr:nth-child(even) { background: #fff; }
-    tbody td { border: none; padding: 4px 12px; font-size: 14px; }
-    tbody td::before {
+    .cards thead { display: none; }
+    .cards, .cards tbody, .cards tr, .cards td { display: block; width: 100%; }
+    .cards { background: transparent; box-shadow: none; }
+    .cards tbody tr { background: #fff; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; padding: 6px 4px; }
+    .cards tbody tr:nth-child(even) { background: #fff; }
+    .cards tbody td { border: none; padding: 4px 12px; font-size: 14px; }
+    .cards tbody td::before {
       content: attr(data-label);
       display: inline-block; width: 90px; color: var(--muted); font-size: 12px; font-weight: 600;
     }
@@ -97,6 +97,18 @@
   .conf.unconfirmed { background: #fbe0e0; color: #a23030; }
   .opp { color: var(--muted); }
   .rank { display:inline-block; min-width: 22px; text-align:center; background: var(--green-dark); color:#fff; border-radius: 6px; padding: 1px 6px; font-size: 12px; font-weight: 700; }
+  /* Matrix / dataframe view */
+  .matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  #matrix { width: auto; min-width: 100%; border-collapse: collapse; border-radius: 0; box-shadow: none; }
+  #matrix th, #matrix td { border: 1px solid var(--line); padding: 6px 8px; font-size: 13px; text-align: center; white-space: nowrap; vertical-align: middle; }
+  #matrix thead th { background: var(--green); color:#fff; position: sticky; top: 58px; z-index: 2; }
+  #matrix th.player, #matrix td.player { text-align: left; position: sticky; left: 0; background:#fff; font-weight: 600; z-index: 1; }
+  #matrix tbody tr:nth-child(even) td { background: #fafbfa; }
+  #matrix tbody tr:nth-child(even) td.player { background: #fafbfa; }
+  #matrix thead th.player { background: var(--green); top: 58px; left: 0; z-index: 3; }
+  #matrix td.cell-on { background: #e3f3e8 !important; color: var(--green-dark); font-weight: 700; }
+  #matrix td.total { font-weight: 700; }
+  #matrix .muted-co { color: var(--muted); font-weight: 400; font-size: 11px; }
   .cnt { font-weight: 700; font-size: 15px; }
 </style>
 </head>
@@ -111,6 +123,7 @@
   <select id="viewMode">
     <option value="week">View: by week</option>
     <option value="leader">View: most selected</option>
+    <option value="matrix">View: grid (player × week)</option>
   </select>
   <select id="weekFilter"><option value="">All weeks</option></select>
   <select id="countyFilter"><option value="">All counties</option></select>
@@ -119,7 +132,7 @@
 </div>
 
 <main>
-  <table id="tbl">
+  <table id="tbl" class="cards">
     <thead>
       <tr>
         <th>Pos</th><th>Position</th><th>Player</th><th>Club</th><th>County</th><th>Opponent</th><th>Week</th><th>Round / notes</th>
@@ -127,7 +140,7 @@
     </thead>
     <tbody id="body"></tbody>
   </table>
-  <table id="lead" hidden>
+  <table id="lead" class="cards" hidden>
     <thead>
       <tr>
         <th>#</th><th>Player</th><th>County</th><th>Selections</th><th>HotW</th><th>Weeks</th>
@@ -135,6 +148,12 @@
     </thead>
     <tbody id="leadBody"></tbody>
   </table>
+  <div class="matrix-wrap" id="matrixWrap" hidden>
+    <table id="matrix">
+      <thead><tr id="matrixHead"></tr></thead>
+      <tbody id="matrixBody"></tbody>
+    </table>
+  </div>
   <div class="empty" id="empty" hidden></div>
 </main>
 
@@ -188,13 +207,16 @@ function fmtDate(s) {
 
 function render() {
   const mode = document.getElementById('viewMode').value;
-  document.getElementById('weekFilter').disabled = (mode === 'leader');
-  if (mode === 'leader') renderLeader(); else renderWeek();
+  document.getElementById('weekFilter').disabled = (mode !== 'week');
+  if (mode === 'leader') renderLeader();
+  else if (mode === 'matrix') renderMatrix();
+  else renderWeek();
 }
 
 function renderWeek() {
   document.getElementById('tbl').hidden = false;
   document.getElementById('lead').hidden = true;
+  document.getElementById('matrixWrap').hidden = true;
   const wk = document.getElementById('weekFilter').value;
   const co = document.getElementById('countyFilter').value;
   const q = document.getElementById('search').value.trim().toLowerCase();
@@ -246,6 +268,7 @@ function renderWeek() {
 function renderLeader() {
   document.getElementById('tbl').hidden = true;
   document.getElementById('lead').hidden = false;
+  document.getElementById('matrixWrap').hidden = true;
   const co = document.getElementById('countyFilter').value;
   const q = document.getElementById('search').value.trim().toLowerCase();
   const body = document.getElementById('leadBody');
@@ -286,6 +309,57 @@ function renderLeader() {
       <td data-label="Selections"><span class="cnt">${e.count}</span></td>
       <td data-label="HotW">${e.hotw ? '<span class="hotw-badge">' + e.hotw + '</span>' : ''}</td>
       <td data-label="Weeks"><span class="opp">${weeks}</span></td>`;
+    body.appendChild(tr);
+  });
+}
+
+function renderMatrix() {
+  document.getElementById('tbl').hidden = true;
+  document.getElementById('lead').hidden = true;
+  document.getElementById('matrixWrap').hidden = false;
+  const co = document.getElementById('countyFilter').value;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const head = document.getElementById('matrixHead');
+  const body = document.getElementById('matrixBody');
+  const empty = document.getElementById('empty');
+  head.innerHTML = ''; body.innerHTML = '';
+
+  const weeks = DATA.weeks || [];
+  let h = '<th class="player">Player</th><th>County</th>';
+  weeks.forEach(w => { h += `<th title="${w.label || ''}">${fmtDate(w.date) || (w.label || w.id)}</th>`; });
+  h += '<th class="total">Total</th>';
+  head.innerHTML = h;
+
+  const map = new Map();
+  weeks.forEach(w => {
+    (w.players || []).forEach(p => {
+      const key = p.player + '||' + p.county;
+      if (!map.has(key)) map.set(key, { player: p.player, county: p.county, total: 0, byWeek: {} });
+      const e = map.get(key);
+      e.byWeek[w.id] = p.no;
+      e.total++;
+    });
+  });
+  let arr = [...map.values()].filter(e =>
+    (!co || e.county === co) && (!q || e.player.toLowerCase().includes(q))
+  );
+  arr.sort((a, b) => b.total - a.total || a.player.localeCompare(b.player));
+
+  document.getElementById('count').textContent =
+    arr.length + ' player' + (arr.length === 1 ? '' : 's') + ' × ' + weeks.length + ' weeks';
+
+  if (!arr.length) { empty.hidden = false; empty.textContent = 'No players match.'; return; }
+  empty.hidden = true;
+
+  arr.forEach(e => {
+    let row = `<td class="player">${e.player}</td><td><span class="muted-co">${e.county}</span></td>`;
+    weeks.forEach(w => {
+      const v = e.byWeek[w.id];
+      row += (v !== undefined) ? `<td class="cell-on">${v}</td>` : '<td></td>';
+    });
+    row += `<td class="total">${e.total}</td>`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = row;
     body.appendChild(tr);
   });
 }
