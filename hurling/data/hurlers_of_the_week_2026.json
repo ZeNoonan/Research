@@ -6,6 +6,24 @@
   "data_status": "One winner per week. Seeded with the two Hurlers of the Week already visible on the Team-of-the-Week graphics; remaining weeks to be added from uploaded Hurler-of-the-Week screenshots.",
   "weeks": [
     {
+      "id": "hotw-2026-04-27",
+      "date": "2026-04-27",
+      "label": "Hurler of the Week (27 Apr 2026)",
+      "round": "Championship Round 2",
+      "player": "",
+      "club": "",
+      "county": "",
+      "opponent": "",
+      "notes": "Winner not specified — nominees only (please confirm who won).",
+      "nominees": [
+        { "player": "Mossy Keoghan", "county": "Kilkenny" },
+        { "player": "Darragh Fitzgibbon", "county": "Cork" },
+        { "player": "Padraig Boyle", "county": "Kerry" }
+      ],
+      "confidence": "unconfirmed",
+      "source": ""
+    },
+    {
       "id": "hotw-2026-05-05",
       "date": "2026-05-05",
       "label": "Hurler of the Week (5 May 2026)",
