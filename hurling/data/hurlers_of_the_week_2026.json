@@ -1,0 +1,37 @@
+{
+  "season": 2026,
+  "competition": "GAA.ie Hurler of the Week — 2026 Championship",
+  "source": "Official GAA.ie 'Hurler of the Week' graphics (uploaded screenshots)",
+  "last_updated": "2026-06-24",
+  "data_status": "One winner per week. Seeded with the two Hurlers of the Week already visible on the Team-of-the-Week graphics; remaining weeks to be added from uploaded Hurler-of-the-Week screenshots.",
+  "weeks": [
+    {
+      "id": "hotw-2026-06-08",
+      "date": "2026-06-08",
+      "label": "Hurler of the Week (8 Jun 2026)",
+      "round": "Munster SHC Final",
+      "player": "Nickie Quaid",
+      "club": "Effin",
+      "county": "Limerick",
+      "opponent": "Cork",
+      "notes": "Munster SHC Final.",
+      "nominees": [],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-06-21",
+      "date": "2026-06-21",
+      "label": "Hurler of the Week (21 Jun 2026)",
+      "round": "All-Ireland SHC Quarter-Finals",
+      "player": "Brian Hayes",
+      "club": "",
+      "county": "Cork",
+      "opponent": "Offaly",
+      "notes": "All-Ireland SHC quarter-final v Offaly.",
+      "nominees": [],
+      "confidence": "confirmed",
+      "source": ""
+    }
+  ]
+}

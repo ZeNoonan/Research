@@ -121,9 +121,11 @@
 
 <div class="controls">
   <select id="viewMode">
-    <option value="matrix">View: grid (player × week)</option>
-    <option value="week">View: by week</option>
-    <option value="leader">View: most selected</option>
+    <option value="matrix">Teams: grid (player × week)</option>
+    <option value="week">Teams: by week</option>
+    <option value="leader">Teams: most selected</option>
+    <option value="hotw">Hurler of the Week: by week</option>
+    <option value="hotwLead">Hurler of the Week: most awards</option>
   </select>
   <select id="weekFilter"><option value="">All weeks</option></select>
   <select id="countyFilter"><option value="">All counties</option></select>
@@ -154,14 +156,27 @@
       <tbody id="matrixBody"></tbody>
     </table>
   </div>
+  <table id="hotw" class="cards" hidden>
+    <thead>
+      <tr><th>Week</th><th>Hurler of the Week</th><th>County</th><th>Opponent</th><th>Round / notes</th></tr>
+    </thead>
+    <tbody id="hotwBody"></tbody>
+  </table>
+  <table id="hotwLead" class="cards" hidden>
+    <thead>
+      <tr><th>#</th><th>Player</th><th>County</th><th>Awards</th><th>Weeks</th></tr>
+    </thead>
+    <tbody id="hotwLeadBody"></tbody>
+  </table>
   <div class="empty" id="empty" hidden></div>
 </main>
 
-<footer>Data: GAA.ie Hurling Team of the Week · <span id="updated"></span></footer>
+<footer>Data: GAA.ie Hurling Team of the Week & Hurler of the Week · <span id="updated"></span></footer>
 
 <script>
 let DATA = null;
 let ROWS = [];
+let HOTW = null;
 
 function flatten(data) {
   const rows = [];
@@ -193,7 +208,9 @@ function populateFilters() {
     o.value = w.id || w.date || w.label; o.textContent = w.label || w.date || w.id;
     wf.appendChild(o);
   });
-  [...new Set(ROWS.map(r => r.county).filter(Boolean))].sort().forEach(c => {
+  const counties = new Set(ROWS.map(r => r.county).filter(Boolean));
+  ((HOTW && HOTW.weeks) || []).forEach(w => { if (w.county) counties.add(w.county); });
+  [...counties].sort().forEach(c => {
     const o = document.createElement('option'); o.value = c; o.textContent = c; cf.appendChild(o);
   });
 }
@@ -205,18 +222,23 @@ function fmtDate(s) {
   return p.length === 3 ? (parseInt(p[2],10) + ' ' + (m[p[1]] || p[1])) : s;
 }
 
+function hideAllViews() {
+  ['tbl','lead','matrixWrap','hotw','hotwLead'].forEach(id => { document.getElementById(id).hidden = true; });
+}
+
 function render() {
   const mode = document.getElementById('viewMode').value;
   document.getElementById('weekFilter').disabled = (mode !== 'week');
+  hideAllViews();
   if (mode === 'leader') renderLeader();
   else if (mode === 'matrix') renderMatrix();
+  else if (mode === 'hotw') renderHotw();
+  else if (mode === 'hotwLead') renderHotwLead();
   else renderWeek();
 }
 
 function renderWeek() {
   document.getElementById('tbl').hidden = false;
-  document.getElementById('lead').hidden = true;
-  document.getElementById('matrixWrap').hidden = true;
   const wk = document.getElementById('weekFilter').value;
   const co = document.getElementById('countyFilter').value;
   const q = document.getElementById('search').value.trim().toLowerCase();
@@ -362,6 +384,101 @@ function renderMatrix() {
     tr.innerHTML = row;
     body.appendChild(tr);
   });
+}
+
+function renderHotw() {
+  document.getElementById('hotw').hidden = false;
+  const co = document.getElementById('countyFilter').value;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const body = document.getElementById('hotwBody');
+  const empty = document.getElementById('empty');
+  body.innerHTML = '';
+
+  const weeks = ((HOTW && HOTW.weeks) || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const filtered = weeks.filter(w => (!co || w.county === co) && (!q || (w.player || '').toLowerCase().includes(q)));
+
+  document.getElementById('count').textContent = filtered.length + ' award' + (filtered.length === 1 ? '' : 's');
+
+  if (!weeks.length) {
+    document.getElementById('hotw').hidden = true;
+    empty.hidden = false;
+    empty.innerHTML = 'No Hurler of the Week data yet.<br>Paste the weekly Hurler-of-the-Week screenshots to fill this in.';
+    return;
+  }
+  if (!filtered.length) { empty.hidden = false; empty.textContent = 'No awards match.'; return; }
+  empty.hidden = true;
+
+  filtered.forEach(w => {
+    const nominees = (w.nominees && w.nominees.length)
+      ? '<div class="opp" style="margin-top:2px">Nominees: ' + w.nominees.map(n => n.player + (n.county ? ' (' + n.county + ')' : '')).join(', ') + '</div>' : '';
+    const notes = [w.round, w.notes].filter(Boolean).join(' · ');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Week">${fmtDate(w.date) || w.label || w.id}</td>
+      <td data-label="Hurler of the Week"><strong>${w.player || ''}</strong><span class="hotw-badge">HotW</span>${nominees}</td>
+      <td data-label="County">${w.county || ''}</td>
+      <td data-label="Opponent"><span class="opp">${w.opponent ? 'v ' + w.opponent : ''}</span></td>
+      <td data-label="Notes">${notes}${(w.confidence && w.confidence !== 'confirmed') ? ` <span class="conf unconfirmed">${w.confidence}</span>` : ''}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function renderHotwLead() {
+  document.getElementById('hotwLead').hidden = false;
+  const co = document.getElementById('countyFilter').value;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const body = document.getElementById('hotwLeadBody');
+  const empty = document.getElementById('empty');
+  body.innerHTML = '';
+
+  const map = new Map();
+  ((HOTW && HOTW.weeks) || []).forEach(w => {
+    if (!w.player) return;
+    const key = w.player + '||' + (w.county || '');
+    if (!map.has(key)) map.set(key, { player: w.player, county: w.county || '', count: 0, weeks: [] });
+    const e = map.get(key); e.count++; e.weeks.push(w.date || w.label);
+  });
+  let arr = [...map.values()].filter(e => (!co || e.county === co) && (!q || e.player.toLowerCase().includes(q)));
+  arr.sort((a, b) => b.count - a.count || a.player.localeCompare(b.player));
+
+  document.getElementById('count').textContent =
+    arr.length + ' player' + (arr.length === 1 ? '' : 's') + ' · ' + arr.reduce((s, e) => s + e.count, 0) + ' awards';
+
+  if (!arr.length) {
+    document.getElementById('hotwLead').hidden = true;
+    empty.hidden = false;
+    empty.innerHTML = 'No Hurler of the Week data yet.<br>Paste the weekly Hurler-of-the-Week screenshots to fill this in.';
+    return;
+  }
+  empty.hidden = true;
+
+  let lastCount = null, rank = 0, shown = 0;
+  arr.forEach(e => {
+    shown++; if (e.count !== lastCount) { rank = shown; lastCount = e.count; }
+    const weeks = e.weeks.slice().sort().map(fmtDate).join(', ');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Rank"><span class="rank">${rank}</span></td>
+      <td data-label="Player">${e.player}</td>
+      <td data-label="County">${e.county}</td>
+      <td data-label="Awards"><span class="cnt">${e.count}</span></td>
+      <td data-label="Weeks"><span class="opp">${weeks}</span></td>`;
+    body.appendChild(tr);
+  });
+}
+
+function boot(d, h) {
+  DATA = d; ROWS = flatten(d);
+  HOTW = h || { weeks: [] };
+  document.getElementById('subtitle').textContent = d.competition || 'GAA.ie weekly selections';
+  document.getElementById('updated').textContent = 'updated ' + (d.last_updated || '');
+  if (d.data_status) {
+    const b = document.getElementById('banner');
+    b.hidden = false;
+    b.innerHTML = '<b>ℹ Data note.</b> ' + d.data_status;
+  }
+  populateFilters();
+  render();
 }
 
 const d = {
@@ -573,12 +690,44 @@ const d = {
     }
   ]
 };
-DATA = d; ROWS = flatten(d);
-document.getElementById('subtitle').textContent = d.competition || 'GAA.ie weekly selections';
-document.getElementById('updated').textContent = 'updated ' + (d.last_updated || '');
-if (d.data_status) { const b = document.getElementById('banner'); b.hidden = false; b.innerHTML = '<b>\u2139 Data note.</b> ' + d.data_status; }
-populateFilters();
-render();
+const h = {
+  "season": 2026,
+  "competition": "GAA.ie Hurler of the Week — 2026 Championship",
+  "source": "Official GAA.ie 'Hurler of the Week' graphics (uploaded screenshots)",
+  "last_updated": "2026-06-24",
+  "data_status": "One winner per week. Seeded with the two Hurlers of the Week already visible on the Team-of-the-Week graphics; remaining weeks to be added from uploaded Hurler-of-the-Week screenshots.",
+  "weeks": [
+    {
+      "id": "hotw-2026-06-08",
+      "date": "2026-06-08",
+      "label": "Hurler of the Week (8 Jun 2026)",
+      "round": "Munster SHC Final",
+      "player": "Nickie Quaid",
+      "club": "Effin",
+      "county": "Limerick",
+      "opponent": "Cork",
+      "notes": "Munster SHC Final.",
+      "nominees": [],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-06-21",
+      "date": "2026-06-21",
+      "label": "Hurler of the Week (21 Jun 2026)",
+      "round": "All-Ireland SHC Quarter-Finals",
+      "player": "Brian Hayes",
+      "club": "",
+      "county": "Cork",
+      "opponent": "Offaly",
+      "notes": "All-Ireland SHC quarter-final v Offaly.",
+      "nominees": [],
+      "confidence": "confirmed",
+      "source": ""
+    }
+  ]
+};
+boot(d, h);
 
 ['viewMode','weekFilter','countyFilter','search'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
