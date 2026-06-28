@@ -15,7 +15,11 @@
       "county": "Limerick",
       "opponent": "Cork",
       "notes": "Munster SHC Final.",
-      "nominees": [],
+      "nominees": [
+        { "player": "Nickie Quaid", "county": "Limerick" },
+        { "player": "Cillian Dunne", "county": "Laois" },
+        { "player": "Tom Monaghan", "county": "Galway" }
+      ],
       "confidence": "confirmed",
       "source": ""
     },
@@ -29,7 +33,11 @@
       "county": "Cork",
       "opponent": "Offaly",
       "notes": "All-Ireland SHC quarter-final v Offaly.",
-      "nominees": [],
+      "nominees": [
+        { "player": "Éibhear Quilligan", "county": "Clare" },
+        { "player": "Seán Rynne", "county": "Clare" },
+        { "player": "Brian Hayes", "county": "Cork" }
+      ],
       "confidence": "confirmed",
       "source": ""
     }
