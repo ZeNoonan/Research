@@ -6,6 +6,42 @@
   "data_status": "One winner per week. Seeded with the two Hurlers of the Week already visible on the Team-of-the-Week graphics; remaining weeks to be added from uploaded Hurler-of-the-Week screenshots.",
   "weeks": [
     {
+      "id": "hotw-2026-05-18",
+      "date": "2026-05-18",
+      "label": "Hurler of the Week (18 May 2026)",
+      "round": "Championship Round 4",
+      "player": "",
+      "club": "",
+      "county": "",
+      "opponent": "",
+      "notes": "Winner not specified — nominees only (please confirm who won). 'Diarmuid of Clare' assumed to be Diarmuid Stritch — verify (could be Diarmuid Ryan).",
+      "nominees": [
+        { "player": "Aaron Dunphy", "county": "Laois" },
+        { "player": "Eoghan Cahill", "county": "Offaly" },
+        { "player": "Diarmuid Stritch", "county": "Clare" }
+      ],
+      "confidence": "unconfirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-05-26",
+      "date": "2026-05-26",
+      "label": "Hurler of the Week (26 May 2026)",
+      "round": "Munster SHC Round 5",
+      "player": "Shane Barrett",
+      "club": "",
+      "county": "Cork",
+      "opponent": "Clare",
+      "notes": "2,765 votes on the GAA's official Instagram, ahead of Brian Hayes (1,959) and Eoghan Cahill (1,842).",
+      "nominees": [
+        { "player": "Shane Barrett", "county": "Cork" },
+        { "player": "Brian Hayes", "county": "Dublin" },
+        { "player": "Eoghan Cahill", "county": "Offaly" }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
       "id": "hotw-2026-06-08",
       "date": "2026-06-08",
       "label": "Hurler of the Week (8 Jun 2026)",
