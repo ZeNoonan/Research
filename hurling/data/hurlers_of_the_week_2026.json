@@ -30,7 +30,8 @@
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 1"
     },
     {
       "id": "hotw-2026-04-27",
@@ -57,7 +58,8 @@
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 2"
     },
     {
       "id": "hotw-2026-05-05",
@@ -84,7 +86,8 @@
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 3"
     },
     {
       "id": "hotw-2026-05-11",
@@ -111,7 +114,8 @@
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 3"
     },
     {
       "id": "hotw-2026-05-18",
@@ -138,7 +142,8 @@
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 4"
     },
     {
       "id": "hotw-2026-05-26",
@@ -165,7 +170,8 @@
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 5"
     },
     {
       "id": "hotw-2026-06-08",
@@ -192,7 +198,8 @@
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Prov-F"
     },
     {
       "id": "hotw-2026-06-21",
@@ -219,7 +226,8 @@
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Qtr-F"
     }
   ]
 }
