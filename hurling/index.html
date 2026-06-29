@@ -99,13 +99,15 @@
   .rank { display:inline-block; min-width: 22px; text-align:center; background: var(--green-dark); color:#fff; border-radius: 6px; padding: 1px 6px; font-size: 12px; font-weight: 700; }
   /* Matrix / dataframe view */
   .matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-  #matrix { width: auto; min-width: 100%; border-collapse: collapse; border-radius: 0; box-shadow: none; }
+  #matrix { width: auto; min-width: 100%; border-collapse: collapse; border-radius: 0; box-shadow: none; overflow: visible; }
   #matrix th, #matrix td { border: 1px solid var(--line); padding: 6px 8px; font-size: 13px; text-align: center; white-space: nowrap; vertical-align: middle; }
-  #matrix thead th { background: var(--green); color:#fff; position: sticky; top: 58px; z-index: 2; }
+  #matrix thead th { background: var(--green); color:#fff; position: sticky; top: 0; z-index: 2; }
   #matrix th.player, #matrix td.player { text-align: left; position: sticky; left: 0; background:#fff; font-weight: 600; z-index: 1; }
   #matrix tbody tr:nth-child(even) td { background: #fafbfa; }
   #matrix tbody tr:nth-child(even) td.player { background: #fafbfa; }
-  #matrix thead th.player { background: var(--green); top: 58px; left: 0; z-index: 3; }
+  #matrix thead th.player { background: var(--green); top: 0; left: 0; z-index: 3; }
+  #matrix .wk-abbr { display:block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0.85; }
+  #matrix .wk-date { display:block; }
   #matrix td.cell-on { background: #e3f3e8 !important; color: var(--green-dark); font-weight: 700; }
   #matrix td.total { font-weight: 700; }
   #matrix .muted-co { color: var(--muted); font-weight: 400; font-size: 11px; }
@@ -348,7 +350,7 @@ function renderMatrix() {
 
   const weeks = DATA.weeks || [];
   let h = '<th class="player">Player</th><th>County</th>';
-  weeks.forEach(w => { h += `<th title="${w.label || ''}">${fmtDate(w.date) || (w.label || w.id)}</th>`; });
+  weeks.forEach(w => { h += `<th title="${w.label || ''}">${w.abbr ? '<span class="wk-abbr">' + w.abbr + '</span>' : ''}<span class="wk-date">${fmtDate(w.date) || (w.label || w.id)}</span></th>`; });
   h += '<th class="total">Total</th>';
   head.innerHTML = h;
 
