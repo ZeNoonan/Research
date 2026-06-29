@@ -109,6 +109,7 @@
   #matrix .wk-abbr { display:block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0.85; }
   #matrix .wk-date { display:block; }
   #matrix td.cell-on { background: #e3f3e8 !important; color: var(--green-dark); font-weight: 700; }
+  #matrix td.cell-win { background: #fdebb0 !important; color: #7a5b00; font-weight: 700; }
   #matrix td.total { font-weight: 700; }
   #matrix .muted-co { color: var(--muted); font-weight: 400; font-size: 11px; }
   .cnt { font-weight: 700; font-size: 15px; }
@@ -127,6 +128,7 @@
     <option value="week">Teams: by week</option>
     <option value="leader">Teams: most selected</option>
     <option value="hotw">Hurler of the Week: by week</option>
+    <option value="hotwGrid">Hurler of the Week: nominations grid</option>
     <option value="hotwLead">Hurler of the Week: most awards</option>
   </select>
   <select id="weekFilter"><option value="">All weeks</option></select>
@@ -235,6 +237,7 @@ function render() {
   if (mode === 'leader') renderLeader();
   else if (mode === 'matrix') renderMatrix();
   else if (mode === 'hotw') renderHotw();
+  else if (mode === 'hotwGrid') renderHotwGrid();
   else if (mode === 'hotwLead') renderHotwLead();
   else renderWeek();
 }
@@ -382,6 +385,61 @@ function renderMatrix() {
       row += (v !== undefined) ? `<td class="cell-on">${v}</td>` : '<td></td>';
     });
     row += `<td class="total">${e.total}</td>`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = row;
+    body.appendChild(tr);
+  });
+}
+
+function renderHotwGrid() {
+  document.getElementById('matrixWrap').hidden = false;
+  const co = document.getElementById('countyFilter').value;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const head = document.getElementById('matrixHead');
+  const body = document.getElementById('matrixBody');
+  const empty = document.getElementById('empty');
+  head.innerHTML = ''; body.innerHTML = '';
+
+  const weeks = ((HOTW && HOTW.weeks) || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  let h = '<th class="player">Player</th><th>County</th>';
+  weeks.forEach(w => { h += `<th title="${w.label || ''}">${w.abbr ? '<span class="wk-abbr">' + w.abbr + '</span>' : ''}<span class="wk-date">${fmtDate(w.date) || (w.label || w.id)}</span></th>`; });
+  h += '<th class="total">Noms</th>';
+  head.innerHTML = h;
+
+  const map = new Map();
+  weeks.forEach(w => {
+    (w.nominees || []).forEach(n => {
+      const key = n.player + '||' + (n.county || '');
+      if (!map.has(key)) map.set(key, { player: n.player, county: n.county || '', noms: 0, wins: 0, byWeek: {} });
+      const e = map.get(key);
+      const won = (w.player === n.player && (w.county || '') === (n.county || ''));
+      e.byWeek[w.id] = won ? 'win' : 'nom';
+      e.noms++; if (won) e.wins++;
+    });
+  });
+  let arr = [...map.values()].filter(e => (!co || e.county === co) && (!q || e.player.toLowerCase().includes(q)));
+  arr.sort((a, b) => b.noms - a.noms || b.wins - a.wins || a.player.localeCompare(b.player));
+
+  document.getElementById('count').textContent =
+    arr.length + ' nominee' + (arr.length === 1 ? '' : 's') + ' × ' + weeks.length + ' weeks · ★ = won';
+
+  if (!arr.length) {
+    document.getElementById('matrixWrap').hidden = true;
+    empty.hidden = false;
+    empty.innerHTML = 'No Hurler of the Week data yet.';
+    return;
+  }
+  empty.hidden = true;
+
+  arr.forEach(e => {
+    let row = `<td class="player">${e.player}</td><td><span class="muted-co">${e.county}</span></td>`;
+    weeks.forEach(w => {
+      const v = e.byWeek[w.id];
+      if (v === 'win') row += '<td class="cell-win">★</td>';
+      else if (v === 'nom') row += '<td class="cell-on">•</td>';
+      else row += '<td></td>';
+    });
+    row += `<td class="total">${e.noms}</td>`;
     const tr = document.createElement('tr');
     tr.innerHTML = row;
     body.appendChild(tr);
@@ -731,7 +789,8 @@ const h = {
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 1"
     },
     {
       "id": "hotw-2026-04-27",
@@ -758,7 +817,8 @@ const h = {
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 2"
     },
     {
       "id": "hotw-2026-05-05",
@@ -785,7 +845,8 @@ const h = {
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 3"
     },
     {
       "id": "hotw-2026-05-11",
@@ -812,7 +873,8 @@ const h = {
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 3"
     },
     {
       "id": "hotw-2026-05-18",
@@ -839,7 +901,8 @@ const h = {
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 4"
     },
     {
       "id": "hotw-2026-05-26",
@@ -866,7 +929,8 @@ const h = {
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Rd 5"
     },
     {
       "id": "hotw-2026-06-08",
@@ -893,7 +957,8 @@ const h = {
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Prov-F"
     },
     {
       "id": "hotw-2026-06-21",
@@ -920,7 +985,8 @@ const h = {
         }
       ],
       "confidence": "confirmed",
-      "source": ""
+      "source": "",
+      "abbr": "Qtr-F"
     }
   ]
 };
