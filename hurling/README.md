@@ -1,14 +1,32 @@
 # Hurling — GAA.ie Hurling Team of the Week 2026
 
-A mobile-friendly table of every player picked in the **GAA.ie Hurling Team of the Week**
-during the 2026 season.
+A mobile-friendly app covering the **GAA.ie Hurling Team of the Week** and **Hurler of the
+Week** for the 2026 championship.
+
+## 🔗 View the app
+
+**▶ [Open the live table](https://htmlpreview.github.io/?https://github.com/ZeNoonan/Research/blob/claude/hurling-team-of-week-table-gb4eu5/hurling/standalone.html)**
+
+This link renders `standalone.html` (data baked in) through GitHub's HTML-preview proxy, so
+it works straight from a phone with no server. The view selector switches between:
+
+- **Teams: grid (player × week)** — pivot/dataframe (jersey number per cell, totals) *(default)*
+- **Teams: by week** — full XV for each week
+- **Teams: most selected** — leaderboard of appearances
+- **Hurler of the Week: by week** — weekly winner + the three nominees
+- **Hurler of the Week: most awards** — leaderboard of winners
+
+> `standalone.html` is a frozen snapshot — regenerate it with `python3 build_standalone.py`
+> after any data change. The live `index.html` (below) always reflects the latest JSON.
 
 ## Files
-- `index.html` — responsive table (renders from the JSON data file). On a phone, each row
-  collapses into a stacked card; on desktop it's a full table. Includes filters by week and
-  county, plus a player/club search box.
-- `data/teams_of_the_week_2026.json` — the canonical data store. The page reads from this,
-  and any later analysis should reuse it too.
+- `index.html` — responsive app (renders from the JSON data files). On a phone, the team
+  tables collapse into stacked cards; the grid scrolls horizontally. Filters by week/county
+  plus a player search.
+- `standalone.html` — self-contained build of `index.html` with both datasets inlined.
+- `build_standalone.py` — regenerates `standalone.html` from `index.html` + the JSON files.
+- `data/teams_of_the_week_2026.json` — Team of the Week data store.
+- `data/hurlers_of_the_week_2026.json` — Hurler of the Week data store (winner + nominees).
 
 ## Viewing on your phone
 The page loads its data with `fetch()`, so it must be served over HTTP (it won't load data

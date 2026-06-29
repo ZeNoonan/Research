@@ -1,0 +1,225 @@
+{
+  "season": 2026,
+  "competition": "GAA.ie Hurler of the Week — 2026 Championship",
+  "source": "Official GAA.ie 'Hurler of the Week' graphics (uploaded screenshots)",
+  "last_updated": "2026-06-29",
+  "data_status": "One winner per week with the three nominees, for every championship week from 20 Apr to the 21 Jun quarter-finals. Winners and nominees supplied by the user.",
+  "weeks": [
+    {
+      "id": "hotw-2026-04-20",
+      "date": "2026-04-20",
+      "label": "Hurler of the Week (20 Apr 2026)",
+      "round": "Championship Round 1",
+      "player": "Stephen Bennett",
+      "club": "",
+      "county": "Waterford",
+      "opponent": "Clare",
+      "notes": "Munster SHC Round 1 v Clare.",
+      "nominees": [
+        {
+          "player": "William Buckley",
+          "county": "Cork"
+        },
+        {
+          "player": "Stephen Bennett",
+          "county": "Waterford"
+        },
+        {
+          "player": "Caolan Taggart",
+          "county": "Down"
+        }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-04-27",
+      "date": "2026-04-27",
+      "label": "Hurler of the Week (27 Apr 2026)",
+      "round": "Championship Round 2",
+      "player": "Darragh Fitzgibbon",
+      "club": "",
+      "county": "Cork",
+      "opponent": "Limerick",
+      "notes": "Munster SHC Round 2 v Limerick.",
+      "nominees": [
+        {
+          "player": "Mossy Keoghan",
+          "county": "Kilkenny"
+        },
+        {
+          "player": "Darragh Fitzgibbon",
+          "county": "Cork"
+        },
+        {
+          "player": "Padraig Boyle",
+          "county": "Kerry"
+        }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-05-05",
+      "date": "2026-05-05",
+      "label": "Hurler of the Week (5 May 2026)",
+      "round": "Munster SHC Round 3",
+      "player": "Nickie Quaid",
+      "club": "Effin",
+      "county": "Limerick",
+      "opponent": "Clare",
+      "notes": "Munster SHC Round 3 v Clare (Ennis).",
+      "nominees": [
+        {
+          "player": "Nickie Quaid",
+          "county": "Limerick"
+        },
+        {
+          "player": "Aidan O'Connor",
+          "county": "Limerick"
+        },
+        {
+          "player": "Shane O'Brien",
+          "county": "Limerick"
+        }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-05-11",
+      "date": "2026-05-11",
+      "label": "Hurler of the Week (11 May 2026)",
+      "round": "Championship Round 3",
+      "player": "Brian Hayes",
+      "club": "",
+      "county": "Cork",
+      "opponent": "Waterford",
+      "notes": "Munster SHC Round 3 v Waterford.",
+      "nominees": [
+        {
+          "player": "Brian Hayes",
+          "county": "Cork"
+        },
+        {
+          "player": "Dónal Burke",
+          "county": "Dublin"
+        },
+        {
+          "player": "Ben Conneely",
+          "county": "Offaly"
+        }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-05-18",
+      "date": "2026-05-18",
+      "label": "Hurler of the Week (18 May 2026)",
+      "round": "Championship Round 4",
+      "player": "Diarmuid Stritch",
+      "club": "",
+      "county": "Clare",
+      "opponent": "Tipperary",
+      "notes": "Munster SHC Round 4 v Tipperary.",
+      "nominees": [
+        {
+          "player": "Aaron Dunphy",
+          "county": "Laois"
+        },
+        {
+          "player": "Eoghan Cahill",
+          "county": "Offaly"
+        },
+        {
+          "player": "Diarmuid Stritch",
+          "county": "Clare"
+        }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-05-26",
+      "date": "2026-05-26",
+      "label": "Hurler of the Week (26 May 2026)",
+      "round": "Munster SHC Round 5",
+      "player": "Shane Barrett",
+      "club": "",
+      "county": "Cork",
+      "opponent": "Clare",
+      "notes": "2,765 votes on the GAA's official Instagram, ahead of Brian Hayes (1,959) and Eoghan Cahill (1,842).",
+      "nominees": [
+        {
+          "player": "Shane Barrett",
+          "county": "Cork"
+        },
+        {
+          "player": "Brian Hayes",
+          "county": "Dublin"
+        },
+        {
+          "player": "Eoghan Cahill",
+          "county": "Offaly"
+        }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-06-08",
+      "date": "2026-06-08",
+      "label": "Hurler of the Week (8 Jun 2026)",
+      "round": "Munster SHC Final",
+      "player": "Nickie Quaid",
+      "club": "Effin",
+      "county": "Limerick",
+      "opponent": "Cork",
+      "notes": "Munster SHC Final.",
+      "nominees": [
+        {
+          "player": "Nickie Quaid",
+          "county": "Limerick"
+        },
+        {
+          "player": "Cillian Dunne",
+          "county": "Laois"
+        },
+        {
+          "player": "Tom Monaghan",
+          "county": "Galway"
+        }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    },
+    {
+      "id": "hotw-2026-06-21",
+      "date": "2026-06-21",
+      "label": "Hurler of the Week (21 Jun 2026)",
+      "round": "All-Ireland SHC Quarter-Finals",
+      "player": "Brian Hayes",
+      "club": "",
+      "county": "Cork",
+      "opponent": "Offaly",
+      "notes": "All-Ireland SHC quarter-final v Offaly.",
+      "nominees": [
+        {
+          "player": "Éibhear Quilligan",
+          "county": "Clare"
+        },
+        {
+          "player": "Seán Rynne",
+          "county": "Clare"
+        },
+        {
+          "player": "Brian Hayes",
+          "county": "Cork"
+        }
+      ],
+      "confidence": "confirmed",
+      "source": ""
+    }
+  ]
+}
