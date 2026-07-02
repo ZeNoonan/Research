@@ -429,7 +429,10 @@ spreadsheet (March&nbsp;18, 2019 version), re-implemented and verified
 cell-by-cell, with the Variance-difference bug fixed.
 Source: <a href="reference/March_Madness_20190318.xlsx">original workbook</a>,
 <a href="March_Madness_20190318_fixed.xlsx">fixed workbook</a>,
-<a href="reference/Quants_Mad_March.pdf">the paper</a>.</p>
+<a href="reference/Quants_Mad_March.pdf">the paper</a>.
+New: <a href="value_explainer.html"><b>how the Value factor works</b></a> —
+a visual walkthrough following Michigan State through the whole
+calculation.</p>
 </header>
 
 <div class="cols">

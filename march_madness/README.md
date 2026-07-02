@@ -91,11 +91,14 @@ everywhere, win probability within 1.4×10⁻⁹.
 ## Files
 
 ```
-extract_model.py   xlsx -> data/model_2019.json, + --report verification
-fix_workbook.py    writes March_Madness_20190318_fixed.xlsx
-build_site.py      data/model_2019.json -> index.html
-data/              extracted model inputs
-reference/         original workbook + Aaron Brown's paper
+extract_model.py    xlsx -> data/model_2019.json, + --report verification
+fix_workbook.py     writes March_Madness_20190318_fixed.xlsx
+build_site.py       data/model_2019.json -> index.html
+build_explainer.py  -> value_explainer.html: a visual walkthrough of the
+                    Value factor, following Michigan State through the
+                    whole slot calculation
+data/               extracted model inputs
+reference/          original workbook + Aaron Brown's paper
 ```
 
 Rebuild: `python3 extract_model.py && python3 build_site.py`
