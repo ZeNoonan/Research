@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulling the Goalie — the Asness &amp; Brown calculation, rebuilt</title>
+<style>
+/* ---------- tokens ---------- */
+:root {
+  --page: #f3f7f9;
+  --surface: #fdfefe;
+  --ink: #101820;
+  --ink-2: #46525d;
+  --muted: #7c8792;
+  --grid: #e1e8ed;
+  --baseline: #c2ccd3;
+  --hairline: rgba(16, 24, 32, 0.10);
+  --blue: #2a78d6;
+  --red: #e34948;
+  --blue-wash: rgba(42, 120, 214, 0.09);
+  --red-wash: rgba(227, 73, 72, 0.08);
+  --board: #0e1420;         /* scoreboard commits to dark in both themes */
+  --board-ink: #e8eef6;
+  --board-dim: #6b7686;
+  --board-red: #ff5b52;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0c1116;
+    --surface: #141b22;
+    --ink: #eff4f8;
+    --ink-2: #b4bfc9;
+    --muted: #7f8b96;
+    --grid: #253039;
+    --baseline: #39444e;
+    --hairline: rgba(255, 255, 255, 0.10);
+    --blue: #3987e5;
+    --red: #e66767;
+    --blue-wash: rgba(57, 135, 229, 0.13);
+    --red-wash: rgba(230, 103, 103, 0.11);
+  }
+}
+:root[data-theme="light"] {
+  --page: #f3f7f9; --surface: #fdfefe; --ink: #101820; --ink-2: #46525d;
+  --muted: #7c8792; --grid: #e1e8ed; --baseline: #c2ccd3;
+  --hairline: rgba(16,24,32,0.10); --blue: #2a78d6; --red: #e34948;
+  --blue-wash: rgba(42,120,214,0.09); --red-wash: rgba(227,73,72,0.08);
+}
+:root[data-theme="dark"] {
+  --page: #0c1116; --surface: #141b22; --ink: #eff4f8; --ink-2: #b4bfc9;
+  --muted: #7f8b96; --grid: #253039; --baseline: #39444e;
+  --hairline: rgba(255,255,255,0.10); --blue: #3987e5; --red: #e66767;
+  --blue-wash: rgba(57,135,229,0.13); --red-wash: rgba(230,103,103,0.11);
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16.5px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 22px; }
+.prose { max-width: 660px; }
+h1, h2, h3 { line-height: 1.15; text-wrap: balance; margin: 0; }
+h2 { font-size: 1.6rem; font-weight: 750; letter-spacing: -0.01em; }
+h3 { font-size: 1.08rem; font-weight: 650; }
+p { margin: 0.9em 0; }
+a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+code { font-family: var(--mono); font-size: 0.86em; }
+strong { font-weight: 650; }
+.eyebrow {
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--muted); margin: 0 0 10px;
+}
+.small { font-size: 0.85rem; color: var(--ink-2); }
+.footnote { font-size: 0.82rem; color: var(--muted); }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 3px; }
+
+/* ---------- hero ---------- */
+header.hero { padding: 64px 0 8px; }
+h1 {
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-weight: 800; letter-spacing: -0.025em;
+}
+.standfirst {
+  font-size: 1.14rem; color: var(--ink-2); max-width: 620px; margin-top: 14px;
+}
+.scoreboard {
+  background: var(--board); color: var(--board-ink);
+  border-radius: 10px; margin: 30px 0 14px;
+  padding: 18px 22px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 34px;
+  font-family: var(--mono);
+  box-shadow: 0 8px 28px rgba(4, 10, 20, 0.28);
+}
+.sb-cell { display: flex; flex-direction: column; gap: 2px; }
+.sb-label { font-size: 0.62rem; letter-spacing: 0.18em; color: var(--board-dim); }
+.sb-value { font-size: 1.7rem; font-weight: 700; line-height: 1.1; }
+.sb-verdict {
+  margin-left: auto; display: flex; align-items: center; gap: 10px;
+  color: var(--board-red); font-weight: 700; font-size: 0.95rem;
+  letter-spacing: 0.08em;
+}
+.goal-light {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--board-red);
+  box-shadow: 0 0 10px 2px rgba(255, 91, 82, 0.55);
+  animation: lamp 1.6s ease-in-out infinite;
+}
+@keyframes lamp { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) {
+  .goal-light { animation: none; }
+}
+.hero-meta { font-size: 0.85rem; color: var(--muted); }
+.hero-meta a { color: inherit; }
+
+/* ---------- sections ---------- */
+section { padding: 44px 0 8px; }
+.stepchip {
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em;
+  color: var(--red); margin: 0 0 8px; text-transform: uppercase;
+}
+section > .wrap > h2 { margin-bottom: 4px; }
+
+/* ---------- cards & tiles ---------- */
+.card {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 10px; padding: 20px 22px; margin: 22px 0;
+}
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 22px 0; }
+.tile {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 10px; padding: 16px 18px;
+}
+.tile .t-label { font-size: 0.82rem; color: var(--ink-2); margin: 0 0 6px; }
+.tile .t-value { font-size: 2rem; font-weight: 650; line-height: 1.1; }
+.tile .t-sub { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+.tile.accent-red .t-value { color: var(--red); }
+.tile.accent-blue .t-value { color: var(--blue); }
+
+/* ---------- ledgers (worked examples) ---------- */
+.ledgers { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 22px 0; }
+@media (max-width: 640px) { .ledgers { grid-template-columns: 1fr; } }
+.ledger {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 10px; overflow: hidden;
+}
+.ledger .l-head {
+  padding: 12px 18px; font-weight: 650; font-size: 0.95rem;
+  border-bottom: 1px solid var(--hairline);
+  display: flex; align-items: center; gap: 8px;
+}
+.ledger.pull .l-head { background: var(--red-wash); }
+.ledger.keep .l-head { background: var(--blue-wash); }
+.key-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.ledger.pull .key-dot { background: var(--red); }
+.ledger.keep .key-dot { background: var(--blue); }
+.ledger table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.ledger td { padding: 9px 18px; border-top: 1px solid var(--hairline); vertical-align: baseline; }
+.ledger tr:first-child td { border-top: none; }
+.ledger td.num { font-family: var(--mono); font-size: 0.84rem; text-align: right; white-space: nowrap; }
+.ledger tr.zero { color: var(--muted); }
+.ledger tr.zero .zero-tag {
+  font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em;
+  border: 1px solid var(--hairline); border-radius: 4px; padding: 1px 5px;
+  margin-left: 6px; white-space: nowrap;
+}
+.ledger tr.total td { border-top: 2px solid var(--baseline); font-weight: 650; }
+.ledger tr.total td.num { font-size: 0.95rem; }
+.ledger tr.live td.num { font-weight: 650; }
+
+/* ---------- pull-quote / aha ---------- */
+.aha {
+  border-left: 3px solid var(--red);
+  background: var(--red-wash);
+  border-radius: 0 10px 10px 0;
+  padding: 18px 24px; margin: 26px 0;
+  font-size: 1.18rem; font-weight: 560; line-height: 1.5;
+  max-width: 640px; text-wrap: balance;
+}
+.aha .mono { font-family: var(--mono); font-size: 0.95em; }
+
+/* ---------- charts ---------- */
+.chart-card {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 10px; padding: 18px 18px 10px; margin: 24px 0;
+  position: relative;
+}
+.chart-title { font-weight: 650; font-size: 1rem; margin: 0 2px 2px; }
+.chart-sub { font-size: 0.82rem; color: var(--ink-2); margin: 0 2px 10px; }
+.legend { display: flex; gap: 18px; margin: 4px 2px 8px; font-size: 0.8rem; color: var(--ink-2); flex-wrap: wrap; }
+.legend .key { display: inline-flex; align-items: center; gap: 7px; }
+.legend .swatch { width: 16px; height: 0; border-top: 2.5px solid; border-radius: 2px; }
+.chart-svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.chart-controls { display: flex; align-items: center; gap: 12px; margin: 6px 2px 8px; flex-wrap: wrap; }
+.chart-controls label { font-size: 0.8rem; color: var(--ink-2); }
+input[type="range"] { accent-color: var(--blue); }
+button.ghost {
+  font: 600 0.8rem var(--sans); color: var(--blue);
+  background: none; border: 1px solid var(--hairline); border-radius: 6px;
+  padding: 6px 12px; cursor: pointer;
+}
+button.ghost:hover { background: var(--blue-wash); }
+.viz-tip {
+  position: absolute; pointer-events: none; z-index: 5; display: none;
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 8px; padding: 8px 12px; font-size: 0.8rem;
+  box-shadow: 0 4px 16px rgba(10, 16, 24, 0.14); min-width: 150px;
+}
+.viz-tip .tip-t { font-family: var(--mono); color: var(--muted); font-size: 0.72rem; margin-bottom: 4px; }
+.viz-tip .tip-row { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+.viz-tip .tip-key { width: 12px; height: 0; border-top: 2.5px solid; border-radius: 2px; flex: none; }
+.viz-tip .tip-val { font-weight: 650; font-family: var(--mono); font-size: 0.8rem; margin-left: auto; padding-left: 12px; }
+details.tableview { margin: 4px 2px 10px; font-size: 0.82rem; }
+details.tableview summary { cursor: pointer; color: var(--muted); }
+details.tableview table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+details.tableview th, details.tableview td {
+  padding: 4px 12px; text-align: right; border-bottom: 1px solid var(--hairline);
+}
+details.tableview th { color: var(--ink-2); font-weight: 600; }
+details.tableview td:first-child, details.tableview th:first-child { text-align: left; font-family: var(--mono); }
+
+/* ---------- rule table ---------- */
+table.ruletab { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+table.ruletab th { text-align: right; color: var(--ink-2); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--baseline); }
+table.ruletab td { text-align: right; padding: 8px 12px; border-bottom: 1px solid var(--hairline); }
+table.ruletab th:first-child, table.ruletab td:first-child { text-align: left; font-family: var(--mono); }
+table.ruletab .verdict-pull { color: var(--red); font-weight: 650; }
+table.ruletab .verdict-wait { color: var(--blue); font-weight: 650; }
+table.ruletab tr.cross td { background: var(--red-wash); }
+
+/* ---------- playground ---------- */
+.playground {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 10px; padding: 22px; margin: 24px 0;
+}
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.preset {
+  font: 600 0.8rem var(--sans); padding: 6px 12px; cursor: pointer;
+  border: 1px solid var(--hairline); border-radius: 999px;
+  background: none; color: var(--ink-2);
+}
+.preset[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+.sliders { display: grid; gap: 14px; margin-bottom: 6px; }
+.slider-row { display: grid; grid-template-columns: minmax(150px, 240px) 1fr 70px; gap: 12px; align-items: center; font-size: 0.85rem; }
+@media (max-width: 560px) { .slider-row { grid-template-columns: 1fr 70px; } .slider-row label { grid-column: 1 / -1; } }
+.slider-row .val { font-family: var(--mono); text-align: right; font-size: 0.85rem; }
+.pg-note { font-size: 0.85rem; color: var(--ink-2); min-height: 2.6em; margin: 10px 0 4px; }
+.pg-outputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 14px 0; }
+.pg-out { border: 1px solid var(--hairline); border-radius: 8px; padding: 10px 14px; }
+.pg-out .o-label { font-size: 0.72rem; color: var(--muted); }
+.pg-out .o-value { font-family: var(--mono); font-size: 1.25rem; font-weight: 700; margin-top: 2px; }
+.pg-out.pull-now .o-value { color: var(--red); }
+
+/* ---------- lessons ---------- */
+.lessons { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 22px 0; }
+@media (max-width: 640px) { .lessons { grid-template-columns: 1fr; } }
+.lesson { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 18px 20px; }
+.lesson h3 { margin-bottom: 8px; }
+.lesson p { margin: 0; font-size: 0.92rem; color: var(--ink-2); }
+blockquote.keynes {
+  margin: 30px 0; padding: 0 0 0 22px; border-left: 3px solid var(--baseline);
+  font-size: 1.05rem; color: var(--ink-2); font-style: italic; max-width: 560px;
+}
+blockquote.keynes cite { display: block; margin-top: 8px; font-style: normal; font-size: 0.85rem; color: var(--muted); }
+
+/* ---------- replication table ---------- */
+table.reptab { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+table.reptab th { text-align: left; color: var(--ink-2); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--baseline); }
+table.reptab td { padding: 8px 12px; border-bottom: 1px solid var(--hairline); }
+table.reptab td + td, table.reptab th + th { text-align: right; font-family: var(--mono); font-size: 0.84rem; }
+table.reptab .match { color: var(--blue); }
+
+footer { padding: 40px 0 60px; }
+footer .wrap { border-top: 1px solid var(--hairline); padding-top: 24px; }
+footer p { font-size: 0.82rem; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Research replication &middot; Asness &amp; Brown (2018)</p>
+    <h1>Pulling the Goalie</h1>
+    <p class="standfirst">
+      When should a trailing hockey team send its goalie to the bench for an extra
+      attacker? A hedge-fund founder and his former chief risk officer worked out the
+      answer with three probabilities and a spreadsheet's worth of arithmetic:
+      <strong>far earlier than any coach dares.</strong> This page rebuilds their entire
+      calculation, step by step, until you can watch the answer appear.
+    </p>
+    <div class="scoreboard" role="img"
+         aria-label="Scoreboard: trailing 2 to 3, third period, 6 minutes 10 seconds remaining. Verdict: pull the goalie now.">
+      <div class="sb-cell"><span class="sb-label">THEM</span><span class="sb-value">3</span></div>
+      <div class="sb-cell"><span class="sb-label">US</span><span class="sb-value">2</span></div>
+      <div class="sb-cell"><span class="sb-label">PERIOD</span><span class="sb-value">3rd</span></div>
+      <div class="sb-cell"><span class="sb-label">TIME LEFT</span><span class="sb-value">6:10</span></div>
+      <div class="sb-verdict"><span class="goal-light" aria-hidden="true"></span>PULL THE GOALIE</div>
+    </div>
+    <p class="hero-meta">
+      Replicates <a href="https://ssrn.com/abstract=3132563">Asness &amp; Brown, &ldquo;Pulling the Goalie:
+      Hockey and Investment Implications&rdquo; (2018)</a> &middot; Python source in
+      <code>pull_goalie.py</code> alongside this page &middot; every number below is computed
+      live in your browser from the paper's three inputs.
+    </p>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= STEP 1 ================= -->
+<section id="inputs">
+  <div class="wrap">
+    <p class="stepchip">Step 1 of 6</p>
+    <h2>Three numbers are the whole model</h2>
+    <div class="prose">
+      <p>
+        Brown and Asness deliberately built the simplest model that could answer the
+        question. They sliced a hockey game into <strong>10-second intervals</strong> and asked:
+        in any one slice, what is the chance each team scores? From the 2015&ndash;16 NHL
+        season they needed exactly three numbers.
+      </p>
+    </div>
+    <div class="tiles">
+      <div class="tile">
+        <p class="t-label">Your team scores in a slice, <strong>goalies in</strong></p>
+        <p class="t-value">0.65%</p>
+        <p class="t-sub">4,947 even-strength goals &divide; 126,425 minutes &divide; 6 slices per minute. Same for the opponent.</p>
+      </div>
+      <div class="tile accent-red">
+        <p class="t-label">You score with your <strong>net empty</strong> (6 attackers)</p>
+        <p class="t-value">1.97%</p>
+        <p class="t-sub">From 2,206 minutes of 6-on-5 play that season. Your offense triples.</p>
+      </div>
+      <div class="tile">
+        <p class="t-label">They score into your <strong>empty net</strong></p>
+        <p class="t-value">4.30%</p>
+        <p class="t-sub">Their scoring rate multiplies 6.6&times; the moment your goalie steps off.</p>
+      </div>
+    </div>
+    <div class="prose">
+      <p class="small">
+        That's it. No power plays, no momentum, no home ice, two average teams &mdash; the paper's
+        point is strategic insight, not in-game coaching. Everything that follows is
+        bookkeeping on these three numbers.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STEP 2 ================= -->
+<section id="goals-trap">
+  <div class="wrap">
+    <p class="stepchip">Step 2 of 6</p>
+    <h2>Measured in goals, pulling is madness</h2>
+    <div class="prose">
+      <p>
+        Look at the trade you're offered. Pull the goalie and your scoring chance per slice
+        goes from 0.65% to 1.97% &mdash; roughly <strong>3&times; your firepower</strong>. But the
+        opponent's chance goes from 0.65% to 4.30% &mdash; <strong>6.6&times; the danger</strong>.
+      </p>
+    </div>
+    <div class="card" style="max-width: 660px;">
+      <p style="margin-top:0;"><strong>Expected goal differential, per 100 slices with the net empty</strong></p>
+      <p style="font-family: var(--mono); font-size: 1.05rem; margin: 6px 0;">
+        + 1.97 scored&ensp;&minus; 4.30 conceded&ensp;=&ensp;<strong style="color: var(--red);">&minus;2.33 goals</strong>
+      </p>
+      <p class="small" style="margin-bottom:0;">
+        With goalies in, the same 100 slices are dead even: +0.65 &minus; 0.65 = 0.
+        Pulling is a strictly losing bet in goals &mdash; about a quarter of a goal
+        given away per pulled minute.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        By this arithmetic no one should <em>ever</em> pull a goalie, and the coach who waits
+        until the final minute looks like the prudent one. This is the paper's first
+        lesson, and it has nothing to do with hockey: <strong>before you measure the risk,
+        make sure you picked the right thing to measure.</strong> Goals are the wrong measure.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STEP 3 ================= -->
+<section id="aha">
+  <div class="wrap">
+    <p class="stepchip">Step 3 of 6</p>
+    <h2>The scoreboard doesn't pay in goals</h2>
+    <div class="prose">
+      <p>
+        A season is decided by <strong>standings points</strong>: 2 for a win, 0 for a loss, and
+        about 1.5 in expectation for reaching overtime tied (the NHL awards the overtime
+        loser a point). Rewrite the game in points and the asymmetry that decides
+        everything comes into view:
+      </p>
+    </div>
+    <div class="tiles" style="max-width: 560px;">
+      <div class="tile"><p class="t-label">Behind at the horn</p><p class="t-value">0</p><p class="t-sub">by 1 or by 5 &mdash; identical</p></div>
+      <div class="tile"><p class="t-label">Tied at the horn</p><p class="t-value">1.5</p><p class="t-sub">expected points from OT</p></div>
+      <div class="tile"><p class="t-label">Ahead at the horn</p><p class="t-value">2</p><p class="t-sub">the win</p></div>
+    </div>
+    <div class="prose">
+      <p>
+        Now run the trade from Step&nbsp;2 in points instead of goals. Simplest possible case:
+        <strong>down one goal, 10 seconds on the clock</strong> &mdash; one slice left. Multiply each
+        outcome's probability by what it pays:
+      </p>
+    </div>
+
+    <div class="ledgers">
+      <div class="ledger keep">
+        <div class="l-head"><span class="key-dot" aria-hidden="true"></span>Keep the goalie in</div>
+        <table>
+          <tr class="zero"><td>Nobody scores &rarr; still down 1 <span class="zero-tag">&times; 0 pts</span></td><td class="num">98.70% &times; 0 = 0</td></tr>
+          <tr class="live"><td>You score &rarr; tied</td><td class="num">0.65% &times; 1.5 = 0.00975</td></tr>
+          <tr class="zero"><td>They score &rarr; down 2 <span class="zero-tag">&times; 0 pts</span></td><td class="num">0.65% &times; 0 = 0</td></tr>
+          <tr class="total"><td>Expected points</td><td class="num">0.00975</td></tr>
+        </table>
+      </div>
+      <div class="ledger pull">
+        <div class="l-head"><span class="key-dot" aria-hidden="true"></span>Pull the goalie</div>
+        <table>
+          <tr class="zero"><td>Nobody scores &rarr; still down 1 <span class="zero-tag">&times; 0 pts</span></td><td class="num">93.73% &times; 0 = 0</td></tr>
+          <tr class="live"><td>You score &rarr; tied</td><td class="num">1.97% &times; 1.5 = 0.02955</td></tr>
+          <tr class="zero"><td>They score &rarr; down 2 <span class="zero-tag">&times; 0 pts</span></td><td class="num">4.30% &times; 0 = 0</td></tr>
+          <tr class="total"><td>Expected points</td><td class="num">0.02955 &mdash; 3&times; better</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="aha">
+      Look at the pulled column's worst outcome. The empty-net goal you dread &mdash; the 4.30% &mdash;
+      is multiplied by <span class="mono">0</span>, because <strong>losing by two pays exactly what losing
+      by one pays: nothing.</strong> In the final slice, pulling the goalie has no downside at all.
+      You just watched a 6.6&times; increase in danger cost 0.000 points.
+    </div>
+
+    <div class="prose">
+      <p>
+        That is the whole trick. Pulling the goalie <em>raises volatility and lowers the
+        expected score</em> &mdash; and it is still correct, because the thing being maximized
+        (points) is an asymmetric function of the thing getting riskier (goals). Once
+        you're losing, the downside is already spent.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STEP 4 ================= -->
+<section id="recursion">
+  <div class="wrap">
+    <p class="stepchip">Step 4 of 6</p>
+    <h2>Now wind the clock backwards</h2>
+    <div class="prose">
+      <p>
+        At 10 seconds the answer was obvious. The paper's engine &mdash; <strong>backward
+        induction</strong> &mdash; extends it to any time on the clock: the value of a situation at
+        time <em>t</em> is the probability-weighted value of the three situations it can become
+        at <em>t&nbsp;&minus;&nbsp;10s</em>. We already know everything at 0:10, so we can price 0:20.
+        Still down one:
+      </p>
+    </div>
+
+    <div class="ledgers">
+      <div class="ledger keep">
+        <div class="l-head"><span class="key-dot" aria-hidden="true"></span>Keep it in at 0:20</div>
+        <table>
+          <tr><td>Nobody scores &rarr; down 1 at 0:10, worth 0.02955</td><td class="num">98.70% &times; 0.02955 = 0.02917</td></tr>
+          <tr><td>You score &rarr; tied at 0:10, worth 1.4935</td><td class="num">0.65% &times; 1.4935 = 0.00971</td></tr>
+          <tr class="zero"><td>They score &rarr; down 2 at 0:10, worth 0 <span class="zero-tag">&times; 0</span></td><td class="num">0.65% &times; 0 = 0</td></tr>
+          <tr class="total"><td>Expected points</td><td class="num">0.03887</td></tr>
+        </table>
+      </div>
+      <div class="ledger pull">
+        <div class="l-head"><span class="key-dot" aria-hidden="true"></span>Pull at 0:20</div>
+        <table>
+          <tr><td>Nobody scores &rarr; down 1 at 0:10, worth 0.02955</td><td class="num">93.73% &times; 0.02955 = 0.02770</td></tr>
+          <tr><td>You score &rarr; tied at 0:10, worth 1.4935</td><td class="num">1.97% &times; 1.4935 = 0.02942</td></tr>
+          <tr class="zero"><td>They score &rarr; down 2 at 0:10, worth 0 <span class="zero-tag">&times; 0</span></td><td class="num">4.30% &times; 0 = 0</td></tr>
+          <tr class="total"><td>Expected points</td><td class="num">0.05712 &mdash; still pull</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="prose">
+      <p class="small">
+        Where did 0.02955 come from? It's the <em>pull</em> total from Step&nbsp;3 &mdash; each backward step
+        assumes you keep playing optimally afterwards. And 1.4935 is the value of being tied
+        with 0:10 left (goalie back in net, naturally): 98.70%&nbsp;&times;&nbsp;1.5 + 0.65%&nbsp;&times;&nbsp;2 + 0.65%&nbsp;&times;&nbsp;0.
+      </p>
+      <p>
+        Notice the down-2 branch is <em>still</em> worth zero at 0:20 &mdash; ten more seconds isn't
+        enough to make being two behind worth anything. So pulling still has almost no
+        downside, and the recursion keeps favoring it&hellip; for a while. Repeat the step 360
+        times &mdash; a full game &mdash; and somewhere the balance must tip, because with lots of
+        clock left, falling two behind <em>does</em> destroy real value. Watch for the tip:
+      </p>
+    </div>
+
+    <div class="chart-card" id="advCard">
+      <p class="chart-title">The crossover appears at 6:10</p>
+      <p class="chart-sub">Expected standings points gained over <em>never pulling</em>, when down one goal &mdash; the paper's Figure&nbsp;1, recomputed here.</p>
+      <div class="legend" aria-hidden="true">
+        <span class="key"><span class="swatch" style="border-color: var(--red);"></span>Pull now, play optimally after</span>
+        <span class="key"><span class="swatch" style="border-color: var(--blue);"></span>Wait, play optimally after</span>
+      </div>
+      <div class="chart-controls">
+        <button type="button" class="ghost" id="replayBtn">&#9654;&nbsp;Replay the induction</button>
+        <label for="horizonRange">Clock horizon</label>
+        <input type="range" id="horizonRange" min="1" max="120" value="120" step="1"
+               aria-label="How much of the backward induction to draw, in 10-second steps">
+        <span class="small" id="horizonLabel" style="font-family: var(--mono);">20:00</span>
+      </div>
+      <svg id="advChart" class="chart-svg" viewBox="0 0 860 400" role="img"
+           aria-label="Line chart: advantage in expected points over never pulling, versus time remaining, when down one goal. The pull-now curve is higher for all times up to 6 minutes 10 seconds remaining; beyond that, waiting is higher. Peak advantage 0.18 points at 4 minutes 20 seconds."></svg>
+      <div class="viz-tip" id="advTip"></div>
+      <details class="tableview"><summary>View as table</summary><div id="advTable"></div></details>
+    </div>
+
+    <div class="prose">
+      <p>
+        Reading right to left, the induction marches back from the final horn. Near the
+        end, <span style="color:var(--red); font-weight:650;">pull now</span> towers over
+        <span style="color:var(--blue); font-weight:650;">wait</span>. At <strong>6:20</strong> waiting
+        edges ahead by 0.00007 points; at <strong>6:10</strong> pulling wins by 0.00005 and never
+        trails again. The optimal policy falls straight out:
+        <strong>down one goal, pull with 6:10 on the clock.</strong> The NHL's traditional
+        1:00&ndash;1:30 pull captures barely half the available edge (+0.09 of +0.18).
+      </p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 8px;">Why 6:10? The insurance-pricing view</h3>
+      <p class="small" style="margin-top:0;">
+        Compare pulling to waiting for one slice, and the recursion collapses to a single
+        inequality. Pulling adds 1.32 points of firepower per hundred slices (1.97&nbsp;&minus;&nbsp;0.65)
+        and 3.65 points of danger (4.30&nbsp;&minus;&nbsp;0.65). So:
+      </p>
+      <p style="font-family: var(--mono); font-size: 0.95rem;">
+        pull&nbsp;&hArr;&nbsp;(value of tying) &gt; 2.77 &times; (cost of falling two behind)
+      </p>
+      <p class="small">
+        where 2.77 = 3.65&nbsp;&divide;&nbsp;1.32, the price of the extra danger per unit of extra
+        firepower. Early in the game the cost of going down two is high and tying regains
+        little of the game you'd still have anyway. As the clock drains, the cost of
+        &ldquo;down two&rdquo; decays toward zero while tying stays precious:
+      </p>
+      <div style="overflow-x:auto;">
+        <table class="ruletab">
+          <tr><th>Time left</th><th>Gain from tying</th><th>Cost of down 2</th><th>Ratio</th><th>vs 2.77</th></tr>
+          <tr><td>0:10</td><td>1.500</td><td>0.000</td><td>&infin;</td><td class="verdict-pull">PULL</td></tr>
+          <tr><td>2:00</td><td>1.203</td><td>0.216</td><td>5.57</td><td class="verdict-pull">PULL</td></tr>
+          <tr><td>4:00</td><td>1.029</td><td>0.301</td><td>3.42</td><td class="verdict-pull">PULL</td></tr>
+          <tr class="cross"><td>6:10</td><td>0.920</td><td>0.331</td><td>2.78</td><td class="verdict-pull">PULL</td></tr>
+          <tr><td>6:20</td><td>0.913</td><td>0.332</td><td>2.75</td><td class="verdict-wait">wait</td></tr>
+          <tr><td>10:00</td><td>0.794</td><td>0.355</td><td>2.24</td><td class="verdict-wait">wait</td></tr>
+        </table>
+      </div>
+      <p class="small" style="margin-bottom:0;">
+        At 6:10 &mdash; and not a moment earlier &mdash; the insurance gets cheap enough to buy.
+        An options trader would say it differently: a trailing team holds an out-of-the-money
+        call on the tie, and pulling the goalie is a lever that buys volatility. Volatility
+        is unambiguously good only when the option is nearly dead. The crossover is where
+        &ldquo;nearly dead&rdquo; begins.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STEP 5 ================= -->
+<section id="results">
+  <div class="wrap">
+    <p class="stepchip">Step 5 of 6</p>
+    <h2>The full policy, and what it's worth</h2>
+    <div class="prose">
+      <p>
+        The same grid answers every deficit at once. The policy is a ladder: down two, pull
+        at <strong>13:00</strong> &mdash; and if you score, put the goalie <em>back</em> until 6:10.
+        Down three or more, the model says what no coach has ever done:
+      </p>
+    </div>
+
+    <div class="chart-card" id="polCard">
+      <p class="chart-title">When the net should be empty</p>
+      <p class="chart-sub">Red = goalie on the bench under the optimal policy (opponent at even strength throughout).</p>
+      <svg id="polChart" class="chart-svg" viewBox="0 0 860 260" role="img"
+           aria-label="Timeline chart of the optimal pull policy by deficit. Down one: pull from 6 minutes 10 seconds remaining. Down two: from 13 minutes. Down three: from 20 minutes. Down four: from 26 minutes 50 seconds, effectively any time."></svg>
+      <div class="viz-tip" id="polTip"></div>
+      <details class="tableview"><summary>View as table</summary><div id="polTable"></div></details>
+    </div>
+
+    <div class="prose">
+      <p class="small">
+        Deep-deficit thresholds are soft: down three or four, pulling versus waiting differs
+        by under 0.0002 points for many minutes around the boundary &mdash; the surface is nearly
+        flat, which is why the paper can fairly round &ldquo;down four&rdquo; to <em>pull any
+        time</em> (it reports 23:40 for down three, our grid says 20:00; the value at stake
+        across that gap is a ten-thousandth of a point). A team down four in the first period
+        raises its expected points from 0.086 to 0.121 &mdash; a 40% improvement &mdash; by
+        emptying its net for the rest of the game.
+      </p>
+    </div>
+
+    <div class="tiles">
+      <div class="tile accent-blue">
+        <p class="t-label">Edge per game, optimal vs never pulling</p>
+        <p class="t-value">+0.051</p>
+        <p class="t-sub">standings points &mdash; paper says 0.05</p>
+      </div>
+      <div class="tile accent-blue">
+        <p class="t-label">Over an 82-game season</p>
+        <p class="t-value">+4.15</p>
+        <p class="t-sub">points &mdash; enough to flip playoff spots in 2015&ndash;16 for six teams</p>
+      </div>
+      <div class="tile">
+        <p class="t-label">Monte Carlo check, 200k synthetic games</p>
+        <p class="t-value">+0.0513</p>
+        <p class="t-sub">simulated optimal minus never (<code>pull_goalie.py --simulate</code>)</p>
+      </div>
+      <div class="tile">
+        <p class="t-label">Captured by the conventional last-minute pull</p>
+        <p class="t-value">&#8531;</p>
+        <p class="t-sub">+0.017 of +0.051 &mdash; two-thirds of the edge is left on the table</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STEP 6 ================= -->
+<section id="playground">
+  <div class="wrap">
+    <p class="stepchip">Step 6 of 6</p>
+    <h2>Break the model yourself</h2>
+    <div class="prose">
+      <p>
+        The paper's comparative statics are the best intuition test. Drag the three inputs
+        &mdash; the full dynamic program re-solves instantly &mdash; and see if you can predict
+        which way the pull time moves before you look.
+      </p>
+    </div>
+
+    <div class="playground">
+      <div class="presets" id="presets" role="group" aria-label="Scenario presets">
+        <button type="button" class="preset" data-preset="nhl" aria-pressed="true">NHL 2015&ndash;16</button>
+        <button type="button" class="preset" data-preset="oilers" aria-pressed="false">1980s Oilers (&times;2)</button>
+        <button type="button" class="preset" data-preset="soccer" aria-pressed="false">&ldquo;Soccer&rdquo; (&times;&frac12;)</button>
+        <button type="button" class="preset" data-preset="skeptic25" aria-pressed="false">Skeptic: pull offense &minus;25%</button>
+        <button type="button" class="preset" data-preset="skeptic60" aria-pressed="false">Skeptic: pull offense &minus;60%</button>
+      </div>
+      <div class="sliders">
+        <div class="slider-row">
+          <label for="sEven">Even-strength scoring, per slice</label>
+          <input type="range" id="sEven" min="0.2" max="2.0" step="0.01" value="0.65">
+          <span class="val" id="vEven">0.65%</span>
+        </div>
+        <div class="slider-row">
+          <label for="sFor">You score, net empty</label>
+          <input type="range" id="sFor" min="0.4" max="5.0" step="0.01" value="1.97">
+          <span class="val" id="vFor">1.97%</span>
+        </div>
+        <div class="slider-row">
+          <label for="sAgt">They score, empty net</label>
+          <input type="range" id="sAgt" min="1.0" max="9.0" step="0.01" value="4.30">
+          <span class="val" id="vAgt">4.30%</span>
+        </div>
+      </div>
+      <p class="pg-note" id="pgNote">The baseline. Down one, pull at 6:10 &mdash; five minutes earlier than hockey tradition.</p>
+      <div class="pg-outputs">
+        <div class="pg-out pull-now"><p class="o-label">Pull, down 1</p><p class="o-value" id="oT1">6:10</p></div>
+        <div class="pg-out"><p class="o-label">Pull, down 2</p><p class="o-value" id="oT2">13:00</p></div>
+        <div class="pg-out"><p class="o-label">Pull, down 3</p><p class="o-value" id="oT3">20:00</p></div>
+        <div class="pg-out"><p class="o-label">Edge, pts/game</p><p class="o-value" id="oEdge">+0.051</p></div>
+      </div>
+      <div style="position: relative;">
+        <div class="legend" aria-hidden="true">
+          <span class="key"><span class="swatch" style="border-color: var(--red);"></span>Pull now</span>
+          <span class="key"><span class="swatch" style="border-color: var(--blue);"></span>Wait</span>
+          <span class="key" style="color: var(--muted);">advantage over never pulling, down 1</span>
+        </div>
+        <svg id="pgChart" class="chart-svg" viewBox="0 0 860 300" role="img"
+             aria-label="Live-recomputed advantage chart for the scenario chosen with the sliders."></svg>
+        <div class="viz-tip" id="pgTip"></div>
+      </div>
+    </div>
+
+    <div class="prose">
+      <p class="small">
+        The one everybody gets backwards: <em>lower</em> scoring means pull <em>earlier</em>.
+        In the &ldquo;soccer&rdquo; scenario a team down one should empty its net with over
+        twelve minutes left &mdash; when goals are scarce, doing nothing is a slow guaranteed
+        death, so you must buy your volatility early. And the skeptic's sliders show the
+        conclusion is robust: even cutting the empty-net offense by a quarter, the optimal
+        pull stays around four minutes &mdash; you must cut it 60% before hockey's
+        one-minute convention becomes right.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LESSONS ================= -->
+<section id="lessons-sec">
+  <div class="wrap">
+    <p class="stepchip" style="color: var(--blue);">Why a fund manager wrote this</p>
+    <h2>The same mistake, in a portfolio</h2>
+    <div class="prose">
+      <p>
+        The authors' actual subject was never hockey. Each piece of the calculation above is
+        a rehearsal for a decision investors face with real money:
+      </p>
+    </div>
+    <div class="lessons">
+      <div class="lesson">
+        <h3>1 &middot; Measure the risk that pays</h3>
+        <p>Pulling the goalie raises goal volatility and lowers expected goals &mdash; yet lowers
+        the risk of losing. Investors who judge an asset by its own volatility, instead of by
+        what it does to the whole portfolio's chance of an unacceptable outcome, are scoring
+        the wrong game &mdash; exactly like a coach maximizing goal differential.</p>
+      </div>
+      <div class="lesson">
+        <h3>2 &middot; Volatility can be insurance</h3>
+        <p>A trailing team holds an out-of-the-money option on the game, and an option holder
+        near expiry <em>wants</em> volatility, even at negative expected return. Pulling the
+        goalie is buying volatility when convexity makes it cheap &mdash; the asymmetric payoff
+        does the work.</p>
+      </div>
+      <div class="lesson">
+        <h3>3 &middot; Failing conventionally is safer &mdash; for you</h3>
+        <p>Coaches aren't rewarded for winning; they're rewarded for being seen as good
+        coaches. Losing 1&ndash;2 after a quiet last-minute pull is forgivable; losing 0&ndash;5
+        after pulling at 13:00 is career suicide. CIOs face the identical trap: the
+        crash that hits everyone is excusable, the unconventional position that
+        disappoints is not. That's why a free +4 points sat unclaimed for 80 years.</p>
+      </div>
+      <div class="lesson">
+        <h3>4 &middot; Sins of commission get billed; omission is free</h3>
+        <p>Nobody itemizes the points lost by <em>not</em> pulling at 6:10 &mdash; or the returns
+        lost by the diversifying allocation never made. The visible risk of acting is
+        priced against the invisible risk of doing nothing, and doing nothing wins the
+        argument while losing the game.</p>
+      </div>
+    </div>
+    <blockquote class="keynes">
+      &ldquo;Worldly wisdom teaches that it is better for reputation to fail conventionally
+      than to succeed unconventionally.&rdquo;
+      <cite>&mdash; J.&thinsp;M. Keynes, quoted by the authors as the moral of the whole exercise</cite>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ================= NOTES ================= -->
+<section id="notes">
+  <div class="wrap">
+    <p class="stepchip" style="color: var(--muted);">Appendix</p>
+    <h2>Replication notes &amp; data</h2>
+
+    <div class="card" style="overflow-x: auto;">
+      <table class="reptab">
+        <tr><th>Result</th><th>Paper</th><th>This replication</th></tr>
+        <tr><td>Pull time, down 1</td><td>6:10</td><td class="match">6:10</td></tr>
+        <tr><td>Pull time, down 2</td><td>13:00</td><td class="match">13:00</td></tr>
+        <tr><td>Pull time, down 3</td><td>23:40</td><td>20:00 &dagger;</td></tr>
+        <tr><td>Pull time, down 4+</td><td>any time</td><td>26:50 &dagger;</td></tr>
+        <tr><td>Peak edge when down 1 (time)</td><td>0.18 (4:20)</td><td class="match">0.180 (4:20)</td></tr>
+        <tr><td>Season value of optimal pulling</td><td>0.05 / game</td><td class="match">0.051 / game</td></tr>
+        <tr><td>&hellip; per 82 games</td><td>4.18</td><td class="match">4.15</td></tr>
+        <tr><td>All scoring &times;2 &rarr; pull (down 1)</td><td>~3:00</td><td class="match">3:00</td></tr>
+        <tr><td>All scoring &times;&frac12; &rarr; pull (down 1)</td><td>&gt;12:00</td><td class="match">12:20</td></tr>
+        <tr><td>Pull offense &minus;25% &rarr; pull (down 1)</td><td>~4:00</td><td class="match">4:10</td></tr>
+        <tr><td>Pull offense &minus;60% &rarr; pull (down 1)</td><td>~1:00</td><td class="match">1:00</td></tr>
+      </table>
+      <p class="footnote" style="margin-bottom: 0;">
+        &dagger; Near the deep-deficit boundaries, pull-vs-wait differs by roughly 10&#8315;&#8308;
+        points &mdash; below any meaningful precision of the model &mdash; so exact thresholds
+        there are implementation-sensitive. We could not reproduce 23:40 under either the
+        paper's corrected probabilities (which give 20:00 on our grid) or the pre-correction
+        draft's (17:40). Every decision-relevant conclusion is unaffected. Relatedly, the
+        paper's line that pulling &ldquo;nearly quadruples&rdquo; the opponent's chance while
+        &ldquo;not even doubling&rdquo; your own matches the earlier draft's numbers
+        (2.58%/1.18%); with the corrected inputs it's 6.6&times; and 3.0&times;.
+      </p>
+    </div>
+
+    <div class="prose">
+      <h3 style="margin-top: 26px;">Where the data comes from</h3>
+      <p class="small">
+        The paper's inputs are aggregates from the <strong>2015&ndash;16 NHL season</strong>: 4,947
+        even-strength goals over 126,425 even-strength minutes, and 2,206 minutes of play with
+        one net empty and both teams otherwise at full strength. To rebuild or update them
+        yourself, the standard sources for situation-split (5v5, 6v5, empty-net) goals and
+        time-on-ice are <a href="https://www.naturalstattrick.com/">Natural Stat Trick</a>,
+        <a href="https://moneypuck.com/data.htm">MoneyPuck</a> (free CSV downloads including
+        empty-net flags per shot), <a href="https://evolving-hockey.com/">Evolving-Hockey</a>,
+        <a href="https://www.hockey-reference.com/">Hockey-Reference</a>, and the NHL Stats API.
+        None of that is needed to follow this page: the model requires only the three
+        headline probabilities, and the accompanying <code>pull_goalie.py</code> also
+        validates the whole analysis on synthetic seasons it generates itself
+        (<code>--simulate 200000</code>).
+      </p>
+      <h3 style="margin-top: 26px;">The model, precisely</h3>
+      <p class="small">
+        State: (score differential S, time remaining t), 10-second steps, terminal payoff
+        0&nbsp;/&nbsp;1.5&nbsp;/&nbsp;2 for behind/tied/ahead. Three value functions solved backwards from
+        t&nbsp;=&nbsp;0: <code>EPNP</code> (never pull), <code>EPNO</code> (goalie in for this slice, optimal after),
+        <code>EPPO</code> (net empty for this slice, optimal after), with
+        <code>V&nbsp;=&nbsp;max(EPPO,&nbsp;EPNO)</code> as the continuation value. Policy: pull wherever
+        <code>EPPO&nbsp;&gt;&nbsp;EPNO</code>. The opponent is assumed never to pull, as in the paper. Full
+        derivation and the Monte Carlo validator are in the Python file; this page re-solves
+        the identical recursion in JavaScript on every slider move.
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Asness, Clifford S. and Brown, Aaron, <em>Pulling the Goalie: Hockey and Investment
+      Implications</em> (October 1, 2018). Available at SSRN:
+      <a href="https://ssrn.com/abstract=3132563">ssrn.com/abstract=3132563</a>.
+    </p>
+    <p>
+      An independent educational replication &mdash; not affiliated with or endorsed by the
+      authors or AQR. Model probabilities are league-season averages; nothing here is
+      in-game coaching advice, and certainly not investment advice.
+    </p>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ============================================================
+   The Asness–Brown dynamic program, verbatim from the paper.
+   Solved fresh in the browser; the Python file mirrors this.
+   ============================================================ */
+const STEP = 10, GAME_STEPS = 360, SB = 28, W = 2 * SB + 1;
+const BASE = { pe: 0.0065, pf: 0.0197, pa: 0.0430 };
+
+function terminalRow() {
+  const row = new Float64Array(W);
+  for (let i = 0; i < W; i++) {
+    const s = i - SB;
+    row[i] = s < 0 ? 0 : (s === 0 ? 1.5 : 2);
+  }
+  return row;
+}
+
+function solveDP(pe, pf, pa, steps = GAME_STEPS) {
+  const epnp = [terminalRow()], eppo = [terminalRow()], epno = [terminalRow()];
+  for (let n = 1; n <= steps; n++) {
+    const pnp = epnp[n - 1], ppo = eppo[n - 1], pno = epno[n - 1];
+    const rnp = new Float64Array(W), rpo = new Float64Array(W), rno = new Float64Array(W);
+    for (let i = 0; i < W; i++) {
+      const up = Math.min(i + 1, W - 1), dn = Math.max(i - 1, 0);
+      rnp[i] = (1 - 2 * pe) * pnp[i] + pe * pnp[up] + pe * pnp[dn];
+      const vH = Math.max(ppo[i], pno[i]),
+            vU = Math.max(ppo[up], pno[up]),
+            vD = Math.max(ppo[dn], pno[dn]);
+      rno[i] = (1 - 2 * pe) * vH + pe * vU + pe * vD;
+      rpo[i] = (1 - pf - pa) * vH + pf * vU + pa * vD;
+    }
+    epnp.push(rnp); eppo.push(rpo); epno.push(rno);
+  }
+  return { epnp, eppo, epno };
+}
+
+function pullThreshold(sol, deficit) {
+  const i = -deficit + SB;
+  for (let n = GAME_STEPS; n >= 1; n--) {
+    if (sol.eppo[n][i] > sol.epno[n][i]) return n * STEP;
+  }
+  return null;
+}
+
+function mmss(sec) {
+  if (sec === null) return "never";
+  return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+}
+
+function advantageSeries(sol, deficit, maxN) {
+  const i = -deficit + SB, out = [];
+  for (let n = 1; n <= maxN; n++) {
+    const base = sol.epnp[n][i];
+    out.push({ t: n * STEP, pull: sol.eppo[n][i] - base, wait: sol.epno[n][i] - base });
+  }
+  return out;
+}
+
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SVGNS = "http://www.w3.org/2000/svg";
+function el(name, attrs, parent) {
+  const e = document.createElementNS(SVGNS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+/* ============================================================
+   Advantage line chart (used twice: main + playground)
+   ============================================================ */
+function drawAdvChart(svg, series, opts) {
+  const { horizon = Infinity, yMax: yMaxIn, showPeak = true } = opts || {};
+  const vb = svg.viewBox.baseVal, Wpx = vb.width, Hpx = vb.height;
+  const ml = 52, mr = 18, mt = 14, mb = 40;
+  const pw = Wpx - ml - mr, ph = Hpx - mt - mb;
+  const tMax = series[series.length - 1].t;
+  let yMax = yMaxIn;
+  if (!yMax) {
+    let m = 0;
+    for (const d of series) m = Math.max(m, d.pull, d.wait);
+    yMax = Math.max(0.05, Math.ceil(m * 20) / 20);
+  }
+  const x = t => ml + (1 - t / tMax) * pw;      // clock runs down, left → right
+  const y = v => mt + (1 - Math.max(0, v) / yMax) * ph;
+
+  svg.textContent = "";
+  const ink2 = "var(--ink-2)", muted = "var(--muted)";
+
+  // grid + y ticks
+  const yTicks = 4;
+  for (let k = 0; k <= yTicks; k++) {
+    const v = yMax * k / yTicks, gy = y(v);
+    el("line", { x1: ml, x2: ml + pw, y1: gy, y2: gy, stroke: "var(--grid)", "stroke-width": 1 }, svg);
+    const lab = el("text", { x: ml - 8, y: gy + 4, "text-anchor": "end", "font-size": 11.5, fill: muted, "font-family": "var(--mono)" }, svg);
+    lab.textContent = v.toFixed(yMax < 0.1 ? 3 : 2);
+  }
+  // x ticks every 5 min (or 2 min if short domain)
+  const tickStep = tMax > 720 ? 300 : 120;
+  for (let t = 0; t <= tMax; t += tickStep) {
+    const lab = el("text", { x: x(t), y: mt + ph + 22, "text-anchor": "middle", "font-size": 11.5, fill: muted, "font-family": "var(--mono)" }, svg);
+    lab.textContent = mmss(t);
+  }
+  el("line", { x1: ml, x2: ml + pw, y1: mt + ph, y2: mt + ph, stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+  const xcap = el("text", { x: ml + pw / 2, y: Hpx - 2, "text-anchor": "middle", "font-size": 11.5, fill: muted }, svg);
+  xcap.textContent = "time remaining";
+
+  // series (drawn only up to the induction horizon)
+  const vis = series.filter(d => d.t <= horizon);
+  const pts = key => vis.map(d => `${x(d.t).toFixed(1)},${y(d[key]).toFixed(1)}`).join(" ");
+  if (vis.length) {
+    el("polyline", { points: pts("wait"), fill: "none", stroke: "var(--blue)", "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    el("polyline", { points: pts("pull"), fill: "none", stroke: "var(--red)", "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    // induction frontier marker while animating
+    if (horizon < tMax) {
+      const d = vis[vis.length - 1];
+      el("circle", { cx: x(d.t), cy: y(d.pull), r: 4.5, fill: "var(--red)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      el("circle", { cx: x(d.t), cy: y(d.wait), r: 4.5, fill: "var(--blue)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    }
+  }
+
+  // crossover annotation: latest t where pull > wait
+  let crossT = null;
+  for (let k = series.length - 1; k >= 0; k--) {
+    if (series[k].pull > series[k].wait) { crossT = series[k].t; break; }
+  }
+  if (crossT !== null && crossT < tMax && crossT <= horizon) {
+    const cx = x(crossT);
+    el("line", { x1: cx, x2: cx, y1: mt, y2: mt + ph, stroke: muted, "stroke-width": 1, opacity: 0.55 }, svg);
+    const k = series.findIndex(d => d.t === crossT);
+    el("circle", { cx, cy: y(series[k].pull), r: 4.5, fill: "var(--ink)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    const lab = el("text", { x: cx - 8, y: mt + 14, "text-anchor": "end", "font-size": 12, fill: ink2, "font-weight": 600 }, svg);
+    lab.textContent = "pull from " + mmss(crossT) + " →";
+  }
+
+  // peak annotation
+  if (showPeak) {
+    let pk = series[0];
+    for (const d of series) if (Math.max(d.pull, d.wait) > Math.max(pk.pull, pk.wait)) pk = d;
+    if (pk.t <= horizon) {
+      const v = Math.max(pk.pull, pk.wait);
+      el("circle", { cx: x(pk.t), cy: y(v), r: 4, fill: "var(--red)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      const lab = el("text", { x: x(pk.t), y: y(v) - 10, "text-anchor": "middle", "font-size": 12, fill: ink2, "font-weight": 600 }, svg);
+      lab.textContent = "+" + v.toFixed(2) + " at " + mmss(pk.t);
+    }
+  }
+
+  return { x, y, tMax, ml, pw, mt, ph };
+}
+
+/* crosshair + tooltip for an advantage chart */
+function attachCrosshair(svg, tip, getSeries, getGeom) {
+  let hairline = null;
+  function clear() {
+    tip.style.display = "none";
+    if (hairline) { hairline.remove(); hairline = null; }
+  }
+  function move(ev) {
+    const series = getSeries(), g = getGeom();
+    if (!series || !g) return;
+    const r = svg.getBoundingClientRect();
+    const px = (ev.clientX - r.left) * (svg.viewBox.baseVal.width / r.width);
+    const t = Math.round(Math.min(Math.max((1 - (px - g.ml) / g.pw) * g.tMax, STEP), g.tMax) / STEP) * STEP;
+    const d = series.find(s => s.t === t);
+    if (!d) { clear(); return; }
+    if (!hairline) hairline = el("line", { stroke: "var(--muted)", "stroke-width": 1, opacity: 0.6 }, svg);
+    hairline.setAttribute("x1", g.x(t)); hairline.setAttribute("x2", g.x(t));
+    hairline.setAttribute("y1", g.mt); hairline.setAttribute("y2", g.mt + g.ph);
+
+    tip.textContent = "";
+    const tt = document.createElement("div"); tt.className = "tip-t";
+    tt.textContent = mmss(t) + " remaining · " + (d.pull > d.wait ? "PULL" : "WAIT");
+    tip.appendChild(tt);
+    for (const [name, col, val] of [["Pull now", "var(--red)", d.pull], ["Wait", "var(--blue)", d.wait]]) {
+      const row = document.createElement("div"); row.className = "tip-row";
+      const key = document.createElement("span"); key.className = "tip-key"; key.style.borderColor = col;
+      const nm = document.createElement("span"); nm.textContent = name;
+      const v = document.createElement("span"); v.className = "tip-val"; v.textContent = (val >= 0 ? "+" : "") + val.toFixed(3);
+      row.append(key, nm, v); tip.appendChild(row);
+    }
+    tip.style.display = "block";
+    const host = svg.parentElement.getBoundingClientRect();
+    const tipW = tip.offsetWidth;
+    let lx = ev.clientX - host.left + 14;
+    if (lx + tipW > host.width - 8) lx = ev.clientX - host.left - tipW - 14;
+    tip.style.left = lx + "px";
+    tip.style.top = (ev.clientY - host.top - 10) + "px";
+  }
+  svg.addEventListener("pointermove", move);
+  svg.addEventListener("pointerleave", clear);
+}
+
+/* ============================================================
+   Main advantage chart with induction replay
+   ============================================================ */
+const baseSol = solveDP(BASE.pe, BASE.pf, BASE.pa);
+const baseSeries = advantageSeries(baseSol, 1, 120);   // out to 20:00
+const advSvg = document.getElementById("advChart");
+const advTip = document.getElementById("advTip");
+const horizonRange = document.getElementById("horizonRange");
+const horizonLabel = document.getElementById("horizonLabel");
+let advGeom = null, advHorizon = Infinity;
+
+function renderAdv() {
+  advGeom = drawAdvChart(advSvg, baseSeries, { horizon: advHorizon, yMax: 0.20 });
+}
+function setHorizon(n) {
+  advHorizon = n * STEP;
+  horizonRange.value = n;
+  horizonLabel.textContent = mmss(n * STEP);
+  renderAdv();
+}
+horizonRange.addEventListener("input", () => setHorizon(+horizonRange.value));
+
+let playTimer = null;
+document.getElementById("replayBtn").addEventListener("click", () => {
+  if (playTimer) { clearInterval(playTimer); playTimer = null; }
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { setHorizon(120); return; }
+  let n = 1;
+  setHorizon(n);
+  playTimer = setInterval(() => {
+    n += 1;
+    setHorizon(n);
+    if (n >= 120) { clearInterval(playTimer); playTimer = null; }
+  }, 45);
+});
+setHorizon(120);
+attachCrosshair(advSvg, advTip,
+  () => baseSeries.filter(d => d.t <= advHorizon),
+  () => advGeom);
+
+/* table view */
+(function buildAdvTable() {
+  const host = document.getElementById("advTable");
+  const tbl = document.createElement("table");
+  const hd = tbl.insertRow();
+  for (const h of ["Time left", "Pull now (+pts vs never)", "Wait (+pts vs never)", "Optimal"]) {
+    const th = document.createElement("th"); th.textContent = h; hd.appendChild(th);
+  }
+  for (const d of baseSeries) {
+    if ((d.t / STEP) % 3 !== 1 && d.t !== 370 && d.t !== 380) continue;  // every 30s + the crossover pair
+    const r = tbl.insertRow();
+    r.insertCell().textContent = mmss(d.t);
+    r.insertCell().textContent = d.pull.toFixed(4);
+    r.insertCell().textContent = d.wait.toFixed(4);
+    r.insertCell().textContent = d.pull > d.wait ? "pull" : "wait";
+  }
+  host.appendChild(tbl);
+})();
+
+/* ============================================================
+   Policy timeline chart
+   ============================================================ */
+(function drawPolicy() {
+  const svg = document.getElementById("polChart");
+  const tip = document.getElementById("polTip");
+  const vb = svg.viewBox.baseVal, Wpx = vb.width, Hpx = vb.height;
+  const ml = 78, mr = 18, mt = 12, mb = 40;
+  const pw = Wpx - ml - mr;
+  const tMax = 1800;                          // 30:00 axis
+  const x = t => ml + (1 - t / tMax) * pw;
+  const rows = [
+    { deficit: 1, label: "Down 1", paper: "6:10" },
+    { deficit: 2, label: "Down 2", paper: "13:00" },
+    { deficit: 3, label: "Down 3", paper: "23:40" },
+    { deficit: 4, label: "Down 4", paper: "any time" },
+  ];
+  const rowH = (Hpx - mt - mb) / rows.length;
+  svg.textContent = "";
+
+  for (let t = 0; t <= tMax; t += 300) {
+    const lab = el("text", { x: x(t), y: Hpx - 14, "text-anchor": "middle", "font-size": 11.5, fill: "var(--muted)", "font-family": "var(--mono)" }, svg);
+    lab.textContent = mmss(t);
+  }
+  el("line", { x1: ml, x2: ml + pw, y1: Hpx - mb + 4, y2: Hpx - mb + 4, stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+
+  rows.forEach((row, ri) => {
+    const cy = mt + rowH * ri + rowH / 2;
+    const thr = pullThreshold(baseSol, row.deficit);
+    row.thr = thr;
+    const name = el("text", { x: ml - 12, y: cy + 4, "text-anchor": "end", "font-size": 13, fill: "var(--ink-2)", "font-weight": 600 }, svg);
+    name.textContent = row.label;
+    // track: goalie stays in
+    el("rect", { x: ml, y: cy - 7, width: pw, height: 14, rx: 4, fill: "var(--grid)" }, svg);
+    // pull region: threshold → 0:00
+    if (thr !== null) {
+      const px = x(Math.min(thr, tMax));
+      el("rect", { x: px, y: cy - 7, width: ml + pw - px, height: 14, rx: 4, fill: "var(--red)" }, svg);
+      const lab = el("text", { x: px - 7, y: cy + 4, "text-anchor": "end", "font-size": 12.5, fill: "var(--ink)", "font-weight": 650, "font-family": "var(--mono)" }, svg);
+      lab.textContent = mmss(thr);
+    }
+    // hover target
+    const hit = el("rect", { x: 0, y: cy - rowH / 2, width: Wpx, height: rowH, fill: "transparent" }, svg);
+    hit.addEventListener("pointermove", ev => {
+      tip.textContent = "";
+      const tt = document.createElement("div"); tt.className = "tip-t";
+      tt.textContent = row.label.toUpperCase();
+      const body = document.createElement("div");
+      body.textContent = thr !== null
+        ? `Empty the net with ${mmss(thr)} left (paper: ${row.paper})`
+        : "Never pull";
+      tip.append(tt, body);
+      tip.style.display = "block";
+      const host = svg.parentElement.getBoundingClientRect();
+      const tipW = tip.offsetWidth;
+      let lx = ev.clientX - host.left + 14;
+      if (lx + tipW > host.width - 8) lx = ev.clientX - host.left - tipW - 14;
+      tip.style.left = lx + "px";
+      tip.style.top = (ev.clientY - host.top - 10) + "px";
+    });
+    hit.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+  });
+
+  const tbl = document.createElement("table");
+  const hd = tbl.insertRow();
+  for (const h of ["Deficit", "Pull with (this model)", "Paper"]) {
+    const th = document.createElement("th"); th.textContent = h; hd.appendChild(th);
+  }
+  for (const row of rows) {
+    const r = tbl.insertRow();
+    r.insertCell().textContent = row.label;
+    r.insertCell().textContent = mmss(row.thr);
+    r.insertCell().textContent = row.paper;
+  }
+  document.getElementById("polTable").appendChild(tbl);
+})();
+
+/* ============================================================
+   Playground
+   ============================================================ */
+const PRESETS = {
+  nhl:       { pe: 0.65, pf: 1.97, pa: 4.30,
+    note: "The baseline. Down one, pull at 6:10 — five minutes earlier than hockey tradition." },
+  oilers:    { pe: 1.30, pf: 3.94, pa: 8.60,
+    note: "Everything doubled — a ten-goal-a-game league. More scoring means chances will come anyway, so you can afford to wait: the pull moves to about 3:00." },
+  soccer:    { pe: 0.33, pf: 0.99, pa: 2.15,
+    note: "Everything halved — a goal-starved league. Doing nothing is now a slow guaranteed loss, so buy volatility early: pull before the twelve-minute mark." },
+  skeptic25: { pe: 0.65, pf: 1.48, pa: 4.30,
+    note: "Think 1.97% overstates a pulled team's offense? Cut it by a quarter and the answer barely budges: still pull around 4:00 — far earlier than convention." },
+  skeptic60: { pe: 0.65, pf: 0.79, pa: 4.30,
+    note: "Only when you slash the empty-net offense by 60% does the traditional one-minute pull become roughly optimal. That is how much pessimism the convention implies." },
+};
+
+const sEven = document.getElementById("sEven"), sFor = document.getElementById("sFor"), sAgt = document.getElementById("sAgt");
+const vEven = document.getElementById("vEven"), vFor = document.getElementById("vFor"), vAgt = document.getElementById("vAgt");
+const pgSvg = document.getElementById("pgChart"), pgTip = document.getElementById("pgTip");
+const pgNote = document.getElementById("pgNote");
+let pgSeries = null, pgGeom = null, pgPending = false;
+
+function fmtEdge(v) { return (v >= 0 ? "+" : "") + v.toFixed(3); }
+
+function recomputePlayground() {
+  pgPending = false;
+  const pe = +sEven.value / 100, pf = +sFor.value / 100, pa = +sAgt.value / 100;
+  vEven.textContent = (+sEven.value).toFixed(2) + "%";
+  vFor.textContent = (+sFor.value).toFixed(2) + "%";
+  vAgt.textContent = (+sAgt.value).toFixed(2) + "%";
+  const sol = solveDP(pe, pf, pa);
+  const t1 = pullThreshold(sol, 1), t2 = pullThreshold(sol, 2), t3 = pullThreshold(sol, 3);
+  document.getElementById("oT1").textContent = t1 === null ? "never" : (t1 >= 3600 ? "always" : mmss(t1));
+  document.getElementById("oT2").textContent = t2 === null ? "never" : (t2 >= 3600 ? "always" : mmss(t2));
+  document.getElementById("oT3").textContent = t3 === null ? "never" : (t3 >= 3600 ? "always" : mmss(t3));
+  const mid = SB;
+  const edge = Math.max(sol.eppo[GAME_STEPS][mid], sol.epno[GAME_STEPS][mid]) - sol.epnp[GAME_STEPS][mid];
+  document.getElementById("oEdge").textContent = fmtEdge(edge);
+  pgSeries = advantageSeries(sol, 1, 120);
+  pgGeom = drawAdvChart(pgSvg, pgSeries, { showPeak: false });
+}
+function schedulePlayground() {
+  if (!pgPending) { pgPending = true; requestAnimationFrame(recomputePlayground); }
+}
+
+for (const s of [sEven, sFor, sAgt]) {
+  s.addEventListener("input", () => {
+    for (const b of document.querySelectorAll(".preset")) b.setAttribute("aria-pressed", "false");
+    pgNote.textContent = "Custom scenario — you're the analyst now. (Push the empty-net offense above the empty-net defense and see what 'always pull' looks like.)";
+    schedulePlayground();
+  });
+}
+for (const b of document.querySelectorAll(".preset")) {
+  b.addEventListener("click", () => {
+    const p = PRESETS[b.dataset.preset];
+    for (const other of document.querySelectorAll(".preset")) other.setAttribute("aria-pressed", "false");
+    b.setAttribute("aria-pressed", "true");
+    sEven.value = p.pe; sFor.value = p.pf; sAgt.value = p.pa;
+    pgNote.textContent = p.note;
+    schedulePlayground();
+  });
+}
+recomputePlayground();
+attachCrosshair(pgSvg, pgTip, () => pgSeries, () => pgGeom);
+</script>
+</body>
+</html>

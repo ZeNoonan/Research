@@ -1,0 +1,6 @@
+scenario,p_even,p_for,p_against,pull_time_down1,paper_value
+Baseline (2015-16 NHL),0.0065,0.0197,0.043,6:10,6:10
+All scoring doubled ('1980s Oilers'),0.013,0.0394,0.086,3:00,~3:00
+All scoring halved ('soccer'),0.00325,0.00985,0.0215,12:20,>12:00
+Empty-net offense cut 25% (1.48%),0.0065,0.0148,0.043,4:10,~4:00
+Empty-net offense cut 60% (0.79%),0.0065,0.00788,0.043,1:00,~1:00
