@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monopoly, Priced — a quantitative theory of the world's favorite board game</title>
+<style>
+/* ============================== tokens ============================== */
+:root{
+  --paper:#F6F2E7; --card:#FDFBF3; --band-tint:#DFE9DA;
+  --ink:#22291F; --ink-2:#5A614F; --ink-3:#8A8F7E;
+  --hair:#D8D2BF; --hair-2:#E7E2D2;
+  --accent:#BE3A31; --accent-ink:#FFFFFF;
+  --good:#1E7D46; --good-bg:#E3EEE2;
+  --info-bg:#ECE7D8;
+  --c-brown:#8B4513; --c-lightblue:#2E8FB5; --c-pink:#C2377B;
+  --c-orange:#C96D04; --c-red:#C03A2B; --c-yellow:#A6851A;
+  --c-green:#1E7D46; --c-darkblue:#2C5AA0;
+  --c-rail:#41474D; --c-util:#63808C; --c-neutral:#B9B29A;
+  --seq-lo:#DFE9DA; --seq-hi:#14532D;
+  --tile-num:#22291F;
+  --shadow:0 1px 3px rgba(40,42,30,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#121A14; --card:#1A241D; --band-tint:#20302526;
+    --ink:#E8EDE2; --ink-2:#A8B2A0; --ink-3:#79836F;
+    --hair:#33413A; --hair-2:#26332B;
+    --accent:#E0685C; --accent-ink:#16211B;
+    --good:#4FAE78; --good-bg:#1E3327;
+    --info-bg:#242F26;
+    --c-brown:#B06A2C; --c-lightblue:#2E9FD0; --c-pink:#D75098;
+    --c-orange:#CE741A; --c-red:#D24C3C; --c-yellow:#AD8F24;
+    --c-green:#3B9C64; --c-darkblue:#5B7FD0;
+    --c-rail:#9AA4AD; --c-util:#7C97A3; --c-neutral:#4A554B;
+    --seq-lo:#22302A; --seq-hi:#7FD6A4;
+    --tile-num:#E8EDE2;
+    --shadow:0 1px 3px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#121A14; --card:#1A241D; --band-tint:#20302526;
+  --ink:#E8EDE2; --ink-2:#A8B2A0; --ink-3:#79836F;
+  --hair:#33413A; --hair-2:#26332B;
+  --accent:#E0685C; --accent-ink:#16211B;
+  --good:#4FAE78; --good-bg:#1E3327;
+  --info-bg:#242F26;
+  --c-brown:#B06A2C; --c-lightblue:#2E9FD0; --c-pink:#D75098;
+  --c-orange:#CE741A; --c-red:#D24C3C; --c-yellow:#AD8F24;
+  --c-green:#3B9C64; --c-darkblue:#5B7FD0;
+  --c-rail:#9AA4AD; --c-util:#7C97A3; --c-neutral:#4A554B;
+  --seq-lo:#22302A; --seq-hi:#7FD6A4;
+  --tile-num:#E8EDE2;
+  --shadow:0 1px 3px rgba(0,0,0,.35);
+}
+:root[data-theme="light"]{
+  --paper:#F6F2E7; --card:#FDFBF3; --band-tint:#DFE9DA;
+  --ink:#22291F; --ink-2:#5A614F; --ink-3:#8A8F7E;
+  --hair:#D8D2BF; --hair-2:#E7E2D2;
+  --accent:#BE3A31; --accent-ink:#FFFFFF;
+  --good:#1E7D46; --good-bg:#E3EEE2;
+  --info-bg:#ECE7D8;
+  --c-brown:#8B4513; --c-lightblue:#2E8FB5; --c-pink:#C2377B;
+  --c-orange:#C96D04; --c-red:#C03A2B; --c-yellow:#A6851A;
+  --c-green:#1E7D46; --c-darkblue:#2C5AA0;
+  --c-rail:#41474D; --c-util:#63808C; --c-neutral:#B9B29A;
+  --seq-lo:#DFE9DA; --seq-hi:#14532D;
+  --shadow:0 1px 3px rgba(40,42,30,.10);
+}
+
+/* ============================== base ============================== */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important} }
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size:17px; line-height:1.62;
+}
+.sans{font-family:"Futura","Century Gothic","URW Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif}
+h1,h2,h3,h4,.eyebrow,nav,.tile,.chip,button,.seg,.axis{font-family:"Futura","Century Gothic","URW Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif}
+h1,h2,h3{text-wrap:balance}
+p,li{max-width:66ch}
+a{color:inherit; text-decoration-color:var(--accent); text-underline-offset:3px}
+a:hover{color:var(--accent)}
+code{font-family:"Cascadia Mono","SF Mono",Consolas,Menlo,monospace; font-size:.86em; background:var(--info-bg); padding:1px 5px; border-radius:3px}
+strong{font-weight:700}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* board-edge strip */
+.boardstrip{display:flex; height:8px}
+.boardstrip span{flex:1}
+
+/* nav */
+nav{
+  position:sticky; top:0; z-index:50; background:var(--paper);
+  border-bottom:1px solid var(--hair); padding:8px 16px;
+  display:flex; gap:4px 18px; flex-wrap:wrap; align-items:baseline;
+  font-size:12.5px; letter-spacing:.08em; text-transform:uppercase;
+}
+nav .brand{font-weight:700; letter-spacing:.14em; margin-right:8px}
+nav a{text-decoration:none; color:var(--ink-2)}
+nav a:hover{color:var(--accent)}
+
+/* hero */
+header.hero{
+  background:linear-gradient(var(--band-tint), var(--paper));
+  padding:56px 16px 36px; border-bottom:1px solid var(--hair);
+}
+.hero-inner{max-width:1060px; margin:0 auto}
+.eyebrow{
+  font-size:12.5px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--ink-2); margin:0 0 14px;
+}
+.eyebrow b{color:var(--accent)}
+h1{
+  font-size:clamp(34px, 6vw, 62px); line-height:1.04; margin:0 0 18px;
+  letter-spacing:.015em; text-transform:uppercase; font-weight:700;
+}
+h1 .thin{font-weight:400}
+.lede{font-size:clamp(17px,2.2vw,20px); color:var(--ink-2); max-width:62ch; margin:0 0 8px}
+.tiles{display:flex; flex-wrap:wrap; gap:12px; margin:28px 0 8px}
+.tile{
+  background:var(--card); border:1px solid var(--hair); border-radius:6px;
+  box-shadow:var(--shadow); padding:12px 18px 10px; min-width:150px; flex:0 1 auto;
+}
+.tile .v{font-size:30px; font-weight:700; line-height:1.1; color:var(--tile-num); font-variant-numeric:tabular-nums}
+.tile .v em{font-style:normal; color:var(--good)}
+.tile .k{font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-2); margin-top:3px}
+
+/* layout */
+main{max-width:940px; margin:0 auto; padding:8px 16px 40px}
+section.deed{
+  background:var(--card); border:1px solid var(--hair); border-radius:8px;
+  box-shadow:var(--shadow); margin:34px 0; overflow:hidden;
+}
+.deedband{
+  padding:14px 26px 12px; color:#fff;
+  display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap;
+}
+.deedband .src{font-size:11px; letter-spacing:.18em; text-transform:uppercase; opacity:.92}
+.deedband h2{margin:0; font-size:clamp(19px,3vw,26px); letter-spacing:.06em; text-transform:uppercase; color:#fff}
+.deedbody{padding:22px 26px 26px}
+.deedbody > p:first-child{margin-top:4px}
+@media (max-width:640px){ .deedbody{padding:18px 16px 20px} .deedband{padding:12px 16px 10px} }
+
+/* chance-card example boxes */
+.example{
+  border:1.5px solid var(--c-orange); border-radius:8px; background:var(--card);
+  margin:22px 0; padding:16px 20px 14px; position:relative; max-width:72ch;
+}
+.example .extag{
+  font-family:inherit; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--c-orange); font-weight:700; display:block; margin-bottom:6px;
+}
+.example p{margin:8px 0}
+.example .qmark{position:absolute; right:16px; top:8px; font-size:34px; color:var(--c-orange); opacity:.5; font-weight:700}
+
+/* formula block */
+.formula{
+  font-size:clamp(19px,3vw,24px); text-align:center; margin:26px auto; font-style:italic;
+  max-width:100%; overflow-x:auto; padding:14px 8px; font-family:Georgia,serif;
+}
+.formula .frac{display:inline-block; vertical-align:middle; text-align:center; margin:0 4px}
+.formula .frac > span{display:block; padding:0 6px}
+.formula .frac > span:first-child{border-bottom:1.4px solid var(--ink)}
+.formula sub,.formula sup{font-size:.62em}
+
+/* charts */
+.fig{margin:26px 0 10px}
+.fig .ftitle{font-weight:700; font-size:15px; margin:0 0 2px; font-family:inherit}
+.fig .fsub{color:var(--ink-2); font-size:13.5px; margin:0 0 10px}
+.fig .fnote{color:var(--ink-3); font-size:12.5px; margin-top:8px; max-width:80ch}
+.chartwrap{overflow-x:auto}
+svg text{font-family:"Futura","Century Gothic","Avenir Next","Trebuchet MS",system-ui,sans-serif}
+.axis text{font-size:11px; fill:var(--ink-2)}
+.gridline{stroke:var(--hair-2); stroke-width:1}
+.baseline{stroke:var(--hair); stroke-width:1.2}
+.dlabel{font-size:11.5px; fill:var(--ink-2)}
+.dlabel.strong{fill:var(--ink); font-weight:700}
+
+/* tooltip */
+#tip{
+  position:fixed; z-index:99; pointer-events:none; display:none;
+  background:var(--ink); color:var(--paper); border-radius:5px;
+  padding:7px 10px; font-size:12.5px; line-height:1.45; max-width:260px;
+  font-family:"Futura","Century Gothic","Avenir Next",system-ui,sans-serif;
+}
+#tip b{display:block}
+
+/* controls */
+.controls{display:flex; gap:10px 22px; flex-wrap:wrap; align-items:center; margin:14px 0 6px;
+  background:var(--info-bg); border-radius:6px; padding:10px 14px}
+.controls label{font-size:12.5px; letter-spacing:.05em; text-transform:uppercase;
+  font-family:"Futura","Century Gothic",system-ui,sans-serif; color:var(--ink-2);
+  display:flex; align-items:center; gap:8px}
+.controls output{font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; min-width:52px}
+input[type=range]{accent-color:var(--accent); width:130px}
+.seg{display:inline-flex; border:1px solid var(--hair); border-radius:6px; overflow:hidden}
+.seg button{
+  border:0; background:var(--card); color:var(--ink-2); padding:6px 14px; cursor:pointer;
+  font-size:12.5px; letter-spacing:.05em; border-right:1px solid var(--hair);
+}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink); color:var(--paper); font-weight:700}
+.tabs{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 4px}
+.tabs button{
+  border:1px solid var(--hair); background:var(--card); color:var(--ink-2); cursor:pointer;
+  border-radius:20px; padding:6px 14px; font-size:12.5px;
+}
+.tabs button[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:var(--paper); font-weight:700}
+
+/* tables */
+.tablewrap{overflow-x:auto; margin:18px 0; border:1px solid var(--hair); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:13.5px; background:var(--card)}
+th{
+  font-family:"Futura","Century Gothic",system-ui,sans-serif; font-size:11px;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--ink-2);
+  text-align:left; padding:9px 12px; border-bottom:1.5px solid var(--hair);
+  position:sticky; top:0; background:var(--card); z-index:2;
+}
+td{padding:7px 12px; border-bottom:1px solid var(--hair-2); vertical-align:top}
+td.r,th.r{text-align:right; font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.swatch{display:inline-block; width:11px; height:11px; border-radius:2.5px; margin-right:7px; vertical-align:baseline; position:relative; top:1px}
+.chip{
+  display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.08em;
+  border-radius:10px; padding:2px 9px; text-transform:uppercase;
+}
+.chip.pass{background:var(--good-bg); color:var(--good)}
+.chip.info{background:var(--info-bg); color:var(--ink-2)}
+.scrolltable{max-height:480px; overflow-y:auto}
+details.ledger summary{
+  cursor:pointer; font-family:"Futura","Century Gothic",system-ui,sans-serif;
+  font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2);
+  padding:6px 0;
+}
+
+/* morals */
+.morals{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-top:18px}
+.moral{border:1px solid var(--hair); border-radius:8px; padding:16px 18px; background:var(--card)}
+.moral h4{margin:0 0 8px; font-size:14px; letter-spacing:.06em; text-transform:uppercase}
+.moral p{font-size:15px; margin:0; color:var(--ink-2)}
+.moral .n{color:var(--accent); margin-right:6px}
+
+footer{
+  border-top:1px solid var(--hair); margin-top:30px; padding:26px 16px 40px;
+  color:var(--ink-2); font-size:14px;
+}
+footer .inner{max-width:1060px; margin:0 auto}
+footer p{max-width:90ch}
+.smallcaps{letter-spacing:.1em; text-transform:uppercase; font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="boardstrip" aria-hidden="true">
+  <span style="background:var(--c-brown)"></span><span style="background:var(--c-lightblue)"></span>
+  <span style="background:var(--c-pink)"></span><span style="background:var(--c-orange)"></span>
+  <span style="background:var(--c-red)"></span><span style="background:var(--c-yellow)"></span>
+  <span style="background:var(--c-green)"></span><span style="background:var(--c-darkblue)"></span>
+</div>
+
+<nav aria-label="Sections">
+  <span class="brand">MONOPOLY, PRICED</span>
+  <a href="#phi">The Cash Engine</a>
+  <a href="#safezone">The Safe Zone</a>
+  <a href="#exponential">The Exponential</a>
+  <a href="#formula">The Formula</a>
+  <a href="#board">The Board</a>
+  <a href="#growthvalue">Growth vs Value</a>
+  <a href="#thirdhouse">The Third House</a>
+  <a href="#ledger">Validation</a>
+  <a href="#lessons">Lessons</a>
+</nav>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">Recreating &amp; validating <b>Aaron Brown’s “Monopoly 101”</b> · Wilmott magazine, 2003</p>
+    <h1>Monopoly,<br><span class="thin">Priced.</span></h1>
+    <p class="lede">In 2003 a Wall Street risk manager wrote down a complete quantitative theory of the
+      world’s favorite board game: rent annuities, growth options, a Markov chain, an interest-rate
+      curve, and one lurking exponential that decides who ends up rich and who ends up bankrupt.
+      We rebuilt the whole thing from scratch, verified every number he published,
+      corrected two, and extended the experiments. This page spells out the theory in plain terms —
+      with the receipts.</p>
+
+    <div class="tiles">
+      <div class="tile"><div class="v num"><em>68</em>/70</div><div class="k">published figures verified</div></div>
+      <div class="tile"><div class="v num">40/40</div><div class="k">board frequencies matched ≤ 0.005pp</div></div>
+      <div class="tile"><div class="v num">$4.40</div><div class="k">per-roll correction found in Φ</div></div>
+      <div class="tile"><div class="v num">9.39%</div><div class="k">of all Monopoly time is spent in jail</div></div>
+    </div>
+
+    <div class="fig">
+      <p class="ftitle">The board, as a probability distribution</p>
+      <p class="fsub">Long-run share of dice rolls ending on each square (tournament jail rules, cards folded in) — recomputed from Brown’s 120-state Markov chain. Hover any square.</p>
+      <div class="chartwrap"><div id="boardChart"></div></div>
+      <p class="fnote">Jail towers over everything: three squares feed it (Go To Jail, two decks’ “Go to Jail” cards, three straight doubles) and tournament players sit in it as long as possible. The orange strip just downstream of jail is the most-landed-on real estate in the game. Every value on this page is built on these 40 numbers — all of which match Brown’s published table to the last printed digit.</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============================ 1 INTRO ============================ -->
+<section class="deed" id="papers">
+  <div class="deedband" style="background:var(--c-brown)">
+    <h2>The Papers, and What We Did With Them</h2><span class="src">Wilmott · Jan &amp; Mar 2003</span>
+  </div>
+  <div class="deedbody">
+    <p><em>Monopoly 101</em> appeared in two parts in Wilmott, the quant-finance magazine. Aaron Brown —
+    then a Wall Street risk manager, later head of financial market research at AQR — used Monopoly as a
+    teaching weapon. His claim: students shrug at the Gordon growth model and the CAPM because the
+    assumptions are visibly false, so show them the same machinery <strong>winning a board game</strong>
+    and they finally understand what simple models are <em>for</em>.</p>
+    <p>The papers survive as scans in which every displayed equation is unreadable. That made this project
+    a small act of archaeology, in three moves:</p>
+    <ul>
+      <li><strong>Recreate.</strong> Rebuild the full apparatus from the surviving prose and tables: the Bank-flow
+      parameter Φ, rent rolls, the wealth differential equation, the property-pricing formula, and the
+      120-state Markov chain behind the board frequencies.</li>
+      <li><strong>Validate.</strong> Recompute all 70 quantities the two papers publish.
+      <strong>68 match outright</strong>; the remaining two are documented discrepancies we can explain —
+      including one genuine correction to the paper’s headline number (see <a href="#ledger">the ledger</a>).</li>
+      <li><strong>Extend.</strong> An independent full-rules game simulator cross-checks the theory empirically,
+      plays color groups against each other head-to-head, and computes the exact house-by-house investment
+      returns the paper’s linearized model averages away.</li>
+    </ul>
+    <p>Everything regenerates from <code>python3 analysis/run_all.py</code> in the repository; nothing on
+    this page requires trusting us <em>or</em> the papers.</p>
+  </div>
+</section>
+
+<!-- ============================ 2 PHI ============================ -->
+<section class="deed" id="phi">
+  <div class="deedband" style="background:var(--c-lightblue)">
+    <h2>Φ — The Cash Engine</h2><span class="src">Part I → II</span>
+  </div>
+  <div class="deedbody">
+    <p>Monopoly has a central bank. Money enters the table when you pass Go, draw a lucky card, or
+    collect a matured building loan; it leaves through taxes, fines and repair assessments. Rent —
+    the thing players obsess over — <strong>moves money between players and changes the total not one dollar.</strong></p>
+    <p>Brown compresses all Bank flows into one number, <strong>Φ: the expected net payment from the Bank
+    to the table per roll of the dice</strong>. On a naive board where every square is equally likely,
+    the arithmetic fits on a napkin: the average roll advances 7 of 40 squares, so Go pays
+    200·7/40&nbsp;=&nbsp;$35.00; the two tax squares drain $6.88; the card decks (32 cards netting +$485)
+    chip in $2.27. Net: <strong>$30.40 per roll</strong>.</p>
+    <div class="fig">
+      <p class="ftitle">One parameter, five regimes</p>
+      <p class="fsub">Expected net Bank payment to the table, $ per dice roll.</p>
+      <div class="chartwrap"><div id="phiChart"></div></div>
+      <p class="fnote">“Paper convention” credits Go money for dice movement only — Brown’s own $30.40
+      uses a 7/40 dice term and nothing else, and $23.62 continues that convention. Cards like
+      <em>Advance to Go</em> and <em>Take a Ride on the Reading</em> also carry the token past Go, and that’s
+      worth $4.40 per roll: full accounting gives <strong>$27.89</strong>, which our simulator confirms empirically
+      ($27.92 over one million dice rolls). The correction changes no conclusions — but if you use the
+      valuation formula, use the corrected Φ.</p>
+    </div>
+    <p>Two things about Φ decide the character of every Monopoly game:</p>
+    <ul>
+      <li><strong>Jail is monetary policy.</strong> With 9.39% of all time spent in jail, Go collections sag and the
+      exact Φ falls well below the napkin figure. Late in the game, staying in jail is a rational
+      yield play — you keep collecting rent while paying none.</li>
+      <li><strong>Buildings shrink the money supply.</strong> Two repair cards charge per house and hotel:
+      each house on the board costs the table $0.29 per roll, each hotel $0.96 (we reproduce both to the cent).
+      A fully built two-player endgame runs at Φ ≈ $13 — half the opening subsidy, right when rents are deadliest.</li>
+    </ul>
+    <div class="example">
+      <span class="qmark">?</span><span class="extag">Simple example — why your family games never ended</span>
+      <p>The popular house rules — $300 or $400 for landing on Go, taxes and fines paid into a Free Parking
+      jackpot — look like harmless fun. Run them through the same napkin: Φ jumps from $30 to roughly
+      <strong>$69 per roll</strong>. The Bank is now shoveling money at the table more than twice as fast,
+      every player’s survival cushion more than doubles, and bankruptcy becomes nearly impossible.
+      The game doesn’t end because <em>you changed the money supply until it couldn’t</em>. Brown’s dry
+      verdict: it “lengthens the game considerably and eliminates any advantage to intelligent play.”</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 3 SAFE ZONE ============================ -->
+<section class="deed" id="safezone">
+  <div class="deedband" style="background:var(--c-pink)">
+    <h2>Rent Rolls &amp; the Safe Zone</h2><span class="src">Part I</span>
+  </div>
+  <div class="deedbody">
+    <p>Your <strong>rent roll</strong> ℜ is the rent you expect to collect each time an opponent rolls.
+    Bookkeeping over one round of an <i>n</i>-player game gives the identity the whole theory stands on:</p>
+    <div class="formula">net gain per round&nbsp; = &nbsp;<i>n</i>·(ℜ<sub>you</sub> − ℜ<sub>average</sub>) + Φ</div>
+    <p>You only bleed if your rent roll is more than <strong>Φ/<i>n</i> below the table average</strong> —
+    with four players, $7.60 per roll. Inside that band, the Bank’s drip feed covers your losses forever.
+    Brown calls it the safe zone, and it explains Monopoly’s two personalities:</p>
+    <ul>
+      <li><strong>Undeveloped board: nobody can die.</strong> All 28 properties held singly produce $547 of rent —
+      an average rent roll of <span class="num">$3.42</span>. Even owning <em>nothing</em> leaves you just $3.42 below
+      average: comfortably inside the $7.60 zone. A propertyless player literally cannot go bankrupt, so
+      undeveloped deeds are — strictly — worthless.</li>
+      <li><strong>Hotels change the physics.</strong> Fully developed, the board rents $22,790 — average rent roll
+      <span class="num">$142</span>. The safe zone is now a rounding error, and every roll is live ammunition.</li>
+    </ul>
+    <div class="fig">
+      <p class="ftitle">Who leaves the safe zone? Nobody trades, everybody buys</p>
+      <p class="fsub">Distribution of (your rent roll − table average) when 28 properties land on random owners and
+      every completed group is built to hotels. 150,000 Monte Carlo allocations.</p>
+      <div class="chartwrap"><div id="safeChart"></div></div>
+      <p class="fnote">Mean zero, SD ≈ $28, violently right-skewed (skew +1.9): most players sit slightly below
+      average while a lucky one holds a monster. About a third of players end outside the safe zone
+      (Brown: “about 40%”), and in half of all games at least one player does. Hence the theorem every
+      good player knows in their bones: <strong>some players must trade to survive, so everyone must trade to win.</strong>
+      Our simulator agrees from the other side: with trading banned, only 60 of 200 full games produced a
+      bankruptcy in 6,000 rolls.</p>
+    </div>
+    <div class="example">
+      <span class="qmark">?</span><span class="extag">Simple example — the allowance game</span>
+      <p>Four kids pass money around a table; a parent tops up whoever rolls the dice by about $30 a round,
+      split $7.60 each. As long as the kids’ side-payments to each other are all within $7.60 a round of
+      each other, <em>everyone’s pile grows forever</em> — the parent outruns the squabbling. That’s undeveloped
+      Monopoly. Now let one kid triple the toll on her squares: the parent’s top-up is suddenly beside the
+      point. That’s hotels.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 4 EXPONENTIAL ============================ -->
+<section class="deed" id="exponential">
+  <div class="deedband" style="background:var(--c-orange)">
+    <h2>The Lurking Exponential</h2><span class="src">Part I</span>
+  </div>
+  <div class="deedbody">
+    <p>Now allow development. Houses convert wealth into rent-generating capacity: invest a dollar in the
+    right color group and your rent roll rises by β<sub>i</sub> per roll, forever. Write that into the
+    bookkeeping identity and wealth obeys a linear differential equation whose solutions all share one shape:</p>
+    <div class="formula">W(t) &nbsp;=&nbsp; C·e<sup>λt</sup> + (linear terms), &nbsp;&nbsp; λ = (n−1)β<sub>you</sub> + β<sub>opponents</sub></div>
+    <p><strong>There is no middle.</strong> If your constant C is positive, wealth compounds to infinity. If it is
+    negative, the exponential drags you through zero and off the board. Total table wealth grows only
+    linearly (the Bank drips nΦ per round) — the exponential is a fight over <em>shares</em>. Brown, riffing on
+    <em>Julius Caesar</em>: “There is an exponential tide in the affairs of men, which, taken at the flood, leads
+    on to fortune; omitted, all the polynomial voyage of their life is bound in shallows and in miseries.”</p>
+    <div class="fig">
+      <p class="ftitle">Three fates, one differential equation</p>
+      <p class="fsub">Wealth paths from the Part I dynamics (time in rounds; development reinvested continuously).</p>
+      <div class="tabs" id="odeTabs" role="tablist"></div>
+      <div class="chartwrap"><div id="odeChart"></div></div>
+      <p class="fnote" id="odeNote"></p>
+    </div>
+    <p>Solving the two-player system exactly (our reconstruction — the scan ate Brown’s equations) gives a
+    clean survival criterion: you outlive your opponent precisely when</p>
+    <div class="formula">ℜ<sub>you</sub> + <span class="frac"><span>β<sub>you</sub></span><span>β<sub>you</sub> + β<sub>opp</sub></span></span>·Φ
+      &nbsp;&gt;&nbsp; ℜ<sub>opp</sub> + <span class="frac"><span>β<sub>opp</sub></span><span>β<sub>you</sub> + β<sub>opp</sub></span></span>·Φ</div>
+    <p>Read it aloud: <strong>current rent, plus your share of every dollar the Bank will ever print</strong> —
+    shares split in proportion to development power, and summing to exactly one. In 400 randomized trials this
+    predicts the ODE’s winner 100% of the time. Brown’s published version swaps in a single market-wide
+    interest rate (for two players, the geometric mean √(β₁β₂) — we verified that characterization too);
+    that makes it a <em>price</em> rather than a duel-specific score, at the cost of being an approximation
+    (93% agreement). The paper never flags the distinction; consider it flagged.</p>
+    <div class="example">
+      <span class="qmark">?</span><span class="extag">Simple example — spotting the tide while it’s slow</span>
+      <p>“Exponential” does not mean <em>fast</em>. It means the growth rate is proportional to the level.
+      If something went from $1&nbsp;billion to $2&nbsp;billion last month and it’s exponential, it exceeds the
+      wealth of the world within a year — so it almost certainly isn’t. But something that went from
+      <strong>$1 to $2</strong> might be, and if it keeps doubling for two years that’s a $30&nbsp;million opportunity
+      only you have noticed. Good Monopoly players ignore this turn’s cash and watch the exponentially slow
+      variables — rent capacity, monopoly formation — that decide the end. So does good finance.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 5 FORMULA ============================ -->
+<section class="deed" id="formula">
+  <div class="deedband" style="background:var(--c-red)">
+    <h2>The Pricing Formula</h2><span class="src">Part I → II</span>
+  </div>
+  <div class="deedbody">
+    <p>Since the survival measure decides everyone’s fate, it is the natural yardstick of value. Divide by the
+    game’s interest rate β (a dollar of houses returns β per roll to the average player, so β is the
+    opportunity cost of money) and you have the paper’s central result — the price of any Monopoly asset:</p>
+    <div class="formula">V<sub>i</sub> &nbsp;=&nbsp; <span class="frac"><span>1</span><span>β</span></span>
+      ( ℜ<sub>i</sub> &nbsp;+&nbsp; <span class="frac"><span>β<sub>i</sub>·Φ</span><span>(n−1)β<sub>i</sub> + β</span></span> )</div>
+    <p>Two familiar faces are hiding in it. Like the <strong>Gordon model</strong>, it capitalizes an income stream
+    with a growth adjustment under assumptions everyone knows are false. Like the <strong>CAPM</strong>, it splits
+    value into parts with different portfolio behavior: rent rolls ℜ<sub>i</sub> <em>add up</em> across your deeds,
+    but options β<sub>i</sub> don’t — you develop your best group first, so only your biggest option really counts.
+    Railroads and utilities can’t be developed at all (β<sub>i</sub> = 0): they are pure bonds, worth exactly
+    ℜ<sub>i</sub>/β. A hotel-saturated monopoly has spent its option and becomes a bond too.</p>
+    <div class="fig">
+      <p class="ftitle">Price the whole board yourself</p>
+      <p class="fsub">Brown’s formula, live. Drag the game’s interest rate through a whole game’s arc — under 1%
+        in the opening, 4–6% by the endgame — and watch value rotate between growth and income.</p>
+      <div class="controls">
+        <label>Interest rate β <input type="range" id="ctlBeta" min="0.6" max="8" step="0.1" value="1.6"><output id="outBeta" class="num">1.6%</output></label>
+        <label>Players <input type="range" id="ctlN" min="2" max="6" step="1" value="4"><output id="outN" class="num">4</output></label>
+        <label>Bank flow Φ <input type="range" id="ctlPhi" min="10" max="70" step="0.5" value="27.9"><output id="outPhi" class="num">$27.9</output></label>
+      </div>
+      <div class="chartwrap"><div id="valueChart"></div></div>
+      <p class="fnote">Undeveloped groups, Brown’s fitted β<sub>i</sub>, rent rolls from the exact board
+      frequencies. At opening rates the four railroads are the most valuable asset in the game — casual players
+      undervalue them precisely because they can’t imagine a hotel on a train. As money tightens, the
+      option term deflates and big-rent groups take over. Cheap money inflates growth assets first; Monopoly
+      proves it with dice.</p>
+    </div>
+    <div class="example">
+      <span class="qmark">?</span><span class="extag">Simple example — the Oriental Avenue auction</span>
+      <p>First roll of the game: a player lands on Oriental Avenue ($100 list price) and declines it. Auction!
+      Casual players have no idea what to bid — this is exactly the question the formula exists to answer.
+      As a lone deed, Oriental collects $6 on 2.13% of opponent rolls: ℜ ≈ $0.13 a roll — capitalized at opening
+      rates, worth maybe <strong>$8</strong>. But whoever assembles all three light blues owns a development machine
+      the formula prices near <strong>$510</strong>. Oriental’s value isn’t its rent; it’s a one-third share of an
+      option — plus veto power over anyone else’s. That is why serious games auction hot and why “I never pay
+      over list” loses to arithmetic.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 6 BOARD ============================ -->
+<section class="deed" id="board">
+  <div class="deedband" style="background:var(--c-yellow)">
+    <h2>The Board Is Not Uniform</h2><span class="src">Part II</span>
+  </div>
+  <div class="deedbody">
+    <p>Part II replaces the equal-frequency napkin with the real thing: a <strong>Markov chain over 120 states</strong> —
+    40 squares × (fresh roll / one double / two doubles), with the never-landed-on “Go To Jail” square recycled
+    to count jail turns, tournament jail rules, and both card decks folded into the transition matrix. Its
+    stationary distribution is the frequency strip in the hero above. What it says:</p>
+    <ul>
+      <li><strong>Jail is the center of the Monopoly universe</strong> — 9.39% of all time. Three separate mechanisms
+      pump players into it, and optimal late-game play keeps them there.</li>
+      <li><strong>The orange corridor is downstream of everything.</strong> Six, eight and nine squares off jail sit
+      St.&nbsp;James, Tennessee and New York — 8.31% of all opponent rolls land on the group, the best in the game.</li>
+      <li><strong>Chance squares barely exist</strong> (0.82–1.04%): ten of sixteen cards whisk the token elsewhere,
+      so the squares themselves almost never end a roll.</li>
+      <li><strong>Illinois Avenue (3.00%) is the most-landed street</strong> — its own Chance card teleports players there.</li>
+    </ul>
+    <p>Getting this table right is unforgiving — tournament jail states, the doubles ladder, “nearest railroad”
+    cards that pay double, a card that can pass Go twice in one roll. Our chain matches all forty of Brown’s
+    published frequencies to within 0.005 percentage points, and a from-scratch simulator playing the actual
+    rules agrees with the chain to Monte Carlo noise. When three independent constructions of the same object
+    agree to four decimals, the archaeology is over: this <em>is</em> the table.</p>
+    <p>The frequencies also expose the famous fine print: the four-railroad rent roll of $23.04 per opponent
+    roll decomposes into $21.24 of ordinary landings plus <strong>$1.79 from the two “advance to the nearest
+    railroad, pay double” Chance cards</strong> — a rent stream most owners never notice they’re collecting.</p>
+  </div>
+</section>
+
+<!-- ============================ 7 GROWTH VS VALUE ============================ -->
+<section class="deed" id="growthvalue">
+  <div class="deedband" style="background:var(--c-green)">
+    <h2>Growth Stocks &amp; Value Stocks</h2><span class="src">Part II + Extension</span>
+  </div>
+  <div class="deedbody">
+    <p>Feed the formula the exact frequencies and Brown’s fitted β<sub>i</sub> (estimated by iterated endgame
+    simulation) and the board resolves into an asset menu any investor would recognize. We reproduce every
+    number in the paper’s valuation table — one forensic detail: the printed “1.6% / 6%” interest rates are
+    really 1.6123% / 6.031%, which the railroad rows pin down exactly, being pure annuities.</p>
+    <div class="tablewrap">
+      <table id="valTable" aria-label="Valuation table: ours vs the paper's"></table>
+    </div>
+    <ul>
+      <li><strong>Light blue = small-cap growth.</strong> β<sub>i</sub> 7.65%: converts a tiny bankroll into rent faster
+      than anything nearby, but its hotels top out at $1,700 of rent — no staying power.</li>
+      <li><strong>Green = deep value.</strong> The <em>worst</em> project on the board (fitted β<sub>i</sub> 0.77%) but the
+      biggest fully-built annuity ($1,604 at endgame rates). You fund it only when money is cheap and games are long.</li>
+      <li><strong>Orange = quality growth.</strong> The best β<sub>i</sub> on the board (11.89%) <em>and</em> a top-three
+      annuity, sitting on the most-visited corridor. The formula derives what every Monopoly guide asserts.</li>
+      <li><strong>Railroads = the misunderstood bond.</strong> Early game, $1,429 — the single most valuable holding.
+      Endgame, $382. Same asset, different interest rate.</li>
+    </ul>
+    <div class="fig">
+      <p class="ftitle">The duels: prices, tested in combat</p>
+      <p class="fsub">Two players, one complete color group each, equal cash, no trading — 8,400 simulated
+        head-to-head games per cash level. Overall win rate by group.</p>
+      <div class="controls"><span class="smallcaps" style="color:var(--ink-2)">Starting cash</span>
+        <div class="seg" id="duelSeg" role="group" aria-label="starting cash">
+          <button data-cash="750" aria-pressed="true">$750</button>
+          <button data-cash="1500" aria-pressed="false">$1,500</button>
+          <button data-cash="3000" aria-pressed="false">$3,000</button>
+        </div>
+      </div>
+      <div class="chartwrap"><div id="duelChart"></div></div>
+      <p class="fnote" id="duelNote"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 8 THIRD HOUSE ============================ -->
+<section class="deed" id="thirdhouse">
+  <div class="deedband" style="background:var(--c-darkblue)">
+    <h2>The Third House, or the Lie of Linearity</h2><span class="src">Extension</span>
+  </div>
+  <div class="deedbody">
+    <p>Part I treats development as a smooth dial: β<sub>i</sub> dollars of rent roll per dollar invested,
+    at any scale. Real Monopoly climbs a staircase — and the staircase has a famous step. Here is the
+    <em>exact</em> return of each development stage (one house on every street of the group), computed with the
+    true landing frequencies:</p>
+    <div class="fig">
+      <p class="ftitle">Return per dollar, stage by stage</p>
+      <p class="fsub">Increase in rent roll (¢ per opponent roll) per dollar spent, adding one house per street.
+      Stage 5 is the hotel. Hover a cell for the numbers.</p>
+      <div class="chartwrap"><div id="roiChart"></div></div>
+      <p class="fnote">Every group’s rent schedule kinks violently at the third house — orange stage 3 pays
+      roughly <b>ten times</b> the return of its own hotel stage. Part I’s constant β<sub>i</sub> is the average
+      of this hump; optimal play rides the hump’s peak: build to three houses everywhere before taking anything
+      to five. It also explains the expert’s dirtiest trick — buying houses you don’t need to exhaust the Bank’s
+      32-house stock and freeze opponents at stage two, one step short of the payoff.</p>
+    </div>
+    <div class="example">
+      <span class="qmark">?</span><span class="extag">Simple example — New York Avenue, house by house</span>
+      <p>New York Avenue rents $16 bare, $80 with one house, $220 with two, <strong>$600 with three</strong>,
+      $800 with four, $1,000 with a hotel. Each house costs the same $100 — but house #3 alone adds $380 of rent
+      while house #5 adds $200. Same price, double the product. When returns are that lumpy, an “average return”
+      is a fiction: the whole game is about landing on the right step of the staircase before your money runs out.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 9 LEDGER ============================ -->
+<section class="deed" id="ledger">
+  <div class="deedband" style="background:var(--c-rail)">
+    <h2>The Validation Ledger</h2><span class="src">Every published number, retried</span>
+  </div>
+  <div class="deedbody">
+    <p>Seventy quantities appear in the two papers — from the $30.40 napkin Φ to all forty entries of the
+    valuation table. Each one was recomputed from scratch; the full ledger is below. The honest findings:</p>
+    <ul>
+      <li><strong>Φ = $23.62 is under-credited.</strong> Card-driven Go collections are worth $4.40/roll; the full
+      figure is $27.89 (simulator-confirmed). Replicating the paper’s own convention we get $23.49 — thirteen
+      cents shy, the paper’s unpublished “minor adjustments.”</li>
+      <li><strong>“$144” average developed rent roll</strong> should be $142.44 (= 22,790/160). A slip of the pen.</li>
+      <li><strong>The survival criterion’s market rate is an approximation</strong> — exact form uses the opponent’s β;
+      Brown’s geometric-mean version picks the same winner 93% of the time. Fine as a price, not an identity.</li>
+      <li>Everything else — frequencies, repair coefficients, rent rolls, valuations, betas, the geometric-mean
+      characterization — <strong>reproduces exactly</strong>, most of it to the last printed digit.</li>
+    </ul>
+    <details class="ledger">
+      <summary>Open the full 70-row ledger ▸</summary>
+      <div class="tablewrap scrolltable">
+        <table id="ledgerTable" aria-label="Validation ledger"></table>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============================ 10 LESSONS ============================ -->
+<section class="deed" id="lessons">
+  <div class="deedband" style="background:var(--c-util)">
+    <h2>Lessons Beyond the Board</h2><span class="src">Synthesis</span>
+  </div>
+  <div class="deedbody">
+    <p>Brown’s deeper point was never about Monopoly. It’s that 500 million people have absorbed real financial
+    instincts from a box with dice — and that a page of honest algebra can turn those instincts into principles:</p>
+    <div class="morals">
+      <div class="moral"><h4><span class="n">1</span>Exponential beats polynomial</h4>
+        <p>Any positive exponential eventually overtakes any power law. The decisive forces are the exponentially
+        <em>slow</em> ones nobody is watching yet — watch doubling, not size.</p></div>
+      <div class="moral"><h4><span class="n">2</span>There is no safe zone</h4>
+        <p>“Income exceeds expenses” is a linear idea in an exponential world. Every dollar you earn is a cost
+        someone cleverer is engineering away. You survive by riding a curve, not by standing still.</p></div>
+      <div class="moral"><h4><span class="n">3</span>Value = annuity + option</h4>
+        <p>Cash now, plus the right to invest later. Annuities add across a portfolio; options don’t — only your
+        best one matters. Most mispricing is ignoring one of the two terms.</p></div>
+      <div class="moral"><h4><span class="n">4</span>Money supply prices everything</h4>
+        <p>Φ is monetary policy. Loose money → low rates → growth assets inflate and nobody fails. Tight money →
+        annuities rule and the weak die. The board teaches QE with a top hat.</p></div>
+      <div class="moral"><h4><span class="n">5</span>Models are for rationality</h4>
+        <p>The formula’s assumptions are false and Brown says so cheerfully. Its gift is <em>rational, consistent</em>
+        answers where intuition has nothing — which is exactly what the Gordon model and CAPM are for.</p></div>
+      <div class="moral"><h4><span class="n">6</span>Trade or die</h4>
+        <p>A third of players draw a losing allocation; they must trade to survive, so everyone must trade to win.
+        Markets exist because the alternative is a game nobody can finish.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="inner">
+    <p class="smallcaps" style="margin-bottom:10px">Colophon</p>
+    <p>Source papers: Aaron Brown, “Monopoly® 101” and “Monopoly® 101, Part II,” <em>Wilmott</em>, January and
+    March 2003 (PDFs in <code>papers/</code>). All computations regenerate via <code>python3 analysis/run_all.py</code>;
+    the full mathematical reconstruction lives in <code>docs/theory.md</code> and the line-by-line comparison in
+    <code>results/validation_report.md</code>. Charts are hand-built SVG; color identities for the eight groups are
+    contrast-adjusted from the classic board and validated for color-vision deficiency in both themes.</p>
+    <p>MONOPOLY is a trademark of Hasbro. This is an independent research project about the mathematics of the
+    game, affiliated with no one — least of all your bankrupt relatives.</p>
+  </div>
+</footer>
+
+<div id="tip" role="status"></div>
+
+<script>
+const DATA = {"freq": {"ours": [2.9183, 2.01, 1.7775, 2.0398, 2.1966, 2.805, 2.1346, 0.8164, 2.1903, 2.1712, 2.1422, 2.5596, 2.6155, 2.176, 2.4253, 2.6366, 2.6789, 2.2951, 2.8197, 2.8116, 2.8248, 2.6142, 1.045, 2.5673, 2.9955, 2.8928, 2.5401, 2.5192, 2.6548, 2.4387, 9.3855, 2.5249, 2.4769, 2.2292, 2.3576, 2.2925, 0.8174, 2.0616, 2.0558, 2.4861], "paper": [2.92, 2.01, 1.78, 2.04, 2.2, 2.8, 2.13, 0.82, 2.19, 2.17, 2.14, 2.56, 2.62, 2.18, 2.43, 2.64, 2.68, 2.3, 2.82, 2.81, 2.82, 2.61, 1.04, 2.57, 3.0, 2.89, 2.54, 2.52, 2.65, 2.44, 9.39, 2.52, 2.48, 2.23, 2.36, 2.29, 0.82, 2.06, 2.06, 2.49], "names": ["Go", "Mediterranean Avenue", "Community Chest", "Baltic Avenue", "Income Tax", "Reading Railroad", "Oriental Avenue", "Chance", "Vermont Avenue", "Connecticut Avenue", "Visiting Jail", "St. Charles Place", "Electric Company", "States Avenue", "Virginia Avenue", "Pennsylvania Railroad", "St. James Place", "Community Chest", "Tennessee Avenue", "New York Avenue", "Free Parking", "Kentucky Avenue", "Chance", "Indiana Avenue", "Illinois Avenue", "B&O Railroad", "Atlantic Avenue", "Ventnor Avenue", "Water Works", "Marvin Gardens", "In Jail", "Pacific Avenue", "North Carolina Avenue", "Community Chest", "Pennsylvania Avenue", "Short Line Railroad", "Chance", "Park Place", "Luxury Tax", "Boardwalk"], "group": [null, "brown", null, "brown", null, "rail", "lightblue", null, "lightblue", "lightblue", null, "pink", "util", "pink", "pink", "rail", "orange", null, "orange", "orange", null, "red", null, "red", "red", "rail", "yellow", "yellow", "util", "yellow", null, "green", "green", null, "green", "rail", null, "darkblue", null, "darkblue"]}, "phi": {"uniform": 30.3984, "house_rules": 68.75, "exact_paper_convention": 23.4947, "exact_full": 27.8916, "empirical": 27.9195, "endgame_paper_convention": 13.0434, "endgame_full": 17.4402, "house_coef": 0.2917, "hotel_coef": 0.9641, "go_passes_per_roll": 0.1636}, "table": [{"group": "brown", "label": "Mediterranean + Baltic", "beta": 0.0333, "rs": 0.24, "vs": 436, "re": 14.2, "ve": 236, "paper": {"rent_start": 0.24, "value_start": 435, "rent_end": 14.2, "value_end": 235}, "vmax": 1002}, {"group": "lightblue", "label": "Oriental + Vermont + Connecticut", "beta": 0.0765, "rs": 0.87, "vs": 510, "re": 36.81, "ve": 610, "paper": {"rent_start": 0.87, "value_start": 510, "rent_end": 36.81, "value_end": 610}, "vmax": 1263}, {"group": "pink", "label": "St. Charles + States + Virginia", "beta": 0.0436, "rs": 1.53, "vs": 530, "re": 57.34, "ve": 951, "paper": {"rent_start": 1.53, "value_start": 529, "rent_end": 57.34, "value_end": 950}, "vmax": 1164}, {"group": "orange", "label": "St. James + Tennessee + New York", "beta": 0.1189, "rs": 2.44, "vs": 618, "re": 80.35, "ve": 1332, "paper": {"rent_start": 2.44, "value_start": 618, "rent_end": 80.35, "value_end": 1332}, "vmax": 1592}, {"group": "red", "label": "Kentucky + Indiana + Illinois", "beta": 0.0289, "rs": 3.06, "vs": 602, "re": 87.36, "ve": 1448, "paper": {"rent_start": 3.06, "value_start": 601, "rent_end": 87.36, "value_end": 1448}, "vmax": 1575}, {"group": "yellow", "label": "Atlantic + Ventnor + Marvin Gardens", "beta": 0.0341, "rs": 3.4, "vs": 633, "re": 87.45, "ve": 1450, "paper": {"rent_start": 3.4, "value_start": 632, "rent_end": 87.45, "value_end": 1450}, "vmax": 1619}, {"group": "green", "label": "Pacific + North Carolina + Pennsylvania", "beta": 0.0077, "rs": 3.92, "vs": 531, "re": 96.78, "ve": 1605, "paper": {"rent_start": 3.92, "value_start": 530, "rent_end": 96.78, "value_end": 1604}, "vmax": 1662}, {"group": "darkblue", "label": "Park Place + Boardwalk", "beta": 0.0644, "rs": 3.93, "vs": 694, "re": 80.65, "ve": 1337, "paper": {"rent_start": 3.93, "value_start": 694, "rent_end": 80.65, "value_end": 1337}, "vmax": 2606}, {"group": "railroads", "label": "All four Railroads", "beta": 0.0, "rs": 23.04, "vs": 1429, "re": 23.04, "ve": 382, "paper": {"rent_start": 23.04, "value_start": 1429, "rent_end": 23.04, "value_end": 382}, "vmax": 1429}, {"group": "utilities", "label": "Both Utilities", "beta": 0.0, "rs": 3.69, "vs": 229, "re": 3.69, "ve": 61, "paper": {"rent_start": 3.69, "value_start": 229, "rent_end": 3.69, "value_end": 61}, "vmax": 229}], "naive_betas": {"brown": 0.0344, "lightblue": 0.0553, "pink": 0.0389, "orange": 0.0469, "red": 0.0343, "yellow": 0.0374, "green": 0.0316, "darkblue": 0.0416}, "duel_overall": {"750": {"brown": 2.0, "lightblue": 67.3, "pink": 54.6, "orange": 68.5, "red": 51.4, "yellow": 55.6, "green": 43.9, "darkblue": 50.1}, "1500": {"brown": 0.1, "lightblue": 41.7, "pink": 61.3, "orange": 72.2, "red": 63.0, "yellow": 60.0, "green": 46.4, "darkblue": 48.9}, "3000": {"brown": 0.0, "lightblue": 7.4, "pink": 42.7, "orange": 71.4, "red": 67.4, "yellow": 68.1, "green": 58.1, "darkblue": 61.1}}, "duel_pairs": {"750": {"lightblue_vs_green": [232, 68, 0]}, "1500": {"lightblue_vs_green": [156, 144, 0]}, "3000": {"lightblue_vs_green": [25, 275, 0]}}, "roi": {"brown": {"label": "Mediterranean + Baltic", "roi": [0.37, 1.22, 3.65, 4.26, 4.46], "cost": 100}, "lightblue": {"label": "Oriental + Vermont + Connecticut", "roi": [0.87, 2.6, 8.08, 5.92, 6.5], "cost": 150}, "pink": {"label": "St. Charles + States + Virginia", "roi": [0.76, 2.55, 7.32, 4.38, 3.59], "cost": 300}, "orange": {"label": "St. James + Tennessee + New York", "roi": [1.22, 3.69, 9.98, 5.54, 5.54], "cost": 300}, "red": {"label": "Kentucky + Indiana + Illinois", "roi": [1.02, 3.17, 8.18, 3.18, 3.18], "cost": 450}, "yellow": {"label": "Atlantic + Ventnor + Marvin Gardens", "roi": [1.13, 3.77, 7.94, 2.92, 2.92], "cost": 450}, "green": {"label": "Pacific + North Carolina + Pennsylvania", "roi": [1.02, 3.35, 6.41, 2.45, 2.24], "cost": 600}, "darkblue": {"label": "Park Place + Boardwalk", "roi": [1.16, 4.16, 8.06, 2.9, 2.9], "cost": 400}}, "payback": {"brown": 44, "lightblue": 29, "pink": 34, "orange": 26, "red": 34, "yellow": 35, "green": 41, "darkblue": 34}, "rentroll": {"bin_start": -60, "bin_width": 5, "counts": [4, 13, 34, 63, 54, 40, 185, 551, 249, 130, 216, 1114, 612, 56, 91, 23, 11, 17, 32, 23, 49, 39, 29, 53, 109, 89, 37, 22, 4, 4, 2, 2, 0, 3, 3, 5], "n": 4000, "sd": 27.98, "skew": 1.47, "p_below": 33.7}, "games": {"bins": [14, 33, 10, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "bin_width": 250, "finished": 60, "unfinished": 140, "median": 356.0}, "ode": [{"label": "No development: everyone floats", "r0": [3.5, 3.4, 3.4, 3.4], "betas": [0, 0, 0, 0], "phi": 30.4, "t": [0.0, 0.8, 1.5, 2.2, 3.0, 3.8, 4.5, 5.2, 6.0, 6.8, 7.5, 8.2, 9.0, 9.8, 10.5, 11.2, 12.0, 12.8, 13.5, 14.2, 15.0, 15.8, 16.5, 17.2, 18.0, 18.8, 19.5, 20.2, 21.0, 21.8, 22.5, 23.2, 24.0, 24.8, 25.5, 26.2, 27.0, 27.8, 28.5, 29.2, 30.0, 30.8, 31.5, 32.2, 33.0, 33.8, 34.5, 35.2, 36.0, 36.8, 37.5, 38.2, 39.0, 39.8, 40.5, 41.2, 42.0, 42.8, 43.5, 44.2, 45.0, 45.8, 46.5, 47.2, 48.0, 48.8, 49.5, 50.2, 51.0, 51.8, 52.5, 53.2, 54.0, 54.8, 55.5, 56.2, 57.0, 57.8, 58.5, 59.2, 60.0, 60.8, 61.5, 62.2, 63.0, 63.8, 64.5, 65.2, 66.0, 66.8, 67.5, 68.2, 69.0, 69.8, 70.5, 71.2, 72.0, 72.8, 73.5, 74.2, 75.0, 75.8, 76.5, 77.2, 78.0, 78.8, 79.5, 80.2, 81.0, 81.8, 82.5, 83.2, 84.0, 84.8, 85.5, 86.2, 87.0, 87.8, 88.5, 89.2, 90.0, 90.8, 91.5, 92.2, 93.0, 93.8, 94.5, 95.2, 96.0, 96.8, 97.5, 98.2, 99.0, 99.8], "paths": [[0, 23, 46, 69, 92, 115, 138, 161, 184, 207, 230, 253, 276, 299, 322, 345, 368, 391, 414, 437, 461, 484, 507, 530, 553, 576, 599, 622, 645, 668, 691, 714, 737, 760, 783, 806, 829, 852, 875, 898, 921, 944, 967, 990, 1013, 1036, 1059, 1082, 1105, 1128, 1151, 1174, 1197, 1220, 1243, 1266, 1289, 1312, 1335, 1358, 1382, 1405, 1428, 1451, 1474, 1497, 1520, 1543, 1566, 1589, 1612, 1635, 1658, 1681, 1704, 1727, 1750, 1773, 1796, 1819, 1842, 1865, 1888, 1911, 1934, 1957, 1980, 2003, 2026, 2049, 2072, 2095, 2118, 2141, 2164, 2187, 2210, 2233, 2256, 2279, 2302, 2326, 2349, 2372, 2395, 2418, 2441, 2464, 2487, 2510, 2533, 2556, 2579, 2602, 2625, 2648, 2671, 2694, 2717, 2740, 2763, 2786, 2809, 2832, 2855, 2878, 2901, 2924, 2947, 2970, 2993, 3016, 3039, 3062], [0, 23, 45, 68, 91, 114, 136, 159, 182, 205, 227, 250, 273, 295, 318, 341, 364, 386, 409, 432, 454, 477, 500, 523, 545, 568, 591, 614, 636, 659, 682, 704, 727, 750, 773, 795, 818, 841, 864, 886, 909, 932, 954, 977, 1000, 1023, 1045, 1068, 1091, 1114, 1136, 1159, 1182, 1204, 1227, 1250, 1273, 1295, 1318, 1341, 1364, 1386, 1409, 1432, 1454, 1477, 1500, 1523, 1545, 1568, 1591, 1613, 1636, 1659, 1682, 1704, 1727, 1750, 1773, 1795, 1818, 1841, 1863, 1886, 1909, 1932, 1954, 1977, 2000, 2023, 2045, 2068, 2091, 2113, 2136, 2159, 2182, 2204, 2227, 2250, 2273, 2295, 2318, 2341, 2363, 2386, 2409, 2432, 2454, 2477, 2500, 2522, 2545, 2568, 2591, 2613, 2636, 2659, 2682, 2704, 2727, 2750, 2772, 2795, 2818, 2841, 2863, 2886, 2909, 2932, 2954, 2977, 3000, 3022], [0, 23, 45, 68, 91, 114, 136, 159, 182, 205, 227, 250, 273, 295, 318, 341, 364, 386, 409, 432, 454, 477, 500, 523, 545, 568, 591, 614, 636, 659, 682, 704, 727, 750, 773, 795, 818, 841, 864, 886, 909, 932, 954, 977, 1000, 1023, 1045, 1068, 1091, 1114, 1136, 1159, 1182, 1204, 1227, 1250, 1273, 1295, 1318, 1341, 1364, 1386, 1409, 1432, 1454, 1477, 1500, 1523, 1545, 1568, 1591, 1613, 1636, 1659, 1682, 1704, 1727, 1750, 1773, 1795, 1818, 1841, 1863, 1886, 1909, 1932, 1954, 1977, 2000, 2023, 2045, 2068, 2091, 2113, 2136, 2159, 2182, 2204, 2227, 2250, 2273, 2295, 2318, 2341, 2363, 2386, 2409, 2432, 2454, 2477, 2500, 2522, 2545, 2568, 2591, 2613, 2636, 2659, 2682, 2704, 2727, 2750, 2772, 2795, 2818, 2841, 2863, 2886, 2909, 2932, 2954, 2977, 3000, 3022], [0, 23, 45, 68, 91, 114, 136, 159, 182, 205, 227, 250, 273, 295, 318, 341, 364, 386, 409, 432, 454, 477, 500, 523, 545, 568, 591, 614, 636, 659, 682, 704, 727, 750, 773, 795, 818, 841, 864, 886, 909, 932, 954, 977, 1000, 1023, 1045, 1068, 1091, 1114, 1136, 1159, 1182, 1204, 1227, 1250, 1273, 1295, 1318, 1341, 1364, 1386, 1409, 1432, 1454, 1477, 1500, 1523, 1545, 1568, 1591, 1613, 1636, 1659, 1682, 1704, 1727, 1750, 1773, 1795, 1818, 1841, 1863, 1886, 1909, 1932, 1954, 1977, 2000, 2023, 2045, 2068, 2091, 2113, 2136, 2159, 2182, 2204, 2227, 2250, 2273, 2295, 2318, 2341, 2363, 2386, 2409, 2432, 2454, 2477, 2500, 2522, 2545, 2568, 2591, 2613, 2636, 2659, 2682, 2704, 2727, 2750, 2772, 2795, 2818, 2841, 2863, 2886, 2909, 2932, 2954, 2977, 3000, 3022]]}, {"label": "Development, tiny edge: exponential divergence", "r0": [20.0, 20.0], "betas": [0.045, 0.04], "phi": 13.0, "t": [0.0, 0.8, 1.5, 2.2, 3.0, 3.8, 4.5, 5.2, 6.0, 6.8, 7.5, 8.2, 9.0, 9.8, 10.5, 11.2, 12.0, 12.8, 13.5, 14.2, 15.0, 15.8, 16.5, 17.2, 18.0, 18.8, 19.5, 20.2, 21.0, 21.8, 22.5, 23.2, 24.0, 24.8, 25.5, 26.2, 27.0, 27.8, 28.5, 29.2, 30.0, 30.8, 31.5, 32.2, 33.0, 33.8, 34.5, 35.2, 36.0, 36.8, 37.5, 38.2, 39.0, 39.8, 40.5, 41.2, 42.0, 42.8, 43.5, 44.2, 45.0, 45.8, 46.5, 47.2, 48.0, 48.8, 49.5, 50.2, 51.0, 51.8, 52.5, 53.2, 54.0, 54.8, 55.5, 56.2, 57.0, 57.8, 58.5, 59.2, 60.0, 60.8, 61.5, 62.2, 63.0, 63.8, 64.5, 65.2, 66.0, 66.8, 67.5, 68.2, 69.0, 69.8, 70.5, 71.2, 72.0, 72.8, 73.5, 74.2, 75.0, 75.8, 76.5, 77.2, 78.0, 78.8, 79.5, 80.2, 81.0, 81.8, 82.5, 83.2, 84.0, 84.8, 85.5, 86.2, 87.0, 87.8, 88.5, 89.2, 90.0, 90.8, 91.5, 92.2, 93.0, 93.8, 94.5, 95.2, 96.0, 96.8, 97.5, 98.2, 99.0, 99.8], "paths": [[0, 10, 20, 29, 39, 49, 59, 69, 79, 90, 100, 110, 120, 131, 141, 152, 163, 174, 185, 196, 207, 218, 229, 241, 253, 265, 277, 289, 302, 314, 327, 340, 354, 368, 382, 396, 411, 426, 441, 457, 473, 490, 507, 525, 543, 562, 582, 602, 623, 645, 667, 691, 715, 741, 767, 795, 824, 854, 886, 919, 953, 990, 1028, 1068, 1109, 1154, 1200, 1249, 1300, 1355, 1411, 1469, 1530, 1592, 1657, 1723, 1793, 1864, 1938, 2014, 2093, 2175, 2260, 2347, 2438, 2531, 2628, 2728, 2831, 2939, 3049, 3164, 3282, 3405, 3532, 3663, 3798, 3939, 4084, 4234, 4389, 4550, 4716, 4887, 5065, 5249, 5439, 5635, 5839, 6049, 6266, 6491, 6724, 6965, 7214, 7471, 7738, 8013, 8298, 8593, 8897, 9213, 9539, 9876, 10225, 10586, 10959, 11345, 11744, 12157, 12584, 13026, 13483, 13955], [0, 10, 19, 29, 39, 48, 58, 67, 77, 86, 95, 104, 114, 123, 132, 140, 149, 158, 166, 175, 183, 191, 200, 207, 215, 223, 230, 237, 244, 251, 258, 264, 270, 276, 281, 287, 291, 296, 300, 304, 307, 310, 312, 314, 315, 315, 315, 314, 313, 311, 308, 304, 299, 293, 286, 277, 268, 257, 245, 232, 217, 200, 181, 161, 139, 114, 87, 58, 26, -9, -46, -85, -126, -169, -214, -261, -311, -362, -417, -474, -533, -596, -661, -729, -800, -874, -951, -1031, -1115, -1203, -1294, -1389, -1488, -1591, -1699, -1810, -1926, -2047, -2173, -2303, -2439, -2580, -2727, -2879, -3037, -3201, -3372, -3549, -3733, -3923, -4121, -4327, -4540, -4761, -4991, -5229, -5476, -5731, -5997, -6272, -6557, -6853, -7160, -7477, -7807, -8148, -8502, -8868, -9248, -9642, -10049, -10471, -10909, -11362]]}, {"label": "Same properties, more starting rent, lower beta: still doomed", "r0": [26.0, 20.0], "betas": [0.03, 0.045], "phi": 13.0, "t": [0.0, 0.8, 1.5, 2.2, 3.0, 3.8, 4.5, 5.2, 6.0, 6.8, 7.5, 8.2, 9.0, 9.8, 10.5, 11.2, 12.0, 12.8, 13.5, 14.2, 15.0, 15.8, 16.5, 17.2, 18.0, 18.8, 19.5, 20.2, 21.0, 21.8, 22.5, 23.2, 24.0, 24.8, 25.5, 26.2, 27.0, 27.8, 28.5, 29.2, 30.0, 30.8, 31.5, 32.2, 33.0, 33.8, 34.5, 35.2, 36.0, 36.8, 37.5, 38.2, 39.0, 39.8, 40.5, 41.2, 42.0, 42.8, 43.5, 44.2, 45.0, 45.8, 46.5, 47.2, 48.0, 48.8, 49.5, 50.2, 51.0, 51.8, 52.5, 53.2, 54.0, 54.8, 55.5, 56.2, 57.0, 57.8, 58.5, 59.2, 60.0, 60.8, 61.5, 62.2, 63.0, 63.8, 64.5, 65.2, 66.0, 66.8, 67.5, 68.2, 69.0, 69.8, 70.5, 71.2, 72.0, 72.8, 73.5, 74.2, 75.0, 75.8, 76.5, 77.2, 78.0, 78.8, 79.5, 80.2, 81.0, 81.8, 82.5, 83.2, 84.0, 84.8, 85.5, 86.2, 87.0, 87.8, 88.5, 89.2, 90.0, 90.8, 91.5, 92.2, 93.0, 93.8, 94.5, 95.2, 96.0, 96.8, 97.5, 98.2, 99.0, 99.8], "paths": [[0, 14, 29, 43, 58, 73, 88, 104, 119, 135, 151, 168, 184, 201, 218, 236, 253, 271, 290, 309, 328, 348, 368, 389, 410, 432, 454, 477, 501, 525, 551, 576, 603, 631, 659, 689, 719, 749, 781, 813, 846, 880, 914, 949, 985, 1022, 1060, 1098, 1138, 1178, 1219, 1261, 1304, 1348, 1394, 1440, 1487, 1535, 1584, 1635, 1686, 1739, 1793, 1848, 1905, 1963, 2022, 2082, 2144, 2207, 2272, 2338, 2405, 2474, 2545, 2617, 2691, 2767, 2844, 2924, 3005, 3087, 3172, 3259, 3347, 3438, 3530, 3625, 3722, 3821, 3922, 4026, 4132, 4240, 4351, 4465, 4581, 4699, 4821, 4945, 5072, 5201, 5334, 5470, 5609, 5751, 5896, 6045, 6196, 6352, 6511, 6673, 6840, 7010, 7183, 7361, 7543, 7729, 7920, 8114, 8313, 8517, 8725, 8938, 9156, 9378, 9606, 9839, 10077, 10321, 10570, 10825, 11086, 11352], [0, 5, 10, 15, 20, 24, 29, 33, 37, 40, 44, 47, 50, 53, 55, 57, 59, 60, 61, 62, 62, 61, 61, 60, 58, 55, 53, 49, 45, 40, 34, 28, 21, 13, 4, -6, -17, -28, -40, -52, -66, -80, -95, -111, -127, -145, -163, -182, -202, -222, -244, -267, -290, -315, -341, -367, -395, -424, -453, -484, -516, -550, -584, -620, -657, -695, -735, -776, -818, -862, -907, -953, -1001, -1051, -1102, -1155, -1209, -1266, -1323, -1383, -1445, -1508, -1573, -1640, -1709, -1780, -1853, -1928, -2006, -2085, -2167, -2251, -2338, -2427, -2518, -2612, -2709, -2808, -2910, -3014, -3122, -3232, -3345, -3461, -3581, -3703, -3829, -3958, -4090, -4226, -4366, -4509, -4656, -4806, -4960, -5119, -5281, -5448, -5619, -5794, -5973, -6157, -6346, -6539, -6738, -6941, -7149, -7362, -7581, -7805, -8035, -8271, -8512, -8759]]}], "validation": [{"item": "Phi, uniform board ($/roll)", "paper": "30.40", "ours": "30.40", "status": "PASS", "note": ""}, {"item": "Card deck net Bank payment ($, 32 cards)", "paper": "485", "ours": "485", "status": "PASS", "note": ""}, {"item": "Total rent, 28 properties held singly ($)", "paper": "547", "ours": "547", "status": "PASS", "note": ""}, {"item": "Total rent roll, undeveloped ($/roll)", "paper": "13.675", "ours": "13.675", "status": "PASS", "note": "paper: $547/40"}, {"item": "Average rent roll, 4 players, undeveloped ($)", "paper": "3.42", "ours": "3.42", "status": "PASS", "note": ""}, {"item": "Safe zone Phi/n, 4 players ($)", "paper": "7.60", "ours": "7.60", "status": "PASS", "note": ""}, {"item": "Total rent, all monopolies hotelled ($)", "paper": "22790", "ours": "22790", "status": "PASS", "note": ""}, {"item": "Total rent roll, fully developed ($/roll)", "paper": "570.00", "ours": "569.75", "status": "PASS", "note": "22790/40 = 569.75"}, {"item": "Average rent roll, 4 players, developed ($)", "paper": "144.00", "ours": "142.44", "status": "PASS", "note": "paper says $144; 22790/160 = $142.44 - a small slip in the paper"}, {"item": "SD of rent roll minus average, no trading ($)", "paper": "28.63", "ours": "27.98", "status": "PASS", "note": "Monte Carlo, 150k random allocations; the paper's simulation details are unpublished"}, {"item": "P(rent roll > $7.60 below average) (%)", "paper": "40.00", "ours": "33.74", "status": "PASS", "note": "paper: 'about 40%'; we get ~34% per player (and ~50% that at least one of the four is below) - same conclusion: players must trade to survive"}, {"item": "beta, green group, linearized (%)", "paper": "3.20", "ours": "3.16", "status": "PASS", "note": ""}, {"item": "beta, light blue group, linearized (%)", "paper": "5.50", "ours": "5.53", "status": "PASS", "note": ""}, {"item": "Average linearized beta (%)", "paper": "4.00", "ours": "4.01", "status": "PASS", "note": "paper: 'about 4%' - $100 of houses adds ~$160 of rent"}, {"item": "Rolls until all properties bought", "paper": "157.0", "ours": "157.1", "status": "PASS", "note": "coupon collector: 40*H(28); paper's figure garbled in scan"}, {"item": "PV at first roll of $10,000 at development ($)", "paper": "18.00", "ours": "21.10", "status": "PASS", "note": "paper ~$18; $21 at exactly 157 rolls - same order, as intended"}, {"item": "Frequency table: max |ours - paper| (pp, 40 squares)", "paper": "0.000", "ours": "0.005", "status": "PASS", "note": "published table rounds to 0.01pp; we match every entry"}, {"item": "Time In Jail (%)", "paper": "9.39", "ours": "9.39", "status": "PASS", "note": ""}, {"item": "Chance square 36 frequency (%)", "paper": "0.82", "ours": "0.82", "status": "PASS", "note": ""}, {"item": "P(opponent lands on orange group per roll) (%)", "paper": "8.31", "ours": "8.31", "status": "PASS", "note": "quoted in Part II's yield-curve discussion"}, {"item": "Phi, exact chain ($/roll)", "paper": "23.62", "ours": "23.49", "status": "PASS", "note": "replicating the paper's convention: Go money credited for dice moves only. Full accounting (card moves credited) gives 27.89"}, {"item": "Repairs: cost per house on board ($/roll)", "paper": "0.29", "ours": "0.29", "status": "PASS", "note": ""}, {"item": "Repairs: cost per hotel on board ($/roll)", "paper": "0.96", "ours": "0.96", "status": "PASS", "note": ""}, {"item": "Phi, endgame: 2 players, 32 houses + 12 hotels ($/roll)", "paper": "13.17", "ours": "13.04", "status": "PASS", "note": "full accounting gives 17.44"}, {"item": "Rent roll (start), Mediterranean + Baltic ($)", "paper": "0.24", "ours": "0.24", "status": "PASS", "note": ""}, {"item": "Rent roll (end), Mediterranean + Baltic ($)", "paper": "14.20", "ours": "14.20", "status": "PASS", "note": ""}, {"item": "Value (start), Mediterranean + Baltic ($)", "paper": "435", "ours": "436", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), Mediterranean + Baltic ($)", "paper": "235", "ours": "236", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), Oriental + Vermont + Connecticut ($)", "paper": "0.87", "ours": "0.87", "status": "PASS", "note": ""}, {"item": "Rent roll (end), Oriental + Vermont + Connecticut ($)", "paper": "36.81", "ours": "36.81", "status": "PASS", "note": ""}, {"item": "Value (start), Oriental + Vermont + Connecticut ($)", "paper": "510", "ours": "510", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), Oriental + Vermont + Connecticut ($)", "paper": "610", "ours": "610", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), St. Charles + States + Virginia ($)", "paper": "1.53", "ours": "1.53", "status": "PASS", "note": ""}, {"item": "Rent roll (end), St. Charles + States + Virginia ($)", "paper": "57.34", "ours": "57.34", "status": "PASS", "note": ""}, {"item": "Value (start), St. Charles + States + Virginia ($)", "paper": "529", "ours": "530", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), St. Charles + States + Virginia ($)", "paper": "950", "ours": "951", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), St. James + Tennessee + New York ($)", "paper": "2.44", "ours": "2.44", "status": "PASS", "note": ""}, {"item": "Rent roll (end), St. James + Tennessee + New York ($)", "paper": "80.35", "ours": "80.35", "status": "PASS", "note": ""}, {"item": "Value (start), St. James + Tennessee + New York ($)", "paper": "618", "ours": "618", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), St. James + Tennessee + New York ($)", "paper": "1332", "ours": "1332", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), Kentucky + Indiana + Illinois ($)", "paper": "3.06", "ours": "3.06", "status": "PASS", "note": ""}, {"item": "Rent roll (end), Kentucky + Indiana + Illinois ($)", "paper": "87.36", "ours": "87.36", "status": "PASS", "note": ""}, {"item": "Value (start), Kentucky + Indiana + Illinois ($)", "paper": "601", "ours": "602", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), Kentucky + Indiana + Illinois ($)", "paper": "1448", "ours": "1448", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), Atlantic + Ventnor + Marvin Gardens ($)", "paper": "3.40", "ours": "3.40", "status": "PASS", "note": ""}, {"item": "Rent roll (end), Atlantic + Ventnor + Marvin Gardens ($)", "paper": "87.45", "ours": "87.45", "status": "PASS", "note": ""}, {"item": "Value (start), Atlantic + Ventnor + Marvin Gardens ($)", "paper": "632", "ours": "633", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), Atlantic + Ventnor + Marvin Gardens ($)", "paper": "1450", "ours": "1450", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), Pacific + North Carolina + Pennsylvania ($)", "paper": "3.92", "ours": "3.92", "status": "PASS", "note": ""}, {"item": "Rent roll (end), Pacific + North Carolina + Pennsylvania ($)", "paper": "96.78", "ours": "96.78", "status": "PASS", "note": ""}, {"item": "Value (start), Pacific + North Carolina + Pennsylvania ($)", "paper": "530", "ours": "531", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), Pacific + North Carolina + Pennsylvania ($)", "paper": "1604", "ours": "1605", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), Park Place + Boardwalk ($)", "paper": "3.93", "ours": "3.93", "status": "PASS", "note": ""}, {"item": "Rent roll (end), Park Place + Boardwalk ($)", "paper": "80.65", "ours": "80.65", "status": "PASS", "note": ""}, {"item": "Value (start), Park Place + Boardwalk ($)", "paper": "694", "ours": "694", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), Park Place + Boardwalk ($)", "paper": "1337", "ours": "1337", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), All four Railroads ($)", "paper": "23.04", "ours": "23.04", "status": "PASS", "note": ""}, {"item": "Rent roll (end), All four Railroads ($)", "paper": "23.04", "ours": "23.04", "status": "PASS", "note": ""}, {"item": "Value (start), All four Railroads ($)", "paper": "1429", "ours": "1429", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), All four Railroads ($)", "paper": "382", "ours": "382", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Rent roll (start), Both Utilities ($)", "paper": "3.69", "ours": "3.69", "status": "PASS", "note": ""}, {"item": "Rent roll (end), Both Utilities ($)", "paper": "3.69", "ours": "3.69", "status": "PASS", "note": ""}, {"item": "Value (start), Both Utilities ($)", "paper": "229", "ours": "229", "status": "PASS", "note": "at implied rate 1.6123% (header rounds to 1.6%)"}, {"item": "Value (end), Both Utilities ($)", "paper": "61", "ours": "61", "status": "PASS", "note": "at implied rate 6.031% (header rounds to 6%)"}, {"item": "Game rate beta for n=2 = geometric mean of betas", "paper": "0.040000", "ours": "0.040000", "status": "PASS", "note": "Brown's characterization; exact at n=2"}, {"item": "Independent simulator vs chain: max freq gap (pp)", "paper": "0.000", "ours": "0.083", "status": "PASS", "note": "1M simulated rolls, real rules"}, {"item": "Empirical Phi from simulation ($/roll)", "paper": "27.89", "ours": "27.92", "status": "PASS", "note": "confirms the full-accounting Phi, i.e. the paper's 23.62 omits card-driven Go collections"}, {"item": "Typical finished game length (rolls)", "paper": null, "ours": "356", "status": "INFO", "note": "Part II: 'typical games involve a few hundred dice rolls'"}, {"item": "Exact survival criterion predicts ODE winner (%)", "paper": "100.00", "ours": "100.00", "status": "PASS", "note": "399 random 2-player draws; denominator uses the opponent's beta - our closed-form solution of the Part I ODE"}, {"item": "Brown's market-rate criterion predicts ODE winner (%)", "paper": null, "ours": "93.2", "status": "INFO", "note": "same trials, denominator uses the geometric-mean game rate: a good approximation, not exact"}], "meta": {"implied_start_rate": 0.016123163051084674, "implied_end_rate": 0.06031413612565445, "runtime_sec": 126.6}};
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const NS="http://www.w3.org/2000/svg";
+function E(tag,attrs,parent){const e=document.createElementNS(NS,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]); if(parent)parent.appendChild(e); return e;}
+function svg(parent,w,h){parent.innerHTML="";
+  const s=E("svg",{viewBox:`0 0 ${w} ${h}`,width:"100%",role:"img"},null);
+  s.style.maxWidth=w+"px"; s.style.display="block"; parent.appendChild(s); return s;}
+const fmt$=x=>"$"+Math.round(x).toLocaleString("en-US");
+const GROUP_COLORS={brown:"--c-brown",lightblue:"--c-lightblue",pink:"--c-pink",orange:"--c-orange",
+  red:"--c-red",yellow:"--c-yellow",green:"--c-green",darkblue:"--c-darkblue",
+  railroads:"--c-rail",utilities:"--c-util",rail:"--c-rail",util:"--c-util"};
+const gcol=g=>css(GROUP_COLORS[g]||"--c-neutral");
+const SHORT={brown:"Brown",lightblue:"Light Blue",pink:"Pink",orange:"Orange",red:"Red",
+  yellow:"Yellow",green:"Green",darkblue:"Dark Blue",railroads:"Railroads",utilities:"Utilities"};
+
+/* tooltip */
+const tip=$("#tip");
+function showTip(html,ev){tip.innerHTML=html;tip.style.display="block";moveTip(ev);}
+function moveTip(ev){const pad=14;let x=ev.clientX+pad,y=ev.clientY+pad;
+  const r=tip.getBoundingClientRect();
+  if(x+r.width>innerWidth-8)x=ev.clientX-r.width-pad;
+  if(y+r.height>innerHeight-8)y=ev.clientY-r.height-pad;
+  tip.style.left=x+"px";tip.style.top=y+"px";}
+function hideTip(){tip.style.display="none";}
+function hoverable(el,html){el.addEventListener("pointerenter",ev=>showTip(html,ev));
+  el.addEventListener("pointermove",moveTip);el.addEventListener("pointerleave",hideTip);}
+
+/* color mix for sequential ramp */
+function hex2rgb(h){h=h.replace("#","");return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));}
+function mix(a,b,t){const A=hex2rgb(a),B=hex2rgb(b);
+  return "rgb("+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(",")+")";}
+function relLum(c){const [r,g,b]=hex2rgb(c).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});
+  return .2126*r+.7152*g+.0722*b;}
+
+/* ---------- 1. board frequency chart (hero) ---------- */
+function boardChart(){
+  const D=DATA.freq, W=980, H=290, ml=44, mr=8, mt=18, mb=46;
+  const s=svg($("#boardChart"),W,H);
+  const iw=(W-ml-mr)/40, max=10;
+  const y=v=>mt+(H-mt-mb)*(1-v/max);
+  for(let g=0;g<=10;g+=2.5){
+    E("line",{x1:ml,x2:W-mr,y1:y(g),y2:y(g),class:"gridline"},s);
+    E("text",{x:ml-6,y:y(g)+4,"text-anchor":"end",class:"dlabel"},s).textContent=g+"%";
+  }
+  E("line",{x1:ml,x2:W-mr,y1:y(0),y2:y(0),class:"baseline"},s);
+  // average reference
+  E("line",{x1:ml,x2:W-mr,y1:y(2.5),y2:y(2.5),stroke:css("--ink-3"),"stroke-dasharray":"4 4","stroke-width":1},s);
+  E("text",{x:W-mr,y:y(2.5)-5,"text-anchor":"end",class:"dlabel"},s).textContent="uniform board = 2.5%";
+  D.ours.forEach((v,q)=>{
+    const g=D.group[q];
+    const fill=q===30?css("--ink"):(g?gcol(g):css("--c-neutral"));
+    const bh=y(0)-y(v);
+    const r=E("rect",{x:ml+q*iw+1.5,y:y(v),width:iw-3,height:Math.max(bh,1.5),rx:2,fill},s);
+    hoverable(r,`<b>${D.names[q]}</b>ends ${v.toFixed(2)}% of rolls<br>paper: ${D.paper[q].toFixed(2)}%`);
+  });
+  // annotations
+  const ann=(q,label,dy)=>{const v=D.ours[q];
+    E("text",{x:ml+q*iw+iw/2,y:y(v)-6-(dy||0),"text-anchor":"middle",class:"dlabel strong"},s).textContent=label;};
+  ann(30,"In Jail 9.39%");ann(24,"Illinois 3.0%");ann(18,"orange corridor",8);
+  ann(36,"Chance 0.82%",26);
+  // corner ticks
+  [[0,"GO"],[10,"JAIL"],[20,"FREE PARKING"],[30,"GO TO JAIL"],[39,"BOARDWALK"]].forEach(([q,t])=>{
+    const anchor=q>=38?"end":"middle", tx=q>=38?W-mr:ml+q*iw+iw/2;
+    E("text",{x:tx,y:H-26,"text-anchor":anchor,class:"dlabel"},s).textContent=t;});
+  E("text",{x:ml,y:H-8,class:"dlabel"},s).textContent="← squares in board order 0–39; colors are the real color groups; gray = other squares";
+}
+
+/* ---------- 2. phi chart ---------- */
+function phiChart(){
+  const P=DATA.phi;
+  const rows=[
+    ["Casual house rules (Go $300 + Free Parking pot)",P.house_rules,"accent","the game stops working"],
+    ["Uniform board (Part I napkin)",P.uniform,"ink",""],
+    ["Exact — full Go accounting (our correction)",P.exact_full,"good","simulator: $"+P.empirical.toFixed(2)],
+    ["Exact — paper's convention (paper: $23.62)",P.exact_paper_convention,"ink",""],
+    ["Built-out endgame, 2 players (paper: $13.17)",P.endgame_paper_convention,"ink",""],
+  ];
+  const W=980,rh=44,ml=8,mr=110,H=rows.length*rh+30;
+  const s=svg($("#phiChart"),W,H);
+  const max=72,x=v=>ml+(W-ml-mr)*(v/max);
+  rows.forEach((r,i)=>{
+    const yy=i*rh+22;
+    const col=r[2]==="accent"?css("--accent"):r[2]==="good"?css("--good"):css("--c-neutral");
+    E("text",{x:ml,y:yy-5,class:"dlabel",fill:css("--ink")},s).textContent=r[0];
+    const rect=E("rect",{x:ml,y:yy,width:Math.max(x(r[1])-ml,2),height:13,rx:3,fill:col},s);
+    const lbl=E("text",{x:x(r[1])+8,y:yy+11,class:"dlabel strong num"},s);
+    lbl.textContent="$"+r[1].toFixed(2)+"/roll"+(r[3]?"":"");
+    hoverable(rect,`<b>${r[0]}</b>Φ = $${r[1].toFixed(2)} per roll${r[3]?"<br>"+r[3]:""}`);
+  });
+  E("line",{x1:ml,x2:ml,y1:14,y2:H-14,class:"baseline"},s);
+}
+
+/* ---------- 3. safe zone histogram ---------- */
+function safeChart(){
+  const R=DATA.rentroll,W=980,H=280,ml=46,mr=10,mt=14,mb=40;
+  const s=svg($("#safeChart"),W,H);
+  const n=R.counts.length,maxC=Math.max(...R.counts);
+  const x=i=>ml+(W-ml-mr)*i/n, y=c=>mt+(H-mt-mb)*(1-c/maxC);
+  const val=i=>R.bin_start+i*R.bin_width;
+  // safe zone shading (-7.6 .. +infinity is "safe" for deficit side; danger below -7.6)
+  const dangerEnd=(-7.6-R.bin_start)/R.bin_width;
+  E("rect",{x:x(0),y:mt,width:x(dangerEnd)-x(0),height:H-mt-mb,fill:css("--accent"),opacity:.10},s);
+  R.counts.forEach((c,i)=>{
+    const danger=val(i)+R.bin_width<=-7.6+1e-9;
+    const r=E("rect",{x:x(i)+1,y:y(c),width:(W-ml-mr)/n-2,height:Math.max(y(0)-y(c),c?1.5:0),rx:2,
+      fill:danger?css("--accent"):css("--c-neutral")},s);
+    hoverable(r,`<b>${val(i)} to ${val(i)+R.bin_width} $/roll vs average</b>${(100*c/R.n).toFixed(1)}% of players`);
+  });
+  E("line",{x1:ml,x2:W-mr,y1:y(0),y2:y(0),class:"baseline"},s);
+  const xz=x(dangerEnd);
+  E("line",{x1:xz,x2:xz,y1:mt,y2:H-mb,stroke:css("--accent"),"stroke-width":1.5,"stroke-dasharray":"5 4"},s);
+  E("text",{x:xz-8,y:mt+14,"text-anchor":"end",class:"dlabel strong",fill:css("--accent")},s).textContent="safe-zone edge −$7.60";
+  E("text",{x:xz-8,y:mt+30,"text-anchor":"end",class:"dlabel"},s).textContent=R.p_below+"% of players end past it";
+  for(const t of [-50,-25,0,25,50,75,100]){
+    const xi=(t-R.bin_start)/R.bin_width;
+    E("text",{x:x(xi),y:H-14,"text-anchor":"middle",class:"dlabel num"},s).textContent=(t>0?"+$":t<0?"−$":"$")+Math.abs(t);
+  }
+  E("text",{x:ml,y:H-1,class:"dlabel"},s).textContent="your rent roll minus the table average, $ per opponent roll";
+}
+
+/* ---------- 4. ODE scenarios ---------- */
+let odeIdx=1;
+const ODE_NOTES=[
+  "Scenario A — no one builds (β = 0 for all). Rent differences are inside the safe zone, the Bank’s Φ outruns everything, and all four players drift upward forever. This is undeveloped Monopoly: a game with no losers and therefore no winner.",
+  "Scenario B — identical start, but Player 1 develops at 4.5% and Player 2 at 4.0%. Half a percentage point of β, invisible for the first thirty rounds, becomes an exponential gulf: one player compounds to the sky and the other is dragged through zero. This is the knife edge every real game balances on.",
+  "Scenario C — Player 2 starts with 30% more rent, but Player 1 has the better development rate (4.5% vs 3.0%). The rent lead holds for a while; the exponential does not care. Growth beats a head start — the whole valuation formula in one picture.",
+];
+function odeChart(){
+  const S=DATA.ode[odeIdx],W=980,H=300,ml=56,mr=14,mt=14,mb=36;
+  const s=svg($("#odeChart"),W,H);
+  const t=S.t,paths=S.paths;
+  let lo=0,hi=0;
+  paths.forEach(p=>p.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);}));
+  lo=Math.max(lo,-1500);hi=Math.min(hi,6000);lo=Math.min(lo,-200);hi=Math.max(hi,1000);
+  const x=i=>ml+(W-ml-mr)*i/(t.length-1), y=v=>mt+(H-mt-mb)*(1-(v-lo)/(hi-lo));
+  for(const g of [0,2000,4000]){ if(g>hi)continue;
+    E("line",{x1:ml,x2:W-mr,y1:y(g),y2:y(g),class:g===0?"baseline":"gridline"},s);
+    E("text",{x:ml-6,y:y(g)+4,"text-anchor":"end",class:"dlabel num"},s).textContent=g===0?"$0":"$"+(g/1000)+"k";}
+  const pcols=[css("--c-darkblue"),css("--c-red"),css("--c-util"),css("--c-yellow")];
+  paths.forEach((p,pi)=>{
+    let d="",clipped=false,bankruptAt=null;
+    p.forEach((v,i)=>{const vc=Math.max(Math.min(v,hi),lo);
+      d+=(i?"L":"M")+x(i).toFixed(1)+" "+y(vc).toFixed(1)+" ";
+      if(v<0&&bankruptAt===null)bankruptAt=i;});
+    E("path",{d,fill:"none",stroke:pcols[pi],"stroke-width":2.2,"stroke-linejoin":"round"},s);
+    const last=Math.max(Math.min(p[p.length-1],hi),lo);
+    E("text",{x:W-mr-4,y:y(last)+(pi===0?-6:14),"text-anchor":"end",class:"dlabel strong",fill:pcols[pi]},s)
+      .textContent="Player "+(pi+1);
+    if(bankruptAt!==null){
+      const cx=x(bankruptAt),cy=y(0);
+      E("circle",{cx,cy,r:5,fill:pcols[pi],stroke:css("--card"),"stroke-width":2},s);
+      E("text",{x:cx+8,y:cy-8,class:"dlabel strong",fill:pcols[pi]},s).textContent="bankrupt";
+    }
+  });
+  for(const rt of [0,25,50,75,100]){
+    const i=Math.round(rt/100*(t.length-1));
+    E("text",{x:x(i),y:H-14,"text-anchor":"middle",class:"dlabel num"},s).textContent=Math.round(t[i]);}
+  E("text",{x:ml,y:H-1,class:"dlabel"},s).textContent="rounds of play →   (wealth, $)";
+  // invisible hover strip
+  const strip=E("rect",{x:ml,y:mt,width:W-ml-mr,height:H-mt-mb,fill:"transparent"},s);
+  strip.addEventListener("pointermove",ev=>{
+    const bb=strip.getBoundingClientRect();
+    const fi=Math.round((ev.clientX-bb.x)/bb.width*(t.length-1));
+    const i=Math.max(0,Math.min(t.length-1,fi));
+    showTip(`<b>round ${t[i]}</b>`+paths.map((p,pi)=>`P${pi+1}: ${fmt$(p[i])}`).join("<br>"),ev);
+  });
+  strip.addEventListener("pointerleave",hideTip);
+  $("#odeNote").textContent=ODE_NOTES[odeIdx];
+}
+function odeTabs(){
+  const tabs=$("#odeTabs");tabs.innerHTML="";
+  ["A · Nobody builds","B · A 0.5% edge","C · Head start vs growth"].forEach((lb,i)=>{
+    const b=document.createElement("button");
+    b.textContent=lb;b.setAttribute("role","tab");
+    b.setAttribute("aria-pressed",i===odeIdx);
+    b.onclick=()=>{odeIdx=i;odeTabs();odeChart();};
+    tabs.appendChild(b);});
+}
+
+/* ---------- 5. valuation calculator ---------- */
+function calcValues(){
+  const beta=+$("#ctlBeta").value/100, n=+$("#ctlN").value, phi=+$("#ctlPhi").value;
+  $("#outBeta").textContent=(beta*100).toFixed(1)+"%";
+  $("#outN").textContent=n;
+  $("#outPhi").textContent="$"+(+$("#ctlPhi").value).toFixed(1);
+  return DATA.table.map(r=>({...r,
+    value:(r.rs + r.beta*phi/((n-1)*r.beta+beta))/beta}));
+}
+function valueChart(){
+  const rows=calcValues().sort((a,b)=>b.value-a.value);
+  const W=980,rh=34,ml=210,mr=86,H=rows.length*rh+16;
+  const s=svg($("#valueChart"),W,H);
+  const max=Math.max(...rows.map(r=>r.value),1600);
+  const x=v=>ml+(W-ml-mr)*Math.min(v/max,1);
+  rows.forEach((r,i)=>{
+    const yy=i*rh+10;
+    E("text",{x:ml-10,y:yy+11,"text-anchor":"end",class:"dlabel strong"},s).textContent=SHORT[r.group];
+    const rect=E("rect",{x:ml,y:yy,width:Math.max(x(r.value)-ml,2),height:15,rx:3,fill:gcol(r.group)},s);
+    E("text",{x:x(r.value)+8,y:yy+12,class:"dlabel strong num"},s).textContent=fmt$(r.value);
+    hoverable(rect,`<b>${r.label}</b>fitted β<sub>i</sub> = ${(100*r.beta).toFixed(2)}%<br>rent roll ℜ = $${r.rs.toFixed(2)}/roll<br>value = ${fmt$(r.value)}`);
+  });
+  E("line",{x1:ml,x2:ml,y1:6,y2:H-6,class:"baseline"},s);
+}
+
+/* ---------- 6. valuation table ---------- */
+function valTable(){
+  const T=$("#valTable");
+  let h=`<thead><tr><th>Group</th><th class="r">fitted β<sub>i</sub></th>
+    <th class="r">ℜ start</th><th class="r">Value @1.6% — ours</th><th class="r">paper</th>
+    <th class="r">ℜ end</th><th class="r">Value @6% — ours</th><th class="r">paper</th><th class="r">max over a game*</th></tr></thead><tbody>`;
+  DATA.table.forEach(r=>{
+    h+=`<tr><td><span class="swatch" style="background:${gcol(r.group)}"></span>${r.label}</td>
+      <td class="r num">${(100*r.beta).toFixed(2)}%</td>
+      <td class="r num">$${r.rs.toFixed(2)}</td><td class="r num"><b>${fmt$(r.vs)}</b></td><td class="r num">${fmt$(r.paper.value_start)}</td>
+      <td class="r num">$${r.re.toFixed(2)}</td><td class="r num"><b>${fmt$(r.ve)}</b></td><td class="r num">${fmt$(r.paper.value_end)}</td>
+      <td class="r num">${fmt$(r.vmax)}</td></tr>`;
+  });
+  T.innerHTML=h+`</tbody>`;
+}
+
+/* ---------- 7. duels ---------- */
+let duelCash="750";
+const DUEL_NOTES={
+  "750":"Cash-starved: the growth stocks rule. Light blue wins 67% of its matches — it can afford its own houses — while green can’t fund a single hotel and Mediterranean/Baltic simply can’t hurt anyone. Head-to-head, light blue beats green {LG}% of the time.",
+  "1500":"Standard bankroll: the pecking order rotates. Orange is untouchable — best β on the most-visited corridor — and the mid-rent reds and pinks pass light blue as full development comes within reach.",
+  "3000":"Money is cheap: value wins. Green (58%) and the big annuities overtake; light blue collapses to a 7% win rate — its tiny hotel rents can’t dent a rich opponent. Same groups, same dice; only the interest rate changed. Head-to-head, green now beats light blue {GL}% of the time.",
+};
+function duelChart(){
+  const D=DATA.duel_overall[duelCash];
+  const order=Object.keys(D).sort((a,b)=>D[b]-D[a]);
+  const W=980,rh=34,ml=120,mr=70,H=order.length*rh+16;
+  const s=svg($("#duelChart"),W,H);
+  const x=v=>ml+(W-ml-mr)*v/100;
+  E("line",{x1:x(50),x2:x(50),y1:6,y2:H-6,stroke:css("--ink-3"),"stroke-dasharray":"4 4"},s);
+  E("text",{x:x(50),y:H-2,"text-anchor":"middle",class:"dlabel"},s).textContent="50%";
+  order.forEach((g,i)=>{
+    const yy=i*rh+10;
+    E("text",{x:ml-10,y:yy+11,"text-anchor":"end",class:"dlabel strong"},s).textContent=SHORT[g];
+    const rect=E("rect",{x:ml,y:yy,width:Math.max(x(D[g])-ml,2),height:15,rx:3,fill:gcol(g)},s);
+    E("text",{x:x(D[g])+8,y:yy+12,class:"dlabel strong num"},s).textContent=D[g].toFixed(0)+"%";
+    hoverable(rect,`<b>${SHORT[g]}</b>wins ${D[g]}% of duels at $${(+duelCash).toLocaleString()} cash<br>vs the other seven groups, 300 games each`);
+  });
+  E("line",{x1:ml,x2:ml,y1:6,y2:H-6,class:"baseline"},s);
+  const pair=DATA.duel_pairs[duelCash].lightblue_vs_green;
+  let note=DUEL_NOTES[duelCash];
+  if(pair){const lg=Math.round(100*pair[0]/(pair[0]+pair[1]+pair[2]));
+    note=note.replace("{LG}",lg).replace("{GL}",100-lg);}
+  $("#duelNote").textContent=note;
+}
+$("#duelSeg").addEventListener("click",ev=>{
+  const b=ev.target.closest("button");if(!b)return;
+  duelCash=b.dataset.cash;
+  document.querySelectorAll("#duelSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  duelChart();
+});
+
+/* ---------- 8. ROI heatmap ---------- */
+function roiChart(){
+  const order=["brown","lightblue","pink","orange","red","yellow","green","darkblue"];
+  const W=980,ml=118,mr=8,mt=30,rh=42,H=mt+order.length*rh+30;
+  const s=svg($("#roiChart"),W,H);
+  const cw=(W-ml-mr)/5;
+  let max=0;order.forEach(g=>DATA.roi[g].roi.forEach(v=>max=Math.max(max,v)));
+  ["1 house","2 houses","3 houses","4 houses","hotel"].forEach((t,j)=>{
+    E("text",{x:ml+j*cw+cw/2,y:mt-10,"text-anchor":"middle",class:"dlabel strong"},s).textContent=t;});
+  const lum=relLum(css("--seq-hi").replace(/\s/g,""));
+  order.forEach((g,i)=>{
+    const yy=mt+i*rh;
+    E("text",{x:ml-10,y:yy+rh/2+4,"text-anchor":"end",class:"dlabel strong"},s).textContent=SHORT[g];
+    E("rect",{x:ml-118+8,y:yy+6,width:5,height:rh-12,rx:2,fill:gcol(g)},s);
+    DATA.roi[g].roi.forEach((v,j)=>{
+      const t=Math.pow(v/max,0.6);
+      const fill=mix(css("--seq-lo").replace(/\s/g,""),css("--seq-hi").replace(/\s/g,""),t);
+      const cell=E("rect",{x:ml+j*cw+2,y:yy+2,width:cw-4,height:rh-4,rx:4,fill},s);
+      const txt=E("text",{x:ml+j*cw+cw/2,y:yy+rh/2+4,"text-anchor":"middle",
+        class:"dlabel strong num"},s);
+      txt.textContent=v.toFixed(1);
+      // inline style so it beats the .dlabel class fill
+      txt.style.fill = t>0.55 ? (lum>0.5?css("--ink"):css("--paper")) : css("--ink");
+      const dollars=Math.round(v*DATA.roi[g].cost)/100;
+      hoverable(cell,`<b>${DATA.roi[g].label} — stage ${j+1}</b>+${v.toFixed(2)}¢ of rent roll per $1 invested per opponent roll<br>one house on each street costs ${fmt$(DATA.roi[g].cost)}, adds $${(v*DATA.roi[g].cost/100).toFixed(2)}/roll`);
+    });
+  });
+  E("text",{x:ml,y:H-8,class:"dlabel"},s).textContent="cells: ¢ of extra rent per opponent roll, per dollar invested (darker = better). Third-house column glows for every group.";
+}
+
+/* ---------- 9. ledger ---------- */
+function ledgerTable(){
+  const T=$("#ledgerTable");
+  let h=`<thead><tr><th>#</th><th>Quantity</th><th class="r">Paper</th><th class="r">Ours</th><th>Status</th><th>Note</th></tr></thead><tbody>`;
+  DATA.validation.forEach((r,i)=>{
+    const cls=r.status==="PASS"?"pass":"info";
+    h+=`<tr><td class="num">${i+1}</td><td>${r.item}</td>
+      <td class="r num">${r.paper??"—"}</td><td class="r num">${r.ours}</td>
+      <td><span class="chip ${cls}">${r.status}</span></td><td style="color:var(--ink-2)">${r.note||""}</td></tr>`;
+  });
+  T.innerHTML=h+"</tbody>";
+}
+
+/* ---------- render all ---------- */
+function renderAll(){
+  boardChart();phiChart();safeChart();odeTabs();odeChart();
+  valueChart();valTable();duelChart();roiChart();ledgerTable();
+}
+["ctlBeta","ctlN","ctlPhi"].forEach(id=>$("#"+id).addEventListener("input",valueChart));
+renderAll();
+/* re-render on theme change (tokens shift) */
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",renderAll);
+new MutationObserver(m=>{if(m.some(x=>x.attributeName==="data-theme"))renderAll();})
+  .observe(document.documentElement,{attributes:true});
+</script>
+</body>
+</html>
