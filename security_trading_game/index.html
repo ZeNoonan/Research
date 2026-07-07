@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rouge et Noir — The Security Trading Game</title>
+<style>
+  :root {
+    --page:          #f9f9f7;
+    --surface:       #fcfcfb;
+    --ink:           #0b0b0b;
+    --ink-2:         #52514e;
+    --muted:         #898781;
+    --grid:          #e1e0d9;
+    --baseline:      #c3c2b7;
+    --border:        rgba(11,11,11,0.10);
+    --series-ev:     #2a78d6;  /* slot 1 blue  — Expected value        */
+    --series-bid:    #1baf7a;  /* slot 2 aqua  — Mean bid              */
+    --series-lost:   #eda100;  /* slot 3 yellow — Lost last time       */
+    --series-won:    #008300;  /* slot 4 green — Won last time         */
+    --chip-black:    #26262b;
+    --chip-red:      #c8403f;
+    --accent:        #2a78d6;
+    --wash:          rgba(42,120,214,0.08);
+    /* sequential blue wash for the value triangle (light steps 100–300) */
+    --heat-0: #fcfcfb; --heat-1: #e6f0fc; --heat-2: #cde2fb;
+    --heat-3: #b7d3f6; --heat-4: #9ec5f4; --heat-5: #86b6ef; --heat-6: #6da7ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page:        #0d0d0d;
+      --surface:     #1a1a19;
+      --ink:         #ffffff;
+      --ink-2:       #c3c2b7;
+      --muted:       #898781;
+      --grid:        #2c2c2a;
+      --baseline:    #383835;
+      --border:      rgba(255,255,255,0.10);
+      --series-ev:   #3987e5;
+      --series-bid:  #199e70;
+      --series-lost: #c98500;
+      --series-won:  #008300;
+      --chip-black:  #0b0b0b;
+      --chip-red:    #d0524f;
+      --accent:      #3987e5;
+      --wash:        rgba(57,135,229,0.12);
+      --heat-0: #1a1a19; --heat-1: #12233a; --heat-2: #0d366b;
+      --heat-3: #104281; --heat-4: #184f95; --heat-5: #1c5cab; --heat-6: #256abf;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.6;
+    font-size: 16.5px;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 20px 80px; }
+  h1 { font-size: 2.1rem; line-height: 1.2; margin: 0.4em 0 0.2em; letter-spacing: -0.02em; }
+  h2 { font-size: 1.45rem; margin: 2.6em 0 0.5em; letter-spacing: -0.01em; }
+  h3 { font-size: 1.12rem; margin: 1.8em 0 0.4em; }
+  p  { margin: 0.7em 0; }
+  a  { color: var(--accent); }
+  .subtitle { color: var(--ink-2); font-size: 1.08rem; max-width: 44em; }
+  .kicker { color: var(--muted); text-transform: uppercase; letter-spacing: 0.09em;
+            font-size: 0.74rem; font-weight: 600; margin-top: 2.2em; }
+  .note { color: var(--ink-2); font-size: 0.87rem; }
+  em.var { font-style: italic; font-family: Georgia, "Times New Roman", serif; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 1.1em 0;
+  }
+  .callout { border-left: 3px solid var(--accent); background: var(--wash); border-radius: 6px;
+             padding: 12px 18px; margin: 1.1em 0; }
+  .callout p:first-child { margin-top: 0; } .callout p:last-child { margin-bottom: 0; }
+
+  /* table of contents */
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 1.2em 0 0; }
+  nav.toc a {
+    text-decoration: none; color: var(--ink-2); font-size: 0.85rem;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 999px; padding: 5px 13px;
+  }
+  nav.toc a:hover { color: var(--ink); border-color: var(--baseline); }
+
+  /* stat tiles */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 1.4em 0; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+  .kpi .label { color: var(--ink-2); font-size: 0.82rem; }
+  .kpi .value { font-size: 1.75rem; font-weight: 600; margin-top: 2px; }
+  .kpi .sub   { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+
+  /* chips */
+  .chip { display: inline-block; width: 15px; height: 15px; border-radius: 50%;
+          vertical-align: -2px; border: 1px solid var(--border); }
+  .chip.b { background: var(--chip-black); }
+  .chip.r { background: var(--chip-red); }
+
+  /* generic data tables */
+  table.data { border-collapse: collapse; width: 100%; font-size: 0.92rem; margin: 0.8em 0; }
+  table.data th { text-align: right; color: var(--ink-2); font-weight: 600;
+                  border-bottom: 1px solid var(--baseline); padding: 6px 10px; white-space: nowrap; }
+  table.data td { text-align: right; border-bottom: 1px solid var(--grid); padding: 6px 10px;
+                  font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.data th:first-child, table.data td:first-child { text-align: left; }
+  table.data tr.total td { border-top: 2px solid var(--baseline); border-bottom: none; font-weight: 600; }
+  .table-scroll { overflow-x: auto; }
+
+  /* math bits */
+  .math { font-family: Georgia, "Times New Roman", serif; font-style: italic; }
+  .frac { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle;
+          margin: 0 3px; line-height: 1.25; font-size: 0.95em; }
+  .frac > span:first-child { border-bottom: 1px solid currentColor; padding: 0 4px; }
+  .frac > span:last-child  { padding: 0 4px; }
+  .bigmath { font-size: 1.06rem; margin: 0.9em 0; text-align: center; }
+
+  /* the value triangle */
+  .triangle-wrap { overflow-x: auto; padding-bottom: 4px; }
+  .triangle { min-width: 660px; display: grid; grid-template-columns: 150px repeat(12, 1fr);
+              gap: 6px 4px; align-items: stretch; margin: 1em 0; }
+  .triangle .rowlab { grid-column: 1; align-self: center; color: var(--muted);
+                      font-size: 0.76rem; white-space: nowrap; padding-right: 6px; }
+  .tcell {
+    grid-row: auto; border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 2px 5px; text-align: center; cursor: pointer; background: var(--heat-0);
+    font: inherit; color: var(--ink); display: flex; flex-direction: column; gap: 1px;
+    transition: transform 0.08s ease;
+  }
+  .tcell:hover { transform: translateY(-1px); border-color: var(--baseline); }
+  .tcell .v { font-weight: 650; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+  .tcell .s { font-size: 0.68rem; color: var(--ink-2); white-space: nowrap; }
+  .tcell.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tcell.path { box-shadow: inset 0 -3px 0 var(--accent); }
+  .heat-1 { background: var(--heat-1); } .heat-2 { background: var(--heat-2); }
+  .heat-3 { background: var(--heat-3); } .heat-4 { background: var(--heat-4); }
+  .heat-5 { background: var(--heat-5); } .heat-6 { background: var(--heat-6); }
+
+  /* worked-state panel */
+  #statePanel h3 { margin-top: 0.2em; }
+  .step { display: flex; gap: 12px; margin: 0.9em 0; }
+  .step .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent);
+             color: #fff; font-weight: 700; font-size: 0.85rem; display: flex;
+             align-items: center; justify-content: center; margin-top: 2px; }
+  .step .body { flex: 1; min-width: 0; }
+  .step .body p { margin: 0.25em 0; }
+  .resultbar { background: var(--wash); border: 1px solid var(--border); border-radius: 10px;
+               padding: 12px 16px; font-size: 1.05rem; margin-top: 1em; }
+  .drawbtns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1em; }
+  .drawbtns button {
+    font: inherit; font-size: 0.9rem; padding: 8px 16px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink); cursor: pointer;
+  }
+  .drawbtns button:hover:not(:disabled) { border-color: var(--baseline); }
+  .drawbtns button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* charts */
+  figure.chart { margin: 1.6em 0; background: var(--surface); border: 1px solid var(--border);
+                 border-radius: 12px; padding: 16px 18px 8px; }
+  figure.chart figcaption { margin-bottom: 4px; }
+  figure.chart .ct { font-weight: 650; font-size: 1.02rem; }
+  figure.chart .cs { color: var(--ink-2); font-size: 0.85rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 8px 0 2px; font-size: 0.83rem; color: var(--ink-2); }
+  .legend .key { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .swatch { width: 22px; height: 0; border-top: 3px solid; border-radius: 2px; }
+  .chartbox { position: relative; }
+  .chartbox svg { display: block; width: 100%; height: auto; }
+  .chartbox:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+  .tooltip {
+    position: absolute; pointer-events: none; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.13); font-size: 0.82rem; min-width: 150px;
+    display: none; z-index: 5;
+  }
+  .tooltip .tt-title { color: var(--muted); font-size: 0.75rem; margin-bottom: 4px; }
+  .tooltip .tt-row { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
+  .tooltip .tt-key { width: 14px; height: 0; border-top: 3px solid; border-radius: 2px; flex: none; }
+  .tooltip .tt-val { font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tooltip .tt-name { color: var(--ink-2); }
+  details.tableview { margin: 4px 0 10px; font-size: 0.9rem; }
+  details.tableview summary { cursor: pointer; color: var(--ink-2); }
+
+  /* simple-game tree */
+  .tree-wrap { overflow-x: auto; }
+  .tree-wrap svg { display: block; margin: 0 auto; }
+
+  ul.tight li { margin: 0.45em 0; }
+  .footer { margin-top: 4em; padding-top: 1.4em; border-top: 1px solid var(--grid);
+            color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker" style="margin-top:1.4em">Security Trading Game · after Aaron Brown, “Rouge et Noir”, Wilmott, September 2013</p>
+<h1>Six chips in a hat: pricing the Rouge&nbsp;et&nbsp;Noir security</h1>
+<p class="subtitle">
+  Roll a die, hide the result, fill a hat with black and red chips, and auction a security that pays
+  $100 whenever a black chip comes out. This page shows — state by state, fraction by fraction —
+  how the fair value of that security is calculated, why the probabilities trip nearly everyone up,
+  and what happened when 96 professional risk managers played it for fake money.
+</p>
+
+<nav class="toc" aria-label="Contents">
+  <a href="#game">The game</a>
+  <a href="#warmup">Warm-up: 3-chip version</a>
+  <a href="#recipe">The recipe</a>
+  <a href="#explorer">Every state, worked</a>
+  <a href="#pattern">The hidden pattern</a>
+  <a href="#garp">What happened at GARP</a>
+  <a href="#takeaways">Takeaways</a>
+</nav>
+
+<div class="kpis">
+  <div class="kpi"><div class="label">Fair value, round 1</div><div class="value">$58.33</div>
+    <div class="sub">before any chip is drawn</div></div>
+  <div class="kpi"><div class="label">Fair value, round 6 (actual game)</div><div class="value">$28.57</div>
+    <div class="sub">after Red–Black–Red–Red–Red</div></div>
+  <div class="kpi"><div class="label">Mean bid, round 6 (actual game)</div><div class="value">≈$87</div>
+    <div class="sub">three times the fair value</div></div>
+</div>
+
+<h2 id="game">The game</h2>
+<div class="card">
+  <p><strong>Setup (done once, in secret).</strong> Roll a standard six-sided die; call the result
+  <em class="var">D</em>. Put <em class="var">D</em> black chips
+  <span class="chip b"></span> into a hat, then add red chips <span class="chip r"></span>
+  until the hat holds exactly six. Nobody playing knows <em class="var">D</em> — they only know the procedure.</p>
+  <p><strong>Six rounds.</strong> Each round, every team submits a sealed bid for one security:
+  it pays <strong>$100 if the next chip drawn from the hat is black</strong>, $0 if it is red.
+  The median bid becomes the price: teams that bid above the median <em>buy</em> at the median,
+  teams below it <em>sell</em> at the median, and a team exactly at the median doesn’t trade.
+  Then a chip is drawn, shown to everyone, and set aside — the hat shrinks by one chip each round,
+  so the six draws eventually reveal the entire hat.</p>
+  <p><strong>Strategy.</strong> There is nothing game-theoretic to outguess: your bid can’t
+  improve the price you trade at, only which side of it you end up on. The optimal play is simply to
+  bid the security’s expected value. The whole game is therefore one repeated math problem:
+  <em>given the chips seen so far, what is the probability the next chip is black?</em></p>
+</div>
+<p>That math problem is where everyone’s intuition snags, because two different kinds of
+information arrive with every draw. Before tackling the full game, here is a version small
+enough to hold entirely in your head.</p>
+
+<h2 id="warmup">Warm-up: the three-chip version</h2>
+<p>Same game, shrunk: <strong>flip a coin</strong> instead of rolling a die. Heads → put
+<strong>2 black + 1 red</strong> chips in the hat; tails → <strong>1 black + 2 red</strong>.
+Three chips, three rounds, and the hidden number of blacks <em class="var">D</em> is 1 or 2 with equal
+probability. The security still pays $100 on black.</p>
+
+<h3>Round 1 — average over what the coin might have done</h3>
+<p>No chips seen yet, so weight each coin outcome equally:</p>
+<p class="bigmath math">P(black) = ½ ·
+  <span class="frac"><span>1</span><span>3</span></span> + ½ ·
+  <span class="frac"><span>2</span><span>3</span></span> =
+  <span class="frac"><span>1</span><span>2</span></span>
+  &nbsp;&nbsp;⇒&nbsp; value = $50.00</p>
+
+<h3>Round 2 — the part that trips people up</h3>
+<p>Say the first chip drawn is <strong>black</strong> <span class="chip b"></span>. Good news for the
+security, surely — a black draw hints the hat is the 2-black one? Let’s do it properly. Two things must
+be combined:</p>
+<ul class="tight">
+  <li><strong>Learning</strong> (Bayes): a black first draw is twice as likely from the 2-black hat
+      (chance 2/3) as from the 1-black hat (chance 1/3), so the posterior odds tilt to
+      P(<em class="var">D</em>=2) = 2/3, P(<em class="var">D</em>=1) = 1/3.</li>
+  <li><strong>Depletion</strong>: that black chip is <em>gone</em>. If <em class="var">D</em>=1 the hat now
+      holds 0 black of 2; if <em class="var">D</em>=2 it holds 1 black of 2.</li>
+</ul>
+<p class="bigmath math">P(black next) =
+  <span class="frac"><span>1</span><span>3</span></span> · 0 +
+  <span class="frac"><span>2</span><span>3</span></span> ·
+  <span class="frac"><span>1</span><span>2</span></span> =
+  <span class="frac"><span>1</span><span>3</span></span>
+  &nbsp;&nbsp;⇒&nbsp; value = $33.33</p>
+<p>The value <strong>fell</strong> — from $50.00 to $33.33 — <em>after the good-news draw</em>. Depletion beat
+learning: the coin can only spread the hat between 1 and 2 blacks, so seeing a black tells you little,
+but removing one from a three-chip hat matters a lot. By symmetry, drawing a <strong>red</strong> chip
+first sends the value <em>up</em> to $66.67.</p>
+
+<h3>Round 3 — certainty at the edges</h3>
+<ul class="tight">
+  <li>Seen <span class="chip b"></span><span class="chip b"></span> (2 black): the hat must have been the
+      2-black one and both blacks are gone — last chip is certainly red. Value <strong>$0.00</strong>.</li>
+  <li>Seen <span class="chip r"></span><span class="chip r"></span> (2 red): must be the 1-black hat, and
+      its black is still inside — last chip is certainly black. Value <strong>$100.00</strong>.</li>
+  <li>Seen one of each: both hats explain this equally well (each with probability 1/3 for a specific
+      order), so the posterior stays 50/50 — and the last chip is black exactly when
+      <em class="var">D</em>=2. Value <strong>$50.00</strong>.</li>
+</ul>
+
+<div class="tree-wrap" aria-hidden="true"><svg id="simpleTree" width="560" height="270" viewBox="0 0 560 270" role="img"></svg></div>
+
+<div class="callout">
+  <p><strong>The two forces, named.</strong> Every draw in this family of games pushes the value two ways
+  at once:</p>
+  <p>① <strong>Learning</strong> — a black draw is evidence the hat started with more blacks
+  (value ↑).<br>
+  ② <strong>Depletion</strong> — a black draw removes a black from the hat (value ↓).</p>
+  <p>In the three-chip game depletion wins. In the six-chip game the die ranges over 1–6, so a draw
+  carries much more evidence and <em>learning</em> usually wins — but not always, which is exactly
+  where the full game gets interesting.</p>
+  <p class="note">Sanity check before any draws: unconditionally, every draw — first, third, or last —
+  has the same 50% chance of being black (58.33% in the six-chip game). Symmetry ("exchangeability")
+  guarantees it; only <em>conditioning on what you’ve seen</em> moves the value.</p>
+</div>
+
+<h2 id="recipe">The recipe for the full game</h2>
+<p>Back to six chips and a die. Suppose you have watched <em class="var">B</em> black and
+<em class="var">R</em> red chips come out of the hat. Five steps price the security:</p>
+
+<div class="card">
+  <div class="step"><div class="n">1</div><div class="body">
+    <p><strong>List the die rolls still possible.</strong> The hat produced <em class="var">B</em> blacks,
+    so <em class="var">D</em> ≥ <em class="var">B</em> (and the die shows at least 1); it produced
+    <em class="var">R</em> reds, so 6 − <em class="var">D</em> ≥ <em class="var">R</em>, i.e.
+    <em class="var">D</em> ≤ 6 − <em class="var">R</em>.</p>
+  </div></div>
+  <div class="step"><div class="n">2</div><div class="body">
+    <p><strong>How well does each roll explain what you saw?</strong> For each candidate
+    <em class="var">D</em>, the probability that the first <em class="var">B</em>+<em class="var">R</em>
+    draws contained exactly <em class="var">B</em> blacks is the hypergeometric count —
+    ways to pick the blacks from <em class="var">D</em>, times ways to pick the reds from
+    6−<em class="var">D</em>, over ways to pick any <em class="var">B</em>+<em class="var">R</em> chips
+    from 6:</p>
+    <p class="bigmath math">P(seen | <em class="var">D</em>) =
+      <span class="frac"><span>C(<em class="var">D</em>, <em class="var">B</em>) · C(6−<em class="var">D</em>, <em class="var">R</em>)</span><span>C(6, <em class="var">B</em>+<em class="var">R</em>)</span></span></p>
+    <p class="note">C(<em class="var">n</em>, <em class="var">k</em>) is “<em class="var">n</em> choose
+    <em class="var">k</em>”. The order of the observed draws doesn’t matter — every order with the same
+    counts is equally likely, so it cancels.</p>
+  </div></div>
+  <div class="step"><div class="n">3</div><div class="body">
+    <p><strong>Update the die (Bayes).</strong> All six rolls started equally likely, so the posterior
+    probability of each surviving <em class="var">D</em> is just its likelihood from step 2 divided by
+    the sum of the likelihoods of all surviving rolls.</p>
+  </div></div>
+  <div class="step"><div class="n">4</div><div class="body">
+    <p><strong>Count what’s left in the hat.</strong> If the roll was <em class="var">D</em>, the hat still
+    holds <em class="var">D</em>−<em class="var">B</em> blacks out of
+    6−<em class="var">B</em>−<em class="var">R</em> chips, so
+    P(next black | <em class="var">D</em>) = (<em class="var">D</em>−<em class="var">B</em>) /
+    (6−<em class="var">B</em>−<em class="var">R</em>). <em>This is the depletion step people forget.</em></p>
+  </div></div>
+  <div class="step"><div class="n">5</div><div class="body">
+    <p><strong>Average.</strong> Value = $100 × Σ<sub><em class="var">D</em></sub>
+    [posterior of <em class="var">D</em>] × [P(next black | <em class="var">D</em>)].</p>
+  </div></div>
+</div>
+
+<div class="callout">
+  <p><strong>The five classic mistakes</strong> (the reasons “the probabilities really trip you up”):</p>
+  <ul class="tight">
+    <li><strong>Skipping the update:</strong> keeping P(black) = 58.33% forever, as if draws taught nothing.</li>
+    <li><strong>Skipping depletion:</strong> updating beliefs about <em class="var">D</em> but computing
+        <em class="var">D</em>/6 instead of (<em class="var">D</em>−<em class="var">B</em>)/(6−<em class="var">B</em>−<em class="var">R</em>) — the drawn chips are out of the hat.</li>
+    <li><strong>Using a point estimate:</strong> picking the single most likely <em class="var">D</em>
+        (or the observed frequency <em class="var">B</em>/(<em class="var">B</em>+<em class="var">R</em>))
+        instead of averaging over the whole posterior.</li>
+    <li><strong>Forgetting the die has no zero:</strong> <em class="var">D</em> ≥ 1 means the hat is
+        <em>guaranteed</em> at least one black chip — the source of the strangest row in the table below.</li>
+    <li><strong>Gambler’s-fallacy shortcuts:</strong> “lots of reds, black is due” is wrong reasoning here —
+        yet in one regime it accidentally points the right way, which makes the wrong habit feel validated.</li>
+  </ul>
+</div>
+
+<h2 id="explorer">Every state, fully worked</h2>
+<p>This is the article’s Table 1 as a living object. Each cell is a state of the game — “I have seen
+<em class="var">B</em> blacks and <em class="var">R</em> reds” — showing the security’s fair value.
+Red draws step left, black draws step right; the shading follows the value.
+<strong>Click any cell</strong> to see its full calculation, or use the draw buttons to walk the hat
+chip by chip (the button <em>Replay the GARP draw</em> walks the sequence that actually happened:
+Red–Black–Red–Red–Red–Red).</p>
+
+<div class="triangle-wrap"><div class="triangle" id="triangle" role="group" aria-label="Value of the security in every game state"></div></div>
+
+<div class="card" id="statePanel"></div>
+
+<h2 id="pattern">The hidden pattern in the table</h2>
+<p>Stare at the triangle and two curiosities emerge — both were deliberate trip-wires in Brown’s design.</p>
+
+<h3>1. Once a single black has shown, the answer is Laplace’s rule of succession</h3>
+<p>For every state with <em class="var">B</em> ≥ 1, the five-step calculation collapses to a formula
+famous from a different problem entirely:</p>
+<p class="bigmath math">value = $100 ·
+  <span class="frac"><span><em class="var">B</em> + 1</span><span><em class="var">B</em> + <em class="var">R</em> + 2</span></span></p>
+<p>Check it: after 1 black and 2 reds, (1+1)/(3+2) = 2/5 → $40.00. After 3 blacks and 1 red,
+4/6 → $66.67. This is <strong>Laplace’s rule of succession</strong> — the 18th-century formula for
+“probability the sun rises tomorrow given it rose <em class="var">n</em> days in a row” — which arises
+whenever you observe successes and failures under a uniform prior. A uniform die over hat compositions
+plus drawing without replacement gives <em>exactly</em> the same predictive probabilities as the
+classic coin-with-unknown-bias setup. (The verification script in this folder,
+<a href="rouge_et_noir.py">rouge_et_noir.py</a>, proves the identity exactly for all fifteen
+<em class="var">B</em> ≥ 1 states.)</p>
+
+<h3>2. The all-red column runs backwards</h3>
+<p>The exception is the left edge, <em class="var">B</em> = 0, where the die’s missing zero bites:</p>
+<div class="table-scroll"><table class="data">
+  <thead><tr><th>Reds seen (no blacks)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead>
+  <tbody>
+    <tr><td>Fair value</td><td>$58.33</td><td>$46.67</td><td>$43.75</td><td>$46.67</td><td>$58.33</td><td>$100.00</td></tr>
+    <tr><td>Rule of succession would say</td><td>$50.00</td><td>$33.33</td><td>$25.00</td><td>$20.00</td><td>$16.67</td><td>$14.29</td></tr>
+  </tbody>
+</table></div>
+<p>Early reds are bad news (learning: the hat is probably red-heavy), but the die guarantees
+<strong>at least one black chip is in there somewhere</strong>. As reds pile up, that guaranteed black
+becomes a larger and larger share of a shrinking hat, until after five reds the last chip is black
+with certainty. The value falls, bottoms at $43.75, then climbs to $100 — so from this column,
+<em>a red draw raises the value and a black draw (to $33.33, via the rule of succession) lowers it</em>,
+the mirror image of everywhere else. Brown: “this introduces a complexity into the bidding strategy.”
+It’s the three-chip game’s lesson resurfacing: when learning has nothing left to teach, depletion runs
+the price.</p>
+
+<h2 id="garp">What happened at GARP</h2>
+<p>Brown ran this at the 2013 GARP (Global Association of Risk Professionals) convention in New York:
+96 attendees in 16 teams, playing for fake money. The die roll turned out to be
+<em class="var">D</em> = 1 — one lonely black chip — and the hat delivered
+<strong>Red, Black, Red, Red, Red, Red</strong>. So the fair value slid from $58.33 down to $28.57,
+with one bump to $50 after the black.</p>
+
+<figure class="chart">
+  <figcaption><span class="ct">Mean bid vs. fair value, rounds 1–6</span><br>
+  <span class="cs">Recreation of the article’s Figure 1. Fair value is exact; mean bids are digitized
+  from the printed chart (±$2).</span></figcaption>
+  <div id="chart1"></div>
+</figure>
+
+<p>Round 1 was a wisdom-of-crowds success: the median bid was almost exactly the correct $58.33.
+Everything after that went sideways — <strong>the mean bid moved in the opposite direction to the fair
+value in every single round</strong>. A red draw lowered the value; bids rose. The black draw raised it;
+bids fell. By round 6 the mean bid was around $87 for a security worth $28.57 — the widest gap of the
+game, on the round where the math was nearly at its easiest.</p>
+
+<p>The explanation pops out when you split each round’s bidders by whether they won or lost money the
+round before:</p>
+
+<figure class="chart">
+  <figcaption><span class="ct">Previous-round winners vs. losers, rounds 1–6</span><br>
+  <span class="cs">Recreation of the article’s Figure 2 (values digitized, ±$2). Round 1 has no
+  previous round; both groups start at the overall mean.</span></figcaption>
+  <div id="chart2"></div>
+</figure>
+
+<p><strong>Winners stayed sane; losers went rogue.</strong> Teams that had just won bid close to fair
+value and adjusted in the right direction. Teams that had just lost look, in Brown’s words, “wildly
+irrational”: those who lost money <em>buying</em> bid considerably <em>more</em> the next round; the
+round where sellers lost (round 2, the black draw), losers bid considerably <em>less</em>. That is
+loss-chasing — doubling down on the trade that just failed, in the superstitious belief that a desired
+event which didn’t happen is now more likely. It’s doubly irrational here: with everyone free to bid
+the same number, wins and losses were pure luck, and last round’s luck says nothing about next
+round’s. And since teams bounced randomly between the winner and loser groups, it can’t be a skill
+difference — <em>the same people</em> computed calmly after a win and chased after a loss.</p>
+
+<div class="callout">
+  <p>“Recall that these are quantitative risk managers, not cowboy traders, playing anonymously for
+  fake money at a conference among friends… Simply by putting people in groups and introducing some
+  competition, we were able to induce behavior more often associated with rogue traders than sober
+  risk professionals. If we can do that, imagine what the markets and real money and frenetic trading
+  rooms can do to impressionable junior traders.” — Aaron Brown</p>
+</div>
+
+<h2 id="takeaways">Takeaways — and what this security rhymes with</h2>
+<ul class="tight">
+  <li><strong>Losses switch off arithmetic.</strong> The skill was in the room all six rounds — the
+      median team priced round 1 perfectly. What changed after losses wasn’t ability but the willingness
+      to use it. Process discipline has to be designed for the moments <em>after</em> a loss, because
+      that’s precisely when people abandon it.</li>
+  <li><strong>P&amp;L is not information.</strong> Teams reacted to a factor (last round’s luck) that was
+      doubly irrelevant — and reacted in the direction of chasing it. Judge decisions by the quality of
+      the pricing, never by the outcome of the draw.</li>
+  <li><strong>Crowds are wise until they start keeping score.</strong> One round of wins and losses was
+      enough to turn independent estimates into correlated emotion.</li>
+  <li><strong>Complexity wasn’t the trigger.</strong> The round-6 math is nearly the easiest in the game
+      and produced the worst pricing. If six chips in a hat can do this, real books with real money need
+      structural guardrails, not smarter people.</li>
+</ul>
+
+<h3>Things it should remind you of</h3>
+<ul class="tight">
+  <li><strong>A binary option / prediction-market contract.</strong> Pays a fixed $100 or nothing on an
+      event — exactly a digital option or a Polymarket/Kalshi/Iowa-Electronic-Markets contract; the fair
+      bid <em>is</em> the event probability × $100, marked to market as information arrives.</li>
+  <li><strong>Laplace’s rule of succession &amp; Pólya’s urn.</strong> As shown above, the whole
+      <em class="var">B</em> ≥ 1 table is (<em class="var">B</em>+1)/(<em class="var">B</em>+<em class="var">R</em>+2) —
+      Bayesian updating with a uniform prior in its oldest costume.</li>
+  <li><strong>Card counting.</strong> Value driven by the depleting composition of a finite shoe — except
+      here the deck’s composition is itself unknown, so you run blackjack’s running count and a Bayesian
+      estimate of the shoe at the same time.</li>
+  <li><strong>Pull-to-par.</strong> The all-red column is a distressed bond limping toward maturity: each
+      period of bad news survived leaves the guaranteed payoff a bigger share of a shorter future.</li>
+  <li><strong>Experimental asset-market bubbles.</strong> A room full of subjects bidding a
+      <em>known, declining</em> fundamental far above value is the classic Smith–Suchanek–Williams
+      bubble result, reproduced here in six rounds flat.</li>
+  <li><strong>Rogue traders.</strong> Loss-chasing — size up after losing to get back to even — is the
+      signature of Leeson and Kerviel, and of the break-even effect Kahneman and Tversky documented:
+      people who are down accept gambles they would never otherwise touch.</li>
+</ul>
+<p>The longer write-up, with references, lives in <a href="FINDINGS.md">FINDINGS.md</a>.</p>
+
+<div class="footer">
+  <p>Source: Aaron Brown, “Rouge et Noir: How to turn the most sober risk professional into a rabid
+  rogue trader in a few easy moves”, <em>Wilmott</em>, September 2013, pp. 14–16 (copy in
+  <a href="papers/">papers/</a>). Every dollar value on this page is computed live from the rules and
+  cross-verified by exhaustive enumeration in <a href="rouge_et_noir.py">rouge_et_noir.py</a>.
+  Mean-bid series are digitized approximately from the article’s printed figures.</p>
+</div>
+
+</main>
+<script>
+"use strict";
+
+/* ---------- exact fractions (numbers stay tiny; plain ints suffice) ---------- */
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+function frac(n, d) { const g = gcd(n, d), s = d < 0 ? -1 : 1; return { n: s * n / g, d: s * d / g }; }
+function fAdd(x, y) { return frac(x.n * y.d + y.n * x.d, x.d * y.d); }
+function fMul(x, y) { return frac(x.n * y.n, x.d * y.d); }
+function fDiv(x, y) { return frac(x.n * y.d, x.d * y.n); }
+function fNum(x) { return x.n / x.d; }
+function fStr(x) { return x.d === 1 ? String(x.n) : x.n + "/" + x.d; }
+function comb(n, k) {
+  if (k < 0 || k > n) return 0;
+  let r = 1;
+  for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
+  return Math.round(r);
+}
+const money = v => "$" + v.toFixed(2);
+
+/* ---------- the security's value in state (B blacks, R reds seen) ---------- */
+const N = 6;
+function stateCalc(B, R) {
+  const remaining = N - B - R;
+  const rows = [];
+  let W = 0;
+  for (let d = Math.max(B, 1); d <= N - R; d++) {
+    const w = comb(d, B) * comb(N - d, R);   // ∝ likelihood; C(6,B+R) cancels
+    if (w > 0) { rows.push({ d, w }); W += w; }
+  }
+  let value = frac(0, 1);
+  for (const r of rows) {
+    r.like = frac(r.w, comb(N, B + R));           // P(seen | D)
+    r.post = frac(r.w, W);                        // posterior P(D | seen)
+    r.pBlack = frac(r.d - B, remaining);          // P(next black | D)
+    r.contrib = fMul(r.post, r.pBlack);
+    value = fAdd(value, r.contrib);
+  }
+  return { B, R, remaining, rows, W, value };
+}
+const STATES = [];   // STATES[k][B], k = draws so far
+for (let k = 0; k <= 5; k++) { STATES.push([]); for (let b = 0; b <= k; b++) STATES[k].push(stateCalc(b, k - b)); }
+
+/* ---------- the triangle ---------- */
+const triangle = document.getElementById("triangle");
+const cells = [];   // cells[k][b] -> button
+const heatClass = v => "heat-" + Math.min(6, Math.max(0, Math.round((v - 20) / 80 * 6)));
+for (let k = 0; k <= 5; k++) {
+  const lab = document.createElement("div");
+  lab.className = "rowlab";
+  lab.textContent = k === 0 ? "Round 1 · no draws yet" : `Round ${k + 1} · after ${k} draw${k > 1 ? "s" : ""}`;
+  lab.style.gridRow = String(k + 1);
+  triangle.appendChild(lab);
+  cells.push([]);
+  for (let b = 0; b <= k; b++) {
+    const st = STATES[k][b];
+    const v = 100 * fNum(st.value);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "tcell " + heatClass(v);
+    btn.style.gridRow = String(k + 1);
+    btn.style.gridColumn = (2 + (5 - k) + 2 * b) + " / span 2";
+    const vv = document.createElement("span"); vv.className = "v"; vv.textContent = money(v);
+    const ss = document.createElement("span"); ss.className = "s";
+    ss.textContent = k === 0 ? "start" : `${b}B ${k - b}R`;
+    btn.appendChild(vv); btn.appendChild(ss);
+    btn.setAttribute("aria-label",
+      `Round ${k + 1}: ${b} black and ${k - b} red drawn, value ${money(v)}`);
+    btn.addEventListener("click", () => selectState(k, b, true));
+    triangle.appendChild(btn);
+    cells[k].push(btn);
+  }
+}
+
+/* ---------- the worked-state panel ---------- */
+const panel = document.getElementById("statePanel");
+let current = { k: 0, b: 0 };
+let replayTimer = null;
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function selectState(k, b, userClick, pathCells) {
+  if (userClick && replayTimer) { clearInterval(replayTimer); replayTimer = null; }
+  current = { k, b };
+  cells.flat().forEach(c => c.classList.remove("sel"));
+  if (!pathCells) cells.flat().forEach(c => c.classList.remove("path"));
+  cells[k][b].classList.add("sel");
+  renderPanel(STATES[k][b]);
+}
+
+function renderPanel(st) {
+  panel.replaceChildren();
+  const { B, R, remaining, rows, W, value } = st;
+  const k = B + R;
+  const v = 100 * fNum(value);
+
+  const h = el("h3", null, "");
+  h.textContent = k === 0
+    ? "Round 1 — nothing drawn yet, 6 chips in the hat"
+    : `Round ${k + 1} — seen ${B} black, ${R} red · ${remaining} chips left in the hat`;
+  panel.appendChild(h);
+
+  // step 1
+  const dList = rows.map(r => r.d).join(", ");
+  const s1 = el("p");
+  s1.append("Step 1 — possible die rolls. Need D ≥ max(1, B) = " + Math.max(1, B) +
+    " and D ≤ 6 − R = " + (6 - R) + ", so D ∈ { " + dList + " }.");
+  panel.appendChild(s1);
+
+  // steps 2–5 as one table
+  const s2 = el("p");
+  s2.append("Steps 2–5 — likelihood of what you saw, Bayes update, chips left, average " +
+    "(exact fractions; the posterior is each row’s likelihood weight " +
+    (k > 0 ? `C(D,${B})·C(${6}−D,${R})` : "1") + " over the total " + W + "):");
+  panel.appendChild(s2);
+
+  const wrap = el("div", "table-scroll");
+  const tbl = el("table", "data");
+  const thead = el("thead"); const trh = el("tr");
+  ["Die roll D", "Blacks left", "P(seen | D)", "P(D | seen)",
+   "P(black | D)", "Product"].forEach(t => trh.appendChild(el("th", null, t)));
+  thead.appendChild(trh); tbl.appendChild(thead);
+  const tbody = el("tbody");
+  for (const r of rows) {
+    const tr = el("tr");
+    tr.appendChild(el("td", null, String(r.d)));
+    tr.appendChild(el("td", null, `${r.d - B} of ${remaining}`));
+    tr.appendChild(el("td", null, `${fStr(r.like)} = ${fNum(r.like).toFixed(4)}`));
+    tr.appendChild(el("td", null, `${r.w}/${W} = ${fNum(r.post).toFixed(4)}`));
+    tr.appendChild(el("td", null, fStr(r.pBlack)));
+    tr.appendChild(el("td", null, `${fStr(r.contrib)} = ${fNum(r.contrib).toFixed(4)}`));
+    tbody.appendChild(tr);
+  }
+  const trt = el("tr", "total");
+  const tdLab = el("td", null, "P(next chip is black)");
+  tdLab.colSpan = 5;
+  trt.appendChild(tdLab);
+  trt.appendChild(el("td", null, `${fStr(value)} = ${fNum(value).toFixed(4)}`));
+  tbody.appendChild(trt);
+  tbl.appendChild(tbody);
+  wrap.appendChild(tbl);
+  panel.appendChild(wrap);
+
+  const res = el("div", "resultbar");
+  const strong = el("strong", null, `Fair value = $100 × ${fStr(value)} = ${money(v)}`);
+  res.appendChild(strong);
+  panel.appendChild(res);
+
+  // where each draw leads
+  const btns = el("div", "drawbtns");
+  const pB = fNum(value), pR = 1 - pB;
+  if (k < 5) {
+    const nextB = 100 * fNum(STATES[k + 1][B + 1].value);
+    const nextR = 100 * fNum(STATES[k + 1][B].value);
+    const bBtn = el("button", null, `Draw black (${(100 * pB).toFixed(1)}% chance) → ${money(nextB)}`);
+    bBtn.disabled = pB === 0;
+    bBtn.addEventListener("click", () => { cells[k][B].classList.add("path"); selectState(k + 1, B + 1, true, true); });
+    const rBtn = el("button", null, `Draw red (${(100 * pR).toFixed(1)}% chance) → ${money(nextR)}`);
+    rBtn.disabled = pR === 0;
+    rBtn.addEventListener("click", () => { cells[k][B].classList.add("path"); selectState(k + 1, B, true, true); });
+    btns.appendChild(bBtn); btns.appendChild(rBtn);
+  } else {
+    const doneNote = el("p", "note",
+      `Last round: the drawn chip settles the security — black pays $100 (${(100 * pB).toFixed(1)}% chance), red pays $0.`);
+    panel.appendChild(doneNote);
+  }
+  const reset = el("button", null, "⟲ Reset to round 1");
+  reset.addEventListener("click", () => { cells.flat().forEach(c => c.classList.remove("path")); selectState(0, 0, true); });
+  const garp = el("button", null, "▶ Replay the GARP draw (R B R R R R)");
+  garp.addEventListener("click", replayGarp);
+  btns.appendChild(reset); btns.appendChild(garp);
+  panel.appendChild(btns);
+}
+
+const GARP = "RBRRRR";
+function replayGarp() {
+  if (replayTimer) { clearInterval(replayTimer); replayTimer = null; }
+  cells.flat().forEach(c => c.classList.remove("path"));
+  let i = 0, b = 0;
+  selectState(0, 0, false, true);
+  replayTimer = setInterval(() => {
+    if (i >= 5) { clearInterval(replayTimer); replayTimer = null; return; }
+    cells[i][b].classList.add("path");
+    if (GARP[i] === "B") b += 1;
+    i += 1;
+    selectState(i, b, false, true);
+  }, 900);
+}
+
+selectState(0, 0, false);
+
+/* ---------- simple-game tree ---------- */
+function drawTree() {
+  const svg = document.getElementById("simpleTree");
+  const css = getComputedStyle(document.documentElement);
+  const ink = css.getPropertyValue("--ink").trim(), ink2 = css.getPropertyValue("--ink-2").trim(),
+        surface = css.getPropertyValue("--surface").trim(), border = css.getPropertyValue("--baseline").trim(),
+        red = css.getPropertyValue("--chip-red").trim(), blk = css.getPropertyValue("--chip-black").trim();
+  const NS = "http://www.w3.org/2000/svg";
+  svg.replaceChildren();
+  const nodes = {
+    root: { x: 280, y: 40,  v: "$50.00",  s: "start" },
+    r:    { x: 150, y: 130, v: "$66.67",  s: "after 1 red" },
+    b:    { x: 410, y: 130, v: "$33.33",  s: "after 1 black" },
+    rr:   { x: 60,  y: 225, v: "$100.00", s: "2 red" },
+    rb:   { x: 280, y: 225, v: "$50.00",  s: "1 each" },
+    bb:   { x: 500, y: 225, v: "$0.00",   s: "2 black" },
+  };
+  const edges = [["root","r","R"],["root","b","B"],["r","rr","R"],["r","rb","B"],["b","rb","R"],["b","bb","B"]];
+  for (const [a, c, kind] of edges) {
+    const A = nodes[a], C = nodes[c];
+    const ln = document.createElementNS(NS, "line");
+    ln.setAttribute("x1", A.x); ln.setAttribute("y1", A.y + 22);
+    ln.setAttribute("x2", C.x); ln.setAttribute("y2", C.y - 22);
+    ln.setAttribute("stroke", kind === "R" ? red : blk);
+    ln.setAttribute("stroke-width", "2"); ln.setAttribute("stroke-linecap", "round");
+    svg.appendChild(ln);
+    const mx = (A.x + C.x) / 2, my = (A.y + 22 + C.y - 22) / 2;
+    const dot = document.createElementNS(NS, "circle");
+    dot.setAttribute("cx", mx); dot.setAttribute("cy", my); dot.setAttribute("r", "7");
+    dot.setAttribute("fill", kind === "R" ? red : blk);
+    dot.setAttribute("stroke", surface); dot.setAttribute("stroke-width", "2");
+    svg.appendChild(dot);
+  }
+  for (const key of Object.keys(nodes)) {
+    const nd = nodes[key];
+    const g = document.createElementNS(NS, "g");
+    const rect = document.createElementNS(NS, "rect");
+    rect.setAttribute("x", nd.x - 52); rect.setAttribute("y", nd.y - 22);
+    rect.setAttribute("width", "104"); rect.setAttribute("height", "44");
+    rect.setAttribute("rx", "9");
+    rect.setAttribute("fill", surface); rect.setAttribute("stroke", border);
+    g.appendChild(rect);
+    const t1 = document.createElementNS(NS, "text");
+    t1.setAttribute("x", nd.x); t1.setAttribute("y", nd.y - 2);
+    t1.setAttribute("text-anchor", "middle"); t1.setAttribute("fill", ink);
+    t1.setAttribute("font-size", "14"); t1.setAttribute("font-weight", "650");
+    t1.textContent = nd.v; g.appendChild(t1);
+    const t2 = document.createElementNS(NS, "text");
+    t2.setAttribute("x", nd.x); t2.setAttribute("y", nd.y + 14);
+    t2.setAttribute("text-anchor", "middle"); t2.setAttribute("fill", ink2);
+    t2.setAttribute("font-size", "11");
+    t2.textContent = nd.s; g.appendChild(t2);
+    svg.appendChild(g);
+  }
+  const cap = document.createElementNS(NS, "text");
+  cap.setAttribute("x", 280); cap.setAttribute("y", 262); cap.setAttribute("text-anchor", "middle");
+  cap.setAttribute("fill", ink2); cap.setAttribute("font-size", "11.5");
+  cap.textContent = "Three-chip game: every state’s fair value. Red edges = red drawn, black edges = black drawn.";
+  svg.appendChild(cap);
+}
+drawTree();
+
+/* ---------- line charts (Figures 1 & 2) ---------- */
+const ROUNDS = [1, 2, 3, 4, 5, 6];
+const EV = [58.33, 46.67, 50.00, 40.00, 33.33, 28.57];
+const CHARTS = [
+  {
+    el: "chart1",
+    series: [
+      { name: "Expected value", varName: "--series-ev",  values: EV, exact: true },
+      { name: "Mean bid",       varName: "--series-bid", values: [58, 66, 44, 53, 62, 87] },
+    ],
+  },
+  {
+    el: "chart2",
+    series: [
+      { name: "Expected value", varName: "--series-ev",   values: EV, exact: true },
+      { name: "Lost last time", varName: "--series-lost", values: [58, 70, 38, 67, 69, 80] },
+      { name: "Won last time",  varName: "--series-won",  values: [58, 62, 52, 51, 47, 38] },
+    ],
+  },
+];
+
+function renderChart(cfg) {
+  const host = document.getElementById(cfg.el);
+  host.replaceChildren();
+  const css = getComputedStyle(document.documentElement);
+  const col = v => css.getPropertyValue(v).trim();
+  const ink = col("--ink"), muted = col("--muted"), grid = col("--grid"),
+        baseline = col("--baseline"), surface = col("--surface");
+
+  // legend
+  const legend = el("div", "legend");
+  for (const s of cfg.series) {
+    const key = el("span", "key");
+    const sw = el("span", "swatch"); sw.style.borderTopColor = col(s.varName);
+    key.appendChild(sw); key.appendChild(document.createTextNode(s.name));
+    legend.appendChild(key);
+  }
+  host.appendChild(legend);
+
+  const W = 820, H = 330, m = { l: 46, r: 130, t: 12, b: 34 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const x = i => m.l + (i / (ROUNDS.length - 1)) * pw;
+  const y = v => m.t + (1 - v / 100) * ph;
+
+  const box = el("div", "chartbox");
+  box.tabIndex = 0;
+  box.setAttribute("role", "img");
+  box.setAttribute("aria-label", cfg.series.map(s =>
+    `${s.name}: ` + s.values.map((v, i) => `round ${i + 1} $${v}`).join(", ")).join(". "));
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  box.appendChild(svg);
+
+  // gridlines + y ticks
+  for (const t of [0, 25, 50, 75, 100]) {
+    const ln = document.createElementNS(NS, "line");
+    ln.setAttribute("x1", m.l); ln.setAttribute("x2", m.l + pw);
+    ln.setAttribute("y1", y(t)); ln.setAttribute("y2", y(t));
+    ln.setAttribute("stroke", t === 0 ? baseline : grid); ln.setAttribute("stroke-width", "1");
+    svg.appendChild(ln);
+    const tx = document.createElementNS(NS, "text");
+    tx.setAttribute("x", m.l - 8); tx.setAttribute("y", y(t) + 4);
+    tx.setAttribute("text-anchor", "end"); tx.setAttribute("fill", muted);
+    tx.setAttribute("font-size", "12"); tx.textContent = "$" + t;
+    svg.appendChild(tx);
+  }
+  // x ticks
+  ROUNDS.forEach((r, i) => {
+    const tx = document.createElementNS(NS, "text");
+    tx.setAttribute("x", x(i)); tx.setAttribute("y", m.t + ph + 22);
+    tx.setAttribute("text-anchor", "middle"); tx.setAttribute("fill", muted);
+    tx.setAttribute("font-size", "12"); tx.textContent = "Round " + r;
+    svg.appendChild(tx);
+  });
+
+  // crosshair (under marks)
+  const cross = document.createElementNS(NS, "line");
+  cross.setAttribute("y1", m.t); cross.setAttribute("y2", m.t + ph);
+  cross.setAttribute("stroke", baseline); cross.setAttribute("stroke-width", "1");
+  cross.setAttribute("visibility", "hidden");
+  svg.appendChild(cross);
+
+  // series
+  for (const s of cfg.series) {
+    const color = col(s.varName);
+    const path = document.createElementNS(NS, "path");
+    path.setAttribute("d", s.values.map((v, i) => (i ? "L" : "M") + x(i) + " " + y(v)).join(" "));
+    path.setAttribute("fill", "none"); path.setAttribute("stroke", color);
+    path.setAttribute("stroke-width", "2");
+    path.setAttribute("stroke-linecap", "round"); path.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(path);
+    s.values.forEach((v, i) => {
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", x(i)); c.setAttribute("cy", y(v)); c.setAttribute("r", "4");
+      c.setAttribute("fill", color); c.setAttribute("stroke", surface); c.setAttribute("stroke-width", "2");
+      svg.appendChild(c);
+    });
+  }
+
+  // direct labels at line ends (two lines: name, value), spread apart if they collide
+  const endLabels = cfg.series
+    .map(s => ({ s, ty: y(s.values[5]) }))
+    .sort((a, b) => a.ty - b.ty);
+  for (let i = 1; i < endLabels.length; i++) {
+    if (endLabels[i].ty - endLabels[i - 1].ty < 34) endLabels[i].ty = endLabels[i - 1].ty + 34;
+  }
+  for (const { s, ty } of endLabels) {
+    const color = col(s.varName);
+    if (Math.abs(ty - y(s.values[5])) > 6) {   // leader line when the label was pushed off its point
+      const ld = document.createElementNS(NS, "line");
+      ld.setAttribute("x1", x(5) + 5); ld.setAttribute("y1", y(s.values[5]));
+      ld.setAttribute("x2", x(5) + 8); ld.setAttribute("y2", ty - 4);
+      ld.setAttribute("stroke", color); ld.setAttribute("stroke-width", "1");
+      svg.appendChild(ld);
+    }
+    const lb = document.createElementNS(NS, "text");
+    lb.setAttribute("x", x(5) + 10); lb.setAttribute("fill", ink); lb.setAttribute("font-size", "12.5");
+    const t1 = document.createElementNS(NS, "tspan");
+    t1.setAttribute("x", x(5) + 10); t1.setAttribute("y", ty);
+    t1.textContent = s.name;
+    const t2 = document.createElementNS(NS, "tspan");
+    t2.setAttribute("x", x(5) + 10); t2.setAttribute("y", ty + 15);
+    t2.setAttribute("font-weight", "650");
+    t2.textContent = s.exact ? money(s.values[5]) : "≈$" + s.values[5];
+    lb.appendChild(t1); lb.appendChild(t2);
+    svg.appendChild(lb);
+  }
+
+  // tooltip
+  const tip = el("div", "tooltip");
+  box.appendChild(tip);
+  let tipIdx = -1;
+  function showTip(i) {
+    tipIdx = i;
+    if (i < 0) { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); return; }
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i));
+    cross.setAttribute("visibility", "visible");
+    tip.replaceChildren();
+    tip.appendChild(el("div", "tt-title", "Round " + ROUNDS[i]));
+    for (const s of cfg.series) {
+      const row = el("div", "tt-row");
+      const key = el("span", "tt-key"); key.style.borderTopColor = col(s.varName);
+      const val = el("span", "tt-val", s.exact ? money(s.values[i]) : "≈$" + s.values[i]);
+      const name = el("span", "tt-name", s.name);
+      row.appendChild(key); row.appendChild(val); row.appendChild(name);
+      tip.appendChild(row);
+    }
+    tip.style.display = "block";
+    const bw = box.clientWidth, scale = bw / W;
+    const px = x(i) * scale;
+    tip.style.left = (px + (px > bw * 0.62 ? -tip.offsetWidth - 14 : 14)) + "px";
+    tip.style.top = "18px";
+  }
+  box.addEventListener("pointermove", e => {
+    const rect = box.getBoundingClientRect();
+    const gx = (e.clientX - rect.left) * (W / rect.width);
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < ROUNDS.length; i++) {
+      const d = Math.abs(gx - x(i));
+      if (d < bd) { bd = d; best = i; }
+    }
+    showTip(best);
+  });
+  box.addEventListener("pointerleave", () => showTip(-1));
+  box.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") { showTip(Math.min(5, tipIdx < 0 ? 0 : tipIdx + 1)); e.preventDefault(); }
+    else if (e.key === "ArrowLeft") { showTip(Math.max(0, tipIdx < 0 ? 0 : tipIdx - 1)); e.preventDefault(); }
+    else if (e.key === "Escape") showTip(-1);
+  });
+  box.addEventListener("blur", () => showTip(-1));
+  host.appendChild(box);
+
+  // table view
+  const det = el("details", "tableview");
+  det.appendChild(el("summary", null, "Data table"));
+  const wrap = el("div", "table-scroll");
+  const tbl = el("table", "data");
+  const trh = el("tr");
+  trh.appendChild(el("th", null, "Series"));
+  ROUNDS.forEach(r => trh.appendChild(el("th", null, "R" + r)));
+  const thead = el("thead"); thead.appendChild(trh); tbl.appendChild(thead);
+  const tb = el("tbody");
+  for (const s of cfg.series) {
+    const tr = el("tr");
+    tr.appendChild(el("td", null, s.name + (s.exact ? "" : " (approx.)")));
+    s.values.forEach(v => tr.appendChild(el("td", null, s.exact ? money(v) : "$" + v)));
+    tb.appendChild(tr);
+  }
+  tbl.appendChild(tb); wrap.appendChild(tbl); det.appendChild(wrap);
+  host.appendChild(det);
+}
+
+function renderAllCharts() { CHARTS.forEach(renderChart); }
+renderAllCharts();
+if (window.matchMedia) {
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    renderAllCharts();
+    drawTree();
+  });
+}
+</script>
+</body>
+</html>
