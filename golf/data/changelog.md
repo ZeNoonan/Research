@@ -72,3 +72,20 @@ one US Open cell. Best assessment of each is listed in the deliverable's "Residu
 cells" section. In brief: Straka / SW Kim / Im / English (23Sc) and Rose / Burns (24Sc) are
 likely `MC` as Scottish-Open regulars; C.Young (23Sc) and Day (24Sc) are plausibly `NIF`;
 McNealy (24Sc) and MacIntyre (23US) are genuinely uncertain. None affects the rankings.
+
+---
+
+## 2026-07-13 — added `26US` (the 2026 U.S. Open itself)
+
+- New column `26US` after `25US`: the target event, played June 18–21 2026 at Shinnecock
+  (won wire-to-wire by Wyndham Clark at 4-under 276; cut fell at +4, a Shinnecock record low).
+- All 50 cells verified via multiple independent news reports and cross-checked against the
+  full prize-money payout lists (Golf Channel / NBC Sports / Golf.com / golfnewsnet). The
+  tie-group position arithmetic is internally consistent across sources
+  (T4×3 → T7×4 → T11×6 → T17×5 → 22 solo → T23 …).
+- Day **WD** (back injury, mid round 1). Penge **NIF** (withdrew June 9 pre-event and was
+  replaced by an alternate — same convention as Rahm's Pinehurst '24 NIF). Homa **NIF**
+  (failed final qualifying).
+- Leaderboard recomputed over 13 events: Gotterup now qualifies (5/5, 100%) at #4; Knapp and
+  Reed also reach 5 verified events; unranked shrinks to Bridgeman (3) and Penge (4).
+- Table now 650 cells: 640 verified, same 10 residual `?`.
