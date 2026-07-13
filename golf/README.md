@@ -22,12 +22,13 @@ Flynn-designed Shinnecock Hills using twelve architectural-proxy events
 (Open Championships, Genesis Scottish Opens, Pebble Beach Pro-Ams, and recent
 US Opens):
 
-- **Form table (50 × 12)** — finishing position per player per proxy event,
-  ordered by verified cut%.
+- **Form table (50 × 13)** — finishing position per player per event
+  (twelve proxies plus `26US`, the 2026 U.S. Open at Shinnecock itself,
+  won by Wyndham Clark), ordered by verified cut%.
 - **Cut-make leaderboard** — made-cut rate ranked among players with 5+
   verified events (NIF/WD/? excluded from the denominator).
 
-All 600 cells were audited against full final leaderboards (590 verified,
+All 650 cells were audited against full final leaderboards (640 verified,
 10 left as `?`); see `data/changelog.md` for every correction.
 
 ## Viewing the data
