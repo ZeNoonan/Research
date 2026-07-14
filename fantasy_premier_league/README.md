@@ -1,0 +1,127 @@
+# Fantasy Premier League — a five-factor weekly pick sheet
+
+A weekly player-recommendation model for **Fantasy Premier League**
+(2026/27 season onward), built in the family style of
+[`march_madness/`](../march_madness/) and [`nfl_report/`](../nfl_report/):
+a simple, **additive binary-factor model** in the spirit of Aaron Brown's
+demonstration systems. Each factor is one yes/no comparison against a
+player's *position peers*; the sum is a **0–5 star rating**, and the weekly
+pick sheet is everyone at 4★ and 5★.
+
+**Open [`index.html`](index.html)** — a self-contained, phone-friendly page
+(no external assets, same treatment as `nfl_report/`) with the factor
+explainer and the current pick lists by position.
+
+## The model
+
+Five factors, each worth one star, each judged within position
+(GK / DEF / MID / FWD) among players who pass the minutes gate:
+
+| # | Factor | Star when… | Intuition |
+|---|---|---|---|
+| 1 | **Quality** | model expected points per 90 above the position median | process stats over outcomes — xG, not goals |
+| 2 | **Value** | expected points per 90 **per £million** above the position median | points per pound funds the rest of the squad |
+| 3 | **Form** | points over the **last 5 gameweeks** above the position median | momentum |
+| 4 | **Justice** | under-rewarded over the **last 6 gameweeks**: attackers whose xGI exceeds actual goals+assists; defenders/keepers who conceded more than their xGC (defenders count both) | luck mean-reverts and the crowd over-reacts to outcomes, so the unlucky are cheap |
+| 5 | **Crowd** | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off |
+
+**Eligibility gate** (the analogue of the NFL system only betting at
+\|System #\| ≥ 3): a player must average **45+ minutes per gameweek over the
+last 4 gameweeks**. No factor can rescue a player who doesn't play.
+
+### The quality engine
+
+Factor 1 doesn't use FPL points at all — it rebuilds a player's expected
+points per 90 from the **FPL scoring rules** applied to their underlying
+per-90 rates (appearance points are common to everyone and left out):
+
+```
+xPts/90 = xG90 x goal_points(position)          goals: GK 10, DEF 6, MID 5, FWD 4
+        + xA90 x 3                              assists
+        + exp(-xGC90) x CS_points(position)     clean sheets: GK/DEF 4, MID 1
+        - xGC90 / 2                             GK/DEF only: -1 per 2 conceded
+        + saves90 / 3                           GK only
+        + DC_rate x 2                           defensive contribution (below)
+```
+
+`exp(-xGC90)` is the Poisson chance of a clean sheet while the player is on
+the pitch. `DC_rate` is the share of 60+ minute appearances hitting the
+defensive-contribution threshold (**10** clearances/blocks/interceptions/
+tackles for DEF, **12** including recoveries for MID/FWD — the 2025/26 rule;
+in the GW38 sample ~22% of DEF and ~17% of MID appearances hit it).
+
+## Data
+
+One CSV per gameweek — `data/<season>/gw<N>.csv`, one row per player, the
+standard per-gameweek FPL export format (see the sample,
+[`data/2025-26/gw38.csv`](data/2025-26/gw38.csv), the final week of
+2025/26). `value` is price in £0.1m units; `selected` is the ownership
+count; `defensive_contribution` is the raw CBIT/CBIRT count, not the
+points. The engine needs only the columns listed in `model.REQUIRED`
+(extras like `xP` are carried but unused), so files from the official API
+via `fetch_data.py` and hand-downloaded exports both work.
+
+Ratings always use **every gameweek file present** as season-to-date
+evidence: the same code rates GW2 on one week and GW38 on thirty-seven.
+With few gameweeks loaded the form/justice windows are thin and the report
+says so — early-season output leans heavily on the Value and Crowd factors
+(visible in the sample: one week of evidence surfaces cheap defenders).
+
+## Getting ready for 2026/27
+
+Prices and squads for the new season appear in the API when the game
+relaunches in July; per-gameweek rows appear as gameweeks finish. The
+weekly routine once the season starts:
+
+```bash
+python fetch_data.py                 # data/2026-27/gw<N>.csv for every finished GW
+python weekly_report.py --data data/2026-27    # terminal pick sheet + reports/ CSV
+python build_site.py   --data data/2026-27     # regenerate index.html
+```
+
+`fetch_data.py` uses two public endpoints (no login):
+`bootstrap-static/` for names/teams/positions and `element-summary/{id}/`
+for each player's per-gameweek history — one throttled request per player,
+a minute or two for a full refresh. *(Written to spec but not yet run
+end-to-end: the FPL API is blocked from the sandbox this was developed in.
+First run in anger should be sanity-checked against a hand-downloaded GW
+file.)*
+
+## Files
+
+```
+model.py           the five-factor engine (all model logic)
+weekly_report.py   terminal pick sheet + full rated CSV into reports/
+build_site.py      rated season -> index.html (static, phone-friendly)
+backtest.py        star ratings vs next-gameweek points (needs 2+ GW files)
+fetch_data.py      official FPL API -> data/<season>/gw<N>.csv
+data/2025-26/      sample: gw38.csv, the final week of 2025/26
+index.html         generated web view of the current picks
+```
+
+Run: `pip install -r requirements.txt`, then any of the commands above —
+defaults point at the `data/2025-26/` sample.
+
+## Validation — the same treatment as the siblings
+
+`backtest.py` is the monotonicity check: for every gameweek G it rates all
+players on data through G−1 and scores them against their actual points in
+G — average next-week points should **rise with the star rating**, and each
+factor is also reported standalone (with-star vs without, the analogue of
+`nfl_report/factor_analysis.py`). It needs at least two gameweek files, so
+it explains itself and exits on the one-week sample. **Next step:** drop
+gw1–gw37 of 2025/26 into `data/2025-26/` and run it — that's the full
+out-of-sample scorecard before trusting the model with 2026/27 transfers.
+
+## Roadmap
+
+1. **Backtest on full 2025/26** — gw1–gw38, star-bucket monotonicity and
+   per-factor edges; recalibrate windows/thresholds if a factor is flat.
+2. **Fixture factor** — the model rates players on season-to-date process;
+   it doesn't yet see *who they play next*. Add upcoming fixture difficulty
+   (the API's `fixtures/` endpoint) — likely as an overlay on the pick
+   sheet rather than a sixth star, to keep the five-factor shape.
+3. **Squad optimizer** — turn the pick sheet into a legal 15 (£100m budget,
+   2 GK / 5 DEF / 5 MID / 3 FWD, max 3 per club) once prices land in July.
+4. **Chip planning** — bench boost / triple captain timing off double
+   gameweeks, once the fixture list is in.
