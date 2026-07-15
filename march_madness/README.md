@@ -11,6 +11,13 @@ live pool win-probability calculation and per-team slot-calculation detail.
 Round points, pool size and picks are all editable, and a toggle switches
 between the published and fixed formulas.
 
+**Open [`value_tutorial.html`](value_tutorial.html)** — an in-depth tutorial
+on the **Value factor**: why variance wins pools, the full derivation of the
+ΔEV/ΔVar/ratio pipeline, a two-team toy example small enough to check by hand
+(with live sliders), a step-by-step trace of the calculation for any 2019
+team and round (fixed or as-published formulas, replaying both bugs), and a
+"value frontier" chart of all 64 teams against the ratio boundary.
+
 ## The model
 
 Five factors, in the spirit of Fama–French factor investing, each contribute
@@ -91,15 +98,17 @@ everywhere, win probability within 1.4×10⁻⁹.
 ## Files
 
 ```
-extract_model.py   xlsx -> data/model_2019.json, + --report verification
-fix_workbook.py    writes March_Madness_20190318_fixed.xlsx
-build_site.py      data/model_2019.json -> index.html
-data/              extracted model inputs
-reference/         original workbook + Aaron Brown's paper
+extract_model.py         xlsx -> data/model_2019.json, + --report verification
+fix_workbook.py          writes March_Madness_20190318_fixed.xlsx
+build_site.py            data/model_2019.json -> index.html
+build_value_tutorial.py  data/model_2019.json -> value_tutorial.html
+data/                    extracted model inputs
+reference/               original workbook + Aaron Brown's paper
 ```
 
-Rebuild: `python3 extract_model.py && python3 build_site.py`
-(needs `openpyxl`).
+Rebuild: `python3 extract_model.py && python3 build_site.py &&
+python3 build_value_tutorial.py` (extraction needs `openpyxl`; the two site
+builders are stdlib-only).
 
 ## Next — validation against actual results
 
