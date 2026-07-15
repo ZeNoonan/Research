@@ -1,146 +1,66 @@
 # Research
 
-A flexible repository for experimental projects, proof-of-concepts, and research work.
+A workspace for experimental projects, proof-of-concepts, and research work —
+much of it recreating and extending the quantitative-finance-meets-sports
+work of **Aaron Brown** (Wilmott magazine, *Pulling the Goalie*, the NFL
+demonstration system, the March Madness bracket model), plus assorted games
+and analysis apps.
 
-## Overview
-
-This repository serves as a workspace for research activities, experimental implementations, and learning projects. It's designed to be adaptable to various types of research and development work.
-
-## Getting Started
-
-### Prerequisites
-_To be documented as the project develops_
-
-### Installation
-```bash
-# Clone the repository
-git clone <repository-url>
-cd Research
-
-# Setup instructions will be added as the project grows
-```
-
-## Project Structure
-
-```
-Research/
-├── CLAUDE.md                       # AI assistant guidelines and development conventions
-├── README.md                       # This file
-├── .gitignore                      # Git ignore patterns
-├── index.html                      # Root landing page (redirects to kelly_sim/)
-└── kelly_sim/                      # Kelly Criterion simulation project
-    ├── index.html                  # Landing page for the web app
-    ├── kelly_criterion_game.py     # Kelly Criterion coin flip simulation (Python)
-    ├── kelly_visualization.py      # Visualization tools for Kelly simulations (Python)
-    ├── kelly_game.html             # Kelly Criterion web app (mobile-friendly)
-    ├── serve.py                    # Simple HTTP server for web app
-    ├── KELLY_GAME_README.md        # Detailed documentation for Python version
-    ├── WEB_APP_README.md           # Web app documentation and usage guide
-    └── GITHUB_PAGES_SETUP.md       # GitHub Pages deployment guide
-```
+Most projects generate a **self-contained, phone-friendly web page**
+(`<project>/index.html`) served from GitHub Pages at
+`https://zenoonan.github.io/Research/<project>/`.
 
 ## Projects
 
-### 🪙 Kelly Criterion Coin Flip Game
+| Project | What it is | Web view |
+|---|---|---|
+| [`fantasy_premier_league/`](fantasy_premier_league/) | Five-factor weekly FPL pick sheet (Quality, Value, Form, Justice, Crowd vs position peers), backtested on 2025/26, ready for 2026/27 | [open](https://zenoonan.github.io/Research/fantasy_premier_league/) |
+| [`nfl_report/`](nfl_report/) | Replication of Aaron Brown's NFL against-the-spread five-factor demonstration system (2010–2016), extended to 2019–2025 from raw data | [open](https://zenoonan.github.io/Research/nfl_report/) |
+| [`march_madness/`](march_madness/) | Brown's "Quants go mad in March" factor-investing bracket model, re-implemented and verified, with a Value-pipeline bug found and fixed | [open](https://zenoonan.github.io/Research/march_madness/) |
+| [`pulling_the_goalie/`](pulling_the_goalie/) | Replication of Asness & Brown (2018), *Pulling the Goalie: Hockey and Investment Implications* | [open](https://zenoonan.github.io/Research/pulling_the_goalie/) |
+| [`monopoly/`](monopoly/) | Brown's "Monopoly 101" (Wilmott 2003): Monopoly as quantitative finance, recreated, validated and extended | [open](https://zenoonan.github.io/Research/monopoly/) |
+| [`security_trading_game/`](security_trading_game/) | Brown's "Rouge et Noir" (Wilmott 2013): a security-pricing dice game | [open](https://zenoonan.github.io/Research/security_trading_game/) |
+| [`VAR/`](VAR/) | Value-at-Risk backtesting on the NASDAQ Composite, from Brown's *"Forced by the Sternest Circumstances"* (Wilmott 2009) | — |
+| [`kelly_sim/`](kelly_sim/) | Kelly Criterion coin-flip game: optimal bet sizing, in web and Python CLI versions | [open](https://zenoonan.github.io/Research/kelly_sim/) |
+| [`premier_league_handicap/`](premier_league_handicap/) | Streamlit app: per-team handicap (bonus points) applied to the 2025/26 Premier League table | — |
+| [`baseball_var/`](baseball_var/) | Little League WAR/WAA explorer, from the GameChanger spreadsheet | [open](https://zenoonan.github.io/Research/baseball_var/) |
+| [`golf/`](golf/) | Golf form and course-fit research | [open](https://zenoonan.github.io/Research/golf/) |
+| [`hurling/`](hurling/) | GAA.ie Hurling Team of the Week, 2026 championship | [open](https://zenoonan.github.io/Research/hurling/) |
 
-An interactive simulation demonstrating optimal betting strategies using the Kelly Criterion. Available in both **web** and **Python** versions!
+Each project folder has its own README with the model details, data notes,
+validation results and how to run it. The web-view links work once the
+project is on the default branch; for work still on a feature branch, use
+raw.githack (e.g.
+`https://raw.githack.com/ZeNoonan/Research/<branch>/<project>/index.html`) —
+each project README carries its own current link.
 
-#### 📱 Web App (Mobile-Friendly)
+## Highlights
 
-Play directly in your browser on any device - **perfect for phones!**
-
-**Quick Start:**
-```bash
-# Option 1: Play online (GitHub Pages)
-# Visit: https://zenoonan.github.io/Research/
-# (See kelly_sim/GITHUB_PAGES_SETUP.md for deployment instructions)
-
-# Option 2: Open directly in browser
-open kelly_sim/kelly_game.html
-
-# Option 3: Serve on local network (access from phone)
-cd kelly_sim && python3 serve.py
-# Then visit http://YOUR_IP:8000/kelly_game.html from any device
-```
-
-**Features:**
-- 🎮 Four interactive tabs: Play, Simulate, Learn, Compare
-- 📱 Mobile-optimized responsive design
-- 📊 Real-time charts with Chart.js
-- ⚡ No installation required - just open and play
-- 🔒 Works offline after first load
-- 💾 Single 34KB file
-
-**To play on your phone:**
-- Transfer `kelly_sim/kelly_game.html` to your phone via email, cloud storage, or AirDrop
-- Open in Safari (iOS) or Chrome (Android)
-- Or host locally and access via your network
-
-**Learn More:** See [kelly_sim/WEB_APP_README.md](kelly_sim/WEB_APP_README.md) for detailed web app guide.
-
-#### 🐍 Python CLI Version
-
-Full-featured command-line version with advanced simulation capabilities.
-
-**Quick Start:**
-```bash
-# Play the interactive game
-python3 kelly_sim/kelly_criterion_game.py
-
-# Generate visualizations (requires matplotlib)
-python3 kelly_sim/kelly_visualization.py
-```
-
-**Features:**
-- Interactive gameplay modes
-- Multiple betting strategy comparisons (Kelly, Half Kelly, Fixed %, All-In)
-- Real-time performance tracking and statistics
-- Visual charts with matplotlib
-- Educational explanations of the Kelly formula
-
-**Learn More:** See [kelly_sim/KELLY_GAME_README.md](kelly_sim/KELLY_GAME_README.md) for comprehensive documentation.
-
-**What is the Kelly Criterion?**
-```
-Formula: f* = (bp - q) / b
-
-Example with 60% win rate:
-f* = 0.2 or 20% of bankroll per bet
-```
-
-This demonstrates why proper bet sizing matters - bet too much and you risk ruin, bet too little and you leave profits on the table.
-
-## Usage
-
-Refer to individual project documentation for specific usage instructions.
+- **Fantasy Premier League** (new): an additive binary-factor model in the
+  family of `nfl_report/` and `march_madness/` — five one-star factors
+  judged against position peers behind a minutes gate. Backtested over the
+  full 2025/26 season: star buckets rise from 2.46 to 3.51 actual
+  next-week points, and the 4–5★ pick sheet beat the eligible pool 3.28 vs
+  2.85 points per week.
+- **NFL Report**: the betting logic of Brown's published sheets is fully
+  reproduced (System # 98.8%, 595/599 bets), then the same report is
+  generated from raw odds and results for 2019–2025.
+- **March Madness**: 4,224/4,224 slot-calculation cells reproduced exactly,
+  plus a fill-down bug and a sign bug in the published Value pipeline,
+  found and fixed.
 
 ## Development
 
-### For AI Assistants
-Please refer to [CLAUDE.md](CLAUDE.md) for comprehensive guidelines on:
-- Codebase structure and conventions
-- Development workflows
-- Git practices
-- Code modification guidelines
-
-### Contributing
-_Contribution guidelines will be added as needed_
-
-## Documentation
-
-- **CLAUDE.md**: Comprehensive guide for AI assistants working with this repository
-- Additional documentation will be added as the project grows
-
-## License
-
-_To be specified_
-
-## Contact
-
-_Contact information to be added_
+- **For AI assistants**: see [CLAUDE.md](CLAUDE.md) for repo conventions,
+  git workflow and guidelines.
+- **Branching**: feature work happens on `claude/<name>-<session-id>`
+  branches and merges to the default branch by pull request.
+- **Python projects**: each carries its own `requirements.txt`; typically
+  `pip install -r <project>/requirements.txt` then run the scripts named in
+  the project README.
 
 ---
 
-**Status**: Active - Kelly Criterion game available in web and Python versions
+**Status**: Active
 
-**Last Updated**: 2026-01-26
+**Last Updated**: 2026-07-15
