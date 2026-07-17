@@ -752,7 +752,7 @@ Brown&rsquo;s <em>&ldquo;Quants go mad in March&rdquo;</em> bracket model
 and a live trace of any 2019 team. Companion to the
 <a href="index.html">main model page</a>; sources:
 <a href="reference/Quants_Mad_March.pdf">the paper</a>,
-<a href="README.md">README</a>.</p>
+<a href="https://github.com/ZeNoonan/Research/blob/HEAD/march_madness/README.md">README</a>.</p>
 <nav class="toc">
 <a href="#idea">The idea</a>
 <a href="#why-variance">Why variance</a>

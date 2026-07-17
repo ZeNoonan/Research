@@ -16,7 +16,7 @@ Most projects generate a **self-contained, phone-friendly web page**
 |---|---|---|
 | [`fantasy_premier_league/`](fantasy_premier_league/) | Five-factor weekly FPL pick sheet (Quality, Value, Form, Justice, Crowd vs position peers), backtested on 2025/26, ready for 2026/27 | [open](https://zenoonan.github.io/Research/fantasy_premier_league/) |
 | [`nfl_report/`](nfl_report/) | Replication of Aaron Brown's NFL against-the-spread five-factor demonstration system (2010–2016), extended to 2019–2025 from raw data | [open](https://zenoonan.github.io/Research/nfl_report/) |
-| [`march_madness/`](march_madness/) | Brown's "Quants go mad in March" factor-investing bracket model, re-implemented and verified, with a Value-pipeline bug found and fixed | [open](https://zenoonan.github.io/Research/march_madness/) |
+| [`march_madness/`](march_madness/) | Brown's "Quants go mad in March" factor-investing bracket model, re-implemented and verified, with a Value-pipeline bug found and fixed | [open](https://zenoonan.github.io/Research/march_madness/) · [Value tutorial](https://zenoonan.github.io/Research/march_madness/value_tutorial.html) |
 | [`pulling_the_goalie/`](pulling_the_goalie/) | Replication of Asness & Brown (2018), *Pulling the Goalie: Hockey and Investment Implications* | [open](https://zenoonan.github.io/Research/pulling_the_goalie/) |
 | [`monopoly/`](monopoly/) | Brown's "Monopoly 101" (Wilmott 2003): Monopoly as quantitative finance, recreated, validated and extended | [open](https://zenoonan.github.io/Research/monopoly/) |
 | [`security_trading_game/`](security_trading_game/) | Brown's "Rouge et Noir" (Wilmott 2013): a security-pricing dice game | [open](https://zenoonan.github.io/Research/security_trading_game/) |
@@ -47,7 +47,9 @@ each project README carries its own current link.
   generated from raw odds and results for 2019–2025.
 - **March Madness**: 4,224/4,224 slot-calculation cells reproduced exactly,
   plus a fill-down bug and a sign bug in the published Value pipeline,
-  found and fixed.
+  found and fixed — with an in-depth
+  [Value-factor tutorial](https://zenoonan.github.io/Research/march_madness/value_tutorial.html)
+  (derivation, hand-checkable toy example, live trace of any 2019 team).
 
 ## Development
 
@@ -63,4 +65,4 @@ each project README carries its own current link.
 
 **Status**: Active
 
-**Last Updated**: 2026-07-15
+**Last Updated**: 2026-07-17
