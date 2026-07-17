@@ -429,7 +429,10 @@ spreadsheet (March&nbsp;18, 2019 version), re-implemented and verified
 cell-by-cell, with the Variance-difference bug fixed.
 Source: <a href="reference/March_Madness_20190318.xlsx">original workbook</a>,
 <a href="March_Madness_20190318_fixed.xlsx">fixed workbook</a>,
-<a href="reference/Quants_Mad_March.pdf">the paper</a>.</p>
+<a href="reference/Quants_Mad_March.pdf">the paper</a>.
+See also the <a href="value_tutorial.html">in-depth Value-factor
+tutorial</a> &mdash; every step of the calculation, with a hand-checkable
+toy example.</p>
 </header>
 
 <div class="cols">
@@ -520,7 +523,8 @@ automatic conference win.</p></div>
 <div class="fc"><b>Value</b><p>Slot-level: the pick increases the variance of
 your score versus the pool average by at least as much as it costs in
 expected points &mdash; or it is the favorite. Every champion since 1985 has
-been a Value pick.</p></div>
+been a Value pick. <a href="value_tutorial.html">In-depth tutorial
+&rarr;</a></p></div>
 <div class="fc"><b>Bet against beta</b><p>Slot-level: a non-favorite within
 0.5 win probability of the favorite that the field picks <em>less</em> often
 relative to its probability. Differentiates your bracket without Gaussian
