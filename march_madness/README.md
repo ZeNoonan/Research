@@ -5,18 +5,25 @@ March"** NCAA bracket-pool spreadsheet (March 18, 2019 version), with a bug in
 its Value-pick pipeline found and fixed. The source workbook and paper are in
 [`reference/`](reference/).
 
-**Open [`index.html`](index.html)** — a self-contained page (no external
+**Open the live page:
+<https://zenoonan.github.io/Research/march_madness/>**
+(source: [`index.html`](index.html)) — a self-contained page (no external
 assets) showing the Bracket tab's star ratings, the editable picks grid, the
 live pool win-probability calculation and per-team slot-calculation detail.
 Round points, pool size and picks are all editable, and a toggle switches
 between the published and fixed formulas.
 
-**Open [`value_tutorial.html`](value_tutorial.html)** — an in-depth tutorial
+**Open the live tutorial:
+<https://zenoonan.github.io/Research/march_madness/value_tutorial.html>**
+(source: [`value_tutorial.html`](value_tutorial.html)) — an in-depth tutorial
 on the **Value factor**: why variance wins pools, the full derivation of the
 ΔEV/ΔVar/ratio pipeline, a two-team toy example small enough to check by hand
 (with live sliders), a step-by-step trace of the calculation for any 2019
 team and round (fixed or as-published formulas, replaying both bugs), and a
 "value frontier" chart of all 64 teams against the ratio boundary.
+
+(The GitHub file links above show the pages' *source code*; the
+`zenoonan.github.io` links are the rendered, interactive pages.)
 
 ## The model
 
