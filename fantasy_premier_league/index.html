@@ -33,11 +33,22 @@ td.num, th.num { text-align: right; }
 p.note, li { color: var(--muted); font-size: 14px; }
 code { background: #eef1f4; border-radius: 4px; padding: 1px 5px; font-size: 13px; }
 footer { color: var(--muted); font-size: 12px; margin: 20px 0; text-align: center; }
+.ex { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 14px; }
+.ex h3 { font-size: 16px; margin: 0 0 6px; }
+.ex p { font-size: 14px; margin: 8px 0; }
+.ex table { margin: 8px 0; }
+.yes { color: #1e7d46; font-weight: 700; }
+.no { color: var(--muted); }
+tr.starred td { background: rgba(181, 137, 0, .10); }
+.calc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #14181c; --card: #1d232a; --ink: #e6ebf0; --muted: #98a4af;
     --border: #313a44; --star: #e0b64a; }
   .letters { background: #26303a; }
   code { background: #26303a; }
+  .yes { color: #4cc38a; }
+  tr.starred td { background: rgba(224, 182, 74, .12); }
 }
 </style></head><body><div class="wrap">
 <header><h1>FPL five-factor picks</h1>
@@ -51,15 +62,96 @@ gate; 4★ and 5★ picks below (top 12 per position).</div>
 <div class="tablewrap"><table><tr><td><span class='letters'>Q</span></td><td><b>Quality</b></td><td style='white-space:normal'>Model expected points per 90 — rebuilt from the FPL scoring rules and the player's underlying per-90 numbers (xG, xA, xGC, defensive contributions, saves) — above the position median.</td></tr><tr><td><span class='letters'>V</span></td><td><b>Value</b></td><td style='white-space:normal'>Expected points per 90 per £million above the position median. Points per pound funds the rest of the squad.</td></tr><tr><td><span class='letters'>F</span></td><td><b>Form</b></td><td style='white-space:normal'>Points over the last 5 gameweeks above the position median. Momentum.</td></tr><tr><td><span class='letters'>J</span></td><td><b>Justice</b></td><td style='white-space:normal'>Under-rewarded over the last 6 gameweeks: attackers whose xGI beats their actual returns, defenders/keepers who conceded more than their xGC. Luck mean-reverts; the unlucky are cheap.</td></tr><tr><td><span class='letters'>C</span></td><td><b>Crowd</b></td><td style='white-space:normal'>Ownership percentile below quality percentile within the position — the field underweights the player (bet against beta).</td></tr></table></div>
 <p class="note">Eligibility gate: 45+ minutes per gameweek averaged over the
 last 4 gameweeks — no factor can rescue a player who
-doesn't play.</p></section>
+doesn't play. <a href="#examples">Worked examples of every factor below
+↓</a></p></section>
 <section><h2>Goalkeepers</h2><div class='tablewrap'><table><tr><th>Stars</th><th>Player</th><th>Team</th><th class='num'>Price</th><th>Factors</th><th class='num'>xPts/90</th><th class='num'>Owned</th></tr><tr><td><span class='stars'>★★★★★</span></td><td>Antonín Kinský</td><td>Spurs</td><td class='num'>£3.9m</td><td><span class='letters'>QVFJC</span></td><td class='num'>1.9</td><td class='num'>258k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Nick Pope</td><td>Newcastle</td><td class='num'>£5.0m</td><td><span class='letters'>QVJC</span></td><td class='num'>1.7</td><td class='num'>593k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Giorgi Mamardashvili</td><td>Liverpool</td><td class='num'>£4.1m</td><td><span class='letters'>QVJC</span></td><td class='num'>1.5</td><td class='num'>91k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Karl Darlow</td><td>Leeds</td><td class='num'>£4.0m</td><td><span class='letters'>QVFC</span></td><td class='num'>1.4</td><td class='num'>902k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Mads Hermansen</td><td>West Ham</td><td class='num'>£4.2m</td><td><span class='letters'>QVFC</span></td><td class='num'>1.4</td><td class='num'>138k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Senne Lammens</td><td>Man Utd</td><td class='num'>£5.1m</td><td><span class='letters'>QVFC</span></td><td class='num'>1.4</td><td class='num'>468k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Emiliano Martínez Romero</td><td>Aston Villa</td><td class='num'>£5.0m</td><td><span class='letters'>QVJC</span></td><td class='num'>1.4</td><td class='num'>573k</td></tr></table></div></section><section><h2>Defenders</h2><div class='tablewrap'><table><tr><th>Stars</th><th>Player</th><th>Team</th><th class='num'>Price</th><th>Factors</th><th class='num'>xPts/90</th><th class='num'>Owned</th></tr><tr><td><span class='stars'>★★★★★</span></td><td>Kevin Danso</td><td>Spurs</td><td class='num'>£4.2m</td><td><span class='letters'>QVFJC</span></td><td class='num'>2.5</td><td class='num'>28k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Rodrigo Martins Gomes</td><td>Wolves</td><td class='num'>£4.4m</td><td><span class='letters'>QVFJC</span></td><td class='num'>1.7</td><td class='num'>11k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Michael Keane</td><td>Everton</td><td class='num'>£4.5m</td><td><span class='letters'>QVFJC</span></td><td class='num'>1.6</td><td class='num'>407k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Maxim De Cuyper</td><td>Brighton</td><td class='num'>£4.3m</td><td><span class='letters'>QVFJC</span></td><td class='num'>1.5</td><td class='num'>231k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Riccardo Calafiori</td><td>Arsenal</td><td class='num'>£5.6m</td><td><span class='letters'>QVFC</span></td><td class='num'>3.3</td><td class='num'>783k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Levi Samuels Colwill</td><td>Chelsea</td><td class='num'>£4.7m</td><td><span class='letters'>QVJC</span></td><td class='num'>2.5</td><td class='num'>20k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>William Saliba</td><td>Arsenal</td><td class='num'>£6.3m</td><td><span class='letters'>QVFC</span></td><td class='num'>2.2</td><td class='num'>2.2m</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Maxence Lacroix</td><td>Crystal Palace</td><td class='num'>£5.2m</td><td><span class='letters'>QVJC</span></td><td class='num'>2.1</td><td class='num'>927k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Konstantinos Mavropanos</td><td>West Ham</td><td class='num'>£4.5m</td><td><span class='letters'>QVFC</span></td><td class='num'>2.1</td><td class='num'>351k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Sven Botman</td><td>Newcastle</td><td class='num'>£4.9m</td><td><span class='letters'>QVFC</span></td><td class='num'>2.1</td><td class='num'>67k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Daniel Muñoz Mejía</td><td>Crystal Palace</td><td class='num'>£5.9m</td><td><span class='letters'>QVFJ</span></td><td class='num'>2.0</td><td class='num'>1.2m</td></tr><tr><td><span class='stars'>★★★★</span></td><td>James Tarkowski</td><td>Everton</td><td class='num'>£5.8m</td><td><span class='letters'>QVFJ</span></td><td class='num'>2.0</td><td class='num'>1.7m</td></tr></table></div></section><section><h2>Midfielders</h2><div class='tablewrap'><table><tr><th>Stars</th><th>Player</th><th>Team</th><th class='num'>Price</th><th>Factors</th><th class='num'>xPts/90</th><th class='num'>Owned</th></tr><tr><td><span class='stars'>★★★★★</span></td><td>Bryan Mbeumo</td><td>Man Utd</td><td class='num'>£8.3m</td><td><span class='letters'>QVFJC</span></td><td class='num'>2.9</td><td class='num'>2.0m</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Ismaïla Sarr</td><td>Crystal Palace</td><td class='num'>£6.4m</td><td><span class='letters'>QVFJC</span></td><td class='num'>2.7</td><td class='num'>723k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Marcus Tavernier</td><td>Bournemouth</td><td class='num'>£5.3m</td><td><span class='letters'>QVFJC</span></td><td class='num'>2.4</td><td class='num'>553k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Bruno Guimarães Rodriguez Moura</td><td>Newcastle</td><td class='num'>£6.9m</td><td><span class='letters'>QVFJC</span></td><td class='num'>2.2</td><td class='num'>851k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Mikkel Damsgaard</td><td>Brentford</td><td class='num'>£5.6m</td><td><span class='letters'>QVFJC</span></td><td class='num'>2.1</td><td class='num'>99k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Adam Wharton</td><td>Crystal Palace</td><td class='num'>£5.0m</td><td><span class='letters'>QVFJC</span></td><td class='num'>2.0</td><td class='num'>96k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Rodrigo Bentancur</td><td>Spurs</td><td class='num'>£5.2m</td><td><span class='letters'>QVFJC</span></td><td class='num'>1.9</td><td class='num'>23k</td></tr><tr><td><span class='stars'>★★★★★</span></td><td>Mathias Jensen</td><td>Brentford</td><td class='num'>£4.9m</td><td><span class='letters'>QVFJC</span></td><td class='num'>1.7</td><td class='num'>19k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Bukayo Saka</td><td>Arsenal</td><td class='num'>£10.0m</td><td><span class='letters'>QVFC</span></td><td class='num'>3.4</td><td class='num'>1.5m</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Cole Palmer</td><td>Chelsea</td><td class='num'>£10.3m</td><td><span class='letters'>QVJC</span></td><td class='num'>3.2</td><td class='num'>1.7m</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Enzo Fernández</td><td>Chelsea</td><td class='num'>£6.5m</td><td><span class='letters'>QVFC</span></td><td class='num'>2.6</td><td class='num'>1.6m</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Phil Foden</td><td>Man City</td><td class='num'>£8.0m</td><td><span class='letters'>QVFC</span></td><td class='num'>2.5</td><td class='num'>1.0m</td></tr></table></div></section><section><h2>Forwards</h2><div class='tablewrap'><table><tr><th>Stars</th><th>Player</th><th>Team</th><th class='num'>Price</th><th>Factors</th><th class='num'>xPts/90</th><th class='num'>Owned</th></tr><tr><td><span class='stars'>★★★★</span></td><td>Taiwo Awoniyi</td><td>Nott&#x27;m Forest</td><td class='num'>£5.2m</td><td><span class='letters'>QVFC</span></td><td class='num'>3.2</td><td class='num'>48k</td></tr><tr><td><span class='stars'>★★★★</span></td><td>Junior Kroupi</td><td>Bournemouth</td><td class='num'>£4.7m</td><td><span class='letters'>QVFC</span></td><td class='num'>2.2</td><td class='num'>1.0m</td></tr><tr><td><span class='stars'>★★★★</span></td><td>William Osula</td><td>Newcastle</td><td class='num'>£5.5m</td><td><span class='letters'>QVFC</span></td><td class='num'>2.1</td><td class='num'>291k</td></tr></table></div></section>
 <section><h2>Captain shortlist</h2>
 <p class="note">Bukayo Saka (Arsenal), Cole Palmer (Chelsea), Taiwo Awoniyi (Nott&#x27;m Forest)</p></section>
+<section id='examples'><h2>How each factor is calculated — worked examples</h2><p class='note'>Every number in this section is made up, chosen so the sums are easy to follow. The real model runs exactly this arithmetic over every eligible player, inside each position (GK / DEF / MID / FWD).</p>
+<div class="ex"><h3><span class="letters">Q</span> Quality — worked example</h3>
+<p>Take a made-up midfielder, <b>Player A</b>. Over the season his per-90
+underlying numbers are: xG 0.40, xA 0.20, team xGC while he's on the pitch
+1.20, and he hits the 12-action defensive-contribution threshold in 35% of
+his starts. Apply the FPL scoring rules to those rates:</p>
+<div class="tablewrap"><table>
+<tr><th>Component</th><th class="num">Calculation</th><th class="num">Points/90</th></tr>
+<tr><td>Goals</td><td class="num calc">0.40 × 5 (MID goal)</td><td class="num">2.00</td></tr>
+<tr><td>Assists</td><td class="num calc">0.20 × 3</td><td class="num">0.60</td></tr>
+<tr><td>Clean sheets</td><td class="num calc">e<sup>−1.20</sup> ≈ 0.30 × 1 (MID CS)</td><td class="num">0.30</td></tr>
+<tr><td>Defensive contribution</td><td class="num calc">0.35 × 2</td><td class="num">0.70</td></tr>
+<tr><td><b>Model xPts/90</b></td><td class="num"></td><td class="num"><b>3.60</b></td></tr>
+</table></div>
+<p>Do that for every eligible midfielder, then compare each to the position
+median. Among our five made-up midfielders the median is
+<b>2.6</b> — the star goes to everyone strictly above it:</p>
+<div class='tablewrap'><table><tr><th>Player</th><th class='num'>xPts/90</th><th class='num'>Star?</th></tr><tr class='starred'><td>Player A</td><td class='num'>3.6</td><td class='num yes'>★ yes</td></tr><tr><td>Player B</td><td class='num'>2.6</td><td class='num no'>no</td></tr><tr class='starred'><td>Player C</td><td class='num'>4.1</td><td class='num yes'>★ yes</td></tr><tr><td>Player D</td><td class='num'>1.8</td><td class='num no'>no</td></tr><tr><td>Player E</td><td class='num'>2.2</td><td class='num no'>no</td></tr></table></div>
+<p class="note">Player B sits exactly on the median, so no star — "above the
+median" is strict. Note the engine never looks at actual points scored:
+goals in, luck out.</p></div>
+<div class="ex"><h3><span class="letters">V</span> Value — worked example</h3>
+<p>Divide each player's xPts/90 by his price. Player A:
+<span class="calc">3.6 ÷ £8.0m = 0.45</span> points per 90 per £million.</p>
+<div class='tablewrap'><table><tr><th>Player</th><th class='num'>Price</th><th class='num'>xPts/90</th><th class='num'>xPts/90 per £m</th><th class='num'>Star?</th></tr><tr class='starred'><td>Player A</td><td class='num'>£8.0m</td><td class='num'>3.6</td><td class='num'>0.45</td><td class='num yes'>★ yes</td></tr><tr class='starred'><td>Player B</td><td class='num'>£5.0m</td><td class='num'>2.6</td><td class='num'>0.52</td><td class='num yes'>★ yes</td></tr><tr><td>Player C</td><td class='num'>£14.0m</td><td class='num'>4.1</td><td class='num'>0.29</td><td class='num no'>no</td></tr><tr><td>Player D</td><td class='num'>£4.5m</td><td class='num'>1.8</td><td class='num'>0.40</td><td class='num no'>no</td></tr><tr><td>Player E</td><td class='num'>£5.5m</td><td class='num'>2.2</td><td class='num'>0.40</td><td class='num no'>no</td></tr></table></div>
+<p>The median is <b>0.40</b>, so Players A and B collect the star.
+The teaching point is <b>Player C</b>: the best player on the list
+(4.1 xPts/90) but at £14.0m he returns only 0.29 per £m — top of the
+Quality table, yet no Value star. Players D and E sit exactly on the
+median: no star.</p></div>
+<div class="ex"><h3><span class="letters">F</span> Form — worked example</h3>
+<p>Add up each player's actual FPL points over the <b>last 5 gameweeks</b>.
+Player A's last five scores were 2, 9, 3, 6 and 4 —
+<span class="calc">2 + 9 + 3 + 6 + 4 = 24</span>.</p>
+<div class='tablewrap'><table><tr><th>Player</th><th class='num'>Last-5-GW points</th><th class='num'>Star?</th></tr><tr class='starred'><td>Player A</td><td class='num'>24</td><td class='num yes'>★ yes</td></tr><tr><td>Player B</td><td class='num'>18</td><td class='num no'>no</td></tr><tr class='starred'><td>Player C</td><td class='num'>28</td><td class='num yes'>★ yes</td></tr><tr><td>Player D</td><td class='num'>12</td><td class='num no'>no</td></tr><tr><td>Player E</td><td class='num'>15</td><td class='num no'>no</td></tr></table></div>
+<p>Median <b>18</b>; A and C are above it and take the momentum
+star. This is the one factor built on actual points — it deliberately
+rewards whatever is currently working, lucky or not.</p></div>
+<div class="ex"><h3><span class="letters">J</span> Justice — worked example</h3>
+<p>Over the <b>last 6 gameweeks</b>, compare what the underlying numbers say
+a player <i>should</i> have returned with what he actually got. Made-up
+numbers:</p>
+<div class="tablewrap"><table>
+<tr><th>Player</th><th class="num">xG + xA (6 GWs)</th><th class="num">Actual G + A</th>
+<th class="num">Conceded − xGC</th><th class="num">Justice margin</th><th class="num">Star?</th></tr>
+<tr class="starred"><td>Player F (FWD)</td><td class="num">3.1 + 0.6 = 3.7</td>
+<td class="num">1 + 1 = 2</td><td class="num">—</td>
+<td class="num calc">3.7 − 2 = +1.7</td><td class="num yes">★ yes</td></tr>
+<tr><td>Player G (MID)</td><td class="num">0.9 + 0.3 = 1.2</td>
+<td class="num">3 + 1 = 4</td><td class="num">—</td>
+<td class="num calc">1.2 − 4 = −2.8</td><td class="num no">no</td></tr>
+<tr class="starred"><td>Player H (DEF)</td><td class="num">0.5 + 0.1 = 0.6</td>
+<td class="num">0 + 0 = 0</td><td class="num">9 − 7.0 = +2.0</td>
+<td class="num calc">0.6 + 2.0 = +2.6</td><td class="num yes">★ yes</td></tr>
+</table></div>
+<p>Player F has banked 3.7 expected goal involvements but cashed only 2 —
+he is <b>due</b>, so he gets the star. Player G has scored far above his
+numbers — that usually washes out, so no star. Defenders add a second
+ledger: Player H's team conceded 9 against an xGC of 7.0, so his side has
+been unlucky at the back too (goalkeepers use only that second ledger).
+Any margin above zero earns the star.</p></div>
+<div class="ex"><h3><span class="letters">C</span> Crowd — worked example</h3>
+<p>Rank the five midfielders twice — once by quality (xPts/90), once by
+ownership — with 1 the lowest and 5 the highest. The star goes to anyone
+whose <b>ownership rank is below his quality rank</b>: the field hasn't
+caught on yet.</p>
+<div class='tablewrap'><table><tr><th>Player</th><th class='num'>Owned by</th><th class='num'>Quality rank</th><th class='num'>Ownership rank</th><th class='num'>Star?</th></tr><tr><td>Player A</td><td class='num'>5.0m</td><td class='num'>4</td><td class='num'>5</td><td class='num no'>no</td></tr><tr class='starred'><td>Player B</td><td class='num'>0.3m</td><td class='num'>3</td><td class='num'>2</td><td class='num yes'>★ yes</td></tr><tr class='starred'><td>Player C</td><td class='num'>1.2m</td><td class='num'>5</td><td class='num'>4</td><td class='num yes'>★ yes</td></tr><tr><td>Player D</td><td class='num'>0.1m</td><td class='num'>1</td><td class='num'>1</td><td class='num no'>no</td></tr><tr><td>Player E</td><td class='num'>0.9m</td><td class='num'>2</td><td class='num'>3</td><td class='num no'>no</td></tr></table></div>
+<p>Player C is the best of the five (quality rank 5) but not the most
+owned (ownership rank 4) — the field underrates him, star. Player B
+likewise (quality 3, ownership 2). Player A is the <i>most</i>-owned
+player but only second-best — the bandwagon is ahead of the quality, so
+no star. When a differential comes off, it moves you up
+the rank ladder past everyone who didn't own it.</p></div>
+<div class="ex"><h3>The minutes gate — worked example</h3>
+<p>Before any factor is scored, a player must average <b>45+ minutes per
+gameweek over the last 4 gameweeks</b> (180 in total). Minutes of
+<span class="calc">90, 90, 30, 75 = 285</span> → rated. Minutes of
+<span class="calc">60, 0, 90, 20 = 170</span> → not rated at all, whatever
+the underlying numbers say. No factor can rescue a player who doesn't
+play.</p></div></section>
 <section><h2>Refresh</h2>
 <p class="note"><code>python fetch_data.py</code> after a gameweek finishes,
 then <code>python weekly_report.py</code> for the terminal view and
 <code>python build_site.py</code> to regenerate this page. The full rated
 table for every player is written to <code>reports/</code>.</p></section>
-<footer>Generated 2026-07-14 · fantasy_premier_league ·
+<footer>Generated 2026-07-18 · fantasy_premier_league ·
 five-factor model</footer>
 </div></body></html>

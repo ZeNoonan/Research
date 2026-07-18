@@ -10,7 +10,9 @@ pick sheet is everyone at 4★ and 5★.
 
 **Open [`index.html`](index.html)** — a self-contained, phone-friendly page
 (no external assets, same treatment as `nfl_report/`) with the factor
-explainer and the current pick lists by position.
+explainer, the current pick lists by position, and a **worked example of
+every factor** — each calculated step by step on small made-up numbers so
+the arithmetic is easy to follow.
 
 ## Open the app (phone or laptop)
 
