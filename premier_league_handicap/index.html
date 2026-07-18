@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premier League 2025-2026 Handicap Analysis</title>
+<meta name="description" content="Handicap-adjusted standings, game-by-game results and season progression for the 2025-2026 Premier League.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
+<style>
+  :root {
+    color-scheme: light;
+    --page:      #f9f9f7;
+    --surface:   #fcfcfb;
+    --ink:       #0b0b0b;
+    --ink-2:     #52514e;
+    --muted:     #898781;
+    --grid:      #e1e0d9;
+    --baseline:  #c3c2b7;
+    --border:    rgba(11,11,11,0.10);
+    --good-text: #006300;
+    --bad-text:  #d03b3b;
+    --s1: #2a78d6; --s2: #008300; --s3: #e87ba4; --s4: #eda100;
+    --s5: #1baf7a; --s6: #eb6834; --s7: #4a3aa7; --s8: #e34948;
+    --status-good:     #0ca30c;
+    --status-critical: #d03b3b;
+    --div-pos: #2a78d6;
+    --div-neg: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:      #0d0d0d;
+      --surface:   #1a1a19;
+      --ink:       #ffffff;
+      --ink-2:     #c3c2b7;
+      --muted:     #898781;
+      --grid:      #2c2c2a;
+      --baseline:  #383835;
+      --border:    rgba(255,255,255,0.10);
+      --good-text: #0ca30c;
+      --bad-text:  #e66767;
+      --s1: #3987e5; --s2: #008300; --s3: #d55181; --s4: #c98500;
+      --s5: #199e70; --s6: #d95926; --s7: #9085e9; --s8: #e66767;
+      --div-pos: #3987e5;
+      --div-neg: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:      #0d0d0d;
+    --surface:   #1a1a19;
+    --ink:       #ffffff;
+    --ink-2:     #c3c2b7;
+    --muted:     #898781;
+    --grid:      #2c2c2a;
+    --baseline:  #383835;
+    --border:    rgba(255,255,255,0.10);
+    --good-text: #0ca30c;
+    --bad-text:  #e66767;
+    --s1: #3987e5; --s2: #008300; --s3: #d55181; --s4: #c98500;
+    --s5: #199e70; --s6: #d95926; --s7: #9085e9; --s8: #e66767;
+    --div-pos: #3987e5;
+    --div-neg: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  header.hero { margin-bottom: 28px; }
+  .hero h1 { font-size: 30px; line-height: 1.2; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .hero .sub { color: var(--ink-2); max-width: 780px; margin: 0; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin: 22px 0;
+  }
+  .card h2 { font-size: 19px; margin: 0 0 4px; }
+  .card .desc { color: var(--ink-2); font-size: 13.5px; margin: 0 0 16px; max-width: 820px; }
+  .card .desc strong { color: var(--ink); }
+
+  .howto { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .howto { grid-template-columns: 1fr; } }
+  .howto .rule { border-left: 3px solid var(--s1); padding-left: 14px; }
+  .howto .rule h3 { font-size: 14px; margin: 0 0 4px; }
+  .howto .rule p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .tile .lbl { font-size: 12.5px; color: var(--ink-2); margin-bottom: 4px; }
+  .tile .val { font-size: 26px; font-weight: 600; line-height: 1.15; }
+  .tile .delta { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+  .tile .delta.up   { color: var(--good-text); }
+  .tile .delta.down { color: var(--bad-text); }
+
+  .tbl-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { padding: 7px 10px; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { padding-left: 4px; }
+  td.txt, th.txt { text-align: left; }
+  thead th {
+    color: var(--muted); font-weight: 600; font-size: 12px;
+    border-bottom: 1px solid var(--baseline);
+    cursor: pointer; user-select: none; position: relative;
+  }
+  thead th.nosort { cursor: default; }
+  tbody td { border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.champ td { font-weight: 600; }
+  td.dim { color: var(--muted); }
+  td.emph { font-weight: 600; }
+  .delta-up   { color: var(--good-text); }
+  .delta-down { color: var(--bad-text); }
+  .delta-flat { color: var(--muted); }
+  th .arr { font-size: 9px; margin-left: 3px; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .chip {
+    font: inherit; font-size: 12.5px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--ink-2);
+    border-radius: 999px; padding: 4px 12px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip:hover { border-color: var(--baseline); color: var(--ink); }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--baseline); flex: none; }
+  .chip[aria-pressed="true"] { color: var(--ink); font-weight: 600; border-color: var(--baseline); }
+  .chip-actions { margin-left: auto; display: inline-flex; gap: 8px; }
+  .chip.ghost { border-style: dashed; }
+
+  .chart-scroll { overflow-x: auto; }
+  .chart-scroll svg { display: block; }
+  figure { margin: 0; }
+  figcaption { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  .legend { display: flex; gap: 18px; align-items: center; font-size: 12.5px; color: var(--ink-2); margin-bottom: 12px; flex-wrap: wrap; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw  { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  .legend .ln  { width: 16px; height: 2px; border-radius: 1px; flex: none; }
+
+  .heat-scroll { overflow-x: auto; }
+  .heat { border-collapse: collapse; font-size: 10.5px; }
+  .heat th { font-size: 10px; color: var(--muted); font-weight: 600; padding: 3px 2px; text-align: center; cursor: default; border-bottom: none; }
+  .heat td { padding: 0; border: none; }
+  .heat .cell {
+    width: 27px; min-width: 27px; height: 21px;
+    display: flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+    border-radius: 2px;
+  }
+  .heat td { padding: 1px; }
+  .heat .team-cell {
+    position: sticky; left: 0; background: var(--surface);
+    text-align: left; font-size: 12px; padding: 0 10px 0 2px; white-space: nowrap;
+    font-variant-numeric: normal;
+  }
+  .heat-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .heat-legend .bar { height: 8px; width: 140px; border-radius: 4px; }
+
+  select {
+    font: inherit; font-size: 14px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--baseline); border-radius: 8px;
+    padding: 6px 10px;
+  }
+  .gbg-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .gbg-sum { font-size: 13px; color: var(--ink-2); }
+  .gbg-sum strong { color: var(--ink); }
+  .pill {
+    display: inline-block; min-width: 22px; text-align: center;
+    border-radius: 6px; padding: 1px 6px; font-weight: 600; font-size: 12px;
+    color: var(--ink);
+  }
+  .pill.W { background: color-mix(in srgb, var(--status-good) 18%, transparent); }
+  .pill.D { background: color-mix(in srgb, var(--muted) 18%, transparent); }
+  .pill.L { background: color-mix(in srgb, var(--status-critical) 18%, transparent); }
+
+  .viz-tip {
+    position: fixed; z-index: 30; pointer-events: none;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+    padding: 8px 11px; font-size: 12.5px; max-width: 260px;
+    display: none;
+  }
+  .viz-tip .tt-title { color: var(--muted); font-size: 11.5px; margin-bottom: 3px; }
+  .viz-tip .tt-row { display: flex; align-items: center; gap: 7px; padding: 1px 0; }
+  .viz-tip .tt-key { width: 12px; height: 2px; border-radius: 1px; flex: none; }
+  .viz-tip .tt-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .viz-tip .tt-name { color: var(--ink-2); }
+
+  footer { color: var(--muted); font-size: 12.5px; margin-top: 40px; }
+  footer a { color: var(--ink-2); }
+  noscript .card { border-color: var(--bad-text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="kicker">Premier League &middot; 2025-2026 &middot; final</div>
+    <h1>The Handicap Season</h1>
+    <p class="sub">
+      Before the season, every club was assigned a <strong>handicap</strong> &mdash; bonus points
+      added to its final total, biggest for the sides expected to struggle. This page re-scores
+      the finished 2025-2026 season on that basis: the adjusted table, how the race unfolded
+      game by game, and how well the handicaps actually levelled the field.
+    </p>
+  </header>
+
+  <noscript><div class="card"><h2>JavaScript required</h2>
+    <p class="desc">This page renders its tables and charts with JavaScript. The underlying data
+    lives in <a href="data/">the data folder</a> of the repository.</p></div></noscript>
+
+  <section class="kpis" id="kpis" aria-label="Season headlines"></section>
+
+  <section class="card">
+    <h2>How the handicap works</h2>
+    <div class="howto" style="margin-top:12px">
+      <div class="rule">
+        <h3>Season totals</h3>
+        <p>Adjusted points = actual points + handicap. A team with 54 actual points and a
+        52-point handicap finishes on 106 adjusted points.</p>
+      </div>
+      <div class="rule">
+        <h3>Game by game</h3>
+        <p>The handicap is spread evenly across all 38 games (handicap &divide; 38). With a
+        38-point handicap that is +1 per game: a win is worth 3&thinsp;+&thinsp;1&thinsp;=&thinsp;4,
+        a draw 1&thinsp;+&thinsp;1&thinsp;=&thinsp;2. The per-game totals sum back exactly to
+        actual&thinsp;+&thinsp;handicap.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Adjusted league table</h2>
+    <p class="desc">Sorted by adjusted points; actual points and handicap stay visible.
+      <span style="color:var(--muted)">&Delta; is places gained or lost against the actual table. Click a column heading to re-sort.</span></p>
+    <div class="tbl-scroll"><table id="league-table" aria-label="Adjusted league table"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Where the points came from</h2>
+    <p class="desc">Every team&rsquo;s adjusted total, split into points earned on the pitch and
+      points granted by the handicap.</p>
+    <figure>
+      <div class="legend" id="stack-legend"></div>
+      <div class="chart-scroll" id="stack-chart"></div>
+    </figure>
+  </section>
+
+  <section class="card">
+    <h2>The race, game by game</h2>
+    <p class="desc">Cumulative adjusted points across all 38 games. Click teams below to
+      highlight them &mdash; everyone else stays as grey context. Hover the chart for values at any game.</p>
+    <div class="chip-row" id="race-chips" role="group" aria-label="Highlight teams"></div>
+    <figure>
+      <div class="chart-scroll" id="race-chart"></div>
+      <figcaption>Values for every team at every game are in the grid below.</figcaption>
+    </figure>
+  </section>
+
+  <section class="card">
+    <h2>Cumulative adjusted points &mdash; full grid</h2>
+    <p class="desc">Rows are teams in final adjusted order; columns are games 1&ndash;38. Each cell is
+      the running adjusted total after that game (rounded to whole points). Darker means more points.
+      Hover a cell for the game behind it.</p>
+    <div class="heat-scroll" id="heatmap"></div>
+    <div class="heat-legend" id="heat-legend"></div>
+  </section>
+
+  <section class="card">
+    <h2>Game-by-game detail</h2>
+    <p class="desc">All 38 games for one team, with the handicap share added to each result.</p>
+    <div class="gbg-head">
+      <label for="gbg-select" style="font-size:13px;color:var(--ink-2)">Team</label>
+      <select id="gbg-select"></select>
+      <span class="gbg-sum" id="gbg-summary"></span>
+    </div>
+    <div class="tbl-scroll"><table id="gbg-table" aria-label="Game-by-game results"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Who beat their handicap?</h2>
+    <p class="desc">If the handicaps had been set perfectly, every team would have finished on the
+      same adjusted total &mdash; the league average of <strong id="mean-adj"></strong> points.
+      Bars show each team&rsquo;s distance from that mark: right of the line means the team
+      outperformed its handicap, left means it fell short.</p>
+    <figure>
+      <div class="legend" id="div-legend"></div>
+      <div class="chart-scroll" id="div-chart"></div>
+    </figure>
+  </section>
+
+  <section class="card">
+    <h2>Did the handicaps track real strength?</h2>
+    <p class="desc" id="scatter-desc"></p>
+    <figure>
+      <div class="chart-scroll" id="scatter-chart"></div>
+      <figcaption>Teams above the line beat their handicap expectation; teams below fell short.</figcaption>
+    </figure>
+  </section>
+
+  <footer>
+    Data: supplied season handicaps + full 2025-2026 match results (football-data.co.uk format),
+    processed by build_site.py in the
+    <a href="https://github.com/ZeNoonan/Research">Research repository</a>
+    (premier_league_handicap folder). A Streamlit version of this analysis lives in the same folder.
+  </footer>
+</div>
+
+<div class="viz-tip" id="tip" role="status"></div>
+
+<script>
+window.PLH_DATA = /*__DATA__*/{"season":"2025-2026","gamesPerSeason":38,"meanAdjusted":79.1,"handicapActualCorr":-0.669,"teams":[{"name":"Sunderland","short":"Sunderland","handicap":52,"actual":54,"adjusted":106,"actualRank":7,"adjRank":1,"w":14,"dr":12,"l":12,"gf":42,"ga":48,"games":[{"d":"16 Aug","o":"West Ham","v":"H","gf":3,"ga":0,"p":3},{"d":"23 Aug","o":"Burnley","v":"A","gf":0,"ga":2,"p":0},{"d":"30 Aug","o":"Brentford","v":"H","gf":2,"ga":1,"p":3},{"d":"13 Sep","o":"Palace","v":"A","gf":0,"ga":0,"p":1},{"d":"21 Sep","o":"Aston Villa","v":"H","gf":1,"ga":1,"p":1},{"d":"27 Sep","o":"Forest","v":"A","gf":1,"ga":0,"p":3},{"d":"04 Oct","o":"Man Utd","v":"A","gf":0,"ga":2,"p":0},{"d":"18 Oct","o":"Wolves","v":"H","gf":2,"ga":0,"p":3},{"d":"25 Oct","o":"Chelsea","v":"A","gf":2,"ga":1,"p":3},{"d":"03 Nov","o":"Everton","v":"H","gf":1,"ga":1,"p":1},{"d":"08 Nov","o":"Arsenal","v":"H","gf":2,"ga":2,"p":1},{"d":"22 Nov","o":"Fulham","v":"A","gf":0,"ga":1,"p":0},{"d":"29 Nov","o":"Bournemouth","v":"H","gf":3,"ga":2,"p":3},{"d":"03 Dec","o":"Liverpool","v":"A","gf":1,"ga":1,"p":1},{"d":"06 Dec","o":"Man City","v":"A","gf":0,"ga":3,"p":0},{"d":"14 Dec","o":"Newcastle","v":"H","gf":1,"ga":0,"p":3},{"d":"20 Dec","o":"Brighton","v":"A","gf":0,"ga":0,"p":1},{"d":"28 Dec","o":"Leeds","v":"H","gf":1,"ga":1,"p":1},{"d":"01 Jan","o":"Man City","v":"H","gf":0,"ga":0,"p":1},{"d":"04 Jan","o":"Tottenham","v":"A","gf":1,"ga":1,"p":1},{"d":"07 Jan","o":"Brentford","v":"A","gf":0,"ga":3,"p":0},{"d":"17 Jan","o":"Palace","v":"H","gf":2,"ga":1,"p":3},{"d":"24 Jan","o":"West Ham","v":"A","gf":1,"ga":3,"p":0},{"d":"02 Feb","o":"Burnley","v":"H","gf":3,"ga":0,"p":3},{"d":"07 Feb","o":"Arsenal","v":"A","gf":0,"ga":3,"p":0},{"d":"11 Feb","o":"Liverpool","v":"H","gf":0,"ga":1,"p":0},{"d":"22 Feb","o":"Fulham","v":"H","gf":1,"ga":3,"p":0},{"d":"28 Feb","o":"Bournemouth","v":"A","gf":1,"ga":1,"p":1},{"d":"03 Mar","o":"Leeds","v":"A","gf":1,"ga":0,"p":3},{"d":"14 Mar","o":"Brighton","v":"H","gf":0,"ga":1,"p":0},{"d":"22 Mar","o":"Newcastle","v":"A","gf":2,"ga":1,"p":3},{"d":"12 Apr","o":"Tottenham","v":"H","gf":1,"ga":0,"p":3},{"d":"19 Apr","o":"Aston Villa","v":"A","gf":3,"ga":4,"p":0},{"d":"24 Apr","o":"Forest","v":"H","gf":0,"ga":5,"p":0},{"d":"02 May","o":"Wolves","v":"A","gf":1,"ga":1,"p":1},{"d":"09 May","o":"Man Utd","v":"H","gf":0,"ga":0,"p":1},{"d":"17 May","o":"Everton","v":"A","gf":3,"ga":1,"p":3},{"d":"24 May","o":"Chelsea","v":"H","gf":2,"ga":1,"p":3}],"cum":[4.368,5.737,10.105,12.474,14.842,19.211,20.579,24.947,29.316,31.684,34.053,35.421,39.789,42.158,43.526,47.895,50.263,52.632,55.0,57.368,58.737,63.105,64.474,68.842,70.211,71.579,72.947,75.316,79.684,81.053,85.421,89.789,91.158,92.526,94.895,97.263,101.632,106.0],"cumActual":[3,3,6,7,8,11,11,14,17,18,19,19,22,23,23,26,27,28,29,30,30,33,33,36,36,36,36,37,40,40,43,46,46,46,47,48,51,54]},{"name":"Manchester Utd","short":"Man Utd","handicap":21,"actual":71,"adjusted":92,"actualRank":3,"adjRank":2,"w":20,"dr":11,"l":7,"gf":69,"ga":50,"games":[{"d":"17 Aug","o":"Arsenal","v":"H","gf":0,"ga":1,"p":0},{"d":"24 Aug","o":"Fulham","v":"A","gf":1,"ga":1,"p":1},{"d":"30 Aug","o":"Burnley","v":"H","gf":3,"ga":2,"p":3},{"d":"14 Sep","o":"Man City","v":"A","gf":0,"ga":3,"p":0},{"d":"20 Sep","o":"Chelsea","v":"H","gf":2,"ga":1,"p":3},{"d":"27 Sep","o":"Brentford","v":"A","gf":1,"ga":3,"p":0},{"d":"04 Oct","o":"Sunderland","v":"H","gf":2,"ga":0,"p":3},{"d":"19 Oct","o":"Liverpool","v":"A","gf":2,"ga":1,"p":3},{"d":"25 Oct","o":"Brighton","v":"H","gf":4,"ga":2,"p":3},{"d":"01 Nov","o":"Forest","v":"A","gf":2,"ga":2,"p":1},{"d":"08 Nov","o":"Tottenham","v":"A","gf":2,"ga":2,"p":1},{"d":"24 Nov","o":"Everton","v":"H","gf":0,"ga":1,"p":0},{"d":"30 Nov","o":"Palace","v":"A","gf":2,"ga":1,"p":3},{"d":"04 Dec","o":"West Ham","v":"H","gf":1,"ga":1,"p":1},{"d":"08 Dec","o":"Wolves","v":"A","gf":4,"ga":1,"p":3},{"d":"15 Dec","o":"Bournemouth","v":"H","gf":4,"ga":4,"p":1},{"d":"21 Dec","o":"Aston Villa","v":"A","gf":1,"ga":2,"p":0},{"d":"26 Dec","o":"Newcastle","v":"H","gf":1,"ga":0,"p":3},{"d":"30 Dec","o":"Wolves","v":"H","gf":1,"ga":1,"p":1},{"d":"04 Jan","o":"Leeds","v":"A","gf":1,"ga":1,"p":1},{"d":"07 Jan","o":"Burnley","v":"A","gf":2,"ga":2,"p":1},{"d":"17 Jan","o":"Man City","v":"H","gf":2,"ga":0,"p":3},{"d":"25 Jan","o":"Arsenal","v":"A","gf":3,"ga":2,"p":3},{"d":"01 Feb","o":"Fulham","v":"H","gf":3,"ga":2,"p":3},{"d":"07 Feb","o":"Tottenham","v":"H","gf":2,"ga":0,"p":3},{"d":"10 Feb","o":"West Ham","v":"A","gf":1,"ga":1,"p":1},{"d":"23 Feb","o":"Everton","v":"A","gf":1,"ga":0,"p":3},{"d":"01 Mar","o":"Palace","v":"H","gf":2,"ga":1,"p":3},{"d":"04 Mar","o":"Newcastle","v":"A","gf":1,"ga":2,"p":0},{"d":"15 Mar","o":"Aston Villa","v":"H","gf":3,"ga":1,"p":3},{"d":"20 Mar","o":"Bournemouth","v":"A","gf":2,"ga":2,"p":1},{"d":"13 Apr","o":"Leeds","v":"H","gf":1,"ga":2,"p":0},{"d":"18 Apr","o":"Chelsea","v":"A","gf":1,"ga":0,"p":3},{"d":"27 Apr","o":"Brentford","v":"H","gf":2,"ga":1,"p":3},{"d":"03 May","o":"Liverpool","v":"H","gf":3,"ga":2,"p":3},{"d":"09 May","o":"Sunderland","v":"A","gf":0,"ga":0,"p":1},{"d":"17 May","o":"Forest","v":"H","gf":3,"ga":2,"p":3},{"d":"24 May","o":"Brighton","v":"A","gf":3,"ga":0,"p":3}],"cum":[0.553,2.105,5.658,6.211,9.763,10.316,13.868,17.421,20.974,22.526,24.079,24.632,28.184,29.737,33.289,34.842,35.395,38.947,40.5,42.053,43.605,47.158,50.711,54.263,57.816,59.368,62.921,66.474,67.026,70.579,72.132,72.684,76.237,79.789,83.342,84.895,88.447,92.0],"cumActual":[0,1,4,4,7,7,10,13,16,17,18,18,21,22,25,26,26,29,30,31,32,35,38,41,44,45,48,51,51,54,55,55,58,61,64,65,68,71]},{"name":"Brentford","short":"Brentford","handicap":38,"actual":53,"adjusted":91,"actualRank":9,"adjRank":3,"w":14,"dr":11,"l":13,"gf":55,"ga":52,"games":[{"d":"17 Aug","o":"Forest","v":"A","gf":1,"ga":3,"p":0},{"d":"23 Aug","o":"Aston Villa","v":"H","gf":1,"ga":0,"p":3},{"d":"30 Aug","o":"Sunderland","v":"A","gf":1,"ga":2,"p":0},{"d":"13 Sep","o":"Chelsea","v":"H","gf":2,"ga":2,"p":1},{"d":"20 Sep","o":"Fulham","v":"A","gf":1,"ga":3,"p":0},{"d":"27 Sep","o":"Man Utd","v":"H","gf":3,"ga":1,"p":3},{"d":"05 Oct","o":"Man City","v":"H","gf":0,"ga":1,"p":0},{"d":"20 Oct","o":"West Ham","v":"A","gf":2,"ga":0,"p":3},{"d":"25 Oct","o":"Liverpool","v":"H","gf":3,"ga":2,"p":3},{"d":"01 Nov","o":"Palace","v":"A","gf":0,"ga":2,"p":0},{"d":"09 Nov","o":"Newcastle","v":"H","gf":3,"ga":1,"p":3},{"d":"22 Nov","o":"Brighton","v":"A","gf":1,"ga":2,"p":0},{"d":"29 Nov","o":"Burnley","v":"H","gf":3,"ga":1,"p":3},{"d":"03 Dec","o":"Arsenal","v":"A","gf":0,"ga":2,"p":0},{"d":"06 Dec","o":"Tottenham","v":"A","gf":0,"ga":2,"p":0},{"d":"14 Dec","o":"Leeds","v":"H","gf":1,"ga":1,"p":1},{"d":"20 Dec","o":"Wolves","v":"A","gf":2,"ga":0,"p":3},{"d":"27 Dec","o":"Bournemouth","v":"H","gf":4,"ga":1,"p":3},{"d":"01 Jan","o":"Tottenham","v":"H","gf":0,"ga":0,"p":1},{"d":"04 Jan","o":"Everton","v":"A","gf":4,"ga":2,"p":3},{"d":"07 Jan","o":"Sunderland","v":"H","gf":3,"ga":0,"p":3},{"d":"17 Jan","o":"Chelsea","v":"A","gf":0,"ga":2,"p":0},{"d":"25 Jan","o":"Forest","v":"H","gf":0,"ga":2,"p":0},{"d":"01 Feb","o":"Aston Villa","v":"A","gf":1,"ga":0,"p":3},{"d":"07 Feb","o":"Newcastle","v":"A","gf":3,"ga":2,"p":3},{"d":"12 Feb","o":"Arsenal","v":"H","gf":1,"ga":1,"p":1},{"d":"21 Feb","o":"Brighton","v":"H","gf":0,"ga":2,"p":0},{"d":"28 Feb","o":"Burnley","v":"A","gf":4,"ga":3,"p":3},{"d":"03 Mar","o":"Bournemouth","v":"A","gf":0,"ga":0,"p":1},{"d":"16 Mar","o":"Wolves","v":"H","gf":2,"ga":2,"p":1},{"d":"21 Mar","o":"Leeds","v":"A","gf":0,"ga":0,"p":1},{"d":"11 Apr","o":"Everton","v":"H","gf":2,"ga":2,"p":1},{"d":"18 Apr","o":"Fulham","v":"H","gf":0,"ga":0,"p":1},{"d":"27 Apr","o":"Man Utd","v":"A","gf":1,"ga":2,"p":0},{"d":"02 May","o":"West Ham","v":"H","gf":3,"ga":0,"p":3},{"d":"09 May","o":"Man City","v":"A","gf":0,"ga":3,"p":0},{"d":"17 May","o":"Palace","v":"H","gf":2,"ga":2,"p":1},{"d":"24 May","o":"Liverpool","v":"A","gf":1,"ga":1,"p":1}],"cum":[1.0,5.0,6.0,8.0,9.0,13.0,14.0,18.0,22.0,23.0,27.0,28.0,32.0,33.0,34.0,36.0,40.0,44.0,46.0,50.0,54.0,55.0,56.0,60.0,64.0,66.0,67.0,71.0,73.0,75.0,77.0,79.0,81.0,82.0,86.0,87.0,89.0,91.0],"cumActual":[0,3,3,4,4,7,7,10,13,13,16,16,19,19,19,20,23,26,27,30,33,33,33,36,39,40,40,43,44,45,46,47,48,48,51,51,52,53]},{"name":"Leeds United","short":"Leeds","handicap":43,"actual":47,"adjusted":90,"actualRank":14,"adjRank":4,"w":11,"dr":14,"l":13,"gf":49,"ga":56,"games":[{"d":"18 Aug","o":"Everton","v":"H","gf":1,"ga":0,"p":3},{"d":"23 Aug","o":"Arsenal","v":"A","gf":0,"ga":5,"p":0},{"d":"30 Aug","o":"Newcastle","v":"H","gf":0,"ga":0,"p":1},{"d":"13 Sep","o":"Fulham","v":"A","gf":0,"ga":1,"p":0},{"d":"20 Sep","o":"Wolves","v":"A","gf":3,"ga":1,"p":3},{"d":"27 Sep","o":"Bournemouth","v":"H","gf":2,"ga":2,"p":1},{"d":"04 Oct","o":"Tottenham","v":"H","gf":1,"ga":2,"p":0},{"d":"18 Oct","o":"Burnley","v":"A","gf":0,"ga":2,"p":0},{"d":"24 Oct","o":"West Ham","v":"H","gf":2,"ga":1,"p":3},{"d":"01 Nov","o":"Brighton","v":"A","gf":0,"ga":3,"p":0},{"d":"09 Nov","o":"Forest","v":"A","gf":1,"ga":3,"p":0},{"d":"23 Nov","o":"Aston Villa","v":"H","gf":1,"ga":2,"p":0},{"d":"29 Nov","o":"Man City","v":"A","gf":2,"ga":3,"p":0},{"d":"03 Dec","o":"Chelsea","v":"H","gf":3,"ga":1,"p":3},{"d":"06 Dec","o":"Liverpool","v":"H","gf":3,"ga":3,"p":1},{"d":"14 Dec","o":"Brentford","v":"A","gf":1,"ga":1,"p":1},{"d":"20 Dec","o":"Palace","v":"H","gf":4,"ga":1,"p":3},{"d":"28 Dec","o":"Sunderland","v":"A","gf":1,"ga":1,"p":1},{"d":"01 Jan","o":"Liverpool","v":"A","gf":0,"ga":0,"p":1},{"d":"04 Jan","o":"Man Utd","v":"H","gf":1,"ga":1,"p":1},{"d":"07 Jan","o":"Newcastle","v":"A","gf":3,"ga":4,"p":0},{"d":"17 Jan","o":"Fulham","v":"H","gf":1,"ga":0,"p":3},{"d":"26 Jan","o":"Everton","v":"A","gf":1,"ga":1,"p":1},{"d":"31 Jan","o":"Arsenal","v":"H","gf":0,"ga":4,"p":0},{"d":"06 Feb","o":"Forest","v":"H","gf":3,"ga":1,"p":3},{"d":"10 Feb","o":"Chelsea","v":"A","gf":2,"ga":2,"p":1},{"d":"21 Feb","o":"Aston Villa","v":"A","gf":1,"ga":1,"p":1},{"d":"28 Feb","o":"Man City","v":"H","gf":0,"ga":1,"p":0},{"d":"03 Mar","o":"Sunderland","v":"H","gf":0,"ga":1,"p":0},{"d":"15 Mar","o":"Palace","v":"A","gf":0,"ga":0,"p":1},{"d":"21 Mar","o":"Brentford","v":"H","gf":0,"ga":0,"p":1},{"d":"13 Apr","o":"Man Utd","v":"A","gf":2,"ga":1,"p":3},{"d":"18 Apr","o":"Wolves","v":"H","gf":3,"ga":0,"p":3},{"d":"22 Apr","o":"Bournemouth","v":"A","gf":2,"ga":2,"p":1},{"d":"01 May","o":"Burnley","v":"H","gf":3,"ga":1,"p":3},{"d":"11 May","o":"Tottenham","v":"A","gf":1,"ga":1,"p":1},{"d":"17 May","o":"Brighton","v":"H","gf":1,"ga":0,"p":3},{"d":"24 May","o":"West Ham","v":"A","gf":0,"ga":3,"p":0}],"cum":[4.132,5.263,7.395,8.526,12.658,14.789,15.921,17.053,21.184,22.316,23.447,24.579,25.711,29.842,31.974,34.105,38.237,40.368,42.5,44.632,45.763,49.895,52.026,53.158,57.289,59.421,61.553,62.684,63.816,65.947,68.079,72.211,76.342,78.474,82.605,84.737,88.868,90.0],"cumActual":[3,3,4,4,7,8,8,8,11,11,11,11,11,14,15,16,19,20,21,22,22,25,26,26,29,30,31,31,31,32,33,36,39,40,43,44,47,47]},{"name":"Bournemouth","short":"Bournemouth","handicap":32,"actual":57,"adjusted":89,"actualRank":6,"adjRank":5,"w":13,"dr":18,"l":7,"gf":58,"ga":54,"games":[{"d":"15 Aug","o":"Liverpool","v":"A","gf":2,"ga":4,"p":0},{"d":"23 Aug","o":"Wolves","v":"H","gf":1,"ga":0,"p":3},{"d":"30 Aug","o":"Tottenham","v":"A","gf":1,"ga":0,"p":3},{"d":"13 Sep","o":"Brighton","v":"H","gf":2,"ga":1,"p":3},{"d":"21 Sep","o":"Newcastle","v":"H","gf":0,"ga":0,"p":1},{"d":"27 Sep","o":"Leeds","v":"A","gf":2,"ga":2,"p":1},{"d":"03 Oct","o":"Fulham","v":"H","gf":3,"ga":1,"p":3},{"d":"18 Oct","o":"Palace","v":"A","gf":3,"ga":3,"p":1},{"d":"26 Oct","o":"Forest","v":"H","gf":2,"ga":0,"p":3},{"d":"02 Nov","o":"Man City","v":"A","gf":1,"ga":3,"p":0},{"d":"09 Nov","o":"Aston Villa","v":"A","gf":0,"ga":4,"p":0},{"d":"22 Nov","o":"West Ham","v":"H","gf":2,"ga":2,"p":1},{"d":"29 Nov","o":"Sunderland","v":"A","gf":2,"ga":3,"p":0},{"d":"02 Dec","o":"Everton","v":"H","gf":0,"ga":1,"p":0},{"d":"06 Dec","o":"Chelsea","v":"H","gf":0,"ga":0,"p":1},{"d":"15 Dec","o":"Man Utd","v":"A","gf":4,"ga":4,"p":1},{"d":"20 Dec","o":"Burnley","v":"H","gf":1,"ga":1,"p":1},{"d":"27 Dec","o":"Brentford","v":"A","gf":1,"ga":4,"p":0},{"d":"30 Dec","o":"Chelsea","v":"A","gf":2,"ga":2,"p":1},{"d":"03 Jan","o":"Arsenal","v":"H","gf":2,"ga":3,"p":0},{"d":"07 Jan","o":"Tottenham","v":"H","gf":3,"ga":2,"p":3},{"d":"19 Jan","o":"Brighton","v":"A","gf":1,"ga":1,"p":1},{"d":"24 Jan","o":"Liverpool","v":"H","gf":3,"ga":2,"p":3},{"d":"31 Jan","o":"Wolves","v":"A","gf":2,"ga":0,"p":3},{"d":"07 Feb","o":"Aston Villa","v":"H","gf":1,"ga":1,"p":1},{"d":"10 Feb","o":"Everton","v":"A","gf":2,"ga":1,"p":3},{"d":"21 Feb","o":"West Ham","v":"A","gf":0,"ga":0,"p":1},{"d":"28 Feb","o":"Sunderland","v":"H","gf":1,"ga":1,"p":1},{"d":"03 Mar","o":"Brentford","v":"H","gf":0,"ga":0,"p":1},{"d":"14 Mar","o":"Burnley","v":"A","gf":0,"ga":0,"p":1},{"d":"20 Mar","o":"Man Utd","v":"H","gf":2,"ga":2,"p":1},{"d":"11 Apr","o":"Arsenal","v":"A","gf":2,"ga":1,"p":3},{"d":"18 Apr","o":"Newcastle","v":"A","gf":2,"ga":1,"p":3},{"d":"22 Apr","o":"Leeds","v":"H","gf":2,"ga":2,"p":1},{"d":"03 May","o":"Palace","v":"H","gf":3,"ga":0,"p":3},{"d":"09 May","o":"Fulham","v":"A","gf":1,"ga":0,"p":3},{"d":"19 May","o":"Man City","v":"H","gf":1,"ga":1,"p":1},{"d":"24 May","o":"Forest","v":"A","gf":1,"ga":1,"p":1}],"cum":[0.842,4.684,8.526,12.368,14.211,16.053,19.895,21.737,25.579,26.421,27.263,29.105,29.947,30.789,32.632,34.474,36.316,37.158,39.0,39.842,43.684,45.526,49.368,53.211,55.053,58.895,60.737,62.579,64.421,66.263,68.105,71.947,75.789,77.632,81.474,85.316,87.158,89.0],"cumActual":[0,3,6,9,10,11,14,15,18,18,18,19,19,19,20,21,22,22,23,23,26,27,30,33,34,37,38,39,40,41,42,45,48,49,52,55,56,57]},{"name":"Arsenal","short":"Arsenal","handicap":3,"actual":85,"adjusted":88,"actualRank":1,"adjRank":6,"w":26,"dr":7,"l":5,"gf":71,"ga":27,"games":[{"d":"17 Aug","o":"Man Utd","v":"A","gf":1,"ga":0,"p":3},{"d":"23 Aug","o":"Leeds","v":"H","gf":5,"ga":0,"p":3},{"d":"31 Aug","o":"Liverpool","v":"A","gf":0,"ga":1,"p":0},{"d":"13 Sep","o":"Forest","v":"H","gf":3,"ga":0,"p":3},{"d":"21 Sep","o":"Man City","v":"H","gf":1,"ga":1,"p":1},{"d":"28 Sep","o":"Newcastle","v":"A","gf":2,"ga":1,"p":3},{"d":"04 Oct","o":"West Ham","v":"H","gf":2,"ga":0,"p":3},{"d":"18 Oct","o":"Fulham","v":"A","gf":1,"ga":0,"p":3},{"d":"26 Oct","o":"Palace","v":"H","gf":1,"ga":0,"p":3},{"d":"01 Nov","o":"Burnley","v":"A","gf":2,"ga":0,"p":3},{"d":"08 Nov","o":"Sunderland","v":"A","gf":2,"ga":2,"p":1},{"d":"23 Nov","o":"Tottenham","v":"H","gf":4,"ga":1,"p":3},{"d":"30 Nov","o":"Chelsea","v":"A","gf":1,"ga":1,"p":1},{"d":"03 Dec","o":"Brentford","v":"H","gf":2,"ga":0,"p":3},{"d":"06 Dec","o":"Aston Villa","v":"A","gf":1,"ga":2,"p":0},{"d":"13 Dec","o":"Wolves","v":"H","gf":2,"ga":1,"p":3},{"d":"20 Dec","o":"Everton","v":"A","gf":1,"ga":0,"p":3},{"d":"27 Dec","o":"Brighton","v":"H","gf":2,"ga":1,"p":3},{"d":"30 Dec","o":"Aston Villa","v":"H","gf":4,"ga":1,"p":3},{"d":"03 Jan","o":"Bournemouth","v":"A","gf":3,"ga":2,"p":3},{"d":"08 Jan","o":"Liverpool","v":"H","gf":0,"ga":0,"p":1},{"d":"17 Jan","o":"Forest","v":"A","gf":0,"ga":0,"p":1},{"d":"25 Jan","o":"Man Utd","v":"H","gf":2,"ga":3,"p":0},{"d":"31 Jan","o":"Leeds","v":"A","gf":4,"ga":0,"p":3},{"d":"07 Feb","o":"Sunderland","v":"H","gf":3,"ga":0,"p":3},{"d":"12 Feb","o":"Brentford","v":"A","gf":1,"ga":1,"p":1},{"d":"18 Feb","o":"Wolves","v":"A","gf":2,"ga":2,"p":1},{"d":"22 Feb","o":"Tottenham","v":"A","gf":4,"ga":1,"p":3},{"d":"01 Mar","o":"Chelsea","v":"H","gf":2,"ga":1,"p":3},{"d":"04 Mar","o":"Brighton","v":"A","gf":1,"ga":0,"p":3},{"d":"14 Mar","o":"Everton","v":"H","gf":2,"ga":0,"p":3},{"d":"11 Apr","o":"Bournemouth","v":"H","gf":1,"ga":2,"p":0},{"d":"19 Apr","o":"Man City","v":"A","gf":1,"ga":2,"p":0},{"d":"25 Apr","o":"Newcastle","v":"H","gf":1,"ga":0,"p":3},{"d":"02 May","o":"Fulham","v":"H","gf":3,"ga":0,"p":3},{"d":"10 May","o":"West Ham","v":"A","gf":1,"ga":0,"p":3},{"d":"18 May","o":"Burnley","v":"H","gf":1,"ga":0,"p":3},{"d":"24 May","o":"Palace","v":"A","gf":2,"ga":1,"p":3}],"cum":[3.079,6.158,6.237,9.316,10.395,13.474,16.553,19.632,22.711,25.789,26.868,29.947,31.026,34.105,34.184,37.263,40.342,43.421,46.5,49.579,50.658,51.737,51.816,54.895,57.974,59.053,60.132,63.211,66.289,69.368,72.447,72.526,72.605,75.684,78.763,81.842,84.921,88.0],"cumActual":[3,6,6,9,10,13,16,19,22,25,26,29,30,33,33,36,39,42,45,48,49,50,50,53,56,57,58,61,64,67,70,70,70,73,76,79,82,85]},{"name":"Aston Villa","short":"Aston Villa","handicap":22,"actual":65,"adjusted":87,"actualRank":4,"adjRank":7,"w":19,"dr":8,"l":11,"gf":56,"ga":49,"games":[{"d":"16 Aug","o":"Newcastle","v":"H","gf":0,"ga":0,"p":1},{"d":"23 Aug","o":"Brentford","v":"A","gf":0,"ga":1,"p":0},{"d":"31 Aug","o":"Palace","v":"H","gf":0,"ga":3,"p":0},{"d":"13 Sep","o":"Everton","v":"A","gf":0,"ga":0,"p":1},{"d":"21 Sep","o":"Sunderland","v":"A","gf":1,"ga":1,"p":1},{"d":"28 Sep","o":"Fulham","v":"H","gf":3,"ga":1,"p":3},{"d":"05 Oct","o":"Burnley","v":"H","gf":2,"ga":1,"p":3},{"d":"19 Oct","o":"Tottenham","v":"A","gf":2,"ga":1,"p":3},{"d":"26 Oct","o":"Man City","v":"H","gf":1,"ga":0,"p":3},{"d":"01 Nov","o":"Liverpool","v":"A","gf":0,"ga":2,"p":0},{"d":"09 Nov","o":"Bournemouth","v":"H","gf":4,"ga":0,"p":3},{"d":"23 Nov","o":"Leeds","v":"A","gf":2,"ga":1,"p":3},{"d":"30 Nov","o":"Wolves","v":"H","gf":1,"ga":0,"p":3},{"d":"03 Dec","o":"Brighton","v":"A","gf":4,"ga":3,"p":3},{"d":"06 Dec","o":"Arsenal","v":"H","gf":2,"ga":1,"p":3},{"d":"14 Dec","o":"West Ham","v":"A","gf":3,"ga":2,"p":3},{"d":"21 Dec","o":"Man Utd","v":"H","gf":2,"ga":1,"p":3},{"d":"27 Dec","o":"Chelsea","v":"A","gf":2,"ga":1,"p":3},{"d":"30 Dec","o":"Arsenal","v":"A","gf":1,"ga":4,"p":0},{"d":"03 Jan","o":"Forest","v":"H","gf":3,"ga":1,"p":3},{"d":"07 Jan","o":"Palace","v":"A","gf":0,"ga":0,"p":1},{"d":"18 Jan","o":"Everton","v":"H","gf":0,"ga":1,"p":0},{"d":"25 Jan","o":"Newcastle","v":"A","gf":2,"ga":0,"p":3},{"d":"01 Feb","o":"Brentford","v":"H","gf":0,"ga":1,"p":0},{"d":"07 Feb","o":"Bournemouth","v":"A","gf":1,"ga":1,"p":1},{"d":"11 Feb","o":"Brighton","v":"H","gf":1,"ga":0,"p":3},{"d":"21 Feb","o":"Leeds","v":"H","gf":1,"ga":1,"p":1},{"d":"27 Feb","o":"Wolves","v":"A","gf":0,"ga":2,"p":0},{"d":"04 Mar","o":"Chelsea","v":"H","gf":1,"ga":4,"p":0},{"d":"15 Mar","o":"Man Utd","v":"A","gf":1,"ga":3,"p":0},{"d":"22 Mar","o":"West Ham","v":"H","gf":2,"ga":0,"p":3},{"d":"12 Apr","o":"Forest","v":"A","gf":1,"ga":1,"p":1},{"d":"19 Apr","o":"Sunderland","v":"H","gf":4,"ga":3,"p":3},{"d":"25 Apr","o":"Fulham","v":"A","gf":0,"ga":1,"p":0},{"d":"03 May","o":"Tottenham","v":"H","gf":1,"ga":2,"p":0},{"d":"10 May","o":"Burnley","v":"A","gf":2,"ga":2,"p":1},{"d":"15 May","o":"Liverpool","v":"H","gf":4,"ga":2,"p":3},{"d":"24 May","o":"Man City","v":"A","gf":2,"ga":1,"p":3}],"cum":[1.579,2.158,2.737,4.316,5.895,9.474,13.053,16.632,20.211,20.789,24.368,27.947,31.526,35.105,38.684,42.263,45.842,49.421,50.0,53.579,55.158,55.737,59.316,59.895,61.474,65.053,66.632,67.211,67.789,68.368,71.947,73.526,77.105,77.684,78.263,79.842,83.421,87.0],"cumActual":[1,1,1,2,3,6,9,12,15,15,18,21,24,27,30,33,36,39,39,42,43,43,46,46,47,50,51,51,51,51,54,55,58,58,58,59,62,65]},{"name":"Fulham","short":"Fulham","handicap":33,"actual":52,"adjusted":85,"actualRank":11,"adjRank":8,"w":15,"dr":7,"l":16,"gf":47,"ga":51,"games":[{"d":"16 Aug","o":"Brighton","v":"A","gf":1,"ga":1,"p":1},{"d":"24 Aug","o":"Man Utd","v":"H","gf":1,"ga":1,"p":1},{"d":"30 Aug","o":"Chelsea","v":"A","gf":0,"ga":2,"p":0},{"d":"13 Sep","o":"Leeds","v":"H","gf":1,"ga":0,"p":3},{"d":"20 Sep","o":"Brentford","v":"H","gf":3,"ga":1,"p":3},{"d":"28 Sep","o":"Aston Villa","v":"A","gf":1,"ga":3,"p":0},{"d":"03 Oct","o":"Bournemouth","v":"A","gf":1,"ga":3,"p":0},{"d":"18 Oct","o":"Arsenal","v":"H","gf":0,"ga":1,"p":0},{"d":"25 Oct","o":"Newcastle","v":"A","gf":1,"ga":2,"p":0},{"d":"01 Nov","o":"Wolves","v":"H","gf":3,"ga":0,"p":3},{"d":"08 Nov","o":"Everton","v":"A","gf":0,"ga":2,"p":0},{"d":"22 Nov","o":"Sunderland","v":"H","gf":1,"ga":0,"p":3},{"d":"29 Nov","o":"Tottenham","v":"A","gf":2,"ga":1,"p":3},{"d":"02 Dec","o":"Man City","v":"H","gf":4,"ga":5,"p":0},{"d":"07 Dec","o":"Palace","v":"H","gf":1,"ga":2,"p":0},{"d":"13 Dec","o":"Burnley","v":"A","gf":3,"ga":2,"p":3},{"d":"22 Dec","o":"Forest","v":"H","gf":1,"ga":0,"p":3},{"d":"27 Dec","o":"West Ham","v":"A","gf":1,"ga":0,"p":3},{"d":"01 Jan","o":"Palace","v":"A","gf":1,"ga":1,"p":1},{"d":"04 Jan","o":"Liverpool","v":"H","gf":2,"ga":2,"p":1},{"d":"07 Jan","o":"Chelsea","v":"H","gf":2,"ga":1,"p":3},{"d":"17 Jan","o":"Leeds","v":"A","gf":0,"ga":1,"p":0},{"d":"24 Jan","o":"Brighton","v":"H","gf":2,"ga":1,"p":3},{"d":"01 Feb","o":"Man Utd","v":"A","gf":2,"ga":3,"p":0},{"d":"07 Feb","o":"Everton","v":"H","gf":1,"ga":2,"p":0},{"d":"11 Feb","o":"Man City","v":"A","gf":0,"ga":3,"p":0},{"d":"22 Feb","o":"Sunderland","v":"A","gf":3,"ga":1,"p":3},{"d":"01 Mar","o":"Tottenham","v":"H","gf":2,"ga":1,"p":3},{"d":"04 Mar","o":"West Ham","v":"H","gf":0,"ga":1,"p":0},{"d":"15 Mar","o":"Forest","v":"A","gf":0,"ga":0,"p":1},{"d":"21 Mar","o":"Burnley","v":"H","gf":3,"ga":1,"p":3},{"d":"11 Apr","o":"Liverpool","v":"A","gf":0,"ga":2,"p":0},{"d":"18 Apr","o":"Brentford","v":"A","gf":0,"ga":0,"p":1},{"d":"25 Apr","o":"Aston Villa","v":"H","gf":1,"ga":0,"p":3},{"d":"02 May","o":"Arsenal","v":"A","gf":0,"ga":3,"p":0},{"d":"09 May","o":"Bournemouth","v":"H","gf":0,"ga":1,"p":0},{"d":"17 May","o":"Wolves","v":"A","gf":1,"ga":1,"p":1},{"d":"24 May","o":"Newcastle","v":"H","gf":2,"ga":0,"p":3}],"cum":[1.868,3.737,4.605,8.474,12.342,13.211,14.079,14.947,15.816,19.684,20.553,24.421,28.289,29.158,30.026,33.895,37.763,41.632,43.5,45.368,49.237,50.105,53.974,54.842,55.711,56.579,60.447,64.316,65.184,67.053,70.921,71.789,73.658,77.526,78.395,79.263,81.132,85.0],"cumActual":[1,2,2,5,8,8,8,8,8,11,11,14,17,17,17,20,23,26,27,28,31,31,34,34,34,34,37,40,40,41,44,44,45,48,48,48,49,52]},{"name":"Everton","short":"Everton","handicap":33,"actual":49,"adjusted":82,"actualRank":13,"adjRank":9,"w":13,"dr":10,"l":15,"gf":47,"ga":50,"games":[{"d":"18 Aug","o":"Leeds","v":"A","gf":0,"ga":1,"p":0},{"d":"24 Aug","o":"Brighton","v":"H","gf":2,"ga":0,"p":3},{"d":"30 Aug","o":"Wolves","v":"A","gf":3,"ga":2,"p":3},{"d":"13 Sep","o":"Aston Villa","v":"H","gf":0,"ga":0,"p":1},{"d":"20 Sep","o":"Liverpool","v":"A","gf":1,"ga":2,"p":0},{"d":"29 Sep","o":"West Ham","v":"H","gf":1,"ga":1,"p":1},{"d":"05 Oct","o":"Palace","v":"H","gf":2,"ga":1,"p":3},{"d":"18 Oct","o":"Man City","v":"A","gf":0,"ga":2,"p":0},{"d":"26 Oct","o":"Tottenham","v":"H","gf":0,"ga":3,"p":0},{"d":"03 Nov","o":"Sunderland","v":"A","gf":1,"ga":1,"p":1},{"d":"08 Nov","o":"Fulham","v":"H","gf":2,"ga":0,"p":3},{"d":"24 Nov","o":"Man Utd","v":"A","gf":1,"ga":0,"p":3},{"d":"29 Nov","o":"Newcastle","v":"H","gf":1,"ga":4,"p":0},{"d":"02 Dec","o":"Bournemouth","v":"A","gf":1,"ga":0,"p":3},{"d":"06 Dec","o":"Forest","v":"H","gf":3,"ga":0,"p":3},{"d":"13 Dec","o":"Chelsea","v":"A","gf":0,"ga":2,"p":0},{"d":"20 Dec","o":"Arsenal","v":"H","gf":0,"ga":1,"p":0},{"d":"27 Dec","o":"Burnley","v":"A","gf":0,"ga":0,"p":1},{"d":"30 Dec","o":"Forest","v":"A","gf":2,"ga":0,"p":3},{"d":"04 Jan","o":"Brentford","v":"H","gf":2,"ga":4,"p":0},{"d":"07 Jan","o":"Wolves","v":"H","gf":1,"ga":1,"p":1},{"d":"18 Jan","o":"Aston Villa","v":"A","gf":1,"ga":0,"p":3},{"d":"26 Jan","o":"Leeds","v":"H","gf":1,"ga":1,"p":1},{"d":"31 Jan","o":"Brighton","v":"A","gf":1,"ga":1,"p":1},{"d":"07 Feb","o":"Fulham","v":"A","gf":2,"ga":1,"p":3},{"d":"10 Feb","o":"Bournemouth","v":"H","gf":1,"ga":2,"p":0},{"d":"23 Feb","o":"Man Utd","v":"H","gf":0,"ga":1,"p":0},{"d":"28 Feb","o":"Newcastle","v":"A","gf":3,"ga":2,"p":3},{"d":"03 Mar","o":"Burnley","v":"H","gf":2,"ga":0,"p":3},{"d":"14 Mar","o":"Arsenal","v":"A","gf":0,"ga":2,"p":0},{"d":"21 Mar","o":"Chelsea","v":"H","gf":3,"ga":0,"p":3},{"d":"11 Apr","o":"Brentford","v":"A","gf":2,"ga":2,"p":1},{"d":"19 Apr","o":"Liverpool","v":"H","gf":1,"ga":2,"p":0},{"d":"25 Apr","o":"West Ham","v":"A","gf":1,"ga":2,"p":0},{"d":"04 May","o":"Man City","v":"H","gf":3,"ga":3,"p":1},{"d":"10 May","o":"Palace","v":"A","gf":2,"ga":2,"p":1},{"d":"17 May","o":"Sunderland","v":"H","gf":1,"ga":3,"p":0},{"d":"24 May","o":"Tottenham","v":"A","gf":0,"ga":1,"p":0}],"cum":[0.868,4.737,8.605,10.474,11.342,13.211,17.079,17.947,18.816,20.684,24.553,28.421,29.289,33.158,37.026,37.895,38.763,40.632,44.5,45.368,47.237,51.105,52.974,54.842,58.711,59.579,60.447,64.316,68.184,69.053,72.921,74.789,75.658,76.526,78.395,80.263,81.132,82.0],"cumActual":[0,3,6,7,7,8,11,11,11,12,15,18,18,21,24,24,24,25,28,28,29,32,33,34,37,37,37,40,43,43,46,47,47,47,48,49,49,49]},{"name":"Manchester City","short":"Man City","handicap":3,"actual":78,"adjusted":81,"actualRank":2,"adjRank":10,"w":23,"dr":9,"l":6,"gf":77,"ga":35,"games":[{"d":"16 Aug","o":"Wolves","v":"A","gf":4,"ga":0,"p":3},{"d":"23 Aug","o":"Tottenham","v":"H","gf":0,"ga":2,"p":0},{"d":"31 Aug","o":"Brighton","v":"A","gf":1,"ga":2,"p":0},{"d":"14 Sep","o":"Man Utd","v":"H","gf":3,"ga":0,"p":3},{"d":"21 Sep","o":"Arsenal","v":"A","gf":1,"ga":1,"p":1},{"d":"27 Sep","o":"Burnley","v":"H","gf":5,"ga":1,"p":3},{"d":"05 Oct","o":"Brentford","v":"A","gf":1,"ga":0,"p":3},{"d":"18 Oct","o":"Everton","v":"H","gf":2,"ga":0,"p":3},{"d":"26 Oct","o":"Aston Villa","v":"A","gf":0,"ga":1,"p":0},{"d":"02 Nov","o":"Bournemouth","v":"H","gf":3,"ga":1,"p":3},{"d":"09 Nov","o":"Liverpool","v":"H","gf":3,"ga":0,"p":3},{"d":"22 Nov","o":"Newcastle","v":"A","gf":1,"ga":2,"p":0},{"d":"29 Nov","o":"Leeds","v":"H","gf":3,"ga":2,"p":3},{"d":"02 Dec","o":"Fulham","v":"A","gf":5,"ga":4,"p":3},{"d":"06 Dec","o":"Sunderland","v":"H","gf":3,"ga":0,"p":3},{"d":"14 Dec","o":"Palace","v":"A","gf":3,"ga":0,"p":3},{"d":"20 Dec","o":"West Ham","v":"H","gf":3,"ga":0,"p":3},{"d":"27 Dec","o":"Forest","v":"A","gf":2,"ga":1,"p":3},{"d":"01 Jan","o":"Sunderland","v":"A","gf":0,"ga":0,"p":1},{"d":"04 Jan","o":"Chelsea","v":"H","gf":1,"ga":1,"p":1},{"d":"07 Jan","o":"Brighton","v":"H","gf":1,"ga":1,"p":1},{"d":"17 Jan","o":"Man Utd","v":"A","gf":0,"ga":2,"p":0},{"d":"24 Jan","o":"Wolves","v":"H","gf":2,"ga":0,"p":3},{"d":"01 Feb","o":"Tottenham","v":"A","gf":2,"ga":2,"p":1},{"d":"08 Feb","o":"Liverpool","v":"A","gf":2,"ga":1,"p":3},{"d":"11 Feb","o":"Fulham","v":"H","gf":3,"ga":0,"p":3},{"d":"21 Feb","o":"Newcastle","v":"H","gf":2,"ga":1,"p":3},{"d":"28 Feb","o":"Leeds","v":"A","gf":1,"ga":0,"p":3},{"d":"04 Mar","o":"Forest","v":"H","gf":2,"ga":2,"p":1},{"d":"14 Mar","o":"West Ham","v":"A","gf":1,"ga":1,"p":1},{"d":"12 Apr","o":"Chelsea","v":"A","gf":3,"ga":0,"p":3},{"d":"19 Apr","o":"Arsenal","v":"H","gf":2,"ga":1,"p":3},{"d":"22 Apr","o":"Burnley","v":"A","gf":1,"ga":0,"p":3},{"d":"04 May","o":"Everton","v":"A","gf":3,"ga":3,"p":1},{"d":"09 May","o":"Brentford","v":"H","gf":3,"ga":0,"p":3},{"d":"13 May","o":"Palace","v":"H","gf":3,"ga":0,"p":3},{"d":"19 May","o":"Bournemouth","v":"A","gf":1,"ga":1,"p":1},{"d":"24 May","o":"Aston Villa","v":"H","gf":1,"ga":2,"p":0}],"cum":[3.079,3.158,3.237,6.316,7.395,10.474,13.553,16.632,16.711,19.789,22.868,22.947,26.026,29.105,32.184,35.263,38.342,41.421,42.5,43.579,44.658,44.737,47.816,48.895,51.974,55.053,58.132,61.211,62.289,63.368,66.447,69.526,72.605,73.684,76.763,79.842,80.921,81.0],"cumActual":[3,3,3,6,7,10,13,16,16,19,22,22,25,28,31,34,37,40,41,42,43,43,46,47,50,53,56,59,60,61,64,67,70,71,74,77,78,78]},{"name":"Brighton","short":"Brighton","handicap":27,"actual":53,"adjusted":80,"actualRank":8,"adjRank":11,"w":14,"dr":11,"l":13,"gf":52,"ga":46,"games":[{"d":"16 Aug","o":"Fulham","v":"H","gf":1,"ga":1,"p":1},{"d":"24 Aug","o":"Everton","v":"A","gf":0,"ga":2,"p":0},{"d":"31 Aug","o":"Man City","v":"H","gf":2,"ga":1,"p":3},{"d":"13 Sep","o":"Bournemouth","v":"A","gf":1,"ga":2,"p":0},{"d":"20 Sep","o":"Tottenham","v":"H","gf":2,"ga":2,"p":1},{"d":"27 Sep","o":"Chelsea","v":"A","gf":3,"ga":1,"p":3},{"d":"05 Oct","o":"Wolves","v":"A","gf":1,"ga":1,"p":1},{"d":"18 Oct","o":"Newcastle","v":"H","gf":2,"ga":1,"p":3},{"d":"25 Oct","o":"Man Utd","v":"A","gf":2,"ga":4,"p":0},{"d":"01 Nov","o":"Leeds","v":"H","gf":3,"ga":0,"p":3},{"d":"09 Nov","o":"Palace","v":"A","gf":0,"ga":0,"p":1},{"d":"22 Nov","o":"Brentford","v":"H","gf":2,"ga":1,"p":3},{"d":"30 Nov","o":"Forest","v":"A","gf":2,"ga":0,"p":3},{"d":"03 Dec","o":"Aston Villa","v":"H","gf":3,"ga":4,"p":0},{"d":"07 Dec","o":"West Ham","v":"H","gf":1,"ga":1,"p":1},{"d":"13 Dec","o":"Liverpool","v":"A","gf":0,"ga":2,"p":0},{"d":"20 Dec","o":"Sunderland","v":"H","gf":0,"ga":0,"p":1},{"d":"27 Dec","o":"Arsenal","v":"A","gf":1,"ga":2,"p":0},{"d":"30 Dec","o":"West Ham","v":"A","gf":2,"ga":2,"p":1},{"d":"03 Jan","o":"Burnley","v":"H","gf":2,"ga":0,"p":3},{"d":"07 Jan","o":"Man City","v":"A","gf":1,"ga":1,"p":1},{"d":"19 Jan","o":"Bournemouth","v":"H","gf":1,"ga":1,"p":1},{"d":"24 Jan","o":"Fulham","v":"A","gf":1,"ga":2,"p":0},{"d":"31 Jan","o":"Everton","v":"H","gf":1,"ga":1,"p":1},{"d":"08 Feb","o":"Palace","v":"H","gf":0,"ga":1,"p":0},{"d":"11 Feb","o":"Aston Villa","v":"A","gf":0,"ga":1,"p":0},{"d":"21 Feb","o":"Brentford","v":"A","gf":2,"ga":0,"p":3},{"d":"01 Mar","o":"Forest","v":"H","gf":2,"ga":1,"p":3},{"d":"04 Mar","o":"Arsenal","v":"H","gf":0,"ga":1,"p":0},{"d":"14 Mar","o":"Sunderland","v":"A","gf":1,"ga":0,"p":3},{"d":"21 Mar","o":"Liverpool","v":"H","gf":2,"ga":1,"p":3},{"d":"11 Apr","o":"Burnley","v":"A","gf":2,"ga":0,"p":3},{"d":"18 Apr","o":"Tottenham","v":"A","gf":2,"ga":2,"p":1},{"d":"21 Apr","o":"Chelsea","v":"H","gf":3,"ga":0,"p":3},{"d":"02 May","o":"Newcastle","v":"A","gf":1,"ga":3,"p":0},{"d":"09 May","o":"Wolves","v":"H","gf":3,"ga":0,"p":3},{"d":"17 May","o":"Leeds","v":"A","gf":0,"ga":1,"p":0},{"d":"24 May","o":"Man Utd","v":"H","gf":0,"ga":3,"p":0}],"cum":[1.711,2.421,6.132,6.842,8.553,12.263,13.974,17.684,18.395,22.105,23.816,27.526,31.237,31.947,33.658,34.368,36.079,36.789,38.5,42.211,43.921,45.632,46.342,48.053,48.763,49.474,53.184,56.895,57.605,61.316,65.026,68.737,70.447,74.158,74.868,78.579,79.289,80.0],"cumActual":[1,1,4,4,5,8,9,12,12,15,16,19,22,22,23,23,24,24,25,28,29,30,30,31,31,31,34,37,37,40,43,46,47,50,50,53,53,53]},{"name":"Crystal Palace","short":"Palace","handicap":33,"actual":45,"adjusted":78,"actualRank":15,"adjRank":12,"w":11,"dr":12,"l":15,"gf":41,"ga":51,"games":[{"d":"17 Aug","o":"Chelsea","v":"A","gf":0,"ga":0,"p":1},{"d":"24 Aug","o":"Forest","v":"H","gf":1,"ga":1,"p":1},{"d":"31 Aug","o":"Aston Villa","v":"A","gf":3,"ga":0,"p":3},{"d":"13 Sep","o":"Sunderland","v":"H","gf":0,"ga":0,"p":1},{"d":"20 Sep","o":"West Ham","v":"A","gf":2,"ga":1,"p":3},{"d":"27 Sep","o":"Liverpool","v":"H","gf":2,"ga":1,"p":3},{"d":"05 Oct","o":"Everton","v":"A","gf":1,"ga":2,"p":0},{"d":"18 Oct","o":"Bournemouth","v":"H","gf":3,"ga":3,"p":1},{"d":"26 Oct","o":"Arsenal","v":"A","gf":0,"ga":1,"p":0},{"d":"01 Nov","o":"Brentford","v":"H","gf":2,"ga":0,"p":3},{"d":"09 Nov","o":"Brighton","v":"H","gf":0,"ga":0,"p":1},{"d":"22 Nov","o":"Wolves","v":"A","gf":2,"ga":0,"p":3},{"d":"30 Nov","o":"Man Utd","v":"H","gf":1,"ga":2,"p":0},{"d":"03 Dec","o":"Burnley","v":"A","gf":1,"ga":0,"p":3},{"d":"07 Dec","o":"Fulham","v":"A","gf":2,"ga":1,"p":3},{"d":"14 Dec","o":"Man City","v":"H","gf":0,"ga":3,"p":0},{"d":"20 Dec","o":"Leeds","v":"A","gf":1,"ga":4,"p":0},{"d":"28 Dec","o":"Tottenham","v":"H","gf":0,"ga":1,"p":0},{"d":"01 Jan","o":"Fulham","v":"H","gf":1,"ga":1,"p":1},{"d":"04 Jan","o":"Newcastle","v":"A","gf":0,"ga":2,"p":0},{"d":"07 Jan","o":"Aston Villa","v":"H","gf":0,"ga":0,"p":1},{"d":"17 Jan","o":"Sunderland","v":"A","gf":1,"ga":2,"p":0},{"d":"25 Jan","o":"Chelsea","v":"H","gf":1,"ga":3,"p":0},{"d":"01 Feb","o":"Forest","v":"A","gf":1,"ga":1,"p":1},{"d":"08 Feb","o":"Brighton","v":"A","gf":1,"ga":0,"p":3},{"d":"11 Feb","o":"Burnley","v":"H","gf":2,"ga":3,"p":0},{"d":"22 Feb","o":"Wolves","v":"H","gf":1,"ga":0,"p":3},{"d":"01 Mar","o":"Man Utd","v":"A","gf":1,"ga":2,"p":0},{"d":"05 Mar","o":"Tottenham","v":"A","gf":3,"ga":1,"p":3},{"d":"15 Mar","o":"Leeds","v":"H","gf":0,"ga":0,"p":1},{"d":"12 Apr","o":"Newcastle","v":"H","gf":2,"ga":1,"p":3},{"d":"20 Apr","o":"West Ham","v":"H","gf":0,"ga":0,"p":1},{"d":"25 Apr","o":"Liverpool","v":"A","gf":1,"ga":3,"p":0},{"d":"03 May","o":"Bournemouth","v":"A","gf":0,"ga":3,"p":0},{"d":"10 May","o":"Everton","v":"H","gf":2,"ga":2,"p":1},{"d":"13 May","o":"Man City","v":"A","gf":0,"ga":3,"p":0},{"d":"17 May","o":"Brentford","v":"A","gf":2,"ga":2,"p":1},{"d":"24 May","o":"Arsenal","v":"H","gf":1,"ga":2,"p":0}],"cum":[1.868,3.737,7.605,9.474,13.342,17.211,18.079,19.947,20.816,24.684,26.553,30.421,31.289,35.158,39.026,39.895,40.763,41.632,43.5,44.368,46.237,47.105,47.974,49.842,53.711,54.579,58.447,59.316,63.184,65.053,68.921,70.789,71.658,72.526,74.395,75.263,77.132,78.0],"cumActual":[1,2,5,6,9,12,12,13,13,16,17,20,20,23,26,26,26,26,27,27,28,28,28,29,32,32,35,35,38,39,42,43,43,43,44,44,45,45]},{"name":"Nott'ham Forest","short":"Forest","handicap":32,"actual":44,"adjusted":76,"actualRank":16,"adjRank":13,"w":11,"dr":11,"l":16,"gf":48,"ga":51,"games":[{"d":"17 Aug","o":"Brentford","v":"H","gf":3,"ga":1,"p":3},{"d":"24 Aug","o":"Palace","v":"A","gf":1,"ga":1,"p":1},{"d":"31 Aug","o":"West Ham","v":"H","gf":0,"ga":3,"p":0},{"d":"13 Sep","o":"Arsenal","v":"A","gf":0,"ga":3,"p":0},{"d":"20 Sep","o":"Burnley","v":"A","gf":1,"ga":1,"p":1},{"d":"27 Sep","o":"Sunderland","v":"H","gf":0,"ga":1,"p":0},{"d":"05 Oct","o":"Newcastle","v":"A","gf":0,"ga":2,"p":0},{"d":"18 Oct","o":"Chelsea","v":"H","gf":0,"ga":3,"p":0},{"d":"26 Oct","o":"Bournemouth","v":"A","gf":0,"ga":2,"p":0},{"d":"01 Nov","o":"Man Utd","v":"H","gf":2,"ga":2,"p":1},{"d":"09 Nov","o":"Leeds","v":"H","gf":3,"ga":1,"p":3},{"d":"22 Nov","o":"Liverpool","v":"A","gf":3,"ga":0,"p":3},{"d":"30 Nov","o":"Brighton","v":"H","gf":0,"ga":2,"p":0},{"d":"03 Dec","o":"Wolves","v":"A","gf":1,"ga":0,"p":3},{"d":"06 Dec","o":"Everton","v":"A","gf":0,"ga":3,"p":0},{"d":"14 Dec","o":"Tottenham","v":"H","gf":3,"ga":0,"p":3},{"d":"22 Dec","o":"Fulham","v":"A","gf":0,"ga":1,"p":0},{"d":"27 Dec","o":"Man City","v":"H","gf":1,"ga":2,"p":0},{"d":"30 Dec","o":"Everton","v":"H","gf":0,"ga":2,"p":0},{"d":"03 Jan","o":"Aston Villa","v":"A","gf":1,"ga":3,"p":0},{"d":"06 Jan","o":"West Ham","v":"A","gf":2,"ga":1,"p":3},{"d":"17 Jan","o":"Arsenal","v":"H","gf":0,"ga":0,"p":1},{"d":"25 Jan","o":"Brentford","v":"A","gf":2,"ga":0,"p":3},{"d":"01 Feb","o":"Palace","v":"H","gf":1,"ga":1,"p":1},{"d":"06 Feb","o":"Leeds","v":"A","gf":1,"ga":3,"p":0},{"d":"11 Feb","o":"Wolves","v":"H","gf":0,"ga":0,"p":1},{"d":"22 Feb","o":"Liverpool","v":"H","gf":0,"ga":1,"p":0},{"d":"01 Mar","o":"Brighton","v":"A","gf":1,"ga":2,"p":0},{"d":"04 Mar","o":"Man City","v":"A","gf":2,"ga":2,"p":1},{"d":"15 Mar","o":"Fulham","v":"H","gf":0,"ga":0,"p":1},{"d":"22 Mar","o":"Tottenham","v":"A","gf":3,"ga":0,"p":3},{"d":"12 Apr","o":"Aston Villa","v":"H","gf":1,"ga":1,"p":1},{"d":"19 Apr","o":"Burnley","v":"H","gf":4,"ga":1,"p":3},{"d":"24 Apr","o":"Sunderland","v":"A","gf":5,"ga":0,"p":3},{"d":"04 May","o":"Chelsea","v":"A","gf":3,"ga":1,"p":3},{"d":"10 May","o":"Newcastle","v":"H","gf":1,"ga":1,"p":1},{"d":"17 May","o":"Man Utd","v":"A","gf":2,"ga":3,"p":0},{"d":"24 May","o":"Bournemouth","v":"H","gf":1,"ga":1,"p":1}],"cum":[3.842,5.684,6.526,7.368,9.211,10.053,10.895,11.737,12.579,14.421,18.263,22.105,22.947,26.789,27.632,31.474,32.316,33.158,34.0,34.842,38.684,40.526,44.368,46.211,47.053,48.895,49.737,50.579,52.421,54.263,58.105,59.947,63.789,67.632,71.474,73.316,74.158,76.0],"cumActual":[3,4,4,4,5,5,5,5,5,6,9,12,12,15,15,18,18,18,18,18,21,22,25,26,26,27,27,27,28,29,32,33,36,39,42,43,43,44]},{"name":"West Ham","short":"West Ham","handicap":35,"actual":39,"adjusted":74,"actualRank":18,"adjRank":14,"w":10,"dr":9,"l":19,"gf":46,"ga":65,"games":[{"d":"16 Aug","o":"Sunderland","v":"A","gf":0,"ga":3,"p":0},{"d":"22 Aug","o":"Chelsea","v":"H","gf":1,"ga":5,"p":0},{"d":"31 Aug","o":"Forest","v":"A","gf":3,"ga":0,"p":3},{"d":"13 Sep","o":"Tottenham","v":"H","gf":0,"ga":3,"p":0},{"d":"20 Sep","o":"Palace","v":"H","gf":1,"ga":2,"p":0},{"d":"29 Sep","o":"Everton","v":"A","gf":1,"ga":1,"p":1},{"d":"04 Oct","o":"Arsenal","v":"A","gf":0,"ga":2,"p":0},{"d":"20 Oct","o":"Brentford","v":"H","gf":0,"ga":2,"p":0},{"d":"24 Oct","o":"Leeds","v":"A","gf":1,"ga":2,"p":0},{"d":"02 Nov","o":"Newcastle","v":"H","gf":3,"ga":1,"p":3},{"d":"08 Nov","o":"Burnley","v":"H","gf":3,"ga":2,"p":3},{"d":"22 Nov","o":"Bournemouth","v":"A","gf":2,"ga":2,"p":1},{"d":"30 Nov","o":"Liverpool","v":"H","gf":0,"ga":2,"p":0},{"d":"04 Dec","o":"Man Utd","v":"A","gf":1,"ga":1,"p":1},{"d":"07 Dec","o":"Brighton","v":"A","gf":1,"ga":1,"p":1},{"d":"14 Dec","o":"Aston Villa","v":"H","gf":2,"ga":3,"p":0},{"d":"20 Dec","o":"Man City","v":"A","gf":0,"ga":3,"p":0},{"d":"27 Dec","o":"Fulham","v":"H","gf":0,"ga":1,"p":0},{"d":"30 Dec","o":"Brighton","v":"H","gf":2,"ga":2,"p":1},{"d":"03 Jan","o":"Wolves","v":"A","gf":0,"ga":3,"p":0},{"d":"06 Jan","o":"Forest","v":"H","gf":1,"ga":2,"p":0},{"d":"17 Jan","o":"Tottenham","v":"A","gf":2,"ga":1,"p":3},{"d":"24 Jan","o":"Sunderland","v":"H","gf":3,"ga":1,"p":3},{"d":"31 Jan","o":"Chelsea","v":"A","gf":2,"ga":3,"p":0},{"d":"07 Feb","o":"Burnley","v":"A","gf":2,"ga":0,"p":3},{"d":"10 Feb","o":"Man Utd","v":"H","gf":1,"ga":1,"p":1},{"d":"21 Feb","o":"Bournemouth","v":"H","gf":0,"ga":0,"p":1},{"d":"28 Feb","o":"Liverpool","v":"A","gf":2,"ga":5,"p":0},{"d":"04 Mar","o":"Fulham","v":"A","gf":1,"ga":0,"p":3},{"d":"14 Mar","o":"Man City","v":"H","gf":1,"ga":1,"p":1},{"d":"22 Mar","o":"Aston Villa","v":"A","gf":0,"ga":2,"p":0},{"d":"10 Apr","o":"Wolves","v":"H","gf":4,"ga":0,"p":3},{"d":"20 Apr","o":"Palace","v":"A","gf":0,"ga":0,"p":1},{"d":"25 Apr","o":"Everton","v":"H","gf":2,"ga":1,"p":3},{"d":"02 May","o":"Brentford","v":"A","gf":0,"ga":3,"p":0},{"d":"10 May","o":"Arsenal","v":"H","gf":0,"ga":1,"p":0},{"d":"17 May","o":"Newcastle","v":"A","gf":1,"ga":3,"p":0},{"d":"24 May","o":"Leeds","v":"H","gf":3,"ga":0,"p":3}],"cum":[0.921,1.842,5.763,6.684,7.605,9.526,10.447,11.368,12.289,16.211,20.132,22.053,22.974,24.895,26.816,27.737,28.658,29.579,31.5,32.421,33.342,37.263,41.184,42.105,46.026,47.947,49.868,50.789,54.711,56.632,57.553,61.474,63.395,67.316,68.237,69.158,70.079,74.0],"cumActual":[0,0,3,3,3,4,4,4,4,7,10,11,11,12,13,13,13,13,14,14,14,17,20,20,23,24,25,25,28,29,29,32,33,36,36,36,36,39]},{"name":"Burnley","short":"Burnley","handicap":51,"actual":22,"adjusted":73,"actualRank":19,"adjRank":15,"w":4,"dr":10,"l":24,"gf":38,"ga":75,"games":[{"d":"16 Aug","o":"Tottenham","v":"A","gf":0,"ga":3,"p":0},{"d":"23 Aug","o":"Sunderland","v":"H","gf":2,"ga":0,"p":3},{"d":"30 Aug","o":"Man Utd","v":"A","gf":2,"ga":3,"p":0},{"d":"14 Sep","o":"Liverpool","v":"H","gf":0,"ga":1,"p":0},{"d":"20 Sep","o":"Forest","v":"H","gf":1,"ga":1,"p":1},{"d":"27 Sep","o":"Man City","v":"A","gf":1,"ga":5,"p":0},{"d":"05 Oct","o":"Aston Villa","v":"A","gf":1,"ga":2,"p":0},{"d":"18 Oct","o":"Leeds","v":"H","gf":2,"ga":0,"p":3},{"d":"26 Oct","o":"Wolves","v":"A","gf":3,"ga":2,"p":3},{"d":"01 Nov","o":"Arsenal","v":"H","gf":0,"ga":2,"p":0},{"d":"08 Nov","o":"West Ham","v":"A","gf":2,"ga":3,"p":0},{"d":"22 Nov","o":"Chelsea","v":"H","gf":0,"ga":2,"p":0},{"d":"29 Nov","o":"Brentford","v":"A","gf":1,"ga":3,"p":0},{"d":"03 Dec","o":"Palace","v":"H","gf":0,"ga":1,"p":0},{"d":"06 Dec","o":"Newcastle","v":"A","gf":1,"ga":2,"p":0},{"d":"13 Dec","o":"Fulham","v":"H","gf":2,"ga":3,"p":0},{"d":"20 Dec","o":"Bournemouth","v":"A","gf":1,"ga":1,"p":1},{"d":"27 Dec","o":"Everton","v":"H","gf":0,"ga":0,"p":1},{"d":"30 Dec","o":"Newcastle","v":"H","gf":1,"ga":3,"p":0},{"d":"03 Jan","o":"Brighton","v":"A","gf":0,"ga":2,"p":0},{"d":"07 Jan","o":"Man Utd","v":"H","gf":2,"ga":2,"p":1},{"d":"17 Jan","o":"Liverpool","v":"A","gf":1,"ga":1,"p":1},{"d":"24 Jan","o":"Tottenham","v":"H","gf":2,"ga":2,"p":1},{"d":"02 Feb","o":"Sunderland","v":"A","gf":0,"ga":3,"p":0},{"d":"07 Feb","o":"West Ham","v":"H","gf":0,"ga":2,"p":0},{"d":"11 Feb","o":"Palace","v":"A","gf":3,"ga":2,"p":3},{"d":"21 Feb","o":"Chelsea","v":"A","gf":1,"ga":1,"p":1},{"d":"28 Feb","o":"Brentford","v":"H","gf":3,"ga":4,"p":0},{"d":"03 Mar","o":"Everton","v":"A","gf":0,"ga":2,"p":0},{"d":"14 Mar","o":"Bournemouth","v":"H","gf":0,"ga":0,"p":1},{"d":"21 Mar","o":"Fulham","v":"A","gf":1,"ga":3,"p":0},{"d":"11 Apr","o":"Brighton","v":"H","gf":0,"ga":2,"p":0},{"d":"19 Apr","o":"Forest","v":"A","gf":1,"ga":4,"p":0},{"d":"22 Apr","o":"Man City","v":"H","gf":0,"ga":1,"p":0},{"d":"01 May","o":"Leeds","v":"A","gf":1,"ga":3,"p":0},{"d":"10 May","o":"Aston Villa","v":"H","gf":2,"ga":2,"p":1},{"d":"18 May","o":"Arsenal","v":"A","gf":0,"ga":1,"p":0},{"d":"24 May","o":"Wolves","v":"H","gf":1,"ga":1,"p":1}],"cum":[1.342,5.684,7.026,8.368,10.711,12.053,13.395,17.737,22.079,23.421,24.763,26.105,27.447,28.789,30.132,31.474,33.816,36.158,37.5,38.842,41.184,43.526,45.868,47.211,48.553,52.895,55.237,56.579,57.921,60.263,61.605,62.947,64.289,65.632,66.974,69.316,70.658,73.0],"cumActual":[0,3,3,3,4,4,4,7,10,10,10,10,10,10,10,10,11,12,12,12,13,14,15,15,15,18,19,19,19,20,20,20,20,20,20,21,21,22]},{"name":"Chelsea","short":"Chelsea","handicap":12,"actual":52,"adjusted":64,"actualRank":10,"adjRank":16,"w":14,"dr":10,"l":14,"gf":58,"ga":52,"games":[{"d":"17 Aug","o":"Palace","v":"H","gf":0,"ga":0,"p":1},{"d":"22 Aug","o":"West Ham","v":"A","gf":5,"ga":1,"p":3},{"d":"30 Aug","o":"Fulham","v":"H","gf":2,"ga":0,"p":3},{"d":"13 Sep","o":"Brentford","v":"A","gf":2,"ga":2,"p":1},{"d":"20 Sep","o":"Man Utd","v":"A","gf":1,"ga":2,"p":0},{"d":"27 Sep","o":"Brighton","v":"H","gf":1,"ga":3,"p":0},{"d":"04 Oct","o":"Liverpool","v":"H","gf":2,"ga":1,"p":3},{"d":"18 Oct","o":"Forest","v":"A","gf":3,"ga":0,"p":3},{"d":"25 Oct","o":"Sunderland","v":"H","gf":1,"ga":2,"p":0},{"d":"01 Nov","o":"Tottenham","v":"A","gf":1,"ga":0,"p":3},{"d":"08 Nov","o":"Wolves","v":"H","gf":3,"ga":0,"p":3},{"d":"22 Nov","o":"Burnley","v":"A","gf":2,"ga":0,"p":3},{"d":"30 Nov","o":"Arsenal","v":"H","gf":1,"ga":1,"p":1},{"d":"03 Dec","o":"Leeds","v":"A","gf":1,"ga":3,"p":0},{"d":"06 Dec","o":"Bournemouth","v":"A","gf":0,"ga":0,"p":1},{"d":"13 Dec","o":"Everton","v":"H","gf":2,"ga":0,"p":3},{"d":"20 Dec","o":"Newcastle","v":"A","gf":2,"ga":2,"p":1},{"d":"27 Dec","o":"Aston Villa","v":"H","gf":1,"ga":2,"p":0},{"d":"30 Dec","o":"Bournemouth","v":"H","gf":2,"ga":2,"p":1},{"d":"04 Jan","o":"Man City","v":"A","gf":1,"ga":1,"p":1},{"d":"07 Jan","o":"Fulham","v":"A","gf":1,"ga":2,"p":0},{"d":"17 Jan","o":"Brentford","v":"H","gf":2,"ga":0,"p":3},{"d":"25 Jan","o":"Palace","v":"A","gf":3,"ga":1,"p":3},{"d":"31 Jan","o":"West Ham","v":"H","gf":3,"ga":2,"p":3},{"d":"07 Feb","o":"Wolves","v":"A","gf":3,"ga":1,"p":3},{"d":"10 Feb","o":"Leeds","v":"H","gf":2,"ga":2,"p":1},{"d":"21 Feb","o":"Burnley","v":"H","gf":1,"ga":1,"p":1},{"d":"01 Mar","o":"Arsenal","v":"A","gf":1,"ga":2,"p":0},{"d":"04 Mar","o":"Aston Villa","v":"A","gf":4,"ga":1,"p":3},{"d":"14 Mar","o":"Newcastle","v":"H","gf":0,"ga":1,"p":0},{"d":"21 Mar","o":"Everton","v":"A","gf":0,"ga":3,"p":0},{"d":"12 Apr","o":"Man City","v":"H","gf":0,"ga":3,"p":0},{"d":"18 Apr","o":"Man Utd","v":"H","gf":0,"ga":1,"p":0},{"d":"21 Apr","o":"Brighton","v":"A","gf":0,"ga":3,"p":0},{"d":"04 May","o":"Forest","v":"H","gf":1,"ga":3,"p":0},{"d":"09 May","o":"Liverpool","v":"A","gf":1,"ga":1,"p":1},{"d":"19 May","o":"Tottenham","v":"H","gf":2,"ga":1,"p":3},{"d":"24 May","o":"Sunderland","v":"A","gf":1,"ga":2,"p":0}],"cum":[1.316,4.632,7.947,9.263,9.579,9.895,13.211,16.526,16.842,20.158,23.474,26.789,28.105,28.421,29.737,33.053,34.368,34.684,36.0,37.316,37.632,40.947,44.263,47.579,50.895,52.211,53.526,53.842,57.158,57.474,57.789,58.105,58.421,58.737,59.053,60.368,63.684,64.0],"cumActual":[1,4,7,8,8,8,11,14,14,17,20,23,24,24,25,28,29,29,30,31,31,34,37,40,43,44,45,45,48,48,48,48,48,48,48,49,52,52]},{"name":"Newcastle Utd","short":"Newcastle","handicap":15,"actual":49,"adjusted":64,"actualRank":12,"adjRank":17,"w":14,"dr":7,"l":17,"gf":53,"ga":55,"games":[{"d":"16 Aug","o":"Aston Villa","v":"A","gf":0,"ga":0,"p":1},{"d":"25 Aug","o":"Liverpool","v":"H","gf":2,"ga":3,"p":0},{"d":"30 Aug","o":"Leeds","v":"A","gf":0,"ga":0,"p":1},{"d":"13 Sep","o":"Wolves","v":"H","gf":1,"ga":0,"p":3},{"d":"21 Sep","o":"Bournemouth","v":"A","gf":0,"ga":0,"p":1},{"d":"28 Sep","o":"Arsenal","v":"H","gf":1,"ga":2,"p":0},{"d":"05 Oct","o":"Forest","v":"H","gf":2,"ga":0,"p":3},{"d":"18 Oct","o":"Brighton","v":"A","gf":1,"ga":2,"p":0},{"d":"25 Oct","o":"Fulham","v":"H","gf":2,"ga":1,"p":3},{"d":"02 Nov","o":"West Ham","v":"A","gf":1,"ga":3,"p":0},{"d":"09 Nov","o":"Brentford","v":"A","gf":1,"ga":3,"p":0},{"d":"22 Nov","o":"Man City","v":"H","gf":2,"ga":1,"p":3},{"d":"29 Nov","o":"Everton","v":"A","gf":4,"ga":1,"p":3},{"d":"02 Dec","o":"Tottenham","v":"H","gf":2,"ga":2,"p":1},{"d":"06 Dec","o":"Burnley","v":"H","gf":2,"ga":1,"p":3},{"d":"14 Dec","o":"Sunderland","v":"A","gf":0,"ga":1,"p":0},{"d":"20 Dec","o":"Chelsea","v":"H","gf":2,"ga":2,"p":1},{"d":"26 Dec","o":"Man Utd","v":"A","gf":0,"ga":1,"p":0},{"d":"30 Dec","o":"Burnley","v":"A","gf":3,"ga":1,"p":3},{"d":"04 Jan","o":"Palace","v":"H","gf":2,"ga":0,"p":3},{"d":"07 Jan","o":"Leeds","v":"H","gf":4,"ga":3,"p":3},{"d":"18 Jan","o":"Wolves","v":"A","gf":0,"ga":0,"p":1},{"d":"25 Jan","o":"Aston Villa","v":"H","gf":0,"ga":2,"p":0},{"d":"31 Jan","o":"Liverpool","v":"A","gf":1,"ga":4,"p":0},{"d":"07 Feb","o":"Brentford","v":"H","gf":2,"ga":3,"p":0},{"d":"10 Feb","o":"Tottenham","v":"A","gf":2,"ga":1,"p":3},{"d":"21 Feb","o":"Man City","v":"A","gf":1,"ga":2,"p":0},{"d":"28 Feb","o":"Everton","v":"H","gf":2,"ga":3,"p":0},{"d":"04 Mar","o":"Man Utd","v":"H","gf":2,"ga":1,"p":3},{"d":"14 Mar","o":"Chelsea","v":"A","gf":1,"ga":0,"p":3},{"d":"22 Mar","o":"Sunderland","v":"H","gf":1,"ga":2,"p":0},{"d":"12 Apr","o":"Palace","v":"A","gf":1,"ga":2,"p":0},{"d":"18 Apr","o":"Bournemouth","v":"H","gf":1,"ga":2,"p":0},{"d":"25 Apr","o":"Arsenal","v":"A","gf":0,"ga":1,"p":0},{"d":"02 May","o":"Brighton","v":"H","gf":3,"ga":1,"p":3},{"d":"10 May","o":"Forest","v":"A","gf":1,"ga":1,"p":1},{"d":"17 May","o":"West Ham","v":"H","gf":3,"ga":1,"p":3},{"d":"24 May","o":"Fulham","v":"A","gf":0,"ga":2,"p":0}],"cum":[1.395,1.789,3.184,6.579,7.974,8.368,11.763,12.158,15.553,15.947,16.342,19.737,23.132,24.526,27.921,28.316,29.711,30.105,33.5,36.895,40.289,41.684,42.079,42.474,42.868,46.263,46.658,47.053,50.447,53.842,54.237,54.632,55.026,55.421,58.816,60.211,63.605,64.0],"cumActual":[1,1,2,5,6,6,9,9,12,12,12,15,18,19,22,22,23,23,26,29,32,33,33,33,33,36,36,36,39,42,42,42,42,42,45,46,49,49]},{"name":"Tottenham","short":"Tottenham","handicap":22,"actual":41,"adjusted":63,"actualRank":17,"adjRank":18,"w":10,"dr":11,"l":17,"gf":48,"ga":57,"games":[{"d":"16 Aug","o":"Burnley","v":"H","gf":3,"ga":0,"p":3},{"d":"23 Aug","o":"Man City","v":"A","gf":2,"ga":0,"p":3},{"d":"30 Aug","o":"Bournemouth","v":"H","gf":0,"ga":1,"p":0},{"d":"13 Sep","o":"West Ham","v":"A","gf":3,"ga":0,"p":3},{"d":"20 Sep","o":"Brighton","v":"A","gf":2,"ga":2,"p":1},{"d":"27 Sep","o":"Wolves","v":"H","gf":1,"ga":1,"p":1},{"d":"04 Oct","o":"Leeds","v":"A","gf":2,"ga":1,"p":3},{"d":"19 Oct","o":"Aston Villa","v":"H","gf":1,"ga":2,"p":0},{"d":"26 Oct","o":"Everton","v":"A","gf":3,"ga":0,"p":3},{"d":"01 Nov","o":"Chelsea","v":"H","gf":0,"ga":1,"p":0},{"d":"08 Nov","o":"Man Utd","v":"H","gf":2,"ga":2,"p":1},{"d":"23 Nov","o":"Arsenal","v":"A","gf":1,"ga":4,"p":0},{"d":"29 Nov","o":"Fulham","v":"H","gf":1,"ga":2,"p":0},{"d":"02 Dec","o":"Newcastle","v":"A","gf":2,"ga":2,"p":1},{"d":"06 Dec","o":"Brentford","v":"H","gf":2,"ga":0,"p":3},{"d":"14 Dec","o":"Forest","v":"A","gf":0,"ga":3,"p":0},{"d":"20 Dec","o":"Liverpool","v":"H","gf":1,"ga":2,"p":0},{"d":"28 Dec","o":"Palace","v":"A","gf":1,"ga":0,"p":3},{"d":"01 Jan","o":"Brentford","v":"A","gf":0,"ga":0,"p":1},{"d":"04 Jan","o":"Sunderland","v":"H","gf":1,"ga":1,"p":1},{"d":"07 Jan","o":"Bournemouth","v":"A","gf":2,"ga":3,"p":0},{"d":"17 Jan","o":"West Ham","v":"H","gf":1,"ga":2,"p":0},{"d":"24 Jan","o":"Burnley","v":"A","gf":2,"ga":2,"p":1},{"d":"01 Feb","o":"Man City","v":"H","gf":2,"ga":2,"p":1},{"d":"07 Feb","o":"Man Utd","v":"A","gf":0,"ga":2,"p":0},{"d":"10 Feb","o":"Newcastle","v":"H","gf":1,"ga":2,"p":0},{"d":"22 Feb","o":"Arsenal","v":"H","gf":1,"ga":4,"p":0},{"d":"01 Mar","o":"Fulham","v":"A","gf":1,"ga":2,"p":0},{"d":"05 Mar","o":"Palace","v":"H","gf":1,"ga":3,"p":0},{"d":"15 Mar","o":"Liverpool","v":"A","gf":1,"ga":1,"p":1},{"d":"22 Mar","o":"Forest","v":"H","gf":0,"ga":3,"p":0},{"d":"12 Apr","o":"Sunderland","v":"A","gf":0,"ga":1,"p":0},{"d":"18 Apr","o":"Brighton","v":"H","gf":2,"ga":2,"p":1},{"d":"25 Apr","o":"Wolves","v":"A","gf":1,"ga":0,"p":3},{"d":"03 May","o":"Aston Villa","v":"A","gf":2,"ga":1,"p":3},{"d":"11 May","o":"Leeds","v":"H","gf":1,"ga":1,"p":1},{"d":"19 May","o":"Chelsea","v":"A","gf":1,"ga":2,"p":0},{"d":"24 May","o":"Everton","v":"H","gf":1,"ga":0,"p":3}],"cum":[3.579,7.158,7.737,11.316,12.895,14.474,18.053,18.632,22.211,22.789,24.368,24.947,25.526,27.105,30.684,31.263,31.842,35.421,37.0,38.579,39.158,39.737,41.316,42.895,43.474,44.053,44.632,45.211,45.789,47.368,47.947,48.526,50.105,53.684,57.263,58.842,59.421,63.0],"cumActual":[3,6,6,9,10,11,14,14,17,17,18,18,18,19,22,22,22,25,26,27,27,27,28,29,29,29,29,29,29,30,30,30,31,34,37,38,38,41]},{"name":"Liverpool","short":"Liverpool","handicap":0,"actual":60,"adjusted":60,"actualRank":5,"adjRank":19,"w":17,"dr":9,"l":12,"gf":63,"ga":53,"games":[{"d":"15 Aug","o":"Bournemouth","v":"H","gf":4,"ga":2,"p":3},{"d":"25 Aug","o":"Newcastle","v":"A","gf":3,"ga":2,"p":3},{"d":"31 Aug","o":"Arsenal","v":"H","gf":1,"ga":0,"p":3},{"d":"14 Sep","o":"Burnley","v":"A","gf":1,"ga":0,"p":3},{"d":"20 Sep","o":"Everton","v":"H","gf":2,"ga":1,"p":3},{"d":"27 Sep","o":"Palace","v":"A","gf":1,"ga":2,"p":0},{"d":"04 Oct","o":"Chelsea","v":"A","gf":1,"ga":2,"p":0},{"d":"19 Oct","o":"Man Utd","v":"H","gf":1,"ga":2,"p":0},{"d":"25 Oct","o":"Brentford","v":"A","gf":2,"ga":3,"p":0},{"d":"01 Nov","o":"Aston Villa","v":"H","gf":2,"ga":0,"p":3},{"d":"09 Nov","o":"Man City","v":"A","gf":0,"ga":3,"p":0},{"d":"22 Nov","o":"Forest","v":"H","gf":0,"ga":3,"p":0},{"d":"30 Nov","o":"West Ham","v":"A","gf":2,"ga":0,"p":3},{"d":"03 Dec","o":"Sunderland","v":"H","gf":1,"ga":1,"p":1},{"d":"06 Dec","o":"Leeds","v":"A","gf":3,"ga":3,"p":1},{"d":"13 Dec","o":"Brighton","v":"H","gf":2,"ga":0,"p":3},{"d":"20 Dec","o":"Tottenham","v":"A","gf":2,"ga":1,"p":3},{"d":"27 Dec","o":"Wolves","v":"H","gf":2,"ga":1,"p":3},{"d":"01 Jan","o":"Leeds","v":"H","gf":0,"ga":0,"p":1},{"d":"04 Jan","o":"Fulham","v":"A","gf":2,"ga":2,"p":1},{"d":"08 Jan","o":"Arsenal","v":"A","gf":0,"ga":0,"p":1},{"d":"17 Jan","o":"Burnley","v":"H","gf":1,"ga":1,"p":1},{"d":"24 Jan","o":"Bournemouth","v":"A","gf":2,"ga":3,"p":0},{"d":"31 Jan","o":"Newcastle","v":"H","gf":4,"ga":1,"p":3},{"d":"08 Feb","o":"Man City","v":"H","gf":1,"ga":2,"p":0},{"d":"11 Feb","o":"Sunderland","v":"A","gf":1,"ga":0,"p":3},{"d":"22 Feb","o":"Forest","v":"A","gf":1,"ga":0,"p":3},{"d":"28 Feb","o":"West Ham","v":"H","gf":5,"ga":2,"p":3},{"d":"03 Mar","o":"Wolves","v":"A","gf":1,"ga":2,"p":0},{"d":"15 Mar","o":"Tottenham","v":"H","gf":1,"ga":1,"p":1},{"d":"21 Mar","o":"Brighton","v":"A","gf":1,"ga":2,"p":0},{"d":"11 Apr","o":"Fulham","v":"H","gf":2,"ga":0,"p":3},{"d":"19 Apr","o":"Everton","v":"A","gf":2,"ga":1,"p":3},{"d":"25 Apr","o":"Palace","v":"H","gf":3,"ga":1,"p":3},{"d":"03 May","o":"Man Utd","v":"A","gf":2,"ga":3,"p":0},{"d":"09 May","o":"Chelsea","v":"H","gf":1,"ga":1,"p":1},{"d":"15 May","o":"Aston Villa","v":"A","gf":2,"ga":4,"p":0},{"d":"24 May","o":"Brentford","v":"H","gf":1,"ga":1,"p":1}],"cum":[3.0,6.0,9.0,12.0,15.0,15.0,15.0,15.0,15.0,18.0,18.0,18.0,21.0,22.0,23.0,26.0,29.0,32.0,33.0,34.0,35.0,36.0,36.0,39.0,39.0,42.0,45.0,48.0,48.0,49.0,49.0,52.0,55.0,58.0,58.0,59.0,59.0,60.0],"cumActual":[3,6,9,12,15,15,15,15,15,18,18,18,21,22,23,26,29,32,33,34,35,36,36,39,39,42,45,48,48,49,49,52,55,58,58,59,59,60]},{"name":"Wolves","short":"Wolves","handicap":39,"actual":20,"adjusted":59,"actualRank":20,"adjRank":20,"w":3,"dr":11,"l":24,"gf":27,"ga":68,"games":[{"d":"16 Aug","o":"Man City","v":"H","gf":0,"ga":4,"p":0},{"d":"23 Aug","o":"Bournemouth","v":"A","gf":0,"ga":1,"p":0},{"d":"30 Aug","o":"Everton","v":"H","gf":2,"ga":3,"p":0},{"d":"13 Sep","o":"Newcastle","v":"A","gf":0,"ga":1,"p":0},{"d":"20 Sep","o":"Leeds","v":"H","gf":1,"ga":3,"p":0},{"d":"27 Sep","o":"Tottenham","v":"A","gf":1,"ga":1,"p":1},{"d":"05 Oct","o":"Brighton","v":"H","gf":1,"ga":1,"p":1},{"d":"18 Oct","o":"Sunderland","v":"A","gf":0,"ga":2,"p":0},{"d":"26 Oct","o":"Burnley","v":"H","gf":2,"ga":3,"p":0},{"d":"01 Nov","o":"Fulham","v":"A","gf":0,"ga":3,"p":0},{"d":"08 Nov","o":"Chelsea","v":"A","gf":0,"ga":3,"p":0},{"d":"22 Nov","o":"Palace","v":"H","gf":0,"ga":2,"p":0},{"d":"30 Nov","o":"Aston Villa","v":"A","gf":0,"ga":1,"p":0},{"d":"03 Dec","o":"Forest","v":"H","gf":0,"ga":1,"p":0},{"d":"08 Dec","o":"Man Utd","v":"H","gf":1,"ga":4,"p":0},{"d":"13 Dec","o":"Arsenal","v":"A","gf":1,"ga":2,"p":0},{"d":"20 Dec","o":"Brentford","v":"H","gf":0,"ga":2,"p":0},{"d":"27 Dec","o":"Liverpool","v":"A","gf":1,"ga":2,"p":0},{"d":"30 Dec","o":"Man Utd","v":"A","gf":1,"ga":1,"p":1},{"d":"03 Jan","o":"West Ham","v":"H","gf":3,"ga":0,"p":3},{"d":"07 Jan","o":"Everton","v":"A","gf":1,"ga":1,"p":1},{"d":"18 Jan","o":"Newcastle","v":"H","gf":0,"ga":0,"p":1},{"d":"24 Jan","o":"Man City","v":"A","gf":0,"ga":2,"p":0},{"d":"31 Jan","o":"Bournemouth","v":"H","gf":0,"ga":2,"p":0},{"d":"07 Feb","o":"Chelsea","v":"H","gf":1,"ga":3,"p":0},{"d":"11 Feb","o":"Forest","v":"A","gf":0,"ga":0,"p":1},{"d":"18 Feb","o":"Arsenal","v":"H","gf":2,"ga":2,"p":1},{"d":"22 Feb","o":"Palace","v":"A","gf":0,"ga":1,"p":0},{"d":"27 Feb","o":"Aston Villa","v":"H","gf":2,"ga":0,"p":3},{"d":"03 Mar","o":"Liverpool","v":"H","gf":2,"ga":1,"p":3},{"d":"16 Mar","o":"Brentford","v":"A","gf":2,"ga":2,"p":1},{"d":"10 Apr","o":"West Ham","v":"A","gf":0,"ga":4,"p":0},{"d":"18 Apr","o":"Leeds","v":"A","gf":0,"ga":3,"p":0},{"d":"25 Apr","o":"Tottenham","v":"H","gf":0,"ga":1,"p":0},{"d":"02 May","o":"Sunderland","v":"H","gf":1,"ga":1,"p":1},{"d":"09 May","o":"Brighton","v":"A","gf":0,"ga":3,"p":0},{"d":"17 May","o":"Fulham","v":"H","gf":1,"ga":1,"p":1},{"d":"24 May","o":"Burnley","v":"A","gf":1,"ga":1,"p":1}],"cum":[1.026,2.053,3.079,4.105,5.132,7.158,9.184,10.211,11.237,12.263,13.289,14.316,15.342,16.368,17.395,18.421,19.447,20.474,22.5,26.526,28.553,30.579,31.605,32.632,33.658,35.684,37.711,38.737,42.763,46.789,48.816,49.842,50.868,51.895,53.921,54.947,56.974,59.0],"cumActual":[0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,3,6,7,8,8,8,8,9,10,10,13,16,17,17,17,17,18,18,19,20]}]}/*__END_DATA__*/;
+</script>
+<script>
+"use strict";
+(function () {
+  const D = window.PLH_DATA;
+  if (!D) return;
+  const TEAMS = D.teams;                       // sorted by adjusted rank
+  const N38 = D.gamesPerSeason;
+  const MEAN = D.meanAdjusted;
+
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const SLOT_VARS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+  const fmt = (v, dp = 0) => v.toLocaleString("en-GB", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const isSvg = ["svg","g","rect","path","line","circle","text","title"].includes(tag);
+    const node = isSvg ? document.createElementNS(SVG_NS, tag) : document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (k === "text") node.textContent = v;
+      else if (k === "cls") node.setAttribute("class", v);
+      else node.setAttribute(k, v);
+    }
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  /* ---------- shared tooltip ---------- */
+  const tip = document.getElementById("tip");
+  function tipShow(x, y, build) {
+    tip.textContent = "";
+    build(tip);
+    tip.style.display = "block";
+    const r = tip.getBoundingClientRect();
+    let px = x + 14, py = y + 14;
+    if (px + r.width > window.innerWidth - 8) px = x - r.width - 14;
+    if (py + r.height > window.innerHeight - 8) py = y - r.height - 14;
+    tip.style.left = px + "px";
+    tip.style.top = py + "px";
+  }
+  function tipHide() { tip.style.display = "none"; }
+  function tipTitle(parent, text) { el("div", { cls: "tt-title", text }, parent); }
+  function tipRow(parent, color, value, name) {
+    const row = el("div", { cls: "tt-row" }, parent);
+    const key = el("span", { cls: "tt-key" }, row);
+    key.style.background = color;
+    el("span", { cls: "tt-val", text: value }, row);
+    el("span", { cls: "tt-name", text: name }, row);
+  }
+
+  /* ---------- KPI tiles ---------- */
+  (function kpis() {
+    const host = document.getElementById("kpis");
+    const byAdj = TEAMS[0];
+    const byActual = TEAMS.find((t) => t.actualRank === 1);
+    let climber = TEAMS[0], faller = TEAMS[0];
+    for (const t of TEAMS) {
+      if ((t.actualRank - t.adjRank) > (climber.actualRank - climber.adjRank)) climber = t;
+      if ((t.actualRank - t.adjRank) < (faller.actualRank - faller.adjRank)) faller = t;
+    }
+    const ord = (n) => n + (["st","nd","rd"][((n + 90) % 100 - 10) % 10 - 1] || "th");
+    const tiles = [
+      { l: "Adjusted champions", v: byAdj.short,
+        d: `${byAdj.adjusted} pts · ${byAdj.actual} actual + ${byAdj.handicap} handicap`, c: "" },
+      { l: "Actual champions", v: byActual.short,
+        d: `${byActual.actual} pts · ${ord(byActual.adjRank)} after handicap`, c: "" },
+      { l: "Biggest climber", v: climber.short,
+        d: `▲ ${climber.actualRank - climber.adjRank} places (${ord(climber.actualRank)} → ${ord(climber.adjRank)})`, c: "up" },
+      { l: "Biggest faller", v: faller.short,
+        d: `▼ ${faller.adjRank - faller.actualRank} places (${ord(faller.actualRank)} → ${ord(faller.adjRank)})`, c: "down" },
+    ];
+    for (const t of tiles) {
+      const tile = el("div", { cls: "tile" }, host);
+      el("div", { cls: "lbl", text: t.l }, tile);
+      el("div", { cls: "val", text: t.v }, tile);
+      el("div", { cls: "delta " + t.c, text: t.d }, tile);
+    }
+  })();
+
+  /* ---------- adjusted league table ---------- */
+  (function leagueTable() {
+    const table = document.getElementById("league-table");
+    const cols = [
+      { k: "adjRank",  h: "Pos" },
+      { k: "name",     h: "Team", txt: true },
+      { k: "played",   h: "P",  get: () => N38, dim: true, nosort: true },
+      { k: "w",  h: "W", dim: true }, { k: "dr", h: "D", dim: true }, { k: "l", h: "L", dim: true },
+      { k: "gd", h: "GD", get: (t) => t.gf - t.ga, dim: true },
+      { k: "actual",   h: "Actual pts" },
+      { k: "handicap", h: "Handicap" },
+      { k: "adjusted", h: "Adjusted", emph: true },
+      { k: "actualRank", h: "Actual pos", dim: true },
+      { k: "moved", h: "Δ", get: (t) => t.actualRank - t.adjRank },
+    ];
+    let sortKey = "adjusted", sortDir = -1;
+    const val = (t, c) => (c.get ? c.get(t) : t[c.k]);
+
+    function render() {
+      table.textContent = "";
+      const thead = el("thead", {}, table);
+      const hr = el("tr", {}, thead);
+      for (const c of cols) {
+        const th = el("th", { text: c.h, cls: (c.txt ? "txt" : "") + (c.nosort ? " nosort" : "") }, hr);
+        if (c.nosort) continue;
+        if ((c.k) === sortKey) {
+          el("span", { cls: "arr", text: sortDir === -1 ? "▼" : "▲" }, th);
+          th.setAttribute("aria-sort", sortDir === -1 ? "descending" : "ascending");
+        }
+        th.addEventListener("click", () => {
+          if (sortKey === c.k) sortDir = -sortDir;
+          else { sortKey = c.k; sortDir = c.txt ? 1 : -1; }
+          render();
+        });
+      }
+      const rows = [...TEAMS].sort((a, b) => {
+        const c = cols.find((x) => x.k === sortKey);
+        const av = val(a, c), bv = val(b, c);
+        const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+        return cmp !== 0 ? cmp * sortDir : a.adjRank - b.adjRank;
+      });
+      const tbody = el("tbody", {}, table);
+      for (const t of rows) {
+        const tr = el("tr", { cls: t.adjRank === 1 ? "champ" : "" }, tbody);
+        for (const c of cols) {
+          const v = val(t, c);
+          const td = el("td", { cls: (c.txt ? "txt " : "") + (c.dim ? "dim " : "") + (c.emph ? "emph" : "") }, tr);
+          if (c.k === "moved") {
+            td.textContent = v > 0 ? `▲ ${v}` : v < 0 ? `▼ ${-v}` : "–";
+            td.className += v > 0 ? " delta-up" : v < 0 ? " delta-down" : " delta-flat";
+          } else if (c.k === "gd") {
+            td.textContent = (v > 0 ? "+" : "") + v;
+          } else td.textContent = v;
+        }
+      }
+    }
+    render();
+  })();
+
+  /* ---------- stacked bar: actual + handicap ---------- */
+  function renderStack() {
+    const host = document.getElementById("stack-chart");
+    host.textContent = "";
+    const legend = document.getElementById("stack-legend");
+    legend.textContent = "";
+    for (const [cvar, label] of [["--s1", "Actual points"], ["--s2", "Handicap"]]) {
+      const key = el("span", { cls: "key" }, legend);
+      const sw = el("span", { cls: "sw" }, key);
+      sw.style.background = css(cvar);
+      key.appendChild(document.createTextNode(label));
+    }
+    const W = Math.max(560, Math.min(host.clientWidth || 800, 1052));
+    const rowH = 27, barH = 16, mL = 96, mR = 46, mT = 6, mB = 26;
+    const H = mT + TEAMS.length * rowH + mB;
+    const maxV = Math.max(...TEAMS.map((t) => t.adjusted));
+    const xMax = Math.ceil(maxV / 20) * 20;
+    const x = (v) => mL + (v / xMax) * (W - mL - mR);
+    const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Stacked bar chart of actual points plus handicap per team" }, host);
+
+    for (let g = 0; g <= xMax; g += 20) {
+      el("line", { x1: x(g), x2: x(g), y1: mT, y2: H - mB, stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: x(g), y: H - 8, "text-anchor": "middle", "font-size": 11,
+        fill: css("--muted"), text: fmt(g) }, svg);
+    }
+    const c1 = css("--s1"), c2 = css("--s2");
+    TEAMS.forEach((t, i) => {
+      const y = mT + i * rowH + (rowH - barH) / 2;
+      el("text", { x: mL - 8, y: y + barH / 2 + 4, "text-anchor": "end", "font-size": 12,
+        fill: css("--ink-2"), text: t.short }, svg);
+      const wA = x(t.actual) - x(0);
+      const wH = x(t.handicap) - x(0);
+      el("rect", { x: x(0), y, width: Math.max(wA - 1, 0), height: barH, fill: c1, rx: 0 }, svg);
+      if (t.handicap > 0)
+        el("rect", { x: x(0) + wA + 1, y, width: Math.max(wH - 1, 1), height: barH, fill: c2, rx: 2 }, svg);
+      el("text", { x: x(t.adjusted) + 6, y: y + barH / 2 + 4, "font-size": 11.5, "font-weight": 600,
+        fill: css("--ink"), text: fmt(t.adjusted) }, svg);
+      const hit = el("rect", { x: 0, y: mT + i * rowH, width: W, height: rowH, fill: "transparent" }, svg);
+      hit.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+        tipTitle(p, t.name);
+        tipRow(p, c1, fmt(t.actual), "actual points");
+        tipRow(p, c2, fmt(t.handicap), "handicap");
+        tipRow(p, "transparent", fmt(t.adjusted), "adjusted total");
+      }));
+      hit.addEventListener("pointerleave", tipHide);
+    });
+    el("line", { x1: x(0), x2: x(0), y1: mT, y2: H - mB, stroke: css("--baseline"), "stroke-width": 1 }, svg);
+  }
+
+  /* ---------- the race: emphasis line chart ---------- */
+  const race = {
+    sel: new Map(),          // team name -> slot index
+    order: [],               // selection order (team names)
+  };
+  function raceDefaults() {
+    const adjChamp = TEAMS[0].name;
+    const actChamp = TEAMS.find((t) => t.actualRank === 1).name;
+    for (const name of [adjChamp, actChamp]) raceToggle(name, true);
+  }
+  function raceFreeSlot() {
+    for (let s = 0; s < SLOT_VARS.length; s++)
+      if (![...race.sel.values()].includes(s)) return s;
+    return -1;
+  }
+  function raceToggle(name, silent) {
+    if (race.sel.has(name)) {
+      race.sel.delete(name);
+      race.order = race.order.filter((n) => n !== name);
+    } else {
+      let slot = raceFreeSlot();
+      if (slot === -1) {                     // cap reached: drop the oldest
+        const oldest = race.order.shift();
+        slot = race.sel.get(oldest);
+        race.sel.delete(oldest);
+      }
+      race.sel.set(name, slot);
+      race.order.push(name);
+    }
+    if (!silent) { renderChips(); renderRace(); }
+  }
+  function renderChips() {
+    const host = document.getElementById("race-chips");
+    host.textContent = "";
+    for (const t of TEAMS) {
+      const on = race.sel.has(t.name);
+      const chip = el("button", { cls: "chip", "aria-pressed": on ? "true" : "false", type: "button" }, host);
+      const dot = el("span", { cls: "dot" }, chip);
+      if (on) dot.style.background = css(SLOT_VARS[race.sel.get(t.name)]);
+      chip.appendChild(document.createTextNode(t.short));
+      chip.addEventListener("click", () => raceToggle(t.name));
+    }
+    const actions = el("span", { cls: "chip-actions" }, host);
+    const clear = el("button", { cls: "chip ghost", type: "button", text: "Clear" }, actions);
+    clear.addEventListener("click", () => {
+      race.sel.clear(); race.order = [];
+      renderChips(); renderRace();
+    });
+  }
+
+  function renderRace() {
+    const host = document.getElementById("race-chart");
+    host.textContent = "";
+    const W = Math.max(640, Math.min(host.clientWidth || 900, 1052));
+    const H = 430, mL = 40, mR = 134, mT = 10, mB = 34;
+    const yMax = Math.ceil(Math.max(...TEAMS.map((t) => t.cum[N38 - 1])) / 10) * 10;
+    const x = (g) => mL + ((g - 1) / (N38 - 1)) * (W - mL - mR);
+    const y = (v) => mT + (1 - v / yMax) * (H - mT - mB);
+    const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Cumulative adjusted points per game for all 20 teams" }, host);
+
+    for (let v = 0; v <= yMax; v += 20) {
+      el("line", { x1: mL, x2: W - mR, y1: y(v), y2: y(v), stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: mL - 7, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: css("--muted"), text: fmt(v) }, svg);
+    }
+    for (const g of [1, 5, 10, 15, 20, 25, 30, 35, 38]) {
+      el("text", { x: x(g), y: H - 12, "text-anchor": "middle", "font-size": 11, fill: css("--muted"), text: g }, svg);
+    }
+    el("text", { x: (mL + W - mR) / 2, y: H - 0.5, "text-anchor": "middle", "font-size": 11, fill: css("--muted"), text: "Game" }, svg);
+    el("line", { x1: mL, x2: W - mR, y1: y(0), y2: y(0), stroke: css("--baseline"), "stroke-width": 1 }, svg);
+
+    const path = (t) => t.cum.map((v, i) => `${i ? "L" : "M"}${x(i + 1).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    const gCtx = el("g", {}, svg);
+    const gHl = el("g", {}, svg);
+    const linesByName = new Map();
+    for (const t of TEAMS) {
+      if (race.sel.has(t.name)) continue;
+      const p = el("path", { d: path(t), fill: "none", stroke: css("--grid"),
+        "stroke-width": 1.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, gCtx);
+      linesByName.set(t.name, p);
+    }
+    const labels = [];
+    for (const name of race.order) {
+      const t = TEAMS.find((q) => q.name === name);
+      const color = css(SLOT_VARS[race.sel.get(name)]);
+      el("path", { d: path(t), fill: "none", stroke: css("--surface"),
+        "stroke-width": 5, "stroke-linejoin": "round", "stroke-linecap": "round" }, gHl);
+      el("path", { d: path(t), fill: "none", stroke: color,
+        "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, gHl);
+      const ex = x(N38), ey = y(t.cum[N38 - 1]);
+      el("circle", { cx: ex, cy: ey, r: 4.5, fill: color, stroke: css("--surface"), "stroke-width": 2 }, gHl);
+      labels.push({ t, color, ey });
+    }
+    labels.sort((a, b) => a.ey - b.ey);
+    for (let i = 1; i < labels.length; i++)
+      if (labels[i].ey - labels[i - 1].ey < 15) labels[i].ey = labels[i - 1].ey + 15;
+    for (const lb of labels) {
+      const lineY = y(lb.t.cum[N38 - 1]);
+      if (Math.abs(lb.ey - lineY) > 2)
+        el("line", { x1: x(N38) + 6, y1: lineY, x2: x(N38) + 12, y2: lb.ey, stroke: css("--baseline"), "stroke-width": 1 }, svg);
+      const g = el("g", {}, svg);
+      el("circle", { cx: x(N38) + 18, cy: lb.ey, r: 3.5, fill: lb.color }, g);
+      el("text", { x: x(N38) + 26, y: lb.ey + 4, "font-size": 11.5, fill: css("--ink"),
+        text: `${lb.t.short} ${fmt(lb.t.cum[N38 - 1])}` }, g);
+    }
+
+    const cross = el("line", { y1: mT, y2: H - mB, stroke: css("--baseline"), "stroke-width": 1, visibility: "hidden" }, svg);
+    const overlay = el("rect", { x: mL, y: mT, width: W - mL - mR, height: H - mT - mB, fill: "transparent" }, svg);
+    overlay.addEventListener("pointermove", (e) => {
+      const r = svg.getBoundingClientRect();
+      const px = e.clientX - r.left, py = e.clientY - r.top;
+      const g = Math.max(1, Math.min(N38, Math.round((px - mL) / (W - mL - mR) * (N38 - 1)) + 1));
+      cross.setAttribute("x1", x(g)); cross.setAttribute("x2", x(g));
+      cross.setAttribute("visibility", "visible");
+
+      let hoverTeam = null, hoverDist = 11;
+      for (const t of TEAMS) {
+        if (race.sel.has(t.name)) continue;
+        const d = Math.abs(y(t.cum[g - 1]) - py);
+        if (d < hoverDist) { hoverDist = d; hoverTeam = t; }
+      }
+      for (const [name, p] of linesByName) {
+        const isHover = hoverTeam && name === hoverTeam.name;
+        p.setAttribute("stroke", isHover ? css("--muted") : css("--grid"));
+        p.setAttribute("stroke-width", isHover ? 2.5 : 1.5);
+      }
+      tipShow(e.clientX, e.clientY, (p) => {
+        tipTitle(p, `Game ${g}`);
+        const entries = race.order
+          .map((n) => TEAMS.find((q) => q.name === n))
+          .sort((a, b) => b.cum[g - 1] - a.cum[g - 1]);
+        for (const t of entries)
+          tipRow(p, css(SLOT_VARS[race.sel.get(t.name)]), fmt(t.cum[g - 1], 1), t.short);
+        if (hoverTeam) tipRow(p, css("--muted"), fmt(hoverTeam.cum[g - 1], 1), hoverTeam.short);
+        if (!entries.length && !hoverTeam) tipRow(p, "transparent", "", "Click a team above to highlight it");
+      });
+    });
+    overlay.addEventListener("pointerleave", () => {
+      cross.setAttribute("visibility", "hidden");
+      for (const p of linesByName.values()) {
+        p.setAttribute("stroke", css("--grid"));
+        p.setAttribute("stroke-width", 1.5);
+      }
+      tipHide();
+    });
+  }
+
+  /* ---------- heatmap grid ---------- */
+  function heatColor(v, maxV) {
+    const ramp = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5",
+                  "#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches
+      && document.documentElement.dataset.theme !== "light";
+    const steps = (document.documentElement.dataset.theme === "dark" || dark) ? [...ramp].reverse() : ramp;
+    const t = Math.max(0, Math.min(1, v / maxV)) * (steps.length - 1);
+    const i = Math.min(Math.floor(t), steps.length - 2);
+    const f = t - i;
+    const hex = (s) => [1, 3, 5].map((j) => parseInt(s.slice(j, j + 2), 16));
+    const [a, b] = [hex(steps[i]), hex(steps[i + 1])];
+    const rgb = a.map((av, j) => Math.round(av + (b[j] - av) * f));
+    const lum = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+    return { bg: `rgb(${rgb.join(",")})`, ink: lum > 0.55 ? "#0b0b0b" : "#ffffff" };
+  }
+  function renderHeat() {
+    const host = document.getElementById("heatmap");
+    host.textContent = "";
+    const maxV = Math.max(...TEAMS.map((t) => t.cum[N38 - 1]));
+    const table = el("table", { cls: "heat", "aria-label": "Cumulative adjusted points per team per game" }, host);
+    const thead = el("thead", {}, table);
+    const hr = el("tr", {}, thead);
+    el("th", { cls: "team-cell", text: "" }, hr);
+    for (let g = 1; g <= N38; g++) el("th", { text: g }, hr);
+    const tbody = el("tbody", {}, table);
+    for (const t of TEAMS) {
+      const tr = el("tr", {}, tbody);
+      el("td", { cls: "team-cell", text: t.short }, tr);
+      t.cum.forEach((v, gi) => {
+        const td = el("td", {}, tr);
+        const c = heatColor(v, maxV);
+        const cell = el("div", { cls: "cell", text: fmt(Math.round(v)) }, td);
+        cell.style.background = c.bg;
+        cell.style.color = c.ink;
+        td.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+          const gm = t.games[gi];
+          const res = gm.p === 3 ? "W" : gm.p === 1 ? "D" : "L";
+          tipTitle(p, `${t.name} · game ${gi + 1}`);
+          tipRow(p, c.bg, fmt(v, 1), "cumulative adjusted");
+          tipRow(p, "transparent", `${res} ${gm.gf}–${gm.ga}`, `${gm.v === "H" ? "vs" : "at"} ${gm.o}`);
+        }));
+        td.addEventListener("pointerleave", tipHide);
+      });
+    }
+    const legend = document.getElementById("heat-legend");
+    legend.textContent = "";
+    legend.appendChild(document.createTextNode("0"));
+    const bar = el("span", { cls: "bar" }, legend);
+    const lo = heatColor(0, maxV).bg, mid = heatColor(maxV / 2, maxV).bg, hi = heatColor(maxV, maxV).bg;
+    bar.style.background = `linear-gradient(to right, ${lo}, ${mid}, ${hi})`;
+    legend.appendChild(document.createTextNode(`${fmt(maxV)} adjusted points`));
+  }
+
+  /* ---------- game-by-game explorer ---------- */
+  (function gbg() {
+    const sel = document.getElementById("gbg-select");
+    for (const t of TEAMS) el("option", { value: t.name, text: t.name }, sel);
+    sel.value = TEAMS[0].name;
+    sel.addEventListener("change", render);
+    render();
+
+    function render() {
+      const t = TEAMS.find((q) => q.name === sel.value);
+      const perGame = t.handicap / N38;
+      const sum = document.getElementById("gbg-summary");
+      sum.textContent = "";
+      const b = (txt) => { const s = document.createElement("strong"); s.textContent = txt; return s; };
+      sum.append(b(`${t.w}W ${t.dr}D ${t.l}L`), ` · ${t.actual} actual + ${t.handicap} handicap = `,
+        b(`${t.adjusted} adjusted`), ` · +${perGame.toFixed(3)} per game`);
+
+      const table = document.getElementById("gbg-table");
+      table.textContent = "";
+      const thead = el("thead", {}, table);
+      const hr = el("tr", {}, thead);
+      for (const h of ["#", "Date", "Opponent", "Score", "Result", "Base pts", "+ Handicap", "Game total", "Running actual", "Running adjusted"])
+        el("th", { text: h, cls: (h === "Date" || h === "Opponent" ? "txt " : "") + "nosort" }, hr);
+      const tbody = el("tbody", {}, table);
+      let cumB = 0;
+      t.games.forEach((gm, i) => {
+        cumB += gm.p;
+        const res = gm.p === 3 ? "W" : gm.p === 1 ? "D" : "L";
+        const tr = el("tr", {}, tbody);
+        el("td", { cls: "dim", text: i + 1 }, tr);
+        el("td", { cls: "txt", text: gm.d }, tr);
+        el("td", { cls: "txt", text: `${gm.v === "H" ? "vs" : "at"} ${gm.o}` }, tr);
+        el("td", { text: `${gm.gf}–${gm.ga}` }, tr);
+        const tdR = el("td", {}, tr);
+        el("span", { cls: `pill ${res}`, text: res }, tdR);
+        el("td", { text: gm.p }, tr);
+        el("td", { cls: "dim", text: "+" + perGame.toFixed(3) }, tr);
+        el("td", { cls: "emph", text: (gm.p + perGame).toFixed(3) }, tr);
+        el("td", { cls: "dim", text: cumB }, tr);
+        el("td", { cls: "emph", text: fmt(t.cum[i], 1) }, tr);
+      });
+    }
+  })();
+
+  /* ---------- diverging bar: vs handicap expectation ---------- */
+  function renderDiv() {
+    document.getElementById("mean-adj").textContent = fmt(MEAN, 1);
+    const legend = document.getElementById("div-legend");
+    legend.textContent = "";
+    for (const [cvar, label] of [["--div-pos", "Beat the handicap"], ["--div-neg", "Fell short"]]) {
+      const key = el("span", { cls: "key" }, legend);
+      const sw = el("span", { cls: "sw" }, key);
+      sw.style.background = css(cvar);
+      key.appendChild(document.createTextNode(label));
+    }
+    const host = document.getElementById("div-chart");
+    host.textContent = "";
+    const data = [...TEAMS].map((t) => ({ t, d: t.adjusted - MEAN })).sort((a, b) => b.d - a.d);
+    const W = Math.max(560, Math.min(host.clientWidth || 800, 1052));
+    const rowH = 27, barH = 16, mL = 96, mR = 56, mT = 6, mB = 26;
+    const H = mT + data.length * rowH + mB;
+    const ext = Math.ceil(Math.max(...data.map((e) => Math.abs(e.d))) / 5) * 5;
+    const x = (v) => mL + ((v + ext) / (2 * ext)) * (W - mL - mR);
+    const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Adjusted points versus league average per team" }, host);
+    for (let v = -ext; v <= ext; v += 10) {
+      el("line", { x1: x(v), x2: x(v), y1: mT, y2: H - mB, stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: x(v), y: H - 8, "text-anchor": "middle", "font-size": 11, fill: css("--muted"),
+        text: (v > 0 ? "+" : "") + v }, svg);
+    }
+    const cp = css("--div-pos"), cn = css("--div-neg");
+    data.forEach((e, i) => {
+      const yy = mT + i * rowH + (rowH - barH) / 2;
+      el("text", { x: mL - 8, y: yy + barH / 2 + 4, "text-anchor": "end", "font-size": 12,
+        fill: css("--ink-2"), text: e.t.short }, svg);
+      const w = Math.abs(x(e.d) - x(0));
+      el("rect", { x: e.d >= 0 ? x(0) + 1 : x(e.d), y: yy, width: Math.max(w - 1, 0.5), height: barH,
+        fill: e.d >= 0 ? cp : cn, rx: 2 }, svg);
+      el("text", { x: e.d >= 0 ? x(e.d) + 6 : x(e.d) - 6, y: yy + barH / 2 + 4,
+        "text-anchor": e.d >= 0 ? "start" : "end", "font-size": 11.5, "font-weight": 600,
+        fill: css("--ink"), text: (e.d > 0 ? "+" : "") + fmt(e.d, 1) }, svg);
+      const hit = el("rect", { x: 0, y: mT + i * rowH, width: W, height: rowH, fill: "transparent" }, svg);
+      hit.addEventListener("pointermove", (ev) => tipShow(ev.clientX, ev.clientY, (p) => {
+        tipTitle(p, e.t.name);
+        tipRow(p, e.d >= 0 ? cp : cn, (e.d > 0 ? "+" : "") + fmt(e.d, 1), "vs league average adjusted");
+        tipRow(p, "transparent", fmt(e.t.adjusted), `adjusted (avg ${fmt(MEAN, 1)})`);
+      }));
+      hit.addEventListener("pointerleave", tipHide);
+    });
+    el("line", { x1: x(0), x2: x(0), y1: mT, y2: H - mB, stroke: css("--baseline"), "stroke-width": 1.5 }, svg);
+  }
+
+  /* ---------- scatter: handicap vs actual points ---------- */
+  function renderScatter() {
+    const desc = document.getElementById("scatter-desc");
+    desc.textContent = "Each dot is a team: its pre-season handicap against the points it actually won. " +
+      `The correlation is ${fmt(D.handicapActualCorr, 2)} — ` +
+      (Math.abs(D.handicapActualCorr) > 0.8 ? "the handicap-setters read the league well." :
+       "the handicap-setters got the broad order right, with some big misses.") +
+      " The grey line marks a perfectly-set handicap (actual = average adjusted − handicap).";
+    const host = document.getElementById("scatter-chart");
+    host.textContent = "";
+    const W = Math.max(560, Math.min(host.clientWidth || 800, 1052));
+    const H = 400, mL = 44, mR = 24, mT = 12, mB = 40;
+    const xMax = Math.ceil(Math.max(...TEAMS.map((t) => t.handicap)) / 10) * 10 + 5;
+    const yMax = Math.ceil(Math.max(...TEAMS.map((t) => t.actual)) / 10) * 10;
+    const x = (v) => mL + (v / xMax) * (W - mL - mR);
+    const y = (v) => mT + (1 - v / yMax) * (H - mT - mB);
+    const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Scatter plot of handicap versus actual points" }, host);
+    for (let v = 0; v <= yMax; v += 20) {
+      el("line", { x1: mL, x2: W - mR, y1: y(v), y2: y(v), stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: mL - 7, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: css("--muted"), text: fmt(v) }, svg);
+    }
+    for (let v = 0; v <= xMax; v += 10) {
+      el("text", { x: x(v), y: H - 20, "text-anchor": "middle", "font-size": 11, fill: css("--muted"), text: fmt(v) }, svg);
+    }
+    el("text", { x: (mL + W - mR) / 2, y: H - 4, "text-anchor": "middle", "font-size": 11.5, fill: css("--muted"), text: "Handicap (points)" }, svg);
+    el("text", { x: 12, y: mT + 2, "font-size": 11.5, fill: css("--muted"), text: "Actual pts" }, svg);
+
+    const yAt0 = MEAN - 0;
+    const yAtMax = MEAN - xMax;
+    el("line", { x1: x(0), y1: y(Math.min(yAt0, yMax)), x2: x(xMax), y2: y(Math.max(yAtMax, 0)),
+      stroke: css("--baseline"), "stroke-width": 1 }, svg);
+
+    const dot = css("--s1");
+    const labelled = new Set([TEAMS[0].name,
+      TEAMS.find((t) => t.actualRank === 1).name,
+      TEAMS.find((t) => t.handicap === 0)?.name,
+      TEAMS.find((t) => t.actualRank === TEAMS.length).name].filter(Boolean));
+    for (const t of TEAMS) {
+      const cx = x(t.handicap), cy = y(t.actual);
+      el("circle", { cx, cy, r: 5, fill: dot, stroke: css("--surface"), "stroke-width": 2 }, svg);
+      if (labelled.has(t.name)) {
+        const flip = cx > W - mR - 80;
+        el("text", { x: flip ? cx - 10 : cx + 10, y: cy + 4, "font-size": 11.5, fill: css("--ink"),
+          "text-anchor": flip ? "end" : "start", text: t.short }, svg);
+      }
+      const hit = el("circle", { cx, cy, r: 13, fill: "transparent" }, svg);
+      hit.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+        tipTitle(p, t.name);
+        tipRow(p, dot, fmt(t.actual), "actual points");
+        tipRow(p, "transparent", fmt(t.handicap), "handicap");
+        tipRow(p, "transparent", (t.adjusted - MEAN > 0 ? "+" : "") + fmt(t.adjusted - MEAN, 1), "vs expectation");
+      }));
+      hit.addEventListener("pointerleave", tipHide);
+    }
+  }
+
+  /* ---------- boot + responsive re-render ---------- */
+  function renderAll() { renderStack(); renderRace(); renderDiv(); renderScatter(); }
+  raceDefaults();
+  renderChips();
+  renderHeat();
+  renderAll();
+  let rT;
+  window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(renderAll, 150); });
+  if (window.matchMedia) {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderHeat(); renderAll(); });
+  }
+})();
+</script>
+</body>
+</html>

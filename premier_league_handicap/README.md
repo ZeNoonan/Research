@@ -1,8 +1,19 @@
 # Premier League 2025-2026 — Handicap Analysis
 
-A Streamlit app that applies a per-team **handicap** (bonus points) to the
-2025-2026 Premier League and shows the resulting adjusted standings, both at
-season level and game by game.
+Handicap-adjusted analysis of the 2025-2026 Premier League: a per-team
+**handicap** (bonus points) is applied to the season, giving adjusted
+standings at season level and game by game.
+
+Two front-ends share the same data and computations:
+
+- **`index.html`** — a static, self-contained page served by **GitHub Pages**:
+  <https://zenoonan.github.io/Research/premier_league_handicap/>
+  (adjusted table, actual + handicap stacked bars, click-to-highlight race
+  chart, 20×38 cumulative grid, game-by-game explorer, and
+  performance-vs-handicap analysis, in light and dark mode).
+  Regenerate its embedded data with `python build_site.py` after changing
+  anything in `data/`.
+- **`app.py`** — the original Streamlit app (`streamlit run app.py`).
 
 ## The handicap
 
@@ -39,6 +50,8 @@ streamlit run app.py
 
 ```
 premier_league_handicap/
+├── index.html        # static GitHub Pages site (self-contained, data embedded)
+├── build_site.py     # regenerates the data blob inside index.html
 ├── app.py            # Streamlit UI (adjusted table + game-by-game tabs)
 ├── analysis.py       # data loading and handicap computations
 ├── requirements.txt
