@@ -288,6 +288,16 @@
   </section>
 
   <section class="card">
+    <h2>Season-to-date position &mdash; full grid</h2>
+    <p class="desc">The same grid, but showing each team&rsquo;s <strong>position in the adjusted
+      standings</strong> after every game: 1 means top of the adjusted table once every side had
+      played that many games. Ties are split by goal difference to date, then goals scored, so the
+      final column matches the adjusted league table above. Hover a cell for the points behind it.</p>
+    <div class="heat-scroll" id="rankgrid"></div>
+    <div class="heat-legend" id="rank-legend"></div>
+  </section>
+
+  <section class="card">
     <h2>Game-by-game detail</h2>
     <p class="desc">All 38 games for one team, with the handicap share added to each result.</p>
     <div class="gbg-head">
@@ -344,6 +354,7 @@ window.PLH_DATA = /*__DATA__*/{"season":"2025-2026","gamesPerSeason":38,"meanAdj
   const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const SLOT_VARS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
   const fmt = (v, dp = 0) => v.toLocaleString("en-GB", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const ordinal = (n) => n + (["st","nd","rd"][((n + 90) % 100 - 10) % 10 - 1] || "th");
 
   const SVG_NS = "http://www.w3.org/2000/svg";
   function el(tag, attrs, parent) {
@@ -391,7 +402,7 @@ window.PLH_DATA = /*__DATA__*/{"season":"2025-2026","gamesPerSeason":38,"meanAdj
       if ((t.actualRank - t.adjRank) > (climber.actualRank - climber.adjRank)) climber = t;
       if ((t.actualRank - t.adjRank) < (faller.actualRank - faller.adjRank)) faller = t;
     }
-    const ord = (n) => n + (["st","nd","rd"][((n + 90) % 100 - 10) % 10 - 1] || "th");
+    const ord = ordinal;
     const tiles = [
       { l: "Adjusted champions", v: byAdj.short,
         d: `${byAdj.adjusted} pts · ${byAdj.actual} actual + ${byAdj.handicap} handicap`, c: "" },
@@ -666,14 +677,14 @@ window.PLH_DATA = /*__DATA__*/{"season":"2025-2026","gamesPerSeason":38,"meanAdj
     });
   }
 
-  /* ---------- heatmap grid ---------- */
-  function heatColor(v, maxV) {
+  /* ---------- heatmap grids ---------- */
+  function heatColorT(t01) {
     const ramp = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5",
                   "#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
     const dark = matchMedia("(prefers-color-scheme: dark)").matches
       && document.documentElement.dataset.theme !== "light";
     const steps = (document.documentElement.dataset.theme === "dark" || dark) ? [...ramp].reverse() : ramp;
-    const t = Math.max(0, Math.min(1, v / maxV)) * (steps.length - 1);
+    const t = Math.max(0, Math.min(1, t01)) * (steps.length - 1);
     const i = Math.min(Math.floor(t), steps.length - 2);
     const f = t - i;
     const hex = (s) => [1, 3, 5].map((j) => parseInt(s.slice(j, j + 2), 16));
@@ -682,6 +693,7 @@ window.PLH_DATA = /*__DATA__*/{"season":"2025-2026","gamesPerSeason":38,"meanAdj
     const lum = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
     return { bg: `rgb(${rgb.join(",")})`, ink: lum > 0.55 ? "#0b0b0b" : "#ffffff" };
   }
+  function heatColor(v, maxV) { return heatColorT(v / maxV); }
   function renderHeat() {
     const host = document.getElementById("heatmap");
     host.textContent = "";
@@ -718,6 +730,61 @@ window.PLH_DATA = /*__DATA__*/{"season":"2025-2026","gamesPerSeason":38,"meanAdj
     const lo = heatColor(0, maxV).bg, mid = heatColor(maxV / 2, maxV).bg, hi = heatColor(maxV, maxV).bg;
     bar.style.background = `linear-gradient(to right, ${lo}, ${mid}, ${hi})`;
     legend.appendChild(document.createTextNode(`${fmt(maxV)} adjusted points`));
+  }
+
+  /* ---------- season-to-date position grid ---------- */
+  function computeRanks() {
+    // cumulative GD / GF per team per game, for tie-breaking
+    const cum = TEAMS.map((t) => {
+      let gd = 0, gf = 0;
+      return t.games.map((g) => ({ gd: (gd += g.gf - g.ga), gf: (gf += g.gf) }));
+    });
+    const ranks = TEAMS.map(() => new Array(N38));
+    for (let g = 0; g < N38; g++) {
+      const order = TEAMS.map((t, i) => ({ i, pts: t.cum[g], gd: cum[i][g].gd, gf: cum[i][g].gf, name: t.name }))
+        .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.name.localeCompare(b.name));
+      order.forEach((e, pos) => { ranks[e.i][g] = pos + 1; });
+    }
+    return ranks;
+  }
+  function renderRankGrid() {
+    const host = document.getElementById("rankgrid");
+    host.textContent = "";
+    const ranks = computeRanks();
+    const nT = TEAMS.length;
+    const rankT = (r) => (nT - r) / (nT - 1);       // 1st -> 1 (strong), 20th -> 0 (recessive)
+    const table = el("table", { cls: "heat", "aria-label": "Adjusted-table position per team per game" }, host);
+    const thead = el("thead", {}, table);
+    const hr = el("tr", {}, thead);
+    el("th", { cls: "team-cell", text: "" }, hr);
+    for (let g = 1; g <= N38; g++) el("th", { text: g }, hr);
+    const tbody = el("tbody", {}, table);
+    TEAMS.forEach((t, ti) => {
+      const tr = el("tr", {}, tbody);
+      el("td", { cls: "team-cell", text: t.short }, tr);
+      ranks[ti].forEach((r, gi) => {
+        const td = el("td", {}, tr);
+        const c = heatColorT(rankT(r));
+        const cell = el("div", { cls: "cell", text: r }, td);
+        cell.style.background = c.bg;
+        cell.style.color = c.ink;
+        td.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+          const gm = t.games[gi];
+          const res = gm.p === 3 ? "W" : gm.p === 1 ? "D" : "L";
+          tipTitle(p, `${t.name} · game ${gi + 1}`);
+          tipRow(p, c.bg, ordinal(r), `of ${nT} in the adjusted table`);
+          tipRow(p, "transparent", fmt(t.cum[gi], 1), "cumulative adjusted");
+          tipRow(p, "transparent", `${res} ${gm.gf}–${gm.ga}`, `${gm.v === "H" ? "vs" : "at"} ${gm.o}`);
+        }));
+        td.addEventListener("pointerleave", tipHide);
+      });
+    });
+    const legend = document.getElementById("rank-legend");
+    legend.textContent = "";
+    legend.appendChild(document.createTextNode("1st"));
+    const bar = el("span", { cls: "bar" }, legend);
+    bar.style.background = `linear-gradient(to right, ${heatColorT(1).bg}, ${heatColorT(0.5).bg}, ${heatColorT(0).bg})`;
+    legend.appendChild(document.createTextNode(`${ordinal(nT)} in the adjusted standings`));
   }
 
   /* ---------- game-by-game explorer ---------- */
@@ -874,11 +941,12 @@ window.PLH_DATA = /*__DATA__*/{"season":"2025-2026","gamesPerSeason":38,"meanAdj
   raceDefaults();
   renderChips();
   renderHeat();
+  renderRankGrid();
   renderAll();
   let rT;
   window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(renderAll, 150); });
   if (window.matchMedia) {
-    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderHeat(); renderAll(); });
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderHeat(); renderRankGrid(); renderAll(); });
   }
 })();
 </script>
