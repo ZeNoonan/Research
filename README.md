@@ -28,11 +28,9 @@ Most projects generate a **self-contained, phone-friendly web page**
 | [`hurling/`](hurling/) | GAA.ie Hurling Team of the Week, 2026 championship | [open](https://zenoonan.github.io/Research/hurling/) |
 
 Each project folder has its own README with the model details, data notes,
-validation results and how to run it. The web-view links work once the
-project is on the default branch; for work still on a feature branch, use
-raw.githack (e.g.
-`https://raw.githack.com/ZeNoonan/Research/<branch>/<project>/index.html`) —
-each project README carries its own current link.
+validation results and how to run it. The web-view links are GitHub Pages,
+which serves the repo's default branch — a change goes live when its branch
+is merged.
 
 ## Highlights
 
