@@ -62,6 +62,13 @@ footer { color: var(--muted); font-size: 12px; margin: 20px 0; text-align: cente
 tr.starred td { background: rgba(181, 137, 0, .10); }
 .calc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px; }
+details { border: 1px solid var(--border); border-radius: 8px;
+  padding: 0 10px; margin: 8px 0; }
+summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 9px 0;
+  color: var(--accent); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+tr.divider td { background: var(--accent); color: #fff; text-align: center;
+  font-size: 12px; padding: 3px 8px; white-space: normal; }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #14181c; --card: #1d232a; --ink: #e6ebf0; --muted: #98a4af;
     --border: #313a44; --star: #e0b64a; }
@@ -69,6 +76,7 @@ tr.starred td { background: rgba(181, 137, 0, .10); }
   code { background: #26303a; }
   .yes { color: #4cc38a; }
   tr.starred td { background: rgba(224, 182, 74, .12); }
+  summary { color: #c9a0d8; }
 }
 """
 
@@ -260,6 +268,98 @@ def picks_table(block) -> str:
     return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
 
 
+# --- factor leaderboards -----------------------------------------------------
+
+def _leaderboard_table(block, factor: str, cols, divider: str) -> str:
+    """Sorted rows for one position; a divider row marks the star cut-off."""
+    rows, cut_done = [], False
+    span = 2 + len(cols)
+    for r in block.itertuples():
+        starred = getattr(r, factor) == 1
+        if not cut_done and not starred:
+            rows.append(f"<tr class='divider'><td colspan='{span}'>"
+                        f"{divider}</td></tr>")
+            cut_done = True
+        cls = " class='starred'" if starred else ""
+        cells = "".join(f"<td class='num'>{fmt(r)}</td>" for _, fmt in cols)
+        rows.append(f"<tr{cls}><td>{esc(r.name)}</td>"
+                    f"<td>{esc(r.team)}</td>{cells}</tr>")
+    if not cut_done:
+        rows.append(f"<tr class='divider'><td colspan='{span}'>{divider}</td></tr>")
+    head = ("<tr><th>Player</th><th>Team</th>"
+            + "".join(f"<th class='num'>{h}</th>" for h, _ in cols) + "</tr>")
+    return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
+
+
+def leaderboards_html(rated) -> str:
+    elig = rated[rated["eligible"]].copy()
+    elig["ppm"] = elig["xpts90"] / elig["price"]
+    # Same percentile construction as the Crowd factor in model.rate_players.
+    for pos in model.POSITIONS:
+        grp = elig["position"] == pos
+        q = elig.loc[grp, "xpts90"].rank(pct=True)
+        o = elig.loc[grp, "selected"].rank(pct=True)
+        elig.loc[grp, "crowd_gap"] = (q - o) * 100
+
+    def med(block, col, fmt):
+        return format(block[col].median(), fmt)
+
+    specs = [
+        ("quality", "Q", "Quality — sorted by model xPts/90", "xpts90",
+         [("xPts/90", lambda r: f"{r.xpts90:.2f}")],
+         lambda b: f"median xPts/90 = {med(b, 'xpts90', '.2f')} — "
+                   "star above this line"),
+        ("value", "V", "Value — sorted by xPts/90 per £million", "ppm",
+         [("Price", lambda r: f"£{r.price:.1f}m"),
+          ("xPts/90 per £m", lambda r: f"{r.ppm:.3f}")],
+         lambda b: f"median = {med(b, 'ppm', '.3f')} per £m — "
+                   "star above this line"),
+        ("form", "F", "Form — sorted by last-5-gameweek points", "form_points",
+         [("Last-5 pts", lambda r: f"{r.form_points:.0f}")],
+         lambda b: f"median = {med(b, 'form_points', '.0f')} points — "
+                   "star above this line"),
+        ("justice", "J", "Justice — sorted by 6-gameweek luck margin",
+         "justice_margin",
+         [("Margin", lambda r: f"{r.justice_margin:+.1f}")],
+         lambda b: "zero — star above this line (positive margin = "
+                   "under-rewarded)"),
+        ("crowd", "C", "Crowd — sorted by quality minus ownership percentile",
+         "crowd_gap",
+         [("Quality pct", lambda r: f"{r.xpts90_pct:.0f}"),
+          ("Owned pct", lambda r: f"{r.selected_pct:.0f}"),
+          ("Gap", lambda r: f"{r.crowd_gap:+.0f}")],
+         lambda b: "zero gap — star above this line (quality ahead of "
+                   "ownership)"),
+    ]
+
+    out = ["<section id='leaderboards'><h2>Factor leaderboards — "
+           "who is above the line</h2>",
+           "<p class='note'>Every eligible player, sorted from highest to "
+           "lowest on each factor's yardstick, position by position. The "
+           "purple line is the cut: tinted rows above it earn that factor's "
+           "star. Tap a position to open it.</p>"]
+    for factor, letter, title, sort_col, cols, divider_fn in specs:
+        out.append(f"<h3 style='font-size:16px;margin:16px 0 4px'>"
+                   f"<span class='letters'>{letter}</span> {title}</h3>")
+        for pos in model.POSITIONS:
+            block = elig[elig["position"] == pos].copy()
+            if block.empty:
+                continue
+            if factor == "crowd":
+                block["xpts90_pct"] = block["xpts90"].rank(pct=True) * 100
+                block["selected_pct"] = block["selected"].rank(pct=True) * 100
+            block = block.sort_values([factor, sort_col],
+                                      ascending=[False, False])
+            n_star = int(block[factor].sum())
+            out.append(
+                f"<details><summary>{POSITION_NAMES[pos]} "
+                f"({n_star} of {len(block)} starred)</summary>"
+                f"{_leaderboard_table(block, factor, cols, divider_fn(block))}"
+                f"</details>")
+    out.append("</section>")
+    return "".join(out)
+
+
 def build(data_dir: Path, out: Path) -> None:
     rated = model.rate_season(data_dir)
     picks = model.recommendations(rated, min_stars=4)
@@ -304,11 +404,12 @@ gate; 4★ and 5★ picks below (top {PER_POSITION} per position).{thin}</div>
 <div class="tablewrap"><table>{factor_rows}</table></div>
 <p class="note">Eligibility gate: 45+ minutes per gameweek averaged over the
 last {model.MINUTES_WINDOW} gameweeks — no factor can rescue a player who
-doesn't play. <a href="#examples">Worked examples of every factor below
-↓</a></p></section>
+doesn't play. <a href="#leaderboards">Full sorted leaderboards ↓</a> ·
+<a href="#examples">Worked examples of every factor ↓</a></p></section>
 {''.join(sections)}
 <section><h2>Captain shortlist</h2>
 <p class="note">{cap or 'No 4★+ attackers yet.'}</p></section>
+{leaderboards_html(rated)}
 {examples_html()}
 <section><h2>Refresh</h2>
 <p class="note"><code>python fetch_data.py</code> after a gameweek finishes,
