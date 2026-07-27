@@ -71,11 +71,12 @@ def main() -> None:
     for f in model.FACTORS:
         w = result.loc[result[f] == 1, "next_points"].mean()
         wo = result.loc[result[f] == 0, "next_points"].mean()
-        print(f"  {f:<8} with {w:5.2f}   without {wo:5.2f}   edge {w - wo:+.2f}")
+        print(f"  {f:<14} with {w:5.2f}   without {wo:5.2f}   "
+              f"edge {w - wo:+.2f}")
 
     picks = result[result["stars"] >= 4]
     rest = result[result["stars"] < 4]
-    print(f"\n4-5 star picks: {picks['next_points'].mean():.2f} pts/week "
+    print(f"\n4+ star picks: {picks['next_points'].mean():.2f} pts/week "
           f"(n={len(picks)}) vs the rest {rest['next_points'].mean():.2f} "
           f"(n={len(rest)})")
 

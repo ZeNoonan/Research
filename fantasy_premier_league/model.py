@@ -1,13 +1,13 @@
-"""The FPL five-factor player rating engine.
+"""The FPL six-factor player rating engine.
 
 An additive binary-factor model for weekly Fantasy Premier League picks, in
 the spirit of the factor systems in ``march_madness/`` (one star per factor
 versus the seed-group median) and ``nfl_report/`` (five binary votes). Each
 factor compares a player to their *position peers* (GK / DEF / MID / FWD)
-and awards one star. A player's rating is the sum, 0-5 stars.
+and awards one star. A player's rating is the sum, 0-6 stars.
 
-The five factors
-----------------
+The six factors
+---------------
 1. Quality  – the model's expected points per 90 (rebuilt from FPL scoring
    rules and the player's underlying per-90 numbers) above the position
    median. Process stats, not outcomes.
@@ -15,18 +15,25 @@ The five factors
    median. Points per pound is the pick that funds the rest of the squad.
 3. Form     – total FPL points over the last 5 gameweeks above the position
    median. Momentum.
-4. Justice  – under-rewarded versus the underlying numbers over the last 6
+4. Minutes  – average minutes over the last 5 matches the player actually
+   played, at or above the position median (at-or-above, not strictly
+   above: keepers all average 90, and averaging the position's typical
+   full-match load is what "nailed" means). The 90-minute starters.
+5. Justice  – under-rewarded versus the underlying numbers over the last 6
    gameweeks: attackers whose expected goal involvements exceed their actual
    returns, defenders/keepers who conceded more than their expected goals
    conceded. Luck mean-reverts and the crowd over-reacts to outcomes, so the
    unlucky are cheap.
-5. Crowd    – ownership percentile below quality percentile within the
+6. Crowd    – ownership percentile below quality percentile within the
    position: the field underweights the player (bet against beta - the
    differential pick that gains you rank when it comes off).
 
 Eligibility gate (the analogue of the NFL system only betting at |#| >= 3):
-a player must average 45+ minutes per gameweek over the last 4 gameweeks to
-be rated at all. No factor can rescue a player who doesn't play.
+a player must average 45+ minutes over the last 4 matches he actually
+played (fewer if he hasn't played 4 yet). Absence never drops a player -
+an injured starter keeps the average from his last appearances - but a
+player used only for short cameos does not make the cut. No factor can
+rescue a player who doesn't play real minutes when he plays.
 
 Quality engine (expected points per 90, from season-to-date per-90 rates)
 --------------------------------------------------------------------------
@@ -67,14 +74,15 @@ DC_POINTS = 2
 DC_THRESHOLD = {"DEF": 10, "MID": 12, "FWD": 12}  # GKs are not eligible
 
 # --- window and gate parameters ----------------------------------------------
-FORM_WINDOW = 5      # gameweeks of points behind the Form factor
-JUSTICE_WINDOW = 6   # gameweeks of luck behind the Justice factor
-MINUTES_WINDOW = 4   # gameweeks behind the eligibility gate
+FORM_WINDOW = 5           # gameweeks of points behind the Form factor
+JUSTICE_WINDOW = 6        # gameweeks of luck behind the Justice factor
+MINUTES_WINDOW = 4        # played matches behind the eligibility gate
+MINUTES_FACTOR_WINDOW = 5  # played matches behind the Minutes factor
 MINUTES_PER_GW = 45.0
 
-FACTORS = ("quality", "value", "form", "justice", "crowd")
+FACTORS = ("quality", "value", "form", "minutes_factor", "justice", "crowd")
 FACTOR_LETTERS = {"quality": "Q", "value": "V", "form": "F",
-                  "justice": "J", "crowd": "C"}
+                  "minutes_factor": "M", "justice": "J", "crowd": "C"}
 
 # Columns the engine actually uses; everything else in a gw file is carried
 # ("xP" and other extras are optional and ignored).
@@ -132,8 +140,14 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     def window(n: int) -> pd.DataFrame:
         return df[df["round"] > latest - n]
 
-    n_minutes = min(MINUTES_WINDOW, len(rounds))
-    gate = window(MINUTES_WINDOW).groupby("element")["minutes"].sum()
+    # The gate and the Minutes factor look at matches the player actually
+    # played (minutes > 0), however long ago - absence alone never drops a
+    # player, but short-cameo usage does.
+    apps = df[df["minutes"] > 0].sort_values("round")
+    gate = apps.groupby("element")["minutes"].apply(
+        lambda s: s.tail(MINUTES_WINDOW).mean())
+    mins_avg = apps.groupby("element")["minutes"].apply(
+        lambda s: s.tail(MINUTES_FACTOR_WINDOW).mean())
 
     form = window(FORM_WINDOW).groupby("element")["total_points"].sum()
 
@@ -160,8 +174,9 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     out = season.join(snap)
     out["price"] = out["value"] / 10.0
     out["form_points"] = form.reindex(out.index).fillna(0)
-    out["gate_minutes"] = gate.reindex(out.index).fillna(0)
-    out["eligible"] = out["gate_minutes"] >= MINUTES_PER_GW * n_minutes
+    out["gate_minutes"] = gate.reindex(out.index).fillna(0.0)
+    out["eligible"] = out["gate_minutes"] >= MINUTES_PER_GW
+    out["minutes_avg"] = mins_avg.reindex(out.index).fillna(0.0)
     out["dc_rate"] = dc_rate.reindex(out.index).fillna(0.0)
 
     out["xg90"] = [_per90(g, m) for g, m in zip(out["xg"], out["minutes"])]
@@ -192,7 +207,7 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
 
 
 def rate_players(players: pd.DataFrame) -> pd.DataFrame:
-    """Score the five factors and the star rating for every eligible player."""
+    """Score the six factors and the star rating for every eligible player."""
     out = players.copy()
     for f in FACTORS:
         out[f] = 0
@@ -209,6 +224,12 @@ def rate_players(players: pd.DataFrame) -> pd.DataFrame:
         out.loc[grp, "value"] = (ppm > ppm.median()).astype(int)
         out.loc[grp, "form"] = (g["form_points"]
                                 > g["form_points"].median()).astype(int)
+        # At-or-above for this factor only: whole positions (keepers above
+        # all) sit at exactly 90 minutes, and a player averaging the
+        # position's typical full-match load is precisely what "nailed"
+        # means - a strict rule would star no goalkeeper at all.
+        out.loc[grp, "minutes_factor"] = (g["minutes_avg"]
+                                          >= g["minutes_avg"].median()).astype(int)
         out.loc[grp, "justice"] = (g["justice_margin"] > 0).astype(int)
 
         quality_pct = g["xpts90"].rank(pct=True)
@@ -227,7 +248,7 @@ def rate_season(data_dir: str | Path, through_gw: int | None = None) -> pd.DataF
     return rate_players(player_table(load_season(data_dir), through_gw))
 
 
-def recommendations(rated: pd.DataFrame, min_stars: int = 4) -> pd.DataFrame:
+def recommendations(rated: pd.DataFrame, min_stars: int = 5) -> pd.DataFrame:
     """The weekly pick list: eligible players at ``min_stars``+ stars, by
     position, strongest first (stars, then quality engine)."""
     picks = rated[rated["eligible"] & (rated["stars"] >= min_stars)].copy()

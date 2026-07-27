@@ -88,6 +88,11 @@ FACTOR_ROWS = [
      "median. Points per pound funds the rest of the squad."),
     ("F", "Form", "Points over the last 5 gameweeks above the position "
      "median. Momentum."),
+    ("M", "Minutes", "Average minutes over the last 5 matches the player "
+     "actually played, at or above the position median — the nailed-on "
+     "full-match starters. (At-or-above, unlike the other factors: keepers "
+     "all average 90, and carrying the position's full typical load is "
+     "exactly what nailed means.)"),
     ("J", "Justice", "Under-rewarded over the last 6 gameweeks: attackers "
      "whose xGI beats their actual returns, defenders/keepers who conceded "
      "more than their xGC. Luck mean-reverts; the unlucky are cheap."),
@@ -101,16 +106,17 @@ def esc(x) -> str:
 
 
 # --- worked examples ---------------------------------------------------------
-# Five made-up midfielders, reused across the Quality/Value/Form/Crowd
-# examples so the arithmetic stays easy to follow. (price £m, model xPts/90,
-# points over the last 5 GWs, ownership in managers.)
+# Five made-up midfielders, reused across the Quality/Value/Form/Minutes/
+# Crowd examples so the arithmetic stays easy to follow. (price £m, model
+# xPts/90, points over the last 5 GWs, avg minutes over the last 5 matches
+# played, ownership in managers.)
 TOY = [
-    # name    price  xpts90  last5   owned
-    ("Player A", 8.0, 3.6, 24, 5_000_000),
-    ("Player B", 5.0, 2.6, 18, 300_000),
-    ("Player C", 14.0, 4.1, 28, 1_200_000),
-    ("Player D", 4.5, 1.8, 12, 100_000),
-    ("Player E", 5.5, 2.2, 15, 900_000),
+    # name    price  xpts90  last5  mins  owned
+    ("Player A", 8.0, 3.6, 24, 90, 5_000_000),
+    ("Player B", 5.0, 2.6, 18, 88, 300_000),
+    ("Player C", 14.0, 4.1, 28, 74, 1_200_000),
+    ("Player D", 4.5, 1.8, 12, 90, 100_000),
+    ("Player E", 5.5, 2.2, 15, 62, 900_000),
 ]
 
 
@@ -136,17 +142,19 @@ def examples_html() -> str:
     ppm = {p[0]: p[2] / p[1] for p in TOY}
     med_ppm = statistics.median(ppm.values())
     med_form = statistics.median(p[3] for p in TOY)
+    med_mins = statistics.median(p[4] for p in TOY)
     q_rank = {n: r + 1 for r, (n, *_) in
               enumerate(sorted(TOY, key=lambda p: p[2]))}
     o_rank = {n: r + 1 for r, (n, *_) in
-              enumerate(sorted(TOY, key=lambda p: p[4]))}
+              enumerate(sorted(TOY, key=lambda p: p[5]))}
 
-    quality_rows = [(n, f"{x:.1f}", x > med_q) for n, _, x, _, _ in TOY]
+    quality_rows = [(n, f"{x:.1f}", x > med_q) for n, _, x, _, _, _ in TOY]
     value_rows = [(n, f"£{pr:.1f}m", f"{x:.1f}", f"{ppm[n]:.2f}",
-                   ppm[n] > med_ppm) for n, pr, x, _, _ in TOY]
-    form_rows = [(n, f5, f5 > med_form) for n, _, _, f5, _ in TOY]
+                   ppm[n] > med_ppm) for n, pr, x, _, _, _ in TOY]
+    form_rows = [(n, f5, f5 > med_form) for n, _, _, f5, _, _ in TOY]
+    minutes_rows = [(n, m, m >= med_mins) for n, _, _, _, m, _ in TOY]
     crowd_rows = [(n, f"{o / 1e6:.1f}m", q_rank[n], o_rank[n],
-                   o_rank[n] < q_rank[n]) for n, _, _, _, o in TOY]
+                   o_rank[n] < q_rank[n]) for n, _, _, _, _, o in TOY]
 
     quality = f"""
 <div class="ex"><h3><span class="letters">Q</span> Quality — worked example</h3>
@@ -194,6 +202,21 @@ Player A's last five scores were 2, 9, 3, 6 and 4 —
 star. This is the one factor built on actual points — it deliberately
 rewards whatever is currently working, lucky or not.</p></div>"""
 
+    minutes = f"""
+<div class="ex"><h3><span class="letters">M</span> Minutes — worked example</h3>
+<p>Average each player's minutes over the <b>last 5 matches he actually
+played</b> — matches he missed through injury or non-selection simply
+don't count. Player E keeps being substituted around the hour:
+<span class="calc">(58 + 65 + 60 + 67 + 60) ÷ 5 = 62</span>.</p>
+{_ex_table(["Player", "Avg mins (last 5 played)", "Star?"], minutes_rows,
+           {r[0] for r in minutes_rows if r[-1]})}
+<p>The median is <b>{med_mins:.0f}</b>, and for this factor the star goes to
+everyone <b>at or above</b> it — not strictly above, unlike the others.
+That's deliberate: whole positions sit level on 90 (nearly every regular
+keeper, many centre-backs), and carrying the position's full typical load
+is exactly what "nailed" means. So Player B, exactly on the median at 88,
+keeps the star here — where the Quality example cost him one.</p></div>"""
+
     justice = """
 <div class="ex"><h3><span class="letters">J</span> Justice — worked example</h3>
 <p>Over the <b>last 6 gameweeks</b>, compare what the underlying numbers say
@@ -236,12 +259,16 @@ the rank ladder past everyone who didn't own it.</p></div>"""
 
     gate = """
 <div class="ex"><h3>The minutes gate — worked example</h3>
-<p>Before any factor is scored, a player must average <b>45+ minutes per
-gameweek over the last 4 gameweeks</b> (180 in total). Minutes of
-<span class="calc">90, 90, 30, 75 = 285</span> → rated. Minutes of
-<span class="calc">60, 0, 90, 20 = 170</span> → not rated at all, whatever
-the underlying numbers say. No factor can rescue a player who doesn't
-play.</p></div>"""
+<p>Before any factor is scored, a player must average <b>45+ minutes over
+the last 4 matches he actually played</b>. A starter whose last four
+appearances were <span class="calc">90, 90, 30, 75 → avg 71</span> is
+rated. A super-sub used for <span class="calc">20, 25, 15, 30 → avg 22.5</span>
+is not, whatever his underlying numbers say. Crucially, the four matches
+are the player's own appearances, however long ago: a starter who then
+misses six weeks injured keeps his <span class="calc">avg 71</span> and
+stays in the ratings — absence alone never drops anyone. While he's out
+his last-5-gameweek Form fades to zero, so a long absence costs stars,
+not visibility.</p></div>"""
 
     return (f"<section id='examples'><h2>How each factor is calculated — "
             f"worked examples</h2>"
@@ -249,7 +276,7 @@ play.</p></div>"""
             f"chosen so the sums are easy to follow. The real model runs "
             f"exactly this arithmetic over every eligible player, inside "
             f"each position (GK / DEF / MID / FWD).</p>"
-            f"{quality}{value}{form}{justice}{crowd}{gate}</section>")
+            f"{quality}{value}{form}{minutes}{justice}{crowd}{gate}</section>")
 
 
 def picks_table(block) -> str:
@@ -318,6 +345,12 @@ def leaderboards_html(rated) -> str:
          [("Last-5 pts", lambda r: f"{r.form_points:.0f}")],
          lambda b: f"median = {med(b, 'form_points', '.0f')} points — "
                    "star above this line"),
+        ("minutes_factor", "M",
+         "Minutes — sorted by average minutes over the last 5 matches played",
+         "minutes_avg",
+         [("Avg mins", lambda r: f"{r.minutes_avg:.1f}")],
+         lambda b: f"median = {med(b, 'minutes_avg', '.1f')} minutes — "
+                   "star at or above this line"),
         ("justice", "J", "Justice — sorted by 6-gameweek luck margin",
          "justice_margin",
          [("Margin", lambda r: f"{r.justice_margin:+.1f}")],
@@ -362,7 +395,7 @@ def leaderboards_html(rated) -> str:
 
 def build(data_dir: Path, out: Path) -> None:
     rated = model.rate_season(data_dir)
-    picks = model.recommendations(rated, min_stars=4)
+    picks = model.recommendations(rated, min_stars=5)
     through = int(rated["through_gw"].iloc[0])
     used = int(rated["gws_used"].iloc[0])
     season = data_dir.name
@@ -391,20 +424,22 @@ def build(data_dir: Path, out: Path) -> None:
     page = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FPL five-factor picks — {esc(season)} through GW{through}</title>
+<title>FPL six-factor picks — {esc(season)} through GW{through}</title>
 <style>{CSS}</style></head><body><div class="wrap">
-<header><h1>FPL five-factor picks</h1>
+<header><h1>FPL six-factor picks</h1>
 <p class="sub">An additive binary-factor model for weekly Fantasy Premier
 League picks — one star per factor, judged against position peers, in the
 family of <code>march_madness/</code> and <code>nfl_report/</code>.</p></header>
 <div class="banner">Season <b>{esc(season)}</b>, rated through
 <b>GW{through}</b>. {int(rated['eligible'].sum())} players pass the minutes
-gate; 4★ and 5★ picks below (top {PER_POSITION} per position).{thin}</div>
-<section><h2>The five factors</h2>
+gate; 5★ and 6★ picks below (top {PER_POSITION} per position).{thin}</div>
+<section><h2>The six factors</h2>
 <div class="tablewrap"><table>{factor_rows}</table></div>
-<p class="note">Eligibility gate: 45+ minutes per gameweek averaged over the
-last {model.MINUTES_WINDOW} gameweeks — no factor can rescue a player who
-doesn't play. <a href="#leaderboards">Full sorted leaderboards ↓</a> ·
+<p class="note">Eligibility gate: 45+ minutes averaged over the last
+{model.MINUTES_WINDOW} matches the player <i>actually played</i> — absence
+alone never drops anyone from the ratings; short-cameo usage does. While a
+player is out, his Form star fades, but he stays visible.
+<a href="#leaderboards">Full sorted leaderboards ↓</a> ·
 <a href="#examples">Worked examples of every factor ↓</a></p></section>
 {''.join(sections)}
 <section><h2>Captain shortlist</h2>
@@ -417,7 +452,7 @@ then <code>python weekly_report.py</code> for the terminal view and
 <code>python build_site.py</code> to regenerate this page. The full rated
 table for every player is written to <code>reports/</code>.</p></section>
 <footer>Generated {date.today().isoformat()} · fantasy_premier_league ·
-five-factor model</footer>
+six-factor model</footer>
 </div></body></html>"""
     out.write_text(page, encoding="utf-8")
     print(f"wrote {out} ({len(picks)} picks, through GW{through})")
