@@ -14,7 +14,7 @@ Most projects generate a **self-contained, phone-friendly web page**
 
 | Project | What it is | Web view |
 |---|---|---|
-| [`fantasy_premier_league/`](fantasy_premier_league/) | Five-factor weekly FPL pick sheet (Quality, Value, Form, Justice, Crowd vs position peers), backtested on 2025/26, ready for 2026/27 | [open](https://zenoonan.github.io/Research/fantasy_premier_league/) |
+| [`fantasy_premier_league/`](fantasy_premier_league/) | Six-factor weekly FPL pick sheet (Quality, Value, Form, Minutes, Justice, Crowd vs position peers), backtested on 2025/26, ready for 2026/27 | [open](https://zenoonan.github.io/Research/fantasy_premier_league/) |
 | [`nfl_report/`](nfl_report/) | Replication of Aaron Brown's NFL against-the-spread five-factor demonstration system (2010–2016), extended to 2019–2025 from raw data | [open](https://zenoonan.github.io/Research/nfl_report/) |
 | [`march_madness/`](march_madness/) | Brown's "Quants go mad in March" factor-investing bracket model, re-implemented and verified, with a Value-pipeline bug found and fixed | [open](https://zenoonan.github.io/Research/march_madness/) · [Value tutorial](https://zenoonan.github.io/Research/march_madness/value_tutorial.html) |
 | [`pulling_the_goalie/`](pulling_the_goalie/) | Replication of Asness & Brown (2018), *Pulling the Goalie: Hockey and Investment Implications* | [open](https://zenoonan.github.io/Research/pulling_the_goalie/) |
@@ -35,11 +35,11 @@ is merged.
 ## Highlights
 
 - **Fantasy Premier League** (new): an additive binary-factor model in the
-  family of `nfl_report/` and `march_madness/` — five one-star factors
+  family of `nfl_report/` and `march_madness/` — six one-star factors
   judged against position peers behind a minutes gate. Backtested over the
-  full 2025/26 season: star buckets rise from 2.46 to 3.51 actual
-  next-week points, and the 4–5★ pick sheet beat the eligible pool 3.28 vs
-  2.85 points per week.
+  full 2025/26 season: star buckets rise from 1.27 to 3.61 actual
+  next-week points, and the 5–6★ pick sheet beat the eligible pool 3.19 vs
+  2.21 points per week.
 - **NFL Report**: the betting logic of Brown's published sheets is fully
   reproduced (System # 98.8%, 595/599 bets), then the same report is
   generated from raw odds and results for 2019–2025.

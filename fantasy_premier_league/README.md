@@ -1,12 +1,12 @@
-# Fantasy Premier League — a five-factor weekly pick sheet
+# Fantasy Premier League — a six-factor weekly pick sheet
 
 A weekly player-recommendation model for **Fantasy Premier League**
 (2026/27 season onward), built in the family style of
 [`march_madness/`](../march_madness/) and [`nfl_report/`](../nfl_report/):
 a simple, **additive binary-factor model** in the spirit of Aaron Brown's
 demonstration systems. Each factor is one yes/no comparison against a
-player's *position peers*; the sum is a **0–5 star rating**, and the weekly
-pick sheet is everyone at 4★ and 5★.
+player's *position peers*; the sum is a **0–6 star rating**, and the weekly
+pick sheet is everyone at 5★ and 6★.
 
 **Open [`index.html`](index.html)** — a self-contained, phone-friendly page
 (no external assets, same treatment as `nfl_report/`) with the factor
@@ -24,7 +24,7 @@ repo's default branch, so a change goes live when its branch is merged.)
 
 ## The model
 
-Five factors, each worth one star, each judged within position
+Six factors, each worth one star, each judged within position
 (GK / DEF / MID / FWD) among players who pass the minutes gate:
 
 | # | Factor | Star when… | Intuition |
@@ -32,12 +32,17 @@ Five factors, each worth one star, each judged within position
 | 1 | **Quality** | model expected points per 90 above the position median | process stats over outcomes — xG, not goals |
 | 2 | **Value** | expected points per 90 **per £million** above the position median | points per pound funds the rest of the squad |
 | 3 | **Form** | points over the **last 5 gameweeks** above the position median | momentum |
-| 4 | **Justice** | under-rewarded over the **last 6 gameweeks**: attackers whose xGI exceeds actual goals+assists; defenders/keepers who conceded more than their xGC (defenders count both) | luck mean-reverts and the crowd over-reacts to outcomes, so the unlucky are cheap |
-| 5 | **Crowd** | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off |
+| 4 | **Minutes** | average minutes over the **last 5 matches the player actually played**, at or above the position median | the nailed-on full-match starters (at-or-above, not strictly above: keepers all average 90, and carrying the position's full typical load is exactly what "nailed" means) |
+| 5 | **Justice** | under-rewarded over the **last 6 gameweeks**: attackers whose xGI exceeds actual goals+assists; defenders/keepers who conceded more than their xGC (defenders count both) | luck mean-reverts and the crowd over-reacts to outcomes, so the unlucky are cheap |
+| 6 | **Crowd** | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off |
 
 **Eligibility gate** (the analogue of the NFL system only betting at
-\|System #\| ≥ 3): a player must average **45+ minutes per gameweek over the
-last 4 gameweeks**. No factor can rescue a player who doesn't play.
+\|System #\| ≥ 3): a player must average **45+ minutes over the last 4
+matches he actually played** (fewer if he hasn't played 4 yet). The matches
+are the player's own appearances, however long ago — **absence alone never
+drops anyone from the ratings** (an injured starter keeps his pre-injury
+average, and his Form star fades while he's out), but a player used only
+for short cameos does not make the cut.
 
 ### The quality engine
 
@@ -103,7 +108,7 @@ file.)*
 ## Files
 
 ```
-model.py           the five-factor engine (all model logic)
+model.py           the six-factor engine (all model logic)
 weekly_report.py   terminal pick sheet + full rated CSV into reports/
 build_site.py      rated season -> index.html (static, phone-friendly)
 backtest.py        star ratings vs next-gameweek points (needs 2+ GW files)
@@ -123,34 +128,38 @@ G — average next-week points should **rise with the star rating**, and each
 factor is also reported standalone (with-star vs without, the analogue of
 `nfl_report/factor_analysis.py`).
 
-### Results — full 2025/26 season (37 scoreable gameweeks, 8,121 player-weeks)
+### Results — full 2025/26 season (37 scoreable gameweeks, 11,513 player-weeks)
+
+Run with the current six factors and the appearance-based gate. (The gate
+keeps recently-absent players in the pool — by design — so averages sit
+lower than a calendar-gated run would show; the absent score zeros.)
 
 Average actual next-gameweek points by star rating:
 
-| Stars | 0 | 1 | 2 | 3 | 4 | 5 |
-|---|---|---|---|---|---|---|
-| **Next-GW pts** | 2.46 | 2.65 | 2.88 | 3.33 | 3.21 | 3.51 |
-| n | 707 | 2157 | 1384 | 1405 | 1883 | 585 |
+| Stars | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|---|
+| **Next-GW pts** | 1.27 | 1.73 | 2.25 | 2.20 | 2.83 | 3.04 | 3.61 |
+| n | 652 | 1887 | 2460 | 1901 | 2401 | 1610 | 602 |
 
-The 4–5★ pick sheet averaged **3.28 pts/week vs 2.85 for the rest** of the
+The 5–6★ pick sheet averaged **3.19 pts/week vs 2.21 for the rest** of the
 eligible pool. Each factor standalone:
 
 | Factor | with star | without | edge |
 |---|---|---|---|
-| Quality | 3.35 | 2.62 | **+0.73** |
-| Value | 3.25 | 2.71 | **+0.54** |
-| Form | 3.35 | 2.66 | **+0.69** |
-| Justice | 2.92 | 3.04 | −0.12 |
-| Crowd | 2.98 | 2.98 | +0.00 |
+| Quality | 2.79 | 2.02 | **+0.76** |
+| Value | 2.68 | 2.12 | **+0.56** |
+| Form | 3.15 | 1.73 | **+1.42** |
+| Minutes | 2.86 | 1.84 | **+1.02** |
+| Justice | 2.49 | 2.33 | +0.16 |
+| Crowd | 2.24 | 2.54 | −0.30 |
 
-**The honest read:** Quality, Value and Form earn their stars; **Justice and
-Crowd did not** in 2025/26. Justice is flat-to-negative in every position;
-Crowd only pays for goalkeepers (+0.21) and forwards (+0.20). A
-Quality+Value+Form-only rating is at least as predictive (3/3 QVF picks:
-3.53 pts/week, n=2,264) with a much deeper pick sheet. The five-factor
-shape is kept — Justice and Crowd are the contrarian half of the Brown
-recipe and one season is one sample — but they are the first candidates
-for recalibration (window lengths, or restricting Crowd to GK/FWD) before
+**The honest read:** Form, Minutes, Quality and Value all earn their stars
+— Minutes and Form carry the biggest edges precisely because the
+absence-tolerant gate leaves it to the factors to separate the
+currently-playing from the absent. **Justice is marginal and Crowd was
+negative** in 2025/26; they are the contrarian half of the Brown recipe
+and one season is one sample, but they remain the first candidates for
+recalibration (window lengths, or restricting Crowd to GK/FWD) before
 2026/27.
 
 ## Roadmap
@@ -161,7 +170,7 @@ for recalibration (window lengths, or restricting Crowd to GK/FWD) before
 2. **Fixture factor** — the model rates players on season-to-date process;
    it doesn't yet see *who they play next*. Add upcoming fixture difficulty
    (the API's `fixtures/` endpoint) — likely as an overlay on the pick
-   sheet rather than a sixth star, to keep the five-factor shape.
+   sheet rather than another star, to keep the six-factor shape.
 3. **Squad optimizer** — turn the pick sheet into a legal 15 (£100m budget,
    2 GK / 5 DEF / 5 MID / 3 FWD, max 3 per club) once prices land in July.
 4. **Chip planning** — bench boost / triple captain timing off double
