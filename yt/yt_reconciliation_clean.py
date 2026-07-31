@@ -87,6 +87,14 @@ BUG-FIX PASS (2026-07-31) - eleven review findings addressed:
     (the replacement for use_container_width, removed from Streamlit
     after 2025-12-31) and falls back to use_container_width=True on
     older Streamlit versions that only accept an integer width.
+
+FEATURE (2026-07-31): ASSET LABELS KEYWORD RULE
+   rev_views (like red_rawdata) loads Asset Labels when the file carries
+   it, and a new Rule 3 applies ASSET_TITLE_SHOW_KEYWORDS to Asset Labels
+   (case-insensitive, mirroring the Video Title rule) for rows still
+   missing a New Show. It runs after the Video Title rule and before the
+   Custom ID / Asset Title substring mappings, which are now Rules 4
+   and 5.
 """
 
 import html
@@ -125,8 +133,10 @@ EMOJI_PATTERN = re.compile(
 NEW_SHOW_MISSING_TOKENS = ["none", "nan", "null", "<na>"]
 
 # Hardcoded Asset Title keywords. Add further keywords to this list over time.
-# Asset Title matching is case-sensitive; List of Codes Description matching is
-# deliberately case-insensitive. The first matching List of Codes row is used.
+# Asset Title matching is case-sensitive; the same keywords are then applied
+# to Video Title and Asset Labels case-insensitively. List of Codes
+# Description matching is deliberately case-insensitive. The first matching
+# List of Codes row is used.
 #
 # NOTE: a missing comma previously merged "Wheels on the Bus" and "Barney"
 # into one useless keyword. Fixed in this revision.
@@ -272,7 +282,8 @@ CUSTOM_ID_SHOW_MAPPING = {
 }
 
 # Asset Title substring mapping applied after:
-# 1. ASSET_TITLE_SHOW_KEYWORDS (Asset Title, then Video Title)
+# 1. ASSET_TITLE_SHOW_KEYWORDS (Asset Title, then Video Title, then
+#    Asset Labels)
 # 2. CUSTOM_ID_SHOW_MAPPING
 # Matching is case-insensitive and only fills rows where New Show is missing.
 ASSET_TITLE_SHOW_MAPPING = {
@@ -1308,6 +1319,11 @@ def build_report(
         combo["Video Title"].astype("string") if has_video_title else None
     )
 
+    has_asset_labels = "Asset Labels" in combo.columns
+    asset_labels_str = (
+        combo["Asset Labels"].astype("string") if has_asset_labels else None
+    )
+
     has_custom_id = "Custom ID" in combo.columns
     cid_str = combo["Custom ID"].astype("string") if has_custom_id else None
 
@@ -1380,7 +1396,31 @@ def build_report(
             pending = pending.difference(rows_to_update)
 
     # --------------------------------------------------------
-    # Rule 3: Custom ID substring mapping (case-insensitive), in dict
+    # Rule 3: the same keywords against Asset Labels (case-insensitive),
+    # only for rows where New Show is still missing.
+    # --------------------------------------------------------
+    if has_asset_labels:
+        pending = combo.index[missing]
+
+        for keyword in asset_title_keywords:
+            mapped_new_show = keyword_show_mapping[keyword]
+            if pd.isna(mapped_new_show) or len(pending) == 0:
+                continue
+
+            asset_labels_subset = asset_labels_str.loc[pending]
+            hits = asset_labels_subset.str.contains(
+                keyword, case=False, regex=False, na=False
+            )
+            rows_to_update = asset_labels_subset.index[hits]
+            if len(rows_to_update) == 0:
+                continue
+
+            combo.loc[rows_to_update, "New Show"] = mapped_new_show
+            missing.loc[rows_to_update] = False
+            pending = pending.difference(rows_to_update)
+
+    # --------------------------------------------------------
+    # Rule 4: Custom ID substring mapping (case-insensitive), in dict
     # order, again scanning only the shrinking still-missing subset.
     # The match must start at a word boundary (start of the id, or after
     # a space/underscore), so a short token such as "az_" no longer
@@ -1406,7 +1446,7 @@ def build_report(
             pending = pending.difference(rows_to_update)
 
     # --------------------------------------------------------
-    # Rule 4: explicit Asset Title substring mappings (case-insensitive),
+    # Rule 5: explicit Asset Title substring mappings (case-insensitive),
     # applied last, only where New Show is still missing.
     # --------------------------------------------------------
     pending = combo.index[missing]

@@ -113,6 +113,21 @@ data; the others only change error handling, robustness, or presentation.
     `TypeError: 'str' object cannot be interpreted as an integer` on the
     initial substitution-only version of this fix.
 
+## Feature added after the fix pass: Asset Labels keyword rule
+
+- `rev_views` (like `red_rawdata`) loads **`Asset Labels`** whenever the
+  file carries it (the `optional_usecols` mechanism from fix 2 — no error
+  if a future file drops the column).
+- A new **Rule 3** applies `ASSET_TITLE_SHOW_KEYWORDS` to `Asset Labels`
+  (case-insensitive, mirroring the Video Title rule) for rows still
+  missing a New Show. It runs after the Video Title rule and before the
+  Custom ID / Asset Title substring mappings, which are now Rules 4 and 5.
+- *Tested:* a rev_views fixture row whose title (`Untitled Upload 77`) and
+  Custom ID match nothing, but whose lower-case label contains
+  `science max`, is tagged SCMX by the new rule — it stays out of the
+  missing review (count still asserted at 57) and its revenue lands in
+  SCMX03. Verified on both version matrices.
+
 ## Test results after the fix pass (all passing)
 
 - No exceptions, no `st.error` output.
