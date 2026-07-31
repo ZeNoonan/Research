@@ -21,9 +21,13 @@ on that copy, so the committed file keeps the production paths.
 
 ## Test environment
 
-Python 3.11.15, streamlit 1.60.0, pandas 3.0.5, numpy 2.4.6, openpyxl 3.1.5.
-The script runs cleanly on pandas 3.0 (a major-version jump from the 2.x
-era it was written against).
+The full suite passes on two version matrices:
+
+- Python 3.11.15, streamlit **1.60.0**, pandas **3.0.5**, numpy 2.4.6
+- Python 3.11.15, streamlit **1.44.1**, pandas **2.2.3**, numpy 2.1.x
+
+so the script works on both the current pandas 3 / new-Streamlit stack and
+the older 2.x-era stack it was written against.
 
 ## Fixes applied (the 11 findings from the first pass)
 
@@ -100,10 +104,14 @@ data; the others only change error handling, robustness, or presentation.
     and its payment-summary line is written as `"(70.19)"`; the
     reconciliation still matches to the cent.
 
-11. **`use_container_width=True` → `width="stretch"`** on every
-    `st.dataframe` (the old kwarg is removed from Streamlit after
-    2025-12-31). **Requires Streamlit ≥ 1.46**; if you must run an older
-    Streamlit, revert this one substitution.
+11. **Version-adaptive full-width tables.** Every table renders through a
+    small `show_dataframe()` helper that tries `width="stretch"` (the
+    replacement for `use_container_width`, which Streamlit removes after
+    2025-12-31) and falls back to `use_container_width=True` when the
+    installed Streamlit only accepts an integer width. *Tested on both
+    Streamlit 1.60.0 and 1.44.1* — the first release raised
+    `TypeError: 'str' object cannot be interpreted as an integer` on the
+    initial substitution-only version of this fix.
 
 ## Test results after the fix pass (all passing)
 
@@ -117,7 +125,8 @@ data; the others only change error handling, robustness, or presentation.
 - Unmatched-codes warning lists exactly `WWTR05` + the blank code.
 - Missing New Show Review holds exactly the 57 intended rows.
 - Malformed payment file fails with the intended clear message.
-- Caching: first run 0.50s pipeline, second run 0.00s (wall 0.93s → 0.18s).
+- Caching: first run ~0.5s pipeline, second run 0.00s (on both version
+  matrices above).
 - Large fixture (200k-row / 12.6 MB red_rawdata, regenerated in a scratch
   dir with `--red-rows 200000`, not committed): first run 3.6s pipeline /
   3.9s wall, cached rerun 0.0s, all assertions pass.

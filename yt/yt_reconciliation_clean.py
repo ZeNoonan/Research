@@ -83,8 +83,10 @@ BUG-FIX PASS (2026-07-31) - eleven review findings addressed:
  9. clean_master_file applies the same dotless-i normalisation as
     clean_custom_id, so such master Custom IDs can match again.
 10. Payment-summary amounts in accounting parentheses parse as negative.
-11. st.dataframe uses width='stretch' (use_container_width is removed
-    from Streamlit after 2025-12-31; this needs Streamlit >= 1.46).
+11. Tables render through show_dataframe(), which tries width='stretch'
+    (the replacement for use_container_width, removed from Streamlit
+    after 2025-12-31) and falls back to use_container_width=True on
+    older Streamlit versions that only accept an integer width.
 """
 
 import html
@@ -843,6 +845,19 @@ def missing_text_mask(series, missing_tokens):
     return series.isna() | cleaned.eq("") | cleaned.isin(missing_tokens)
 
 
+def show_dataframe(data, **kwargs):
+    """Render a full-width st.dataframe on any Streamlit version.
+
+    Newer Streamlit (>= mid-2025) replaced use_container_width=True with
+    width='stretch' and removes the old kwarg after 2025-12-31; older
+    Streamlit only accepts an integer pixel width, raising TypeError on
+    'stretch'. Feature-detect instead of pinning a version boundary."""
+    try:
+        return st.dataframe(data, width="stretch", **kwargs)
+    except TypeError:
+        return st.dataframe(data, use_container_width=True, **kwargs)
+
+
 # ============================================================
 #                     FILE PATHS
 # ============================================================
@@ -906,9 +921,8 @@ st.caption(
     "'Subscription Revenue: YT & Music Premium' line."
 )
 
-st.dataframe(
+show_dataframe(
     payment_summary_source_mapping,
-    width="stretch",
     hide_index=True,
     column_config={
         "Revenue Type": st.column_config.TextColumn(
@@ -2113,7 +2127,7 @@ st.caption(
 # ============================================================
 
 st.subheader("Reconciliation: combo_youtube vs payment_summary")
-st.dataframe(
+show_dataframe(
     data["reconciliation"].style.format(
         {
             "combo_youtube_total": "${:,.2f}",
@@ -2122,7 +2136,6 @@ st.dataframe(
         },
         na_rep="-",
     ),
-    width="stretch",
 )
 if bool(data["reconciliation"]["matches"].fillna(False).all()):
     st.success("All revenue types match the payment summary to within $0.01.")
@@ -2145,9 +2158,8 @@ if data["missing_review_columns"]:
 
 st.header("YouTube Master - Missing New Show Review")
 
-st.dataframe(
+show_dataframe(
     data["missing_new_show_review"],
-    width="stretch",
     hide_index=True,
     column_config={
         "Asset Title": st.column_config.TextColumn("Asset Title"),
@@ -2169,7 +2181,7 @@ st.dataframe(
 # ============================================================
 
 st.header("Final Output by Title")
-st.dataframe(
+show_dataframe(
     data["final_output_display"].style
     .format({"Partner Revenue": "${:,.2f}"}, na_rep="-")
     .apply(
@@ -2178,7 +2190,6 @@ st.dataframe(
         column_name="User Code",
         total_label="GRAND TOTAL",
     ),
-    width="stretch",
     hide_index=True,
 )
 
@@ -2205,10 +2216,9 @@ if not data["unmatched_user_codes"].empty:
         "underlying rows never received a New Show - see the Missing "
         "New Show Review."
     )
-    st.dataframe(
+    show_dataframe(
         data["unmatched_user_codes"].style.format(
             {"Partner Revenue": "${:,.2f}"}, na_rep="-"
         ),
-        width="stretch",
         hide_index=True,
     )
