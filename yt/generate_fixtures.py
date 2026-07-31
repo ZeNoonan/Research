@@ -356,6 +356,17 @@ def generate(outdir, red_rows, seed):
                 fh.write(f"{label},{value:.2f}\n")
         fh.write(f"Total,{grand_total:.2f}\n")
 
+    # CA revenue across the country-bearing files: this must equal the CA
+    # territory total in the Final Output, because the pipeline preserves
+    # each row's territory end-to-end. Shorts-ads and ecommerce have no
+    # Country column, so all their revenue is INTL (and flagged).
+    ca_total = sum(
+        row[-1]
+        for rows in (red, rev, music, subs, adj)
+        for row in rows
+        if row[0] == "CA"
+    )
+
     # ---------------- expected values for the test ----------------
     expected = {
         "seed": seed,
@@ -377,6 +388,14 @@ def generate(outdir, red_rows, seed):
         # 4 Mystery Compilation assets + 1 topaz_collection + 50
         # Nine Story Extras ecommerce rows + 2 Random Shorts Mix rows.
         "expected_missing_review_rows": 4 + 1 + (200 // 4) + 2,
+        "expected_ca_total": round(ca_total, 6),
+        "expected_no_country_revenue": round(
+            totals["shorts_ads"] + totals["ecommerce"], 6
+        ),
+        "expected_no_country_sources": [
+            "Transactions Revenue: Others",
+            "YT Shorts Ads Revenue",
+        ],
     }
     with open(outdir / "expected_totals.json", "w", encoding="utf-8") as fh:
         json.dump(expected, fh, indent=2)

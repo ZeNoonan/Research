@@ -128,6 +128,34 @@ data; the others only change error handling, robustness, or presentation.
   missing review (count still asserted at 57) and its revenue lands in
   SCMX03. Verified on both version matrices.
 
+## Feature added: Territory (CA / INTL) in the Final Output
+
+- The Final Output by Title now carries a **Territory** column: `CA`
+  where the row's `Country` is CA, `INTL` for everything else — one row
+  per User Code per territory, with the GRAND TOTAL unchanged.
+- This is deliberately simpler than the pipeline's internal per-row
+  Territory column (no `9SUSA` / peep rules), which is left untouched.
+- **Rows with no Country value are classified INTL and flagged**: a
+  warning plus a review table grouped by data source (row count +
+  revenue) appears under the Final Output, so missing country data can
+  be investigated. In the fixtures this flags exactly the two sources
+  that genuinely have no Country column: `YT Shorts Ads Revenue` and
+  `Transactions Revenue: Others`.
+- **Territory is preserved end-to-end.** The classification is stamped on
+  detail rows before the season allocation, and both grouped allocation
+  steps (Other/Film/missing seasons, invalid-season families) were
+  restructured to split each source row across the recipient seasons
+  *within its own territory* — per-season totals match the pre-territory
+  behaviour, and the CA total in the final output equals the CA-country
+  revenue in the source files exactly. A new conservation guard covers
+  the restructured Other/missing allocation.
+- The unmatched-codes warning stays at User Code granularity (summed
+  across territories).
+- *Tested:* Territory only ever shows CA/INTL; CA total ties to the
+  fixture's CA-country revenue to the cent; the no-country table lists
+  exactly the expected sources and revenue. Verified on both version
+  matrices.
+
 ## Test results after the fix pass (all passing)
 
 - No exceptions, no `st.error` output.

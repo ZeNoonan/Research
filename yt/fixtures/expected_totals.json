@@ -23,5 +23,11 @@
     "<NA>",
     "WWTR05"
   ],
-  "expected_missing_review_rows": 57
+  "expected_missing_review_rows": 57,
+  "expected_ca_total": 1160.04,
+  "expected_no_country_revenue": 1078.84,
+  "expected_no_country_sources": [
+    "Transactions Revenue: Others",
+    "YT Shorts Ads Revenue"
+  ]
 }

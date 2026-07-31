@@ -14,7 +14,10 @@ Checks:
   5. the Missing New Show Review holds exactly the expected rows (this
      catches a broken Asset Labels fallback, a regressed Custom ID
      boundary match, and reappearing phantom shorts rows)
-  6. a second run is served from cache (pipeline-time caption ~0s)
+  6. the Territory column shows only CA/INTL, the CA total equals the
+     CA-country revenue in the source rows, and the no-country warning
+     lists exactly the sources without a Country column
+  7. a second run is served from cache (pipeline-time caption ~0s)
 
 Run:  python test_app.py   (or: pytest test_app.py)
 """
@@ -172,12 +175,41 @@ def main():
     # 4. the review table holds exactly the intended rows: an extra row
     #    means the Asset Labels fallback or a mapping rule regressed; a
     #    missing row means something matched that should not have
-    review = next(f for f in frames if "Data Source Type" in f.columns)
+    review = next(
+        f for f in frames
+        if "Data Source Type" in f.columns and "Asset Title" in f.columns
+    )
     assert len(review) == expected["expected_missing_review_rows"], (
         f"review rows {len(review)} != "
         f"{expected['expected_missing_review_rows']}:\n"
         + review["Asset Title"].astype(str).value_counts().to_string()
     )
+
+    # 5. Territory: only CA/INTL in the final output, the CA total ties
+    #    exactly to the CA-country source rows, and the country-less
+    #    sources are flagged with their revenue
+    body = final.loc[final["User Code"].astype(str) != "GRAND TOTAL"]
+    territories = set(body["Territory"].dropna())
+    assert territories <= {"CA", "INTL"}, territories
+    ca_total = float(
+        body.loc[body["Territory"] == "CA", "Partner Revenue"].sum()
+    )
+    assert abs(ca_total - expected["expected_ca_total"]) <= 0.01, (
+        f"CA total {ca_total:,.2f} != "
+        f"{expected['expected_ca_total']:,.2f}"
+    )
+    assert any("no Country value" in w for w in warnings), warnings
+    no_country = next(
+        f for f in frames
+        if set(f.columns) == {"Data Source Type", "Row Count",
+                              "Partner Revenue"}
+    )
+    got_sources = sorted(no_country["Data Source Type"].astype(str))
+    assert got_sources == expected["expected_no_country_sources"], got_sources
+    no_country_revenue = float(no_country["Partner Revenue"].sum())
+    assert abs(
+        no_country_revenue - expected["expected_no_country_revenue"]
+    ) <= 0.01, no_country_revenue
 
     first_pipeline = pipeline_caption_seconds(at)
 
