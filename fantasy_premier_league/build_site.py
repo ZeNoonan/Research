@@ -83,7 +83,9 @@ tr.divider td { background: var(--accent); color: #fff; text-align: center;
 FACTOR_ROWS = [
     ("Q", "Quality", "Model expected points per 90 — rebuilt from the FPL "
      "scoring rules and the player's underlying per-90 numbers (xG, xA, xGC, "
-     "defensive contributions, saves) — above the position median."),
+     "defensive contributions, saves) — above the position median. Rates are "
+     "shrunk toward the position average by sample size, so a dazzling "
+     "number off 130 minutes doesn't outrank a season of evidence."),
     ("V", "Value", "Expected points per 90 per £million above the position "
      "median. Points per pound funds the rest of the squad."),
     ("F", "Form", "Points over the last 5 gameweeks above the position "
@@ -177,7 +179,15 @@ median. Among our five made-up midfielders the median is
            {n for n, _, s in quality_rows if s})}
 <p class="note">Player B sits exactly on the median, so no star — "above the
 median" is strict. Note the engine never looks at actual points scored:
-goals in, luck out.</p></div>"""
+goals in, luck out.</p>
+<p class="note"><b>One more step, for small samples.</b> A rate built from
+130 minutes is mostly noise, and left alone it puts bit-part players at the
+top of every per-90 ranking. So each rate is pulled toward its position's
+average by how much evidence stands behind it — a player with 450 minutes
+lands halfway between his own number and the position average, while a
+3,000-minute regular is left essentially untouched. Player A, on a full
+season, keeps his 3.60; the same 3.60 off two substitute appearances would
+be marked down to roughly the position average.</p></div>"""
 
     value = f"""
 <div class="ex"><h3><span class="letters">V</span> Value — worked example</h3>
@@ -432,7 +442,9 @@ League picks — one star per factor, judged against position peers, in the
 family of <code>march_madness/</code> and <code>nfl_report/</code>.</p></header>
 <div class="banner">Season <b>{esc(season)}</b>, rated through
 <b>GW{through}</b>. {int(rated['eligible'].sum())} players pass the minutes
-gate; 5★ and 6★ picks below (top {PER_POSITION} per position).{thin}</div>
+gate; 5★ and 6★ picks below (top {PER_POSITION} per position).{thin}
+<br><a href="preseason.html" style="color:var(--accent2)">2026/27 pre-season
+draft board — new prices, rated on this season's evidence →</a></div>
 <section><h2>The six factors</h2>
 <div class="tablewrap"><table>{factor_rows}</table></div>
 <p class="note">Eligibility gate: 45+ minutes averaged over the last

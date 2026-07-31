@@ -79,6 +79,7 @@ JUSTICE_WINDOW = 6        # gameweeks of luck behind the Justice factor
 MINUTES_WINDOW = 4        # played matches behind the eligibility gate
 MINUTES_FACTOR_WINDOW = 5  # played matches behind the Minutes factor
 MINUTES_PER_GW = 45.0
+PRIOR_MINUTES = 450.0     # shrinkage prior for per-90 rates (5 full matches)
 
 FACTORS = ("quality", "value", "form", "minutes_factor", "justice", "crowd")
 FACTOR_LETTERS = {"quality": "Q", "value": "V", "form": "F",
@@ -183,10 +184,28 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     out["xa90"] = [_per90(a, m) for a, m in zip(out["xa"], out["minutes"])]
     out["xgc90"] = [_per90(c, m) for c, m in zip(out["xgc"], out["minutes"])]
     out["saves90"] = [_per90(s, m) for s, m in zip(out["saves"], out["minutes"])]
-    out["xpts90"] = [
+    out["xpts90_raw"] = [
         expected_points_per_90(r.position, r.xg90, r.xa90, r.xgc90,
                                r.saves90, r.dc_rate)
         for r in out.itertuples()]
+
+    # Sample-size shrinkage. A per-90 rate off 135 minutes is noise: it puts
+    # bit-part players at the top of any per-90 ranking. Shrink each rate
+    # toward its position's minutes-weighted mean, with a prior worth
+    # PRIOR_MINUTES of evidence - so 450 minutes is half own-record, half
+    # prior, and a 3,000-minute regular is essentially untouched.
+    out["xpts90"] = out["xpts90_raw"]
+    for pos in POSITIONS:
+        grp = out["position"] == pos
+        block = out.loc[grp]
+        total = block["minutes"].sum()
+        if not total:
+            continue
+        prior = (block["xpts90_raw"] * block["minutes"]).sum() / total
+        mins = block["minutes"]
+        out.loc[grp, "xpts90"] = (
+            (mins * block["xpts90_raw"] + PRIOR_MINUTES * prior)
+            / (mins + PRIOR_MINUTES))
 
     # Justice margin, in goals of unearned/withheld reward over the window:
     # attackers bank xGI they haven't cashed; defensive players bank goals
