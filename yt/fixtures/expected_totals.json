@@ -1,0 +1,25 @@
+{
+  "seed": 20260301,
+  "red_rows": 290,
+  "file_totals": {
+    "red_rawdata": 6088.42,
+    "rev_views": 5400.08,
+    "red_music_video": 3917.31,
+    "shorts_subs": 407.18,
+    "shorts_ads": 342.15,
+    "adj": 61.72,
+    "ecommerce": 759.85
+  },
+  "per_data_source": {
+    "Subscription Revenue: YT & Music Premium": 10005.73,
+    "Ads Revenue": 5400.08,
+    "YT Shorts Ads Revenue": 342.15,
+    "YT Shorts Subs Revenue": 407.18,
+    "Ads Revenue: Dispute Resolution": 61.72,
+    "Transactions Revenue: Others": 759.85
+  },
+  "grand_total": 16976.71,
+  "expected_unmatched_user_codes": [
+    "WWTR05"
+  ]
+}
