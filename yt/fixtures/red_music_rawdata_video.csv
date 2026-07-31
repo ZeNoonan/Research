@@ -1,0 +1,193 @@
+YouTube red_music rawdata video report - synthetic fixture
+Country,Asset ID,Custom ID,Video Title,Partner Revenue
+US,AID8000000,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode Song 1,11.64
+MX,AID8000001,dtnb_ep01_002,Daniel Tiger's Neighborhood Episode Song 2,23.9
+IN,AID8000002,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode Song 3,32.2
+BR,AID8000003,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode Song 4,9.98
+AU,AID8000004,dtnb_ep01_005,Daniel Tiger's Neighborhood Episode Song 5,34.45
+MX,AID8000005,dtnb_ep01_006,Daniel Tiger's Neighborhood Episode Song 6,29.2
+MX,AID8000006,dtnb_ep01_007,Daniel Tiger's Neighborhood Episode Song 7,36.89
+US,AID8000007,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode Song 8,22.41
+MX,AID8000008,dtnb_ep01_009,Daniel Tiger's Neighborhood Episode Song 9,0.54
+AU,AID8000009,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode Song 10,12.85
+DE,AID8000010,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode Song 11,12.91
+CA,AID8000011,dtnb_ep02_002,Daniel Tiger's Neighborhood Episode Song 12,38.78
+CA,AID8000012,dtnb_ep02_003,Daniel Tiger's Neighborhood Episode Song 13,9.85
+JP,AID8000013,dtnb_ep02_004,Daniel Tiger's Neighborhood Episode Song 14,27.91
+BR,AID8000014,dtnb_ep02_005,Daniel Tiger's Neighborhood Episode Song 15,28.02
+GB,AID8000015,dtnb_ep02_006,Daniel Tiger's Neighborhood Episode Song 16,15.1
+BR,AID8000016,dtnb_ep02_007,Daniel Tiger's Neighborhood Episode Song 17,23.25
+IN,AID8000017,dtnb_ep02_008,Daniel Tiger's Neighborhood Episode Song 18,24.74
+AU,AID8000018,dtnb_ep02_009,Daniel Tiger's Neighborhood Episode Song 19,30.39
+FR,AID8000019,dtnb_ep02_010,Daniel Tiger's Neighborhood Episode Song 20,4.95
+FR,AID8000020,dtnb_ep03_001,Daniel Tiger's Neighborhood Episode Song 21,17.61
+AU,AID8000021,dtnb_ep03_002,Daniel Tiger's Neighborhood Episode Song 22,27.93
+GB,AID8000022,dtnb_ep03_003,Daniel Tiger's Neighborhood Episode Song 23,10.21
+DE,AID8000023,dtnb_ep03_004,Daniel Tiger's Neighborhood Episode Song 24,28.2
+FR,AID8000024,dtnb_ep03_005,Daniel Tiger's Neighborhood Episode Song 25,4.05
+IN,AID8000025,dtnb_ep03_006,Daniel Tiger's Neighborhood Episode Song 26,9.96
+MX,AID8000026,dtnb_ep03_007,Daniel Tiger's Neighborhood Episode Song 27,35.17
+US,AID8000027,dtnb_ep03_008,Daniel Tiger's Neighborhood Episode Song 28,35.24
+DE,AID8000028,dtnb_ep03_009,Daniel Tiger's Neighborhood Episode Song 29,7.73
+BR,AID8000029,dtnb_ep03_010,Daniel Tiger's Neighborhood Episode Song 30,24.82
+IN,AID8000030,dtnb_badrow_001,Daniel Tiger's Neighborhood Episode Song 1,9.91
+FR,AID8000031,dtnb_badrow_002,Daniel Tiger's Neighborhood Episode Song 2,23.57
+MX,AID8000032,dtnb_badrow_003,Daniel Tiger's Neighborhood Episode Song 3,30.92
+GB,AID8000033,garf_ep_001,Garfield and Friends Episode Song 4,22.82
+BR,AID8000034,garf_ep_002,Garfield and Friends Episode Song 5,17.86
+AU,AID8000035,garf_ep_003,Garfield and Friends Episode Song 6,29.06
+CA,AID8000036,garf_ep_004,Garfield and Friends Episode Song 7,29.35
+US,AID8000037,garf_ep_005,Garfield and Friends Episode Song 8,12.4
+JP,AID8000038,garf_ep_006,Garfield and Friends Episode Song 9,19.09
+IN,AID8000039,garf_ep_007,Garfield and Friends Episode Song 10,37.68
+MX,AID8000040,garf_ep_008,Garfield and Friends Episode Song 11,34.28
+MX,AID8000041,garf_ep_009,Garfield and Friends Episode Song 12,21.58
+FR,AID8000042,garf_ep_010,Garfield and Friends Episode Song 13,35.73
+AU,AID8000043,garf_extra_001,Garfield and Friends Episode Song 14,7.86
+IN,AID8000044,garf_extra_002,Garfield and Friends Episode Song 15,15.94
+FR,AID8000045,garf_extra_003,Garfield and Friends Episode Song 16,2.95
+US,AID8000046,garf_extra_004,Garfield and Friends Episode Song 17,34.58
+MX,AID8000047,garf_extra_005,Garfield and Friends Episode Song 18,17.26
+US,AID8000048,arth_ep16_001,Arthur Episode Song 19,38.12
+AU,AID8000049,arth_ep16_002,Arthur Episode Song 20,11.76
+FR,AID8000050,arth_ep16_003,Arthur Episode Song 21,28.51
+JP,AID8000051,arth_ep16_004,Arthur Episode Song 22,31.99
+CA,AID8000052,arth_ep16_005,Arthur Episode Song 23,17.2
+MX,AID8000053,arth_ep17_001,Arthur Episode Song 24,25.1
+CA,AID8000054,arth_ep17_002,Arthur Episode Song 25,0.97
+AU,AID8000055,arth_ep17_003,Arthur Episode Song 26,25.3
+GB,AID8000056,arth_ep17_004,Arthur Episode Song 27,14.69
+BR,AID8000057,arth_ep17_005,Arthur Episode Song 28,36.54
+FR,AID8000058,arth_ep18_001,Arthur Episode Song 29,1.1
+MX,AID8000059,arth_ep18_002,Arthur Episode Song 30,37.36
+CA,AID8000060,arth_ep18_003,Arthur Episode Song 1,16.48
+GB,AID8000061,arth_ep18_004,Arthur Episode Song 2,12.81
+US,AID8000062,arth_ep18_005,Arthur Episode Song 3,25.1
+CA,AID8000063,arth_ep19_001,Arthur Episode Song 4,19.8
+US,AID8000064,arth_ep19_002,Arthur Episode Song 5,8.92
+AU,AID8000065,arth_ep19_003,Arthur Episode Song 6,6.74
+CA,AID8000066,arth_ep19_004,Arthur Episode Song 7,37.41
+BR,AID8000067,arth_ep19_005,Arthur Episode Song 8,34.35
+US,AID8000068,anne_ep_001,Anne with an E Episode Song 9,22.72
+GB,AID8000069,anne_ep_002,Anne with an E Episode Song 10,20.89
+GB,AID8000070,anne_ep_003,Anne with an E Episode Song 11,7.17
+US,AID8000071,anne_ep_004,Anne with an E Episode Song 12,6.67
+IN,AID8000072,anne_ep_005,Anne with an E Episode Song 13,38.82
+BR,AID8000073,scmx_ep03_001,Science Max Episode Song 14,0.87
+BR,AID8000074,scmx_ep03_002,Science Max Episode Song 15,20.81
+IN,AID8000075,scmx_ep03_003,Science Max Episode Song 16,10.64
+MX,AID8000076,scmx_ep03_004,Science Max Episode Song 17,4.37
+MX,AID8000077,scmx_ep03_005,Science Max Episode Song 18,32.64
+FR,AID8000078,scmx_ep05_001,Science Max Episode Song 19,8.16
+AU,AID8000079,scmx_ep05_002,Science Max Episode Song 20,32.63
+US,AID8000080,scmx_ep05_003,Science Max Episode Song 21,24.53
+FR,AID8000081,scmx_ep05_004,Science Max Episode Song 22,25.82
+MX,AID8000082,scmx_ep05_005,Science Max Episode Song 23,32.86
+AU,AID8000083,krma_ep_001,Karma's World Episode Song 24,20.29
+IN,AID8000084,krma_ep_002,Karma's World Episode Song 25,12.41
+DE,AID8000085,krma_ep_003,Karma's World Episode Song 26,10.9
+BR,AID8000086,krma_ep_004,Karma's World Episode Song 27,26.3
+CA,AID8000087,krma_ep_005,Karma's World Episode Song 28,30.05
+JP,AID8000088,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode Song 29,16.49
+MX,AID8000089,dtnb_ep01_002,Daniel Tiger's Neighborhood Episode Song 30,10.51
+AU,AID8000090,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode Song 1,15.3
+DE,AID8000091,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode Song 2,30.64
+JP,AID8000092,dtnb_ep01_005,Daniel Tiger's Neighborhood Episode Song 3,30.81
+FR,AID8000093,dtnb_ep01_006,Daniel Tiger's Neighborhood Episode Song 4,12.03
+IN,AID8000094,dtnb_ep01_007,Daniel Tiger's Neighborhood Episode Song 5,17.97
+DE,AID8000095,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode Song 6,29.21
+MX,AID8000096,dtnb_ep01_009,Daniel Tiger's Neighborhood Episode Song 7,6.06
+GB,AID8000097,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode Song 8,31.56
+AU,AID8000098,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode Song 9,33.36
+JP,AID8000099,dtnb_ep02_002,Daniel Tiger's Neighborhood Episode Song 10,28.53
+IN,AID8000100,dtnb_ep02_003,Daniel Tiger's Neighborhood Episode Song 11,24.14
+IN,AID8000101,dtnb_ep02_004,Daniel Tiger's Neighborhood Episode Song 12,20.87
+MX,AID8000102,dtnb_ep02_005,Daniel Tiger's Neighborhood Episode Song 13,20.61
+MX,AID8000103,dtnb_ep02_006,Daniel Tiger's Neighborhood Episode Song 14,11.1
+BR,AID8000104,dtnb_ep02_007,Daniel Tiger's Neighborhood Episode Song 15,36.63
+GB,AID8000105,dtnb_ep02_008,Daniel Tiger's Neighborhood Episode Song 16,0.85
+AU,AID8000106,dtnb_ep02_009,Daniel Tiger's Neighborhood Episode Song 17,15.69
+GB,AID8000107,dtnb_ep02_010,Daniel Tiger's Neighborhood Episode Song 18,4.76
+JP,AID8000108,dtnb_ep03_001,Daniel Tiger's Neighborhood Episode Song 19,29.46
+IN,AID8000109,dtnb_ep03_002,Daniel Tiger's Neighborhood Episode Song 20,37.25
+MX,AID8000110,dtnb_ep03_003,Daniel Tiger's Neighborhood Episode Song 21,17.96
+CA,AID8000111,dtnb_ep03_004,Daniel Tiger's Neighborhood Episode Song 22,26.64
+MX,AID8000112,dtnb_ep03_005,Daniel Tiger's Neighborhood Episode Song 23,22.3
+GB,AID8000113,dtnb_ep03_006,Daniel Tiger's Neighborhood Episode Song 24,29.8
+US,AID8000114,dtnb_ep03_007,Daniel Tiger's Neighborhood Episode Song 25,31.98
+IN,AID8000115,dtnb_ep03_008,Daniel Tiger's Neighborhood Episode Song 26,35.15
+US,AID8000116,dtnb_ep03_009,Daniel Tiger's Neighborhood Episode Song 27,35.59
+CA,AID8000117,dtnb_ep03_010,Daniel Tiger's Neighborhood Episode Song 28,16.98
+BR,AID8000118,dtnb_badrow_001,Daniel Tiger's Neighborhood Episode Song 29,4.71
+AU,AID8000119,dtnb_badrow_002,Daniel Tiger's Neighborhood Episode Song 30,25.44
+BR,AID8000120,dtnb_badrow_003,Daniel Tiger's Neighborhood Episode Song 1,3.07
+FR,AID8000121,garf_ep_001,Garfield and Friends Episode Song 2,13.55
+FR,AID8000122,garf_ep_002,Garfield and Friends Episode Song 3,12.71
+FR,AID8000123,garf_ep_003,Garfield and Friends Episode Song 4,21.27
+GB,AID8000124,garf_ep_004,Garfield and Friends Episode Song 5,10.11
+IN,AID8000125,garf_ep_005,Garfield and Friends Episode Song 6,37.61
+US,AID8000126,garf_ep_006,Garfield and Friends Episode Song 7,25.22
+CA,AID8000127,garf_ep_007,Garfield and Friends Episode Song 8,18.06
+MX,AID8000128,garf_ep_008,Garfield and Friends Episode Song 9,14.03
+AU,AID8000129,garf_ep_009,Garfield and Friends Episode Song 10,6.12
+MX,AID8000130,garf_ep_010,Garfield and Friends Episode Song 11,24.22
+BR,AID8000131,garf_extra_001,Garfield and Friends Episode Song 12,38.98
+GB,AID8000132,garf_extra_002,Garfield and Friends Episode Song 13,2.0
+AU,AID8000133,garf_extra_003,Garfield and Friends Episode Song 14,14.21
+DE,AID8000134,garf_extra_004,Garfield and Friends Episode Song 15,26.9
+BR,AID8000135,garf_extra_005,Garfield and Friends Episode Song 16,32.45
+GB,AID8000136,arth_ep16_001,Arthur Episode Song 17,16.36
+IN,AID8000137,arth_ep16_002,Arthur Episode Song 18,15.55
+MX,AID8000138,arth_ep16_003,Arthur Episode Song 19,14.3
+DE,AID8000139,arth_ep16_004,Arthur Episode Song 20,8.05
+DE,AID8000140,arth_ep16_005,Arthur Episode Song 21,39.18
+DE,AID8000141,arth_ep17_001,Arthur Episode Song 22,15.47
+JP,AID8000142,arth_ep17_002,Arthur Episode Song 23,20.66
+JP,AID8000143,arth_ep17_003,Arthur Episode Song 24,5.39
+GB,AID8000144,arth_ep17_004,Arthur Episode Song 25,9.38
+DE,AID8000145,arth_ep17_005,Arthur Episode Song 26,8.22
+MX,AID8000146,arth_ep18_001,Arthur Episode Song 27,11.62
+JP,AID8000147,arth_ep18_002,Arthur Episode Song 28,2.54
+FR,AID8000148,arth_ep18_003,Arthur Episode Song 29,9.4
+US,AID8000149,arth_ep18_004,Arthur Episode Song 30,24.5
+AU,AID8000150,arth_ep18_005,Arthur Episode Song 1,34.14
+US,AID8000151,arth_ep19_001,Arthur Episode Song 2,27.25
+US,AID8000152,arth_ep19_002,Arthur Episode Song 3,25.52
+IN,AID8000153,arth_ep19_003,Arthur Episode Song 4,5.96
+FR,AID8000154,arth_ep19_004,Arthur Episode Song 5,7.31
+US,AID8000155,arth_ep19_005,Arthur Episode Song 6,36.88
+MX,AID8000156,anne_ep_001,Anne with an E Episode Song 7,0.82
+JP,AID8000157,anne_ep_002,Anne with an E Episode Song 8,35.04
+FR,AID8000158,anne_ep_003,Anne with an E Episode Song 9,24.01
+GB,AID8000159,anne_ep_004,Anne with an E Episode Song 10,38.4
+BR,AID8000160,anne_ep_005,Anne with an E Episode Song 11,10.54
+GB,AID8000161,scmx_ep03_001,Science Max Episode Song 12,14.84
+MX,AID8000162,scmx_ep03_002,Science Max Episode Song 13,25.61
+DE,AID8000163,scmx_ep03_003,Science Max Episode Song 14,38.6
+CA,AID8000164,scmx_ep03_004,Science Max Episode Song 15,34.58
+DE,AID8000165,scmx_ep03_005,Science Max Episode Song 16,32.53
+GB,AID8000166,scmx_ep05_001,Science Max Episode Song 17,10.22
+BR,AID8000167,scmx_ep05_002,Science Max Episode Song 18,9.57
+US,AID8000168,scmx_ep05_003,Science Max Episode Song 19,4.31
+US,AID8000169,scmx_ep05_004,Science Max Episode Song 20,32.84
+BR,AID8000170,scmx_ep05_005,Science Max Episode Song 21,35.07
+BR,AID8000171,krma_ep_001,Karma's World Episode Song 22,27.9
+JP,AID8000172,krma_ep_002,Karma's World Episode Song 23,30.37
+DE,AID8000173,krma_ep_003,Karma's World Episode Song 24,3.32
+AU,AID8000174,krma_ep_004,Karma's World Episode Song 25,0.74
+JP,AID8000175,krma_ep_005,Karma's World Episode Song 26,2.98
+GB,AID8000176,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode Song 27,34.13
+MX,AID8000177,dtnb_ep01_002,Daniel Tiger's Neighborhood Episode Song 28,36.76
+FR,AID8000178,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode Song 29,7.38
+BR,AID8000179,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode Song 30,22.52
+GB,AID8000180,dtnb_ep01_005,Daniel Tiger's Neighborhood Episode Song 1,20.66
+MX,AID8000181,dtnb_ep01_006,Daniel Tiger's Neighborhood Episode Song 2,22.06
+GB,AID8000182,dtnb_ep01_007,Daniel Tiger's Neighborhood Episode Song 3,30.35
+CA,AID8000183,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode Song 4,4.3
+GB,AID8000184,dtnb_ep01_009,Daniel Tiger's Neighborhood Episode Song 5,5.77
+BR,AID8000185,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode Song 6,11.15
+BR,AID8000186,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode Song 7,20.87
+FR,AID8000187,dtnb_ep02_002,Daniel Tiger's Neighborhood Episode Song 8,27.48
+CA,AID8000188,dtnb_ep02_003,Daniel Tiger's Neighborhood Episode Song 9,27.16
+IN,AID8000189,dtnb_ep02_004,Daniel Tiger's Neighborhood Episode Song 10,15.26
+US,AID8900001,mv_unknown_theme_001,wheels on the bus sing along,17.08
