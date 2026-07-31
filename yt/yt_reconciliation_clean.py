@@ -83,8 +83,30 @@ BUG-FIX PASS (2026-07-31) - eleven review findings addressed:
  9. clean_master_file applies the same dotless-i normalisation as
     clean_custom_id, so such master Custom IDs can match again.
 10. Payment-summary amounts in accounting parentheses parse as negative.
-11. st.dataframe uses width='stretch' (use_container_width is removed
-    from Streamlit after 2025-12-31; this needs Streamlit >= 1.46).
+11. Tables render through show_dataframe(), which tries width='stretch'
+    (the replacement for use_container_width, removed from Streamlit
+    after 2025-12-31) and falls back to use_container_width=True on
+    older Streamlit versions that only accept an integer width.
+
+FEATURE (2026-07-31): ASSET LABELS KEYWORD RULE
+   rev_views (like red_rawdata) loads Asset Labels when the file carries
+   it, and a new Rule 3 applies ASSET_TITLE_SHOW_KEYWORDS to Asset Labels
+   (case-insensitive, mirroring the Video Title rule) for rows still
+   missing a New Show. It runs after the Video Title rule and before the
+   Custom ID / Asset Title substring mappings, which are now Rules 4
+   and 5.
+
+FEATURE (2026-07-31): TERRITORY (CA / INTL) IN THE FINAL OUTPUT
+   The Final Output by Title is now split by a Territory column: CA where
+   the row's Country is CA, INTL for everything else (deliberately
+   simpler than the per-row Territory column - no 9SUSA / peep rules).
+   Rows with no Country value are classified INTL and surfaced in a
+   separate review table grouped by data source. The classification is
+   assigned at detail-row level before the season allocation, and both
+   grouped allocation steps split each source row across the recipient
+   seasons WITHIN its own territory, so per-season totals match the
+   pre-territory behaviour and every dollar keeps its territory
+   end-to-end.
 """
 
 import html
@@ -123,8 +145,10 @@ EMOJI_PATTERN = re.compile(
 NEW_SHOW_MISSING_TOKENS = ["none", "nan", "null", "<na>"]
 
 # Hardcoded Asset Title keywords. Add further keywords to this list over time.
-# Asset Title matching is case-sensitive; List of Codes Description matching is
-# deliberately case-insensitive. The first matching List of Codes row is used.
+# Asset Title matching is case-sensitive; the same keywords are then applied
+# to Video Title and Asset Labels case-insensitively. List of Codes
+# Description matching is deliberately case-insensitive. The first matching
+# List of Codes row is used.
 #
 # NOTE: a missing comma previously merged "Wheels on the Bus" and "Barney"
 # into one useless keyword. Fixed in this revision.
@@ -270,7 +294,8 @@ CUSTOM_ID_SHOW_MAPPING = {
 }
 
 # Asset Title substring mapping applied after:
-# 1. ASSET_TITLE_SHOW_KEYWORDS (Asset Title, then Video Title)
+# 1. ASSET_TITLE_SHOW_KEYWORDS (Asset Title, then Video Title, then
+#    Asset Labels)
 # 2. CUSTOM_ID_SHOW_MAPPING
 # Matching is case-insensitive and only fills rows where New Show is missing.
 ASSET_TITLE_SHOW_MAPPING = {
@@ -843,6 +868,19 @@ def missing_text_mask(series, missing_tokens):
     return series.isna() | cleaned.eq("") | cleaned.isin(missing_tokens)
 
 
+def show_dataframe(data, **kwargs):
+    """Render a full-width st.dataframe on any Streamlit version.
+
+    Newer Streamlit (>= mid-2025) replaced use_container_width=True with
+    width='stretch' and removes the old kwarg after 2025-12-31; older
+    Streamlit only accepts an integer pixel width, raising TypeError on
+    'stretch'. Feature-detect instead of pinning a version boundary."""
+    try:
+        return st.dataframe(data, width="stretch", **kwargs)
+    except TypeError:
+        return st.dataframe(data, use_container_width=True, **kwargs)
+
+
 # ============================================================
 #                     FILE PATHS
 # ============================================================
@@ -906,9 +944,8 @@ st.caption(
     "'Subscription Revenue: YT & Music Premium' line."
 )
 
-st.dataframe(
+show_dataframe(
     payment_summary_source_mapping,
-    width="stretch",
     hide_index=True,
     column_config={
         "Revenue Type": st.column_config.TextColumn(
@@ -1294,6 +1331,11 @@ def build_report(
         combo["Video Title"].astype("string") if has_video_title else None
     )
 
+    has_asset_labels = "Asset Labels" in combo.columns
+    asset_labels_str = (
+        combo["Asset Labels"].astype("string") if has_asset_labels else None
+    )
+
     has_custom_id = "Custom ID" in combo.columns
     cid_str = combo["Custom ID"].astype("string") if has_custom_id else None
 
@@ -1366,7 +1408,31 @@ def build_report(
             pending = pending.difference(rows_to_update)
 
     # --------------------------------------------------------
-    # Rule 3: Custom ID substring mapping (case-insensitive), in dict
+    # Rule 3: the same keywords against Asset Labels (case-insensitive),
+    # only for rows where New Show is still missing.
+    # --------------------------------------------------------
+    if has_asset_labels:
+        pending = combo.index[missing]
+
+        for keyword in asset_title_keywords:
+            mapped_new_show = keyword_show_mapping[keyword]
+            if pd.isna(mapped_new_show) or len(pending) == 0:
+                continue
+
+            asset_labels_subset = asset_labels_str.loc[pending]
+            hits = asset_labels_subset.str.contains(
+                keyword, case=False, regex=False, na=False
+            )
+            rows_to_update = asset_labels_subset.index[hits]
+            if len(rows_to_update) == 0:
+                continue
+
+            combo.loc[rows_to_update, "New Show"] = mapped_new_show
+            missing.loc[rows_to_update] = False
+            pending = pending.difference(rows_to_update)
+
+    # --------------------------------------------------------
+    # Rule 4: Custom ID substring mapping (case-insensitive), in dict
     # order, again scanning only the shrinking still-missing subset.
     # The match must start at a word boundary (start of the id, or after
     # a space/underscore), so a short token such as "az_" no longer
@@ -1392,7 +1458,7 @@ def build_report(
             pending = pending.difference(rows_to_update)
 
     # --------------------------------------------------------
-    # Rule 4: explicit Asset Title substring mappings (case-insensitive),
+    # Rule 5: explicit Asset Title substring mappings (case-insensitive),
     # applied last, only where New Show is still missing.
     # --------------------------------------------------------
     pending = combo.index[missing]
@@ -1448,6 +1514,42 @@ def build_report(
             ascending=[False, True, True, True],
             na_position="last",
         )
+        .reset_index(drop=True)
+    )
+
+    # --------------------------------------------------------
+    # COUNTRY CLASSIFICATION for the final output: CA where the Country
+    # column says CA, INTL for everything else. Rows with no Country
+    # value are classified INTL and surfaced separately so missing
+    # country data can be investigated. This is deliberately simpler
+    # than the per-row Territory column (no 9SUSA / peep rules).
+    # Created before the season allocation duplicates rows, so every
+    # allocated row inherits its source row's classification and each
+    # dollar keeps its territory all the way to the final output.
+    # --------------------------------------------------------
+    if "Country" in combo.columns:
+        country_clean = (
+            combo["Country"].astype("string").str.strip().str.upper()
+        )
+        country_missing = combo["Country"].isna() | country_clean.eq("")
+        combo["Territory Class"] = np.where(
+            country_clean.eq("CA").fillna(False), "CA", "INTL"
+        )
+    else:
+        country_missing = pd.Series(True, index=combo.index)
+        combo["Territory Class"] = "INTL"
+
+    out["no_country_review"] = (
+        combo.loc[country_missing]
+        .groupby("data_source", dropna=False, as_index=False)
+        .agg(
+            **{
+                "Row Count": ("Partner Revenue", "size"),
+                "Partner Revenue": ("Partner Revenue", "sum"),
+            }
+        )
+        .rename(columns={"data_source": "Data Source Type"})
+        .sort_values("Partner Revenue", ascending=False, na_position="last")
         .reset_index(drop=True)
     )
 
@@ -1602,35 +1704,45 @@ def build_report(
         .str.replace(r"^[Ss]", "", regex=True)
     )
 
-    # Only the three columns this analysis needs; the full detailed frame
+    # Only the four columns this analysis needs; the full detailed frame
     # is never copied or returned (it can exceed 1 GB in memory).
     show_season_source = combo.loc[
-        :, ["New Show", "New Season", "Partner Revenue"]
+        :, ["New Show", "New Season", "Territory Class", "Partner Revenue"]
     ].copy()
     show_season_source["Partner Revenue"] = pd.to_numeric(
         show_season_source["Partner Revenue"], errors="coerce"
     )
     source_total = float(show_season_source["Partner Revenue"].sum())
 
-    # Group by New Show and New Season. dropna=False keeps missing
-    # New Show / New Season values visible to the later rules.
+    # Group by New Show, New Season and Territory Class. dropna=False
+    # keeps missing New Show / New Season values visible to the later
+    # rules. The territory dimension rides along: every season rule below
+    # keys on New Show / New Season exactly as before, and reallocated
+    # revenue stays inside its own territory.
     revenue_by_show_season = (
         show_season_source
-        .groupby(["New Show", "New Season"], dropna=False, as_index=False)
+        .groupby(
+            ["New Show", "New Season", "Territory Class"],
+            dropna=False, as_index=False,
+        )
         .agg(
             **{
                 "Partner Revenue": ("Partner Revenue", "sum"),
                 "Row Count": ("Partner Revenue", "size"),
             }
         )
-        .sort_values(["New Show", "New Season"], na_position="last")
+        .sort_values(
+            ["New Show", "New Season", "Territory Class"], na_position="last"
+        )
         .reset_index(drop=True)
     )
 
     # --------------------------------------------------------
     # SINGLE GROUPED ROW RULE
-    # Where a New Show has only one grouped New Season row, change
-    # Film, Other, or a missing New Season to season 01.
+    # Where a New Show has only one grouped New Season value, change
+    # Film, Other, or a missing New Season to season 01. Counted on
+    # distinct seasons (not grouped rows) so a CA/INTL split of the
+    # same season still counts as one season.
     # --------------------------------------------------------
     single_row_season_check = (
         revenue_by_show_season["New Season"]
@@ -1640,10 +1752,18 @@ def build_report(
         .str.casefold()
     )
 
-    grouped_rows_per_show = (
-        revenue_by_show_season
-        .groupby("New Show", dropna=False)["New Season"]
-        .transform("size")
+    show_id_for_count = (
+        revenue_by_show_season["New Show"]
+        .astype("string")
+        .fillna("<missing show>")
+    )
+    season_id_for_count = (
+        revenue_by_show_season["New Season"]
+        .astype("string")
+        .fillna("<missing season>")
+    )
+    grouped_seasons_per_show = (
+        season_id_for_count.groupby(show_id_for_count).transform("nunique")
     )
 
     single_row_source_season_mask = (
@@ -1654,7 +1774,7 @@ def build_report(
     ).fillna(False)
 
     single_row_to_season_01_mask = (
-        grouped_rows_per_show.eq(1) & single_row_source_season_mask
+        grouped_seasons_per_show.eq(1) & single_row_source_season_mask
     ).fillna(False).to_numpy(dtype=bool)
 
     revenue_by_show_season.loc[
@@ -1663,7 +1783,9 @@ def build_report(
 
     revenue_by_show_season = (
         revenue_by_show_season
-        .sort_values(["New Show", "New Season"], na_position="last")
+        .sort_values(
+            ["New Show", "New Season", "Territory Class"], na_position="last"
+        )
         .reset_index(drop=True)
     )
 
@@ -1693,52 +1815,81 @@ def build_report(
     is_allocation_source = (is_other | is_missing_season).astype(bool)
     is_valid_recipient = (~is_allocation_source).astype(bool)
 
-    show_key = revenue_by_show_season["New Show"]
-
-    recipient_count = (
-        is_valid_recipient.astype("int64")
-        .groupby(show_key, dropna=False)
-        .transform("sum")
-        .fillna(0)
-        .astype("int64")
+    allocation_check_before = float(
+        revenue_by_show_season["Partner Revenue"].fillna(0.0).sum()
     )
 
-    allocation_source_total = (
-        revenue_by_show_season["Partner Revenue"]
-        .where(is_allocation_source, 0.0)
-        .groupby(show_key, dropna=False)
-        .transform("sum")
-        .fillna(0.0)
+    # Distinct valid seasons per show. Each source row's revenue is split
+    # equally across those seasons WITHIN the source row's own territory,
+    # so per-season amounts match the pre-territory behaviour and the
+    # CA/INTL totals are preserved exactly.
+    valid_season_lookup = (
+        revenue_by_show_season.loc[
+            is_valid_recipient, ["New Show", "New Season"]
+        ]
+        .drop_duplicates()
+    )
+    valid_season_lookup["Valid Season Count"] = (
+        valid_season_lookup.groupby("New Show", dropna=False)["New Season"]
+        .transform("size")
     )
 
-    receive_allocation_mask = (
-        is_valid_recipient & recipient_count.gt(0)
-    ).fillna(False)
-    safe_recipient_count = recipient_count.replace(0, np.nan)
-
-    amount_added = pd.Series(
-        np.where(
-            receive_allocation_mask.to_numpy(dtype=bool),
-            allocation_source_total / safe_recipient_count,
-            0.0,
-        ),
-        index=revenue_by_show_season.index,
-    ).fillna(0.0)
-
-    revenue_by_show_season["Partner Revenue"] = (
-        revenue_by_show_season["Partner Revenue"] + amount_added
+    source_has_recipient = (
+        is_allocation_source
+        & revenue_by_show_season["New Show"].isin(
+            valid_season_lookup["New Show"]
+        )
     )
 
-    # Remove Other/missing source rows only where a valid recipient exists.
-    allocated_source_mask = (
-        is_allocation_source & recipient_count.gt(0)
-    ).fillna(False).to_numpy(dtype=bool)
+    allocated_grouped_rows = (
+        revenue_by_show_season.loc[source_has_recipient]
+        .drop(columns=["New Season"])
+        .merge(valid_season_lookup, on="New Show", how="inner")
+    )
+    allocated_grouped_rows["Partner Revenue"] = (
+        allocated_grouped_rows["Partner Revenue"]
+        / allocated_grouped_rows["Valid Season Count"]
+    )
+    allocated_grouped_rows = allocated_grouped_rows.drop(
+        columns=["Valid Season Count"]
+    )
 
+    # Remove Other/missing source rows only where a valid recipient
+    # exists; shows with no valid season keep their source rows.
     revenue_by_show_season = (
-        revenue_by_show_season.loc[~allocated_source_mask]
-        .sort_values(["New Show", "New Season"], na_position="last")
+        pd.concat(
+            [
+                revenue_by_show_season.loc[~source_has_recipient],
+                allocated_grouped_rows,
+            ],
+            ignore_index=True,
+            sort=False,
+        )
+        .groupby(
+            ["New Show", "New Season", "Territory Class"],
+            dropna=False, as_index=False,
+        )
+        .agg(
+            **{
+                "Partner Revenue": ("Partner Revenue", "sum"),
+                "Row Count": ("Row Count", "sum"),
+            }
+        )
+        .sort_values(
+            ["New Show", "New Season", "Territory Class"], na_position="last"
+        )
         .reset_index(drop=True)
     )
+
+    allocation_check_difference = (
+        float(revenue_by_show_season["Partner Revenue"].fillna(0.0).sum())
+        - allocation_check_before
+    )
+    if abs(allocation_check_difference) > 0.01:
+        raise ValueError(
+            "Other/missing-season allocation failed reconciliation: "
+            f"Partner Revenue changed by ${allocation_check_difference:,.2f}."
+        )
 
     # --------------------------------------------------------
     # INVALID SEASONS - REALLOCATE TO VALID GROUPED ROWS.
@@ -1785,27 +1936,28 @@ def build_report(
         invalid_family.notna() & ~invalid_source_mask
     ).fillna(False)
 
-    invalid_source_revenue_by_family = (
-        revenue_by_show_season["Partner Revenue"]
-        .where(invalid_source_mask, 0.0)
-        .groupby(invalid_family, dropna=False)
-        .transform("sum")
-        .fillna(0.0)
-    )
-
-    invalid_recipient_count_by_family = (
-        invalid_recipient_mask.astype("int64")
-        .groupby(invalid_family, dropna=False)
-        .transform("sum")
-        .fillna(0)
-        .astype("int64")
+    # Distinct recipient (New Show, New Season) pairs per family. Each
+    # invalid row's revenue is split equally across those pairs WITHIN
+    # its own territory, mirroring the Other/missing allocation above.
+    invalid_recipient_pairs = revenue_by_show_season.loc[
+        invalid_recipient_mask, ["New Show", "New Season"]
+    ].copy()
+    invalid_recipient_pairs["Invalid Family"] = invalid_family.loc[
+        invalid_recipient_pairs.index
+    ]
+    invalid_recipient_pairs = invalid_recipient_pairs.drop_duplicates()
+    invalid_recipient_pairs["Recipient Season Count"] = (
+        invalid_recipient_pairs
+        .groupby("Invalid Family")["New Season"]
+        .transform("size")
     )
 
     # Fail clearly rather than silently deleting revenue if a family
     # contains an invalid row but no other grouped rows.
     invalid_no_recipient_mask = (
-        invalid_source_mask & invalid_recipient_count_by_family.eq(0)
-    )
+        invalid_source_mask
+        & ~invalid_family.isin(invalid_recipient_pairs["Invalid Family"])
+    ).fillna(False)
     if invalid_no_recipient_mask.any():
         offending = revenue_by_show_season.loc[
             invalid_no_recipient_mask,
@@ -1821,25 +1973,47 @@ def build_report(
         revenue_by_show_season["Partner Revenue"].fillna(0.0).sum()
     )
 
-    invalid_safe_recipient_count = invalid_recipient_count_by_family.replace(
-        0, np.nan
+    invalid_source_rows = revenue_by_show_season.loc[
+        invalid_source_mask
+    ].copy()
+    invalid_source_rows["Invalid Family"] = invalid_family.loc[
+        invalid_source_rows.index
+    ]
+    expanded_invalid_rows = (
+        invalid_source_rows
+        .drop(columns=["New Show", "New Season"])
+        .merge(invalid_recipient_pairs, on="Invalid Family", how="inner")
     )
-    invalid_amount_added = (
-        (invalid_source_revenue_by_family / invalid_safe_recipient_count)
-        .where(invalid_recipient_mask, 0.0)
-        .fillna(0.0)
+    expanded_invalid_rows["Partner Revenue"] = (
+        expanded_invalid_rows["Partner Revenue"]
+        / expanded_invalid_rows["Recipient Season Count"]
     )
-
-    revenue_by_show_season.loc[
-        invalid_recipient_mask, "Partner Revenue"
-    ] = (
-        revenue_by_show_season.loc[invalid_recipient_mask, "Partner Revenue"]
-        + invalid_amount_added.loc[invalid_recipient_mask]
+    expanded_invalid_rows = expanded_invalid_rows.drop(
+        columns=["Invalid Family", "Recipient Season Count"]
     )
 
     revenue_by_show_season = (
-        revenue_by_show_season.loc[~invalid_source_mask]
-        .copy()
+        pd.concat(
+            [
+                revenue_by_show_season.loc[~invalid_source_mask],
+                expanded_invalid_rows,
+            ],
+            ignore_index=True,
+            sort=False,
+        )
+        .groupby(
+            ["New Show", "New Season", "Territory Class"],
+            dropna=False, as_index=False,
+        )
+        .agg(
+            **{
+                "Partner Revenue": ("Partner Revenue", "sum"),
+                "Row Count": ("Row Count", "sum"),
+            }
+        )
+        .sort_values(
+            ["New Show", "New Season", "Territory Class"], na_position="last"
+        )
         .reset_index(drop=True)
     )
 
@@ -1987,13 +2161,16 @@ def build_report(
         )
 
     # --------------------------------------------------------
-    # Group again by the final User Code. Necessary because the ARTH
-    # consolidation can give previously separate rows the same code
-    # (ARTH16 and ARTH17 both become ARTH01).
+    # Group again by the final User Code and Territory Class. Necessary
+    # because the ARTH consolidation can give previously separate rows
+    # the same code (ARTH16 and ARTH17 both become ARTH01). The final
+    # output shows one row per User Code per territory (CA / INTL).
     # --------------------------------------------------------
     final_grouped_dataset = (
         revenue_by_show_season
-        .groupby("User Code", dropna=False, as_index=False)
+        .groupby(
+            ["User Code", "Territory Class"], dropna=False, as_index=False
+        )
         .agg(**{"Partner Revenue": ("Partner Revenue", "sum")})
     )
 
@@ -2009,11 +2186,14 @@ def build_report(
     mapping_codes = code_mapping["User Code"].astype("string").str.strip()
     unmatched_mask = final_codes.isna() | ~final_codes.isin(mapping_codes)
 
+    # Totalled across territories: this is a list of codes to fix, so the
+    # CA/INTL split would only be noise here.
     out["unmatched_user_codes"] = (
         final_grouped_dataset.loc[
             unmatched_mask, ["User Code", "Partner Revenue"]
         ]
-        .copy()
+        .groupby("User Code", dropna=False, as_index=False)["Partner Revenue"]
+        .sum()
         .sort_values("Partner Revenue", ascending=False, na_position="last")
         .reset_index(drop=True)
     )
@@ -2024,10 +2204,11 @@ def build_report(
         .merge(code_mapping, how="left", on="User Code", validate="many_to_one")
         .loc[
             :,
-            ["User Code", "New Show", "New Season", "Description",
-             "Partner Revenue"],
+            ["User Code", "Territory Class", "New Show", "New Season",
+             "Description", "Partner Revenue"],
         ]
-        .sort_values("User Code", na_position="last")
+        .rename(columns={"Territory Class": "Territory"})
+        .sort_values(["User Code", "Territory"], na_position="last")
         .reset_index(drop=True)
     )
 
@@ -2040,6 +2221,7 @@ def build_report(
         [
             {
                 "User Code": "GRAND TOTAL",
+                "Territory": "",
                 "New Show": "",
                 "New Season": "",
                 "Description": "",
@@ -2113,7 +2295,7 @@ st.caption(
 # ============================================================
 
 st.subheader("Reconciliation: combo_youtube vs payment_summary")
-st.dataframe(
+show_dataframe(
     data["reconciliation"].style.format(
         {
             "combo_youtube_total": "${:,.2f}",
@@ -2122,7 +2304,6 @@ st.dataframe(
         },
         na_rep="-",
     ),
-    width="stretch",
 )
 if bool(data["reconciliation"]["matches"].fillna(False).all()):
     st.success("All revenue types match the payment summary to within $0.01.")
@@ -2145,9 +2326,8 @@ if data["missing_review_columns"]:
 
 st.header("YouTube Master - Missing New Show Review")
 
-st.dataframe(
+show_dataframe(
     data["missing_new_show_review"],
-    width="stretch",
     hide_index=True,
     column_config={
         "Asset Title": st.column_config.TextColumn("Asset Title"),
@@ -2169,7 +2349,7 @@ st.dataframe(
 # ============================================================
 
 st.header("Final Output by Title")
-st.dataframe(
+show_dataframe(
     data["final_output_display"].style
     .format({"Partner Revenue": "${:,.2f}"}, na_rep="-")
     .apply(
@@ -2178,7 +2358,6 @@ st.dataframe(
         column_name="User Code",
         total_label="GRAND TOTAL",
     ),
-    width="stretch",
     hide_index=True,
 )
 
@@ -2197,6 +2376,19 @@ else:
         f"${final_output_difference:,.2f}."
     )
 
+if not data["no_country_review"].empty:
+    st.warning(
+        "Some rows have no Country value and were classified INTL in the "
+        "Territory column above. Check whether these source files "
+        "contain a Country column."
+    )
+    show_dataframe(
+        data["no_country_review"].style.format(
+            {"Partner Revenue": "${:,.2f}"}, na_rep="-"
+        ),
+        hide_index=True,
+    )
+
 if not data["unmatched_user_codes"].empty:
     st.warning(
         "Some final User Codes have no exact match in the List of Codes "
@@ -2205,10 +2397,9 @@ if not data["unmatched_user_codes"].empty:
         "underlying rows never received a New Show - see the Missing "
         "New Show Review."
     )
-    st.dataframe(
+    show_dataframe(
         data["unmatched_user_codes"].style.format(
             {"Partner Revenue": "${:,.2f}"}, na_rep="-"
         ),
-        width="stretch",
         hide_index=True,
     )

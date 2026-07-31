@@ -21,9 +21,13 @@ on that copy, so the committed file keeps the production paths.
 
 ## Test environment
 
-Python 3.11.15, streamlit 1.60.0, pandas 3.0.5, numpy 2.4.6, openpyxl 3.1.5.
-The script runs cleanly on pandas 3.0 (a major-version jump from the 2.x
-era it was written against).
+The full suite passes on two version matrices:
+
+- Python 3.11.15, streamlit **1.60.0**, pandas **3.0.5**, numpy 2.4.6
+- Python 3.11.15, streamlit **1.44.1**, pandas **2.2.3**, numpy 2.1.x
+
+so the script works on both the current pandas 3 / new-Streamlit stack and
+the older 2.x-era stack it was written against.
 
 ## Fixes applied (the 11 findings from the first pass)
 
@@ -100,10 +104,57 @@ data; the others only change error handling, robustness, or presentation.
     and its payment-summary line is written as `"(70.19)"`; the
     reconciliation still matches to the cent.
 
-11. **`use_container_width=True` → `width="stretch"`** on every
-    `st.dataframe` (the old kwarg is removed from Streamlit after
-    2025-12-31). **Requires Streamlit ≥ 1.46**; if you must run an older
-    Streamlit, revert this one substitution.
+11. **Version-adaptive full-width tables.** Every table renders through a
+    small `show_dataframe()` helper that tries `width="stretch"` (the
+    replacement for `use_container_width`, which Streamlit removes after
+    2025-12-31) and falls back to `use_container_width=True` when the
+    installed Streamlit only accepts an integer width. *Tested on both
+    Streamlit 1.60.0 and 1.44.1* — the first release raised
+    `TypeError: 'str' object cannot be interpreted as an integer` on the
+    initial substitution-only version of this fix.
+
+## Feature added after the fix pass: Asset Labels keyword rule
+
+- `rev_views` (like `red_rawdata`) loads **`Asset Labels`** whenever the
+  file carries it (the `optional_usecols` mechanism from fix 2 — no error
+  if a future file drops the column).
+- A new **Rule 3** applies `ASSET_TITLE_SHOW_KEYWORDS` to `Asset Labels`
+  (case-insensitive, mirroring the Video Title rule) for rows still
+  missing a New Show. It runs after the Video Title rule and before the
+  Custom ID / Asset Title substring mappings, which are now Rules 4 and 5.
+- *Tested:* a rev_views fixture row whose title (`Untitled Upload 77`) and
+  Custom ID match nothing, but whose lower-case label contains
+  `science max`, is tagged SCMX by the new rule — it stays out of the
+  missing review (count still asserted at 57) and its revenue lands in
+  SCMX03. Verified on both version matrices.
+
+## Feature added: Territory (CA / INTL) in the Final Output
+
+- The Final Output by Title now carries a **Territory** column: `CA`
+  where the row's `Country` is CA, `INTL` for everything else — one row
+  per User Code per territory, with the GRAND TOTAL unchanged.
+- This is deliberately simpler than the pipeline's internal per-row
+  Territory column (no `9SUSA` / peep rules), which is left untouched.
+- **Rows with no Country value are classified INTL and flagged**: a
+  warning plus a review table grouped by data source (row count +
+  revenue) appears under the Final Output, so missing country data can
+  be investigated. In the fixtures this flags exactly the two sources
+  that genuinely have no Country column: `YT Shorts Ads Revenue` and
+  `Transactions Revenue: Others`.
+- **Territory is preserved end-to-end.** The classification is stamped on
+  detail rows before the season allocation, and both grouped allocation
+  steps (Other/Film/missing seasons, invalid-season families) were
+  restructured to split each source row across the recipient seasons
+  *within its own territory* — per-season totals match the pre-territory
+  behaviour, and the CA total in the final output equals the CA-country
+  revenue in the source files exactly. A new conservation guard covers
+  the restructured Other/missing allocation.
+- The unmatched-codes warning stays at User Code granularity (summed
+  across territories).
+- *Tested:* Territory only ever shows CA/INTL; CA total ties to the
+  fixture's CA-country revenue to the cent; the no-country table lists
+  exactly the expected sources and revenue. Verified on both version
+  matrices.
 
 ## Test results after the fix pass (all passing)
 
@@ -117,7 +168,8 @@ data; the others only change error handling, robustness, or presentation.
 - Unmatched-codes warning lists exactly `WWTR05` + the blank code.
 - Missing New Show Review holds exactly the 57 intended rows.
 - Malformed payment file fails with the intended clear message.
-- Caching: first run 0.50s pipeline, second run 0.00s (wall 0.93s → 0.18s).
+- Caching: first run ~0.5s pipeline, second run 0.00s (on both version
+  matrices above).
 - Large fixture (200k-row / 12.6 MB red_rawdata, regenerated in a scratch
   dir with `--red-rows 200000`, not committed): first run 3.6s pipeline /
   3.9s wall, cached rerun 0.0s, all assertions pass.

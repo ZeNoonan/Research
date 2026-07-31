@@ -30,10 +30,11 @@ Deliberate scenarios baked into the rows:
     grouped allocation (bug-fix pass item 7)
   - a DTNB season-12 row (invalid-season family reallocation)
   - WWTR05 ends up as a final User Code with no match in List of Codes
-  - red_rawdata carries an 'Asset Labels' column with two rows whose
-    Custom ID and Asset Title are blank, exercising the restored
-    Custom ID <- Asset Labels fallback (bug-fix pass item 2);
-    rev_views has no such column, exercising the optional-absent path
+  - red_rawdata and rev_views carry an 'Asset Labels' column; two
+    red_rawdata rows with blank Custom ID and Asset Title exercise the
+    restored Custom ID <- Asset Labels fallback (bug-fix pass item 2),
+    and a rev_views row whose lower-case label contains 'science max'
+    can only be tagged by the Asset Labels keyword rule (Rule 3)
   - a 'topaz_collection' Custom ID that the old unanchored substring rule
     would have mapped to ARTZ via 'az_' but must now stay missing
     (bug-fix pass item 4)
@@ -191,24 +192,29 @@ def generate(outdir, red_rows, seed):
     )
     totals["red_rawdata"] = sum(r[-1] for r in red)
 
-    # ---------------- rev_views (header on row 1) ----------------
-    rev = [filler_row(280 + i) for i in range(280)]
+    # ---------------- rev_views (header on row 1, has Asset Labels) --------
+    rev = [filler_row(280 + i, with_labels=True) for i in range(280)]
     rev += [
         ["US", "AID9100001", "unmapped_cat_video_01",
-         "Garfield and Friends Compilation", money(rng)],
+         "Garfield and Friends Compilation", "", money(rng)],
         ["US", "AID9100002", "unmapped_lab_video_01",
-         "Science Max Experiments", money(rng)],
+         "Science Max Experiments", "", money(rng)],
         ["CA", "AID9100003", "zzz_unknown_asset_004",
-         "Mystery Compilation Vol 4", money(rng)],
+         "Mystery Compilation Vol 4", "", money(rng)],
         # The old unanchored substring rule mapped this to ARTZ via 'az_';
         # with boundary-anchored matching it must stay missing.
         ["US", "AID9100004", "topaz_collection_001",
-         "Topaz Collection Vol 1", money(rng)],
+         "Topaz Collection Vol 1", "", money(rng)],
+        # Only the Asset Labels keyword rule can tag this row: the title,
+        # Custom ID and (lower-case) label leave every other rule cold.
+        ["US", "AID9100005", "unmapped_label_video_01",
+         "Untitled Upload 77", "science max full episodes", money(rng)],
     ]
     write_csv_with_metadata(
         outdir / "rev_views_by_asset.csv",
         None,
-        ["Country", "Asset ID", "Custom ID", "Asset Title", "Partner Revenue"],
+        ["Country", "Asset ID", "Custom ID", "Asset Title", "Asset Labels",
+         "Partner Revenue"],
         rev,
     )
     totals["rev_views"] = sum(r[-1] for r in rev)
@@ -350,6 +356,17 @@ def generate(outdir, red_rows, seed):
                 fh.write(f"{label},{value:.2f}\n")
         fh.write(f"Total,{grand_total:.2f}\n")
 
+    # CA revenue across the country-bearing files: this must equal the CA
+    # territory total in the Final Output, because the pipeline preserves
+    # each row's territory end-to-end. Shorts-ads and ecommerce have no
+    # Country column, so all their revenue is INTL (and flagged).
+    ca_total = sum(
+        row[-1]
+        for rows in (red, rev, music, subs, adj)
+        for row in rows
+        if row[0] == "CA"
+    )
+
     # ---------------- expected values for the test ----------------
     expected = {
         "seed": seed,
@@ -371,6 +388,14 @@ def generate(outdir, red_rows, seed):
         # 4 Mystery Compilation assets + 1 topaz_collection + 50
         # Nine Story Extras ecommerce rows + 2 Random Shorts Mix rows.
         "expected_missing_review_rows": 4 + 1 + (200 // 4) + 2,
+        "expected_ca_total": round(ca_total, 6),
+        "expected_no_country_revenue": round(
+            totals["shorts_ads"] + totals["ecommerce"], 6
+        ),
+        "expected_no_country_sources": [
+            "Transactions Revenue: Others",
+            "YT Shorts Ads Revenue",
+        ],
     }
     with open(outdir / "expected_totals.json", "w", encoding="utf-8") as fh:
         json.dump(expected, fh, indent=2)
