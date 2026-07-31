@@ -1,63 +1,63 @@
 Adjustment Claim Report,,,
 Generated for reconciliation fixture testing,,,
 Country,Custom ID,Asset Title,Partner Revenue
-BR,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode adjustment 1,-2.02
-BR,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode adjustment 2,3.29
-CA,dtnb_ep02_005,Daniel Tiger's Neighborhood Episode adjustment 3,1.9
-FR,dtnb_ep03_002,Daniel Tiger's Neighborhood Episode adjustment 4,3.07
-IN,dtnb_ep03_009,Daniel Tiger's Neighborhood Episode adjustment 5,1.18
-JP,garf_ep_003,Garfield and Friends Episode adjustment 6,-1.28
-JP,garf_ep_010,Garfield and Friends Episode adjustment 7,0.62
-US,arth_ep16_002,Arthur Episode adjustment 8,0.51
-AU,arth_ep17_004,Arthur Episode adjustment 9,1.67
-IN,arth_ep19_001,Arthur Episode adjustment 10,3.56
-BR,anne_ep_003,Anne with an E Episode adjustment 11,-3.4
-BR,scmx_ep03_005,Science Max Episode adjustment 12,3.04
-AU,krma_ep_002,Karma's World Episode adjustment 13,0.63
-IN,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode adjustment 14,0.82
-FR,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode adjustment 15,1.6
-BR,dtnb_ep02_008,Daniel Tiger's Neighborhood Episode adjustment 16,-3.72
-AU,dtnb_ep03_005,Daniel Tiger's Neighborhood Episode adjustment 17,0.35
-GB,dtnb_badrow_002,Daniel Tiger's Neighborhood Episode adjustment 18,0.42
-IN,garf_ep_006,Garfield and Friends Episode adjustment 19,1.09
-BR,garf_extra_003,Garfield and Friends Episode adjustment 20,2.63
-CA,arth_ep16_005,Arthur Episode adjustment 21,-3.51
-CA,arth_ep18_002,Arthur Episode adjustment 22,0.37
-AU,arth_ep19_004,Arthur Episode adjustment 23,3.1
-FR,scmx_ep03_001,Science Max Episode adjustment 24,0.24
-FR,scmx_ep05_003,Science Max Episode adjustment 25,2.75
-GB,krma_ep_005,Karma's World Episode adjustment 26,-2.56
-AU,dtnb_ep01_007,Daniel Tiger's Neighborhood Episode adjustment 27,2.44
-US,dtnb_ep02_004,Daniel Tiger's Neighborhood Episode adjustment 28,2.7
-US,dtnb_ep03_001,Daniel Tiger's Neighborhood Episode adjustment 29,1.23
-CA,dtnb_ep03_008,Daniel Tiger's Neighborhood Episode adjustment 30,2.14
-MX,garf_ep_002,Garfield and Friends Episode adjustment 31,-3.62
-BR,garf_ep_009,Garfield and Friends Episode adjustment 32,0.61
-AU,arth_ep16_001,Arthur Episode adjustment 33,3.88
-GB,arth_ep17_003,Arthur Episode adjustment 34,1.85
-BR,arth_ep18_005,Arthur Episode adjustment 35,3.92
-IN,anne_ep_002,Anne with an E Episode adjustment 36,-1.23
-CA,scmx_ep03_004,Science Max Episode adjustment 37,3.75
-IN,krma_ep_001,Karma's World Episode adjustment 38,2.34
-JP,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode adjustment 39,3.89
-DE,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode adjustment 40,3.67
-DE,dtnb_ep02_007,Daniel Tiger's Neighborhood Episode adjustment 41,-0.18
-FR,dtnb_ep03_004,Daniel Tiger's Neighborhood Episode adjustment 42,1.82
-CA,dtnb_badrow_001,Daniel Tiger's Neighborhood Episode adjustment 43,1.59
-CA,garf_ep_005,Garfield and Friends Episode adjustment 44,1.51
-DE,garf_extra_002,Garfield and Friends Episode adjustment 45,0.68
-AU,arth_ep16_004,Arthur Episode adjustment 46,-3.83
-GB,arth_ep18_001,Arthur Episode adjustment 47,3.97
-FR,arth_ep19_003,Arthur Episode adjustment 48,0.89
-US,anne_ep_005,Anne with an E Episode adjustment 49,0.88
-AU,scmx_ep05_002,Science Max Episode adjustment 50,1.81
-IN,krma_ep_004,Karma's World Episode adjustment 51,-1.22
-MX,dtnb_ep01_006,Daniel Tiger's Neighborhood Episode adjustment 52,0.27
-JP,dtnb_ep02_003,Daniel Tiger's Neighborhood Episode adjustment 53,1.54
-US,dtnb_ep02_010,Daniel Tiger's Neighborhood Episode adjustment 54,2.13
-CA,dtnb_ep03_007,Daniel Tiger's Neighborhood Episode adjustment 55,2.26
-US,garf_ep_001,Garfield and Friends Episode adjustment 56,-1.86
-IN,garf_ep_008,Garfield and Friends Episode adjustment 57,2.04
-GB,garf_extra_005,Garfield and Friends Episode adjustment 58,1.69
-FR,arth_ep17_002,Arthur Episode adjustment 59,0.61
-IN,arth_ep18_004,Arthur Episode adjustment 60,1.2
+CA,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode adjustment 1,-3.86
+FR,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode adjustment 2,3.07
+IN,dtnb_ep02_005,Daniel Tiger's Neighborhood Episode adjustment 3,-2.36
+JP,dtnb_ep03_002,Daniel Tiger's Neighborhood Episode adjustment 4,1.28
+JP,dtnb_ep03_009,Daniel Tiger's Neighborhood Episode adjustment 5,-1.24
+US,garf_ep_003,Garfield and Friends Episode adjustment 6,0.51
+AU,garf_ep_010,Garfield and Friends Episode adjustment 7,-3.34
+IN,garf_film_002,Garfield and Friends Episode adjustment 8,3.56
+BR,arth_ep17_002,Arthur Episode adjustment 9,-6.8
+BR,arth_ep18_004,Arthur Episode adjustment 10,3.04
+AU,anne_ep_001,Anne with an E Episode adjustment 11,-1.26
+IN,scmx_ep03_003,Science Max Episode adjustment 12,0.82
+FR,scmx_ep05_005,Science Max Episode adjustment 13,-3.2
+BR,dtnb_ep01_002,Daniel Tiger's Neighborhood Episode adjustment 14,3.72
+AU,dtnb_ep01_009,Daniel Tiger's Neighborhood Episode adjustment 15,-0.7
+GB,dtnb_ep02_006,Daniel Tiger's Neighborhood Episode adjustment 16,0.42
+IN,dtnb_ep03_003,Daniel Tiger's Neighborhood Episode adjustment 17,-2.18
+BR,dtnb_ep03_010,Daniel Tiger's Neighborhood Episode adjustment 18,2.63
+CA,garf_ep_004,Garfield and Friends Episode adjustment 19,-7.02
+CA,garf_extra_001,Garfield and Friends Episode adjustment 20,0.37
+AU,arth_ep16_001,Arthur Episode adjustment 21,-6.2
+FR,arth_ep17_003,Arthur Episode adjustment 22,0.24
+FR,arth_ep18_005,Arthur Episode adjustment 23,-5.5
+GB,anne_ep_002,Anne with an E Episode adjustment 24,2.56
+AU,scmx_ep03_004,Science Max Episode adjustment 25,-4.88
+US,krma_ep_001,Karma's World Episode adjustment 26,2.7
+US,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode adjustment 27,-2.46
+CA,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode adjustment 28,2.14
+MX,dtnb_ep02_007,Daniel Tiger's Neighborhood Episode adjustment 29,-7.24
+BR,dtnb_ep03_004,Daniel Tiger's Neighborhood Episode adjustment 30,0.61
+AU,dtnb_badrow_001,Daniel Tiger's Neighborhood Episode adjustment 31,-7.76
+GB,garf_ep_005,Garfield and Friends Episode adjustment 32,1.85
+BR,garf_extra_002,Garfield and Friends Episode adjustment 33,-7.84
+IN,arth_ep16_002,Arthur Episode adjustment 34,1.23
+CA,arth_ep17_004,Arthur Episode adjustment 35,-7.5
+IN,arth_ep19_001,Arthur Episode adjustment 36,2.34
+JP,anne_ep_003,Anne with an E Episode adjustment 37,-7.78
+DE,scmx_ep03_005,Science Max Episode adjustment 38,3.67
+DE,krma_ep_002,Karma's World Episode adjustment 39,-0.36
+FR,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode adjustment 40,1.82
+CA,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode adjustment 41,-3.18
+CA,dtnb_ep02_008,Daniel Tiger's Neighborhood Episode adjustment 42,1.51
+DE,dtnb_ep03_005,Daniel Tiger's Neighborhood Episode adjustment 43,-1.36
+AU,dtnb_badrow_002,Daniel Tiger's Neighborhood Episode adjustment 44,3.83
+GB,garf_ep_006,Garfield and Friends Episode adjustment 45,-7.94
+FR,garf_extra_003,Garfield and Friends Episode adjustment 46,0.89
+US,arth_ep16_003,Arthur Episode adjustment 47,-1.76
+AU,arth_ep17_005,Arthur Episode adjustment 48,1.81
+IN,arth_ep19_002,Arthur Episode adjustment 49,-2.44
+MX,anne_ep_004,Anne with an E Episode adjustment 50,0.27
+JP,scmx_ep05_001,Science Max Episode adjustment 51,-3.08
+US,krma_ep_003,Karma's World Episode adjustment 52,2.13
+CA,dtnb_ep01_005,Daniel Tiger's Neighborhood Episode adjustment 53,-4.52
+US,dtnb_ep02_002,Daniel Tiger's Neighborhood Episode adjustment 54,1.86
+IN,dtnb_ep02_009,Daniel Tiger's Neighborhood Episode adjustment 55,-4.08
+GB,dtnb_ep03_006,Daniel Tiger's Neighborhood Episode adjustment 56,1.69
+FR,dtnb_badrow_003,Daniel Tiger's Neighborhood Episode adjustment 57,-1.22
+IN,garf_ep_007,Garfield and Friends Episode adjustment 58,1.2
+JP,garf_extra_004,Garfield and Friends Episode adjustment 59,-5.18
+BR,arth_ep16_004,Arthur Episode adjustment 60,0.28
