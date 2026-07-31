@@ -26,8 +26,19 @@ Deliberate scenarios baked into the rows:
   - DTNB has >2 existing seasons, so its missing-season rows are allocated
   - GARF has a 'spec' (-> Other) season plus keyword rows with no season,
     exercising the grouped Other/missing-season allocation
+  - GARF also has a 'Film' season, folded into its real seasons by the
+    grouped allocation (bug-fix pass item 7)
   - a DTNB season-12 row (invalid-season family reallocation)
   - WWTR05 ends up as a final User Code with no match in List of Codes
+  - red_rawdata carries an 'Asset Labels' column with two rows whose
+    Custom ID and Asset Title are blank, exercising the restored
+    Custom ID <- Asset Labels fallback (bug-fix pass item 2);
+    rev_views has no such column, exercising the optional-absent path
+  - a 'topaz_collection' Custom ID that the old unanchored substring rule
+    would have mapped to ARTZ via 'az_' but must now stay missing
+    (bug-fix pass item 4)
+  - rows staying missing New Show surface as a blank User Code in the
+    unmatched-codes warning (bug-fix pass item 6)
 
 Usage:
     python generate_fixtures.py                    # small fixtures (default)
@@ -56,6 +67,7 @@ MASTER_BLOCKS = [
     ("dtnb_badrow_", 3, "DTNB", "Daniel Tiger's Neighborhood", "12"),
     ("garf_ep_", 10, "GARF", "Garfield and Friends", "01"),
     ("garf_extra_", 5, "GARF", "Garfield and Friends", "spec"),
+    ("garf_film_", 2, "GARF", "Garfield and Friends", "Film"),
     ("arth_ep16_", 5, "ARTH", "Arthur", "16"),
     ("arth_ep17_", 5, "ARTH", "Arthur", "17"),
     ("arth_ep18_", 5, "ARTH", "Arthur", "18"),
@@ -136,39 +148,45 @@ def generate(outdir, red_rows, seed):
     master_ids = [r["Custom ID"] for r in master_rows]
     show_by_id = {r["Custom ID"]: r["New Show "] for r in master_rows}
 
-    def filler_row(i, with_asset_id=True):
+    def filler_row(i, with_labels=False):
         cid = master_ids[i % len(master_ids)]
         title = f"{SHOW_TITLES[show_by_id[cid]]} {i % 40 + 1}"
-        row = [rng.choice(COUNTRIES)]
-        if with_asset_id:
-            row.append(f"AID{i:07d}")
-        row += [cid, title, money(rng)]
+        row = [rng.choice(COUNTRIES), f"AID{i:07d}", cid, title]
+        if with_labels:
+            row.append("")
+        row.append(money(rng))
         return row
 
     totals = {}
 
-    # ---------------- red_rawdata (skip_first_row) ----------------
-    red = [filler_row(i) for i in range(red_rows)]
+    # ---------------- red_rawdata (skip_first_row, has Asset Labels) -------
+    # Column layout: Country, Asset ID, Custom ID, Asset Title,
+    # Asset Labels, Partner Revenue. Two rows leave Custom ID and Asset
+    # Title blank and rely on Asset Labels alone (bug-fix pass item 2).
+    red = [filler_row(i, with_labels=True) for i in range(red_rows)]
     red += [
         ["US", "AID9000001", "fug_unmapped_001",
-         "Fugget About It - Best Moments", money(rng)],
+         "Fugget About It - Best Moments", "", money(rng)],
         ["CA", "AID9000002", "dtnb_movie_special",
-         "Backpack Adventures Movie", money(rng)],
+         "Backpack Adventures Movie", "", money(rng)],
         ["US", "AID9000003", "d7mst_tivfg",
-         "Untitled Bus Adventure", money(rng)],
+         "Untitled Bus Adventure", "", money(rng)],
         ["GB", "AID9000004", "wwtr_weird_waters_s05",
-         "Deep Lake Compilation", money(rng)],
+         "Deep Lake Compilation", "", money(rng)],
         ["US", "AID9000005", "zzz_unknown_asset_001",
-         "Mystery Compilation Vol 1", money(rng)],
+         "Mystery Compilation Vol 1", "", money(rng)],
         ["DE", "AID9000006", "zzz_unknown_asset_002",
-         "Mystery Compilation Vol 2", money(rng)],
+         "Mystery Compilation Vol 2", "", money(rng)],
         ["FR", "AID9000007", "zzz_unknown_asset_003",
-         "Mystery Compilation Vol 3", money(rng)],
+         "Mystery Compilation Vol 3", "", money(rng)],
+        ["US", "AID9000008", "", "", "garf_ep_004", money(rng)],
+        ["CA", "AID9000009", "", "", "dtnb_ep02_003", money(rng)],
     ]
     write_csv_with_metadata(
         outdir / "red_rawdata_asset.csv",
         "YouTube red_rawdata asset report - synthetic fixture",
-        ["Country", "Asset ID", "Custom ID", "Asset Title", "Partner Revenue"],
+        ["Country", "Asset ID", "Custom ID", "Asset Title", "Asset Labels",
+         "Partner Revenue"],
         red,
     )
     totals["red_rawdata"] = sum(r[-1] for r in red)
@@ -182,6 +200,10 @@ def generate(outdir, red_rows, seed):
          "Science Max Experiments", money(rng)],
         ["CA", "AID9100003", "zzz_unknown_asset_004",
          "Mystery Compilation Vol 4", money(rng)],
+        # The old unanchored substring rule mapped this to ARTZ via 'az_';
+        # with boundary-anchored matching it must stay missing.
+        ["US", "AID9100004", "topaz_collection_001",
+         "Topaz Collection Vol 1", money(rng)],
     ]
     write_csv_with_metadata(
         outdir / "rev_views_by_asset.csv",
@@ -255,8 +277,10 @@ def generate(outdir, red_rows, seed):
     for i in range(60):
         cid = master_ids[(i * 7) % len(master_ids)]
         amount = money(rng, 0.1, 4.0)
-        if i % 5 == 0:
-            amount = -amount
+        # Net-negative on purpose: the payment summary then writes this
+        # line in accounting parentheses, exercising bug-fix pass item 10.
+        if i % 2 == 0:
+            amount = -round(amount * 2, 2)
         adj.append(
             [rng.choice(COUNTRIES), cid,
              f"{SHOW_TITLES[show_by_id[cid]]} adjustment {i + 1}", amount]
@@ -319,7 +343,11 @@ def generate(outdir, red_rows, seed):
               encoding="utf-8") as fh:
         fh.write("Revenue Type,Partner Revenue (USD)\n")
         for label, value in payment_rows:
-            fh.write(f"{label},{value:.2f}\n")
+            if value < 0:
+                # Accounting-style negative, quoted for CSV safety.
+                fh.write(f'{label},"({abs(value):.2f})"\n')
+            else:
+                fh.write(f"{label},{value:.2f}\n")
         fh.write(f"Total,{grand_total:.2f}\n")
 
     # ---------------- expected values for the test ----------------
@@ -337,7 +365,12 @@ def generate(outdir, red_rows, seed):
             "Transactions Revenue: Others": round(totals["ecommerce"], 6),
         },
         "grand_total": round(grand_total, 6),
-        "expected_unmatched_user_codes": ["WWTR05"],
+        # "<NA>" is the blank User Code carrying all revenue that never
+        # received a New Show (surfaced by bug-fix pass item 6).
+        "expected_unmatched_user_codes": ["<NA>", "WWTR05"],
+        # 4 Mystery Compilation assets + 1 topaz_collection + 50
+        # Nine Story Extras ecommerce rows + 2 Random Shorts Mix rows.
+        "expected_missing_review_rows": 4 + 1 + (200 // 4) + 2,
     }
     with open(outdir / "expected_totals.json", "w", encoding="utf-8") as fh:
         json.dump(expected, fh, indent=2)

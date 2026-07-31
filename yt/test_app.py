@@ -9,9 +9,12 @@ Checks:
   1. the app runs with no exceptions and no st.error output
   2. the reconciliation 'matches' column is all True (6 revenue types)
   3. the Final Output GRAND TOTAL equals the fixture grand total
-  4. the unmatched-codes warning appears for exactly the deliberately
-     unmatched code (WWTR05)
-  5. a second run is served from cache (pipeline-time caption ~0s)
+  4. the unmatched-codes warning lists exactly the deliberately unmatched
+     WWTR05 plus the blank User Code carrying the never-mapped revenue
+  5. the Missing New Show Review holds exactly the expected rows (this
+     catches a broken Asset Labels fallback, a regressed Custom ID
+     boundary match, and reappearing phantom shorts rows)
+  6. a second run is served from cache (pipeline-time caption ~0s)
 
 Run:  python test_app.py   (or: pytest test_app.py)
 """
@@ -22,6 +25,7 @@ import tempfile
 import time
 from pathlib import Path
 
+import pandas as pd
 from streamlit.testing.v1 import AppTest
 
 YT_DIR = Path(__file__).resolve().parent
@@ -42,11 +46,17 @@ PATH_VARS = {
 }
 
 
-def make_fixture_pointed_copy(fixtures_dir=FIXTURES):
-    """Copy the app with its path block re-pointed at the fixtures dir."""
+def make_fixture_pointed_copy(fixtures_dir=FIXTURES, overrides=None):
+    """Copy the app with its path block re-pointed at the fixtures dir.
+
+    overrides maps a path-variable name to an alternative file, letting a
+    test substitute e.g. a malformed payment summary.
+    """
     source = SCRIPT.read_text(encoding="utf-8")
+    overrides = overrides or {}
     for var, filename in PATH_VARS.items():
-        target = (Path(fixtures_dir) / filename).resolve().as_posix()
+        target_path = Path(overrides.get(var, Path(fixtures_dir) / filename))
+        target = target_path.resolve().as_posix()
         pattern = rf"^(\s*){re.escape(var)} = '.*'$"
         source, n = re.subn(
             pattern, rf"\1{var} = r'{target}'", source, flags=re.MULTILINE
@@ -80,6 +90,24 @@ def run_once(script_path):
     start = time.perf_counter()
     at = AppTest.from_file(str(script_path), default_timeout=120).run()
     return at, time.perf_counter() - start
+
+
+def check_malformed_payment_summary():
+    """A payment file without 'Revenue Type' must fail with the app's
+    intended message, not a raw KeyError (bug-fix pass item 1)."""
+    bad_dir = Path(tempfile.mkdtemp(prefix="yt_badpay_"))
+    bad_payment = bad_dir / "bad_payment_summary.csv"
+    bad_payment.write_text(
+        "Revenue Kind,Partner Revenue (USD)\nAds Revenue,1.00\nTotal,1.00\n",
+        encoding="utf-8",
+    )
+    script = make_fixture_pointed_copy(
+        overrides={"payment_summary": bad_payment}
+    )
+    at = AppTest.from_file(str(script), default_timeout=120).run()
+    assert at.exception, "malformed payment file should raise"
+    messages = "; ".join(e.value for e in at.exception)
+    assert "missing required columns" in messages, messages
 
 
 def main():
@@ -127,6 +155,7 @@ def main():
     assert any("Final output reconciliation passed" in s for s in successes)
 
     # 3. unmatched-codes warning fires for exactly the deliberate code
+    #    plus the blank User Code holding the never-mapped revenue
     warnings = [w.value for w in at.warning]
     assert any(
         "no exact match in the List of Codes" in w for w in warnings
@@ -135,8 +164,20 @@ def main():
         f for f in frames
         if set(f.columns) == {"User Code", "Partner Revenue"}
     )
-    got_codes = sorted(unmatched["User Code"].astype(str))
+    got_codes = sorted(
+        "<NA>" if pd.isna(v) else str(v) for v in unmatched["User Code"]
+    )
     assert got_codes == expected["expected_unmatched_user_codes"], got_codes
+
+    # 4. the review table holds exactly the intended rows: an extra row
+    #    means the Asset Labels fallback or a mapping rule regressed; a
+    #    missing row means something matched that should not have
+    review = next(f for f in frames if "Data Source Type" in f.columns)
+    assert len(review) == expected["expected_missing_review_rows"], (
+        f"review rows {len(review)} != "
+        f"{expected['expected_missing_review_rows']}:\n"
+        + review["Asset Title"].astype(str).value_counts().to_string()
+    )
 
     first_pipeline = pipeline_caption_seconds(at)
 
@@ -147,6 +188,9 @@ def main():
     assert second_pipeline < 0.5, (
         f"second run not cached: pipeline took {second_pipeline}s"
     )
+
+    # ---------------- malformed payment file gives a clear error -----------
+    check_malformed_payment_summary()
 
     print("ALL CHECKS PASSED")
     print(f"  reconciliation rows all matched: {len(recon)}")

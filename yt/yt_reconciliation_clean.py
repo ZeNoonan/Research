@@ -56,6 +56,35 @@ CHANGES IN THIS REVISION (visible outputs preserved unless flagged):
 8. CACHE ENTRIES BOUNDED
    max_entries added so old months / superseded rule edits don't accumulate
    large pickled frames in memory.
+
+BUG-FIX PASS (2026-07-31) - eleven review findings addressed:
+
+ 1. The payment-summary required-column check now runs BEFORE the file's
+    Revenue Type column is first touched, so a malformed file produces
+    the intended clear error instead of a raw KeyError.
+ 2. load_csv gained optional_usecols; red_rawdata and rev_views now load
+    'Asset Labels' when the file has it, restoring the Custom ID fallback
+    that the usecols optimisation had silently disabled.
+ 3. New Season extraction (S01-S19) searches only the free-text columns
+    (Custom ID / Asset Title / Video Title / Asset Labels) instead of
+    every column, so machine columns can no longer donate a season.
+ 4. Custom ID substring rules require the match to start at a word
+    boundary ('az_' no longer fires inside 'topaz_').
+ 5. The shorts ads/subs Video ID merge is a left join without an
+    indicator column: subs-only Video IDs no longer create phantom
+    NaN-revenue 'YT Shorts Ads Revenue' rows.
+ 6. Blank final User Codes (rows that never received a New Show) now
+    appear in the unmatched-codes warning table.
+ 7. 'Film' grouped seasons are treated like Other/missing in the grouped
+    allocation, matching the single-grouped-row rule's handling.
+ 8. SCMX / KRMA consolidations and invalid-season family matching use
+    exact New Show equality instead of substring containment (as the
+    ARTH consolidation already did).
+ 9. clean_master_file applies the same dotless-i normalisation as
+    clean_custom_id, so such master Custom IDs can match again.
+10. Payment-summary amounts in accounting parentheses parse as negative.
+11. st.dataframe uses width='stretch' (use_container_width is removed
+    from Streamlit after 2025-12-31; this needs Streamlit >= 1.46).
 """
 
 import html
@@ -145,7 +174,9 @@ ASSET_TITLE_SHOW_KEYWORDS = [
 
 # Custom ID substring mapping. Add new entries here as:
 # "text to find": "New Show value"
-# Matching is case-insensitive and only fills rows where New Show is missing.
+# Matching is case-insensitive, must start at a word boundary (start of the
+# id, or straight after a space/underscore), and only fills rows where
+# New Show is missing.
 CUSTOM_ID_SHOW_MAPPING = {
     "fait": "FAIT",
     "dnws_": "DTNB",
@@ -313,6 +344,7 @@ def load_csv(
     file_sig,
     skip_first_row=False,
     usecols=None,
+    optional_usecols=None,
     find_header=False,
 ):
     """
@@ -329,6 +361,10 @@ def load_csv(
     usecols:
         Columns to retain. Every requested column must be present (with the
         Video Title fallback below) or the app stops with a visible error.
+    optional_usecols:
+        Columns to retain when the file has them and to skip silently when
+        it does not (e.g. Asset Labels). Only applies when usecols is also
+        given; they take no part in find_header detection.
     find_header:
         Inspect the first 10 physical rows and use the row containing all
         requested column names as the CSV header.
@@ -428,6 +464,12 @@ def load_csv(
                 [_clean_header_value(c) for c in raw_header],
             )
             st.stop()
+
+        for name in (optional_usecols or []):
+            cleaned_name = _clean_header_value(name)
+            if (cleaned_name in cleaned_to_raw
+                    and cleaned_name not in resolved_columns):
+                resolved_columns.append(cleaned_name)
 
     # ------------------------------------------------------------
     # Full read - parsing only the columns actually needed.
@@ -644,6 +686,8 @@ def clean_master_file(df):
     # EXISTING CUSTOM ID CLEANING
     # ========================================================
 
+    # Same normalisation chain as clean_custom_id, including the dotless-i
+    # replacement, so master and source Custom IDs stay comparable.
     df["Custom ID"] = (
         df["Custom ID"]
         .astype(str)
@@ -651,6 +695,7 @@ def clean_master_file(df):
         .str.replace(EMOJI_PATTERN, "", regex=True)
         .str.normalize("NFKD")
         .str.replace(r"[^\w\s]", "", regex=True)
+        .str.replace("ı", "i", regex=False)
     )
 
     df = (
@@ -863,7 +908,7 @@ st.caption(
 
 st.dataframe(
     payment_summary_source_mapping,
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
     column_config={
         "Revenue Type": st.column_config.TextColumn(
@@ -915,11 +960,15 @@ def build_combo(
     master = clean_master_file(load_excel(youtube_master_sig))
 
     # ---- the seven revenue sources ----
+    # Asset Labels is optional: when a file carries it, it restores the
+    # Custom ID <- Asset Labels fallback in clean_custom_id that the
+    # usecols optimisation had silently disabled.
     df_1 = run_pipeline(
         load_csv(
             red_rawdata_sig,
             skip_first_row=True,
             usecols=['Country', 'Asset ID', 'Custom ID', 'Asset Title', 'Partner Revenue'],
+            optional_usecols=['Asset Labels'],
         ),
         master,
     )
@@ -927,6 +976,7 @@ def build_combo(
         load_csv(
             rev_views_sig,
             usecols=['Country', 'Asset ID', 'Custom ID', 'Asset Title', 'Partner Revenue'],
+            optional_usecols=['Asset Labels'],
         ),
         master,
     )
@@ -964,9 +1014,12 @@ def build_combo(
     video_id_map = ads_subs_raw[["Video ID", "Custom ID"]].drop_duplicates(
         subset=["Video ID"]
     )
+    # Left join: subs-only Video IDs carry no shorts-ads revenue, so an
+    # outer join would only create phantom NaN-revenue rows under the
+    # "YT Shorts Ads Revenue" label (their real revenue arrives via
+    # ads_subs_shorts below).
     ads_with_custom_id_shorts = pd.merge(
-        ads_revenue_shorts, video_id_map, on="Video ID", how="outer",
-        indicator=True,
+        ads_revenue_shorts, video_id_map, on="Video ID", how="left",
     )
     ads_with_custom_id_shorts = run_pipeline(
         ads_with_custom_id_shorts, master, use_asset_label=False,
@@ -1066,6 +1119,20 @@ def build_combo(
         .str.replace(r"\s+", " ", regex=True)
     )
 
+    # Validate the required columns BEFORE any of them are touched, so a
+    # malformed payment file raises this clear message rather than a raw
+    # KeyError from the Original Revenue Type line below.
+    required_payment_columns = ["Revenue Type", "Partner Revenue (USD)"]
+    missing_payment_columns = [
+        column for column in required_payment_columns
+        if column not in payment_summary_df.columns
+    ]
+    if missing_payment_columns:
+        raise KeyError(
+            "The payment_summary file is missing required columns: "
+            + ", ".join(missing_payment_columns)
+        )
+
     # Preserve the independent payment-summary wording for audit purposes.
     payment_summary_df["Original Revenue Type"] = (
         payment_summary_df["Revenue Type"]
@@ -1081,17 +1148,6 @@ def build_combo(
             payment_summary_df["Original Revenue Type"]
         )
     )
-
-    required_payment_columns = ["Revenue Type", "Partner Revenue (USD)"]
-    missing_payment_columns = [
-        column for column in required_payment_columns
-        if column not in payment_summary_df.columns
-    ]
-    if missing_payment_columns:
-        raise KeyError(
-            "The payment_summary file is missing required columns: "
-            + ", ".join(missing_payment_columns)
-        )
 
     payment_summary_df["Revenue Type"] = (
         payment_summary_df["Revenue Type"].astype("string").str.strip()
@@ -1111,12 +1167,14 @@ def build_combo(
         subset=["Revenue Type", "Partner Revenue (USD)"]
     ).copy()
 
+    # Accounting-style "(1,234.56)" negatives become "-1234.56".
     payment_summary_df["Partner Revenue (USD)"] = pd.to_numeric(
         payment_summary_df["Partner Revenue (USD)"]
         .astype("string")
         .str.strip()
         .str.replace(",", "", regex=False)
-        .str.replace("$", "", regex=False),
+        .str.replace("$", "", regex=False)
+        .str.replace(r"^\((.*)\)$", r"-\1", regex=True),
         errors="raise",
     )
 
@@ -1310,6 +1368,9 @@ def build_report(
     # --------------------------------------------------------
     # Rule 3: Custom ID substring mapping (case-insensitive), in dict
     # order, again scanning only the shrinking still-missing subset.
+    # The match must start at a word boundary (start of the id, or after
+    # a space/underscore), so a short token such as "az_" no longer
+    # fires inside unrelated ids like "topaz_collection".
     # --------------------------------------------------------
     if has_custom_id:
         pending = combo.index[missing]
@@ -1317,9 +1378,10 @@ def build_report(
             if len(pending) == 0:
                 break
 
+            custom_id_pattern = r"(?<![0-9a-z])" + re.escape(custom_id_text)
             cid_subset = cid_str.loc[pending]
             hits = cid_subset.str.contains(
-                custom_id_text, case=False, regex=False, na=False
+                custom_id_pattern, case=False, regex=True, na=False
             )
             rows_to_update = cid_subset.index[hits]
             if len(rows_to_update) == 0:
@@ -1391,8 +1453,12 @@ def build_report(
 
     # --------------------------------------------------------
     # STAGE B1 - New Season direct rule.
-    # For rows where New Season is missing, search every other column
-    # for S01 through S19 and map the matched value to 01 through 19.
+    # For rows where New Season is missing, search the free-text source
+    # columns for S01 through S19 and map the matched value to 01
+    # through 19. Machine columns (Asset ID, Video ID, data_source,
+    # Territory, Show_Season, ...) are deliberately excluded so an
+    # incidental "S12"-style token in an identifier cannot donate a
+    # season.
     # --------------------------------------------------------
     if "New Season" not in combo.columns:
         raise KeyError("Required column 'New Season' is missing from combo.")
@@ -1401,7 +1467,10 @@ def build_report(
         combo["New Season"], NEW_SHOW_MISSING_TOKENS
     )
     season_search_columns = [
-        column for column in combo.columns if column != "New Season"
+        column
+        for column in ["Custom ID", "Asset Title", "Video Title",
+                       "Asset Labels"]
+        if column in combo.columns
     ]
     season_search_text = (
         combo.loc[new_season_missing_before, season_search_columns]
@@ -1599,10 +1668,12 @@ def build_report(
     )
 
     # --------------------------------------------------------
-    # ALLOCATE "OTHER" AND MISSING-SEASON REVENUE ACROSS THE
-    # VALID GROUPED SEASONS OF THE SAME NEW SHOW.
+    # ALLOCATE "OTHER", "FILM" AND MISSING-SEASON REVENUE ACROSS
+    # THE VALID GROUPED SEASONS OF THE SAME NEW SHOW.
     # Source rows are removed once allocated; shows with no valid
-    # season keep their source rows untouched.
+    # season keep their source rows untouched. "Film" is included so
+    # multi-row shows treat it the same way the single-grouped-row
+    # rule above does.
     # --------------------------------------------------------
     season_was_na = revenue_by_show_season["New Season"].isna()
     season_check = (
@@ -1616,7 +1687,7 @@ def build_report(
     is_other = season_check.eq("other").fillna(False)
     is_missing_season = (
         season_was_na
-        | season_check.isin(["", "none", "nan", "null", "<na>"])
+        | season_check.isin(["", "none", "nan", "null", "<na>", "film"])
     ).fillna(False)
 
     is_allocation_source = (is_other | is_missing_season).astype(bool)
@@ -1693,10 +1764,10 @@ def build_report(
     invalid_family = pd.Series(
         pd.NA, index=revenue_by_show_season.index, dtype="string"
     )
+    # Exact-equality matching (like the ARTH consolidation below), so a
+    # future code merely containing a family name cannot be swept in.
     for family_name in invalid_seasons_by_family:
-        family_show_mask = invalid_show_check.str.contains(
-            family_name, regex=False, na=False
-        )
+        family_show_mask = invalid_show_check.eq(family_name).fillna(False)
         invalid_family.loc[family_show_mask] = family_name
 
     invalid_source_mask = pd.Series(
@@ -1798,7 +1869,7 @@ def build_report(
         .str.replace(r"^[Ss]", "", regex=True)
     )
     scmx_05_to_03_mask = (
-        scmx_show_check.str.contains("SCMX", regex=False, na=False)
+        scmx_show_check.eq("SCMX")
         & scmx_season_check.eq("05")
     ).fillna(False).to_numpy(dtype=bool)
 
@@ -1848,7 +1919,7 @@ def build_report(
         .str.replace(r"^[Ss]", "", regex=True)
     )
     krma_change_mask = (
-        krma_show_check.str.contains("KRMA", regex=False, na=False)
+        krma_show_check.eq("KRMA")
         & krma_season_check.ne("01").fillna(True)
     ).fillna(False).to_numpy(dtype=bool)
 
@@ -1929,11 +2000,14 @@ def build_report(
     # Final User Codes with no exact match in code_mapping_shows keep
     # their Partner Revenue but show blank New Show / New Season /
     # Description after the merge. Surface them so they can be fixed.
+    # A missing (blank) User Code - revenue whose rows never received a
+    # New Show - is surfaced here too instead of sitting silently in the
+    # output.
     final_codes = (
         final_grouped_dataset["User Code"].astype("string").str.strip()
     )
     mapping_codes = code_mapping["User Code"].astype("string").str.strip()
-    unmatched_mask = final_codes.notna() & ~final_codes.isin(mapping_codes)
+    unmatched_mask = final_codes.isna() | ~final_codes.isin(mapping_codes)
 
     out["unmatched_user_codes"] = (
         final_grouped_dataset.loc[
@@ -2048,7 +2122,7 @@ st.dataframe(
         },
         na_rep="-",
     ),
-    use_container_width=True,
+    width="stretch",
 )
 if bool(data["reconciliation"]["matches"].fillna(False).all()):
     st.success("All revenue types match the payment summary to within $0.01.")
@@ -2073,7 +2147,7 @@ st.header("YouTube Master - Missing New Show Review")
 
 st.dataframe(
     data["missing_new_show_review"],
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
     column_config={
         "Asset Title": st.column_config.TextColumn("Asset Title"),
@@ -2104,7 +2178,7 @@ st.dataframe(
         column_name="User Code",
         total_label="GRAND TOTAL",
     ),
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
 )
 
@@ -2127,12 +2201,14 @@ if not data["unmatched_user_codes"].empty:
     st.warning(
         "Some final User Codes have no exact match in the List of Codes "
         "file. These rows keep their Partner Revenue but show a blank "
-        "Description in the table above."
+        "Description in the table above. A blank User Code means the "
+        "underlying rows never received a New Show - see the Missing "
+        "New Show Review."
     )
     st.dataframe(
         data["unmatched_user_codes"].style.format(
             {"Partner Revenue": "${:,.2f}"}, na_rep="-"
         ),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
