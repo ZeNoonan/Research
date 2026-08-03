@@ -22,8 +22,6 @@ from build_site import CSS, _leaderboard_table, esc
 from weekly_report import POSITION_NAMES
 
 HERE = Path(__file__).parent
-PER_POSITION = 10
-MOVERS = 8
 
 FACTOR_ROWS = [
     ("Q", "Quality", "Model expected points per 90 — rebuilt from the FPL "
@@ -46,37 +44,34 @@ FACTOR_ROWS = [
 
 
 def picks_table(block) -> str:
-    rows = []
+    """Every rated player in one position, strongest first, banded by stars."""
+    rows, band = [], None
     for r in block.itertuples():
+        if r.stars != band:
+            band = r.stars
+            if band == 0:
+                label = "no factors — rated, but below every median"
+            elif band == 5:
+                label = "5★ — all five factors"
+            else:
+                label = f"{band}★ — {band} of 5 factors"
+            rows.append(f"<tr class='divider'><td colspan='6'>{label}</td></tr>")
         move = ""
         if abs(r.price_change) >= 0.05:
             cls = "up" if r.price_change > 0 else "down"
-            move = (f" <span class='{cls}'>{r.price_change:+.1f}</span>")
-        note = f"<br><span class='sub2'>from {esc(r.last_team)}</span>" if r.moved else ""
+            move = f" <span class='{cls}'>{r.price_change:+.1f}</span>"
+        note = (f"<br><span class='sub2'>from {esc(r.last_team)}</span>"
+                if r.moved else "")
+        letters = (f"<span class='letters'>{esc(r.factor_letters)}</span>"
+                   if r.factor_letters else "<span class='sub2'>—</span>")
         rows.append(
             f"<tr><td><span class='stars'>{'★' * r.stars}</span></td>"
             f"<td>{esc(r.name)}{note}</td><td>{esc(r.team)}</td>"
             f"<td class='num'>£{r.price:.1f}m{move}</td>"
-            f"<td><span class='letters'>{esc(r.factor_letters)}</span></td>"
+            f"<td>{letters}</td>"
             f"<td class='num'>{r.xpts90:.2f}</td></tr>")
     head = ("<tr><th>Stars</th><th>Player</th><th>Team</th>"
-            "<th class='num'>Price (change)</th><th>Factors</th>"
-            "<th class='num'>xPts/90</th></tr>")
-    return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
-
-
-def movers_table(block, rising: bool) -> str:
-    rows = []
-    for r in block.itertuples():
-        cls = "up" if r.price_change > 0 else "down"
-        rows.append(
-            f"<tr><td>{esc(r.name)}</td><td>{esc(r.team)}</td>"
-            f"<td class='num'>£{r.last_price:.1f}m</td>"
-            f"<td class='num'>£{r.price:.1f}m</td>"
-            f"<td class='num {cls}'>{r.price_change:+.1f}</td>"
-            f"<td class='num'>{r.xpts90:.2f}</td></tr>")
-    head = ("<tr><th>Player</th><th>Team</th><th class='num'>Was</th>"
-            "<th class='num'>Now</th><th class='num'>Change</th>"
+            "<th class='num'>Price</th><th>Factors</th>"
             "<th class='num'>xPts/90</th></tr>")
     return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
 
@@ -145,18 +140,20 @@ def leaderboards_html(rated) -> str:
 def build(listing_path: Path, history_dir: Path, out: Path,
           season: str, history_season: str) -> None:
     rated, unrated = preseason.rate_preseason(listing_path, history_dir)
-    board = preseason.picks(rated, min_stars=4)
     elig = rated[rated["eligible"]]
+    board = elig.sort_values(["stars", "xpts90"], ascending=[False, False])
 
     sections = []
     for pos in model.POSITIONS:
-        block = board[board["position"] == pos].head(PER_POSITION)
+        block = board[board["position"] == pos]
+        n_top = int((block["stars"] >= 4).sum())
         body = (picks_table(block) if not block.empty
-                else "<p class='note'>No players at 4+ stars.</p>")
-        sections.append(f"<section><h2>{POSITION_NAMES[pos]}</h2>{body}</section>")
-
-    risers = elig.nlargest(MOVERS, "price_change")
-    fallers = elig.nsmallest(MOVERS, "price_change")
+                else "<p class='note'>No rated players in this position.</p>")
+        sections.append(
+            f"<section><h2>{POSITION_NAMES[pos]}</h2>"
+            f"<p class='note'>All <b>{len(block)}</b> rated "
+            f"{POSITION_NAMES[pos].lower()}, strongest first — "
+            f"{n_top} at 4★ or better.</p>{body}</section>")
 
     value = elig.copy()
     value["ppm"] = value["xpts90"] / value["price"]
@@ -202,8 +199,9 @@ Same additive binary-factor model as the in-season app, one star per factor,
 judged against position peers.</p></header>
 <div class="banner">Prices: <b>{esc(season)}</b> · Evidence:
 <b>{esc(history_season)}</b>. {n_matched} of {n_total} listed players matched
-to a {esc(history_season)} record, {int(elig["eligible"].count())} of them
-with enough minutes to rate. Ratings are out of <b>5 stars</b>, not 6 —
+to a {esc(history_season)} record, <b>{len(elig)}</b> of them with enough
+minutes to rate — all shown below, by position. Ratings are out of
+<b>5 stars</b>, not 6 —
 the Crowd factor needs ownership data, which does not exist until the game
 opens. <a href="index.html" style="color:var(--accent2)">In-season app →</a></div>
 
@@ -234,17 +232,6 @@ the Value factor's raw yardstick, across all positions.</p>
 <tr><th>Player</th><th>Pos</th><th>Team</th><th class="num">Price</th>
 <th class="num">xPts/90</th><th class="num">per £m</th><th>Stars</th></tr>
 {value_rows}</table></div></section>
-
-<section><h2>The summer's price moves</h2>
-<p class="note">New price against last season's closing price, for rated
-players. A faller whose underlying numbers held is exactly what the Value
-factor is built to catch.</p>
-<div class="two">
-<div><h3 style="font-size:15px;margin:6px 0">Biggest rises</h3>
-{movers_table(risers, True)}</div>
-<div><h3 style="font-size:15px;margin:6px 0">Biggest falls</h3>
-{movers_table(fallers, False)}</div>
-</div></section>
 
 {leaderboards_html(rated)}
 
