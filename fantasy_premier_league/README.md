@@ -116,9 +116,10 @@ python build_preseason.py    # -> preseason.html
 Pre-season ratings are **out of 5 stars, not 6**: the Crowd factor needs
 ownership data, which does not exist until the game opens. Form and Justice
 run on the *final* 5 and 6 gameweeks of 2025/26 and are flagged on the page
-as the stalest inputs. The board also shows the summer's price moves (new
-price vs last season's close), the best points-per-pound, and the full
-per-factor leaderboards.
+as the stalest inputs. The board lists **every rated player by position**,
+strongest first and banded by star count, plus the best points-per-pound
+and the full per-factor leaderboards. Each row carries the player's price
+move against last season's close.
 
 **Name matching.** The price list uses FPL web names (`Raya`, `A.Becker`,
 `Arrizabalaga`); the history uses full names (`David Raya Martín`,
