@@ -103,30 +103,44 @@ Crowd factors and surfaces cheap defenders.
 
 ## Pre-season 2026/27 — the draft board
 
-The 2026/27 starting prices are in
-[`data/2026-27/player_listing.csv`](data/2026-27/player_listing.csv) (564
-players, from the official listing). `preseason.py` joins them to the
-2025/26 record and rates every player **at the new price**;
-`build_preseason.py` writes [`preseason.html`](preseason.html).
+The 2026/27 starting prices **and pre-season ownership** are in
+[`data/2026-27/player_listing.csv`](data/2026-27/player_listing.csv) (567
+players; `name, position, team, price, owned_pct`, taken from an FPL export
+dated 4 Aug 2026). `preseason.py` joins them to the 2025/26 record and rates
+every player **at the new price**; `build_preseason.py` writes
+[`preseason.html`](preseason.html).
 
 ```bash
 python build_preseason.py    # -> preseason.html
 ```
 
-Pre-season ratings are **out of 5 stars, not 6**: the Crowd factor needs
-ownership data, which does not exist until the game opens. Form and Justice
-run on the *final* 5 and 6 gameweeks of 2025/26 and are flagged on the page
-as the stalest inputs. The board lists **every rated player by position**,
-strongest first and banded by star count, plus the best points-per-pound
-and the full per-factor leaderboards. Each row carries the player's price
-move against last season's close.
+Because ownership is available, pre-season ratings use the **full 6
+factors**, same as in-season. Ownership is also the one *current* input on
+the board: Quality, Value, Form, Minutes and Justice all describe last
+season, but Crowd reads today's squads, so it stars the players the field
+is underweight on right now. (`owned_pct` is a percentage rather than the
+in-season headcount; the factor ranks, and a percentage ranks identically.)
+A sanity check on the export: ownership sums to **1500%** — exactly 15
+players per squad.
 
-**Name matching.** The price list uses FPL web names (`Raya`, `A.Becker`,
-`Arrizabalaga`); the history uses full names (`David Raya Martín`,
-`Alisson Becker`, `Kepa Arrizabalaga Revuelta`). `match_players` normalises
-both (accents, plus the letters NFKD leaves alone — ı ø đ ß), indexes by
-name token and scores candidates on surname position, club and position.
-Three rules earn their keep:
+Form and Justice run on the *final* 5 and 6 gameweeks of 2025/26 and are
+flagged on the page as the stalest inputs. The board lists **every rated
+player by position**, strongest first and banded by star count, plus the
+best points-per-pound and the full per-factor leaderboards. Each row
+carries the player's ownership and his price move against last season's
+close.
+
+The Crowd factor visibly changes the board: Haaland (75% owned) rates 3★
+rather than 6★ despite the best underlying numbers of any forward, while
+1.8%-owned William Osula reaches 5★ — bet-against-beta doing its job.
+
+**Name matching.** The listing arrives lowercased (`david_raya martín`);
+`display_name` restores the casing for display, keeping particles lowercase
+and capitalising after hyphens and apostrophes (`Calvert-Lewin`,
+`O'Riley`, `João Pedro Junqueira de Jesus`). `match_players` then normalises
+both sides (accents, plus the letters NFKD leaves alone — ı ø đ ß), indexes
+by name token and scores candidates on surname position, club and position.
+Four rules earn their keep:
 
 - **Position is near-hard** — without it the Ipswich goalkeeper `Palmer`
   matches Cole Palmer. Cross-position matches are allowed only at the same
@@ -137,9 +151,13 @@ Three rules earn their keep:
   inherits the wrong man's season. It should be Mateus Fernandes.
 - **Surname beats first name** — `Anthony` is Jaidon Anthony, not Anthony
   Gordon.
+- **A surname-only match needs club *and* position to agree** — that is how
+  `Kostas Tsimikas` reaches `Konstantinos Tsimikas`, a diminutive. Without
+  both guards it is Harvey Davies matching Ben Davies, or Mamadou matching
+  Ibrahim Sangaré, which the strict all-token rule correctly refuses.
 
-**458 of 564** listed players match a 2025/26 record (280 with enough
-minutes to rate). The other 106 — promoted-club squads (Coventry, Hull,
+**457 of 567** listed players match a 2025/26 record (284 with enough
+minutes to rate). The other 110 — promoted-club squads (Coventry, Hull,
 Ipswich) and signings from abroad — have no Premier League history and are
 reported as **unrated** rather than dropped: they are exactly the players
 you have to judge by eye.
@@ -175,7 +193,7 @@ fetch_data.py       official FPL API -> data/<season>/gw<N>.csv
 preseason.py        new-season price list x last season's record
 build_preseason.py  -> preseason.html, the draft board
 data/2025-26/       the full 2025/26 season, gw1.csv .. gw38.csv
-data/2026-27/       player_listing.csv — 2026/27 starting prices
+data/2026-27/       player_listing.csv — 2026/27 prices + ownership
 index.html          generated web view of the current picks
 preseason.html      generated pre-season draft board
 ```

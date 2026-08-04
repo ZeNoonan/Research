@@ -40,10 +40,14 @@ FACTOR_ROWS = [
     ("J", "Justice", "Under-rewarded over the <b>final 6 gameweeks of last "
      "season</b>: attackers whose xGI beat their returns, defenders and "
      "keepers who conceded more than their xGC."),
+    ("C", "Crowd", "Ownership percentile below quality percentile within the "
+     "position — the field is underweight. Pre-season this is the "
+     "<b>current</b> crowd: who managers are actually piling into right now, "
+     "before a ball is kicked."),
 ]
 
 
-def picks_table(block) -> str:
+def picks_table(block, n_factors: int) -> str:
     """Every rated player in one position, strongest first, banded by stars."""
     rows, band = [], None
     for r in block.itertuples():
@@ -51,11 +55,11 @@ def picks_table(block) -> str:
             band = r.stars
             if band == 0:
                 label = "no factors — rated, but below every median"
-            elif band == 5:
-                label = "5★ — all five factors"
+            elif band == n_factors:
+                label = f"{band}★ — all {n_factors} factors"
             else:
-                label = f"{band}★ — {band} of 5 factors"
-            rows.append(f"<tr class='divider'><td colspan='6'>{label}</td></tr>")
+                label = f"{band}★ — {band} of {n_factors} factors"
+            rows.append(f"<tr class='divider'><td colspan='7'>{label}</td></tr>")
         move = ""
         if abs(r.price_change) >= 0.05:
             cls = "up" if r.price_change > 0 else "down"
@@ -68,11 +72,12 @@ def picks_table(block) -> str:
             f"<tr><td><span class='stars'>{'★' * r.stars}</span></td>"
             f"<td>{esc(r.name)}{note}</td><td>{esc(r.team)}</td>"
             f"<td class='num'>£{r.price:.1f}m{move}</td>"
+            f"<td class='num'>{r.owned_pct:.1f}%</td>"
             f"<td>{letters}</td>"
             f"<td class='num'>{r.xpts90:.2f}</td></tr>")
     head = ("<tr><th>Stars</th><th>Player</th><th>Team</th>"
-            "<th class='num'>Price</th><th>Factors</th>"
-            "<th class='num'>xPts/90</th></tr>")
+            "<th class='num'>Price</th><th class='num'>Owned</th>"
+            "<th>Factors</th><th class='num'>xPts/90</th></tr>")
     return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
 
 
@@ -80,6 +85,12 @@ def leaderboards_html(rated) -> str:
     """Per-factor sorted leaderboards with the cut line, pre-season factors."""
     elig = rated[rated["eligible"]].copy()
     elig["ppm"] = elig["xpts90"] / elig["price"]
+    # Same percentile construction as the Crowd factor in model.rate_players.
+    for pos in model.POSITIONS:
+        grp = elig["position"] == pos
+        elig.loc[grp, "xpts90_pct"] = elig.loc[grp, "xpts90"].rank(pct=True) * 100
+        elig.loc[grp, "selected_pct"] = elig.loc[grp, "selected"].rank(pct=True) * 100
+    elig["crowd_gap"] = elig["xpts90_pct"] - elig["selected_pct"]
 
     def med(block, col, fmt):
         return format(block[col].median(), fmt)
@@ -110,6 +121,14 @@ def leaderboards_html(rated) -> str:
          [("Margin", lambda r: f"{r.justice_margin:+.1f}")],
          lambda b: "zero — star above this line (positive margin = "
                    "under-rewarded)"),
+        ("crowd", "C", "Crowd — sorted by quality minus ownership percentile",
+         "crowd_gap",
+         [("Owned", lambda r: f"{r.owned_pct:.1f}%"),
+          ("Quality pct", lambda r: f"{r.xpts90_pct:.0f}"),
+          ("Owned pct", lambda r: f"{r.selected_pct:.0f}"),
+          ("Gap", lambda r: f"{r.crowd_gap:+.0f}")],
+         lambda b: "zero gap — star above this line (quality ahead of "
+                   "ownership)"),
     ]
 
     out = ["<section id='leaderboards'><h2>Factor leaderboards — "
@@ -140,20 +159,23 @@ def leaderboards_html(rated) -> str:
 def build(listing_path: Path, history_dir: Path, out: Path,
           season: str, history_season: str) -> None:
     rated, unrated = preseason.rate_preseason(listing_path, history_dir)
+    factors = rated.attrs["factors"]
+    n_factors = len(factors)
+    top_band = n_factors - 1  # "4★ or better" of 5; "5★ or better" of 6
     elig = rated[rated["eligible"]]
     board = elig.sort_values(["stars", "xpts90"], ascending=[False, False])
 
     sections = []
     for pos in model.POSITIONS:
         block = board[board["position"] == pos]
-        n_top = int((block["stars"] >= 4).sum())
-        body = (picks_table(block) if not block.empty
+        n_top = int((block["stars"] >= top_band).sum())
+        body = (picks_table(block, n_factors) if not block.empty
                 else "<p class='note'>No rated players in this position.</p>")
         sections.append(
             f"<section><h2>{POSITION_NAMES[pos]}</h2>"
             f"<p class='note'>All <b>{len(block)}</b> rated "
             f"{POSITION_NAMES[pos].lower()}, strongest first — "
-            f"{n_top} at 4★ or better.</p>{body}</section>")
+            f"{n_top} at {top_band}★ or better.</p>{body}</section>")
 
     value = elig.copy()
     value["ppm"] = value["xpts90"] / value["price"]
@@ -161,6 +183,7 @@ def build(listing_path: Path, history_dir: Path, out: Path,
     value_rows = "".join(
         f"<tr><td>{esc(r.name)}</td><td>{esc(r.position)}</td>"
         f"<td>{esc(r.team)}</td><td class='num'>£{r.price:.1f}m</td>"
+        f"<td class='num'>{r.owned_pct:.1f}%</td>"
         f"<td class='num'>{r.xpts90:.2f}</td>"
         f"<td class='num'><b>{r.ppm:.3f}</b></td>"
         f"<td><span class='stars'>{'★' * r.stars}</span></td></tr>"
@@ -201,9 +224,9 @@ judged against position peers.</p></header>
 <b>{esc(history_season)}</b>. {n_matched} of {n_total} listed players matched
 to a {esc(history_season)} record, <b>{len(elig)}</b> of them with enough
 minutes to rate — all shown below, by position. Ratings are out of
-<b>5 stars</b>, not 6 —
-the Crowd factor needs ownership data, which does not exist until the game
-opens. <a href="index.html" style="color:var(--accent2)">In-season app →</a></div>
+<b>{n_factors} stars</b>, the full set: pre-season ownership is in, so the
+Crowd factor scores too.
+<a href="index.html" style="color:var(--accent2)">In-season app →</a></div>
 
 <section><h2>Read this first</h2>
 <p class="note">Every number here comes from <b>{esc(history_season)}</b>.
@@ -212,12 +235,16 @@ genuinely weaker than in-season data: it cannot see pre-season friendlies,
 new signings settling, managerial changes or injuries. Two things it does
 do well — it prices last season's underlying performance against
 <b>this season's money</b>, and it says who was actually playing.</p>
+<p class="note">One input <i>is</i> current: <b>ownership</b>. The Crowd
+factor reads today's squads — who managers are piling into before a ball is
+kicked — and stars the players the field is underweight on relative to their
+quality. It is the one factor here that knows what month it is.</p>
 <p class="note">The players it cannot rate at all are listed at the bottom:
 promoted-club squads and signings from abroad have no Premier League record.
 They are not bad picks — they are the ones you have to judge by eye.</p>
 </section>
 
-<section><h2>The five pre-season factors</h2>
+<section><h2>The {n_factors} pre-season factors</h2>
 <div class="tablewrap"><table>{factor_rows}</table></div>
 <p class="note">Eligibility gate: 45+ minutes averaged over the last 4
 matches he actually played last season.
@@ -230,7 +257,8 @@ matches he actually played last season.
 the Value factor's raw yardstick, across all positions.</p>
 <div class="tablewrap"><table>
 <tr><th>Player</th><th>Pos</th><th>Team</th><th class="num">Price</th>
-<th class="num">xPts/90</th><th class="num">per £m</th><th>Stars</th></tr>
+<th class="num">Owned</th><th class="num">xPts/90</th>
+<th class="num">per £m</th><th>Stars</th></tr>
 {value_rows}</table></div></section>
 
 {leaderboards_html(rated)}
