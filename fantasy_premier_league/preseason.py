@@ -15,12 +15,14 @@ What carries over, and what doesn't
 * **Justice**  – last 6 gameweeks of 2025/26. Carries, but decays.
 * **Form**     – last 5 gameweeks of 2025/26. Included and flagged: three
   months stale, the weakest of the five here.
-* **Crowd**    – dropped. There is no ownership data before the season
-  opens, so the factor cannot be computed at all. (It was also the only
-  factor with a negative edge in the 2025/26 backtest.)
+* **Crowd**    – scored whenever the listing carries ``owned_pct``. This is
+  the one *current* input on the board: every other factor describes last
+  season, while Crowd reads today's squads and stars whoever the field is
+  underweight on before a ball is kicked. Without ownership the factor is
+  dropped and a rating is out of 5.
 
-So a pre-season rating is **0-5 stars** over five factors, against a
-0-6 in-season rating. Once real gameweeks exist, ``weekly_report.py`` takes
+So a pre-season rating is **0-6 stars** with ownership in hand, matching
+the in-season model. Once real gameweeks exist, ``weekly_report.py`` takes
 over and this module is done for the year.
 
 Name matching
@@ -66,13 +68,48 @@ def normalise(name: str) -> str:
     return re.sub(r"[^a-z ]", " ", s).strip()
 
 
+# Name particles that stay lowercase inside a name (but not as its first word).
+PARTICLES = {"de", "da", "das", "do", "dos", "del", "della", "van", "von",
+             "den", "der", "di", "du", "la", "le", "el", "al", "bin", "ter",
+             "ten", "e"}
+
+
+def display_name(name: str) -> str:
+    """'joão pedro junqueira de jesus' -> 'João Pedro Junqueira de Jesus'.
+
+    The listing arrives lowercased; ``str.title`` alone would capitalise the
+    particles and is wrong on names like O'Brien only by luck, so do it word
+    by word and leave particles alone after the first.
+    """
+    def cap(word: str) -> str:
+        # Capitalise after a start, a hyphen or an apostrophe, so
+        # calvert-lewin -> Calvert-Lewin and o'riley -> O'Riley. Never
+        # lowercases, so an already-correct McCarthy survives.
+        return re.sub(r"(^|[-'’])(\w)",
+                      lambda m: m.group(1) + m.group(2).upper(), word)
+
+    words = str(name).split()
+    return " ".join(w.lower() if i and w.lower() in PARTICLES else cap(w)
+                    for i, w in enumerate(words))
+
+
 def load_listing(path: str | Path) -> pd.DataFrame:
-    """Read the new season's price list (name, position, team, price)."""
+    """Read the new season's list (name, position, team, price[, owned_pct]).
+
+    ``owned_pct`` is pre-season ownership as a percentage of squads. When it
+    is present the Crowd factor can be scored and a rating is out of 6; when
+    it is absent (a bare price list) the board falls back to 5 factors.
+    """
     listing = pd.read_csv(path)
     missing = {"name", "position", "team", "price"} - set(listing.columns)
     if missing:
         raise ValueError(f"listing is missing columns: {sorted(missing)}")
+    listing["name"] = listing["name"].map(display_name)
     return listing
+
+
+def has_ownership(listing: pd.DataFrame) -> bool:
+    return "owned_pct" in listing.columns and listing["owned_pct"].notna().any()
 
 
 def _candidate_pairs(listing: pd.DataFrame, hist: pd.DataFrame,
@@ -96,17 +133,25 @@ def _candidate_pairs(listing: pd.DataFrame, hist: pd.DataFrame,
         tokens = [t for t in rest.split() if len(t) > 2]
         if not tokens:
             continue
-        cands = set(by_token.get(tokens[-1], []))
-        for tok in tokens[:-1]:
-            cands &= set(by_token.get(tok, []))
 
-        for c in cands:
+        # Everyone sharing the surname; whether the rest of the name agrees
+        # decides how much the pairing is trusted below.
+        for c in set(by_token.get(tokens[-1], [])):
             hist_tokens = hist.at[c, "_n"].split()
             if initial and not any(w.startswith(initial) for w in hist_tokens):
                 continue
 
             same_club = hist.at[c, "team"] == entry.team
             same_pos = hist.at[c, "position"] == entry.position
+
+            all_tokens = all(t in hist_tokens for t in tokens)
+            if not all_tokens:
+                # Only the surname agrees. Believable when the club and the
+                # position agree too - that is Kostas/Konstantinos Tsimikas,
+                # a diminutive. Without both guards it is Harvey Davies
+                # matching Ben Davies, or Mamadou matching Ibrahim Sangaré.
+                if not (same_club and same_pos):
+                    continue
             if not same_pos:
                 # Reclassification is real, but only believable at the same
                 # club, and never for a goalkeeper.
@@ -115,9 +160,11 @@ def _candidate_pairs(listing: pd.DataFrame, hist: pd.DataFrame,
                     continue
 
             surname_hit = hist_tokens[-1] == tokens[-1]
-            score = (4 * surname_hit + 2 * same_club + 2 * same_pos
-                     + bool(initial))
-            if same_club and same_pos:
+            score = (8 * all_tokens + 4 * surname_hit + 2 * same_club
+                     + 2 * same_pos + bool(initial))
+            if not all_tokens:
+                how = "team-diminutive"
+            elif same_club and same_pos:
                 how = "team"
             elif same_club:
                 how = "team-repositioned"
@@ -169,8 +216,10 @@ def match_players(listing: pd.DataFrame, hist: pd.DataFrame) -> pd.DataFrame:
 def rate_preseason(listing_path: str | Path, history_dir: str | Path):
     """Return (rated, unrated): listing players scored on last season's data.
 
-    ``rated`` carries the five pre-season factors, ``stars`` (0-5) and the
-    **new** price; ``unrated`` is everyone with no Premier League history.
+    ``rated`` carries the scored factors, ``stars`` and the **new** price;
+    ``unrated`` is everyone with no Premier League history. Which factors
+    were used is on ``rated.attrs["factors"]`` - all six when the listing
+    carries ownership, the five in ``PRESEASON_FACTORS`` when it does not.
     """
     listing = load_listing(listing_path)
     hist = model.player_table(model.load_season(history_dir))
@@ -198,13 +247,23 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
     # The in-season gate, on last season's appearances.
     matched["eligible"] = matched["gate_minutes"] >= model.MINUTES_PER_GW
 
+    # With pre-season ownership in hand the Crowd factor scores exactly as
+    # in-season: it ranks on ownership, and a percentage ranks identically
+    # to a headcount. ``selected`` carried from last season is replaced, so
+    # the factor reads *this* season's crowd, not last season's.
+    ownership = has_ownership(listing)
+    if ownership:
+        matched["selected"] = matched["owned_pct"]
+
     rated = model.rate_players(matched)
-    # Crowd cannot be computed pre-season; drop it from the star count.
-    rated["crowd"] = 0
-    rated["stars"] = rated[list(PRESEASON_FACTORS)].sum(axis=1)
+    factors = model.FACTORS if ownership else PRESEASON_FACTORS
+    if not ownership:
+        rated["crowd"] = 0
+    rated["stars"] = rated[list(factors)].sum(axis=1)
     rated["factor_letters"] = [
-        "".join(model.FACTOR_LETTERS[f] for f in PRESEASON_FACTORS if r[f])
+        "".join(model.FACTOR_LETTERS[f] for f in factors if r[f])
         for _, r in rated.iterrows()]
+    rated.attrs["factors"] = factors
     return rated, unrated
 
 
