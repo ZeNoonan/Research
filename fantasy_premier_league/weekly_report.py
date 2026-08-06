@@ -22,8 +22,9 @@ POSITION_NAMES = {"GK": "Goalkeepers", "DEF": "Defenders",
                   "MID": "Midfielders", "FWD": "Forwards"}
 
 REPORT_COLUMNS = ["name", "position", "team", "price", "stars",
-                  "factor_letters", "xpts90", "form_points", "minutes_avg",
-                  "justice_margin", "selected", "minutes", "points",
+                  "factors_assessed", "factor_letters", "xpts90",
+                  "form_points", "minutes_avg", "justice_margin", "selected",
+                  "minutes", "appearances", "gws_since_app", "points",
                   "eligible"]
 
 
@@ -53,9 +54,14 @@ def print_report(rated, min_stars: int, top: int | None) -> None:
         if block.empty:
             print("  (none at this star level)")
         for r in block.itertuples():
-            print(f"  {r.stars}* {r.name:<28} {r.team:<15} "
-                  f"£{r.price:>4.1f}m  {r.factor_letters:<5} "
-                  f"xPts/90 {r.xpts90:4.1f}  owned {fmt_selected(r.selected):>6}")
+            of = "" if r.factors_assessed == len(model.FACTORS) \
+                else f"/{r.factors_assessed}"
+            stale = f"  [last played GW{r.last_app_round:.0f}]" \
+                if r.gws_since_app >= 2 else ""
+            print(f"  {r.stars}*{of:<3}{r.name:<28} {r.team:<15} "
+                  f"£{r.price:>4.1f}m  {r.factor_letters:<6} "
+                  f"xPts/90 {r.xpts90:4.1f}  "
+                  f"owned {fmt_selected(r.selected):>6}{stale}")
         print()
 
     captains = picks[picks["position"].isin(("MID", "FWD"))].nlargest(3, "xpts90")
