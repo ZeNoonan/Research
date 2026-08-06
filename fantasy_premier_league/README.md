@@ -34,18 +34,46 @@ Six factors, each worth one star, each judged within position
 |---|---|---|---|
 | 1 | **Quality** | model expected points per 90 above the position median | process stats over outcomes — xG, not goals |
 | 2 | **Value** | expected points per 90 **per £million** above the position median | points per pound funds the rest of the squad |
-| 3 | **Form** | points over the **last 5 gameweeks** above the position median | momentum |
+| 3 | **Form** | points over the **last 5 matches the player actually played** above the position median | momentum |
 | 4 | **Minutes** | average minutes over the **last 5 matches the player actually played**, at or above the position median | the nailed-on full-match starters (at-or-above, not strictly above: keepers all average 90, and carrying the position's full typical load is exactly what "nailed" means) |
-| 5 | **Justice** | under-rewarded over the **last 6 gameweeks**: attackers whose xGI exceeds actual goals+assists; defenders/keepers who conceded more than their xGC (defenders count both) | luck mean-reverts and the crowd over-reacts to outcomes, so the unlucky are cheap |
+| 5 | **Justice** | under-rewarded over the **last 6 matches the player actually played**: attackers whose xGI exceeds actual goals+assists; defenders/keepers who conceded more than their xGC (defenders count both) | luck mean-reverts and the crowd over-reacts to outcomes, so the unlucky are cheap |
 | 6 | **Crowd** | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off |
 
 **Eligibility gate** (the analogue of the NFL system only betting at
 \|System #\| ≥ 3): a player must average **45+ minutes over the last 4
-matches he actually played** (fewer if he hasn't played 4 yet). The matches
-are the player's own appearances, however long ago — **absence alone never
-drops anyone from the ratings** (an injured starter keeps his pre-injury
-average, and his Form star fades while he's out), but a player used only
-for short cameos does not make the cut.
+matches he actually played**. Absence alone never drops anyone from the
+ratings, but a player used only for short cameos does not make the cut.
+
+### Appearance windows, minimum samples, and the caveat they create
+
+**Every window counts the player's own appearances, not calendar
+gameweeks.** A spell on the bench or in the treatment room shifts a window
+back rather than filling it with zeros, so Form measures how a player has
+actually been playing rather than partly measuring whether he played at
+all.
+
+The price is a **minimum sample**: a player must have made at least as many
+appearances as the window is long to be scored on it — **5 for Form and
+Minutes, 6 for Justice**. Short of that he takes no star for that factor
+**and is left out of its median**, so a thin record neither earns a star nor
+moves the bar for everyone else. `factors_assessed` records how many of the
+six could be scored, so a 3★ off one appearance is not mistaken for a 3★ off
+a full season.
+
+Early in a season this means the appearance-window factors are dormant for
+everybody until enough football has been played — which is honest: there is
+no five-match form in gameweek three.
+
+> **The caveat.** With the gate *and* all three windows counting
+> appearances, **nothing in the model knows a player is currently absent** —
+> someone injured since October carries the same numbers as a weekly
+> starter. That is the deliberate cost of never dropping the injured, and
+> it bites: rating 2025/26 through GW38, Matthijs de Ligt rates 6★ on a
+> record that stops at **GW13**. So `gws_since_app` and `last_app_round`
+> are computed and surfaced — the terminal report and the web page flag
+> anyone who has not featured for two or more gameweeks (`last played
+> GW13`). It is a caveat shown, not a factor: check it before transferring
+> anyone in.
 
 ### The quality engine
 
@@ -123,7 +151,8 @@ in-season headcount; the factor ranks, and a percentage ranks identically.)
 A sanity check on the export: ownership sums to **1500%** — exactly 15
 players per squad.
 
-Form and Justice run on the *final* 5 and 6 gameweeks of 2025/26 and are
+Form and Justice run on the last 5 and 6 matches each player actually
+played in 2025/26 (needing 5 and 6 appearances to be scored) and are
 flagged on the page as the stalest inputs. The board lists **every rated
 player by position**, strongest first and banded by star count, plus the
 best points-per-pound and the full per-factor leaderboards. Each row
@@ -219,20 +248,33 @@ Average actual next-gameweek points by star rating:
 
 | Stars | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|---|
-| **Next-GW pts** | 1.45 | 1.75 | 2.23 | 2.24 | 2.71 | 3.06 | 3.55 |
-| n | 468 | 1823 | 2630 | 2160 | 2252 | 1556 | 624 |
+| **Next-GW pts** | 2.06 | 1.89 | 2.16 | 2.45 | 2.81 | 2.99 | 3.08 |
+| n | 961 | 2097 | 2533 | 2139 | 1949 | 1348 | 486 |
 
-The 4★+ picks averaged **2.95 pts/week vs 2.06 for the rest** of the
+The 4★+ picks averaged **2.91 pts/week vs 2.15 for the rest** of the
 eligible pool. Each factor standalone:
 
 | Factor | with star | without | edge |
 |---|---|---|---|
 | Quality | 2.74 | 2.07 | **+0.67** |
 | Value | 2.52 | 2.28 | **+0.24** |
-| Form | 3.15 | 1.73 | **+1.42** |
-| Minutes | 2.86 | 1.84 | **+1.02** |
-| Justice | 2.49 | 2.33 | +0.16 |
+| Form | 2.94 | 2.06 | **+0.88** |
+| Minutes | 2.96 | 1.95 | **+1.01** |
+| Justice | 2.45 | 2.37 | +0.07 |
 | Crowd | 2.22 | 2.57 | −0.34 |
+
+**What moving Form onto appearance windows cost, and why it is still
+right.** Calendar-based Form scored **+1.42**; appearance-based Form scores
+**+0.88**. The drop is not a bug — it is the factor giving up a signal that
+was never its own. Under the calendar rule an absent player had no rows in
+the last five gameweeks and so scored ~0 points, meaning the Form star was
+partly a proxy for *"is playing at all"*, which is powerfully predictive.
+Appearance windows strip that out, leaving Form measuring form. The
+0★ bucket rising to 2.06 (above 1★) is the same effect: it now holds
+players who could not be assessed, not only bad ones. The model as a whole
+still separates cleanly — 4★+ beats the rest 2.91 to 2.15 — but the
+availability signal it used to smuggle in is now the caveat surfaced as
+`gws_since_app`, above.
 
 **The honest read:** Form, Minutes, Quality and Value all earn their stars
 — Minutes and Form carry the biggest edges precisely because the

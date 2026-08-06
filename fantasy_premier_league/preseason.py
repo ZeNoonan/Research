@@ -230,7 +230,8 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
 
     carry = ["xpts90", "xpts90_raw", "form_points", "minutes_avg",
              "justice_margin", "gate_minutes", "minutes", "points",
-             "appearances", "selected", "xg90", "xa90", "xgc90", "dc_rate"]
+             "appearances", "selected", "xg90", "xa90", "xgc90", "dc_rate",
+             "form_ok", "minutes_factor_ok", "justice_ok"]
     idx = matched["_hist_idx"].astype(int)
     for col in carry:
         matched[col] = hist.loc[idx, col].to_numpy()

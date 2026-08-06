@@ -13,17 +13,28 @@ The six factors
    median. Process stats, not outcomes.
 2. Value    – expected points per 90 per million of price above the position
    median. Points per pound is the pick that funds the rest of the squad.
-3. Form     – total FPL points over the last 5 gameweeks above the position
-   median. Momentum.
+3. Form     – total FPL points over the last 5 matches the player actually
+   played, above the position median. Momentum.
 4. Minutes  – average minutes over the last 5 matches the player actually
    played, at or above the position median (at-or-above, not strictly
    above: keepers all average 90, and averaging the position's typical
    full-match load is what "nailed" means). The 90-minute starters.
 5. Justice  – under-rewarded versus the underlying numbers over the last 6
-   gameweeks: attackers whose expected goal involvements exceed their actual
-   returns, defenders/keepers who conceded more than their expected goals
-   conceded. Luck mean-reverts and the crowd over-reacts to outcomes, so the
-   unlucky are cheap.
+   matches the player actually played: attackers whose expected goal
+   involvements exceed their actual returns, defenders/keepers who conceded
+   more than their expected goals conceded. Luck mean-reverts and the crowd
+   over-reacts to outcomes, so the unlucky are cheap.
+
+Every window counts the player's **own appearances**, not calendar
+gameweeks, so a spell on the bench or in the treatment room shifts a
+window back rather than filling it with zeros. The price of that is a
+minimum sample: a player must have made at least as many appearances as
+the window is long to be scored on it at all (5 for Form and Minutes, 6
+for Justice). Players short of it take no star for that factor **and are
+left out of its median**, so a thin sample neither earns a star nor moves
+the bar for everyone else. Early in a season this means the appearance-
+window factors are dormant for everybody until enough football has been
+played - which is honest: there is no five-match form in gameweek three.
 6. Crowd    – ownership percentile below quality percentile within the
    position: the field underweights the player (bet against beta - the
    differential pick that gains you rank when it comes off).
@@ -141,18 +152,21 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     def window(n: int) -> pd.DataFrame:
         return df[df["round"] > latest - n]
 
-    # The gate and the Minutes factor look at matches the player actually
-    # played (minutes > 0), however long ago - absence alone never drops a
-    # player, but short-cameo usage does.
+    # Every window below counts the player's own appearances (minutes > 0),
+    # however long ago - absence shifts a window back rather than filling it
+    # with zeros. ``groupby(...).tail(n)`` takes each player's last n
+    # appearances.
     apps = df[df["minutes"] > 0].sort_values("round")
-    gate = apps.groupby("element")["minutes"].apply(
-        lambda s: s.tail(MINUTES_WINDOW).mean())
-    mins_avg = apps.groupby("element")["minutes"].apply(
-        lambda s: s.tail(MINUTES_FACTOR_WINDOW).mean())
 
-    form = window(FORM_WINDOW).groupby("element")["total_points"].sum()
+    def last_apps(n: int) -> pd.DataFrame:
+        return apps.groupby("element").tail(n)
 
-    jw = window(JUSTICE_WINDOW).groupby("element")[
+    gate = last_apps(MINUTES_WINDOW).groupby("element")["minutes"].mean()
+    mins_avg = (last_apps(MINUTES_FACTOR_WINDOW)
+                .groupby("element")["minutes"].mean())
+    form = (last_apps(FORM_WINDOW)
+            .groupby("element")["total_points"].sum())
+    jw = last_apps(JUSTICE_WINDOW).groupby("element")[
         ["expected_goals", "expected_assists", "goals_scored", "assists",
          "goals_conceded", "expected_goals_conceded"]].sum()
 
@@ -179,6 +193,21 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     out["eligible"] = out["gate_minutes"] >= MINUTES_PER_GW
     out["minutes_avg"] = mins_avg.reindex(out.index).fillna(0.0)
     out["dc_rate"] = dc_rate.reindex(out.index).fillna(0.0)
+
+    # A window is only scored on a full sample: fewer appearances than the
+    # window is long and the player is not considered for that factor - no
+    # star, and no vote in its median either.
+    out["form_ok"] = out["appearances"] >= FORM_WINDOW
+    out["minutes_factor_ok"] = out["appearances"] >= MINUTES_FACTOR_WINDOW
+    out["justice_ok"] = out["appearances"] >= JUSTICE_WINDOW
+
+    # Because every window counts appearances, nothing above can tell a
+    # player who featured last week from one absent since October - both
+    # carry the same numbers. This is not a factor, it is the caveat: how
+    # many gameweeks ago the record was actually set.
+    last_seen = apps.groupby("element")["round"].max()
+    out["last_app_round"] = last_seen.reindex(out.index)
+    out["gws_since_app"] = latest - out["last_app_round"]
 
     out["xg90"] = [_per90(g, m) for g, m in zip(out["xg"], out["minutes"])]
     out["xa90"] = [_per90(a, m) for a, m in zip(out["xa"], out["minutes"])]
@@ -241,15 +270,29 @@ def rate_players(players: pd.DataFrame) -> pd.DataFrame:
 
         out.loc[grp, "quality"] = (g["xpts90"] > g["xpts90"].median()).astype(int)
         out.loc[grp, "value"] = (ppm > ppm.median()).astype(int)
-        out.loc[grp, "form"] = (g["form_points"]
-                                > g["form_points"].median()).astype(int)
+
+        # Appearance-window factors: only players with a full sample are
+        # considered, and only they set the median.
+        form = grp & out["form_ok"]
+        if form.any():
+            median = out.loc[form, "form_points"].median()
+            out.loc[form, "form"] = (out.loc[form, "form_points"]
+                                     > median).astype(int)
+
         # At-or-above for this factor only: whole positions (keepers above
         # all) sit at exactly 90 minutes, and a player averaging the
         # position's typical full-match load is precisely what "nailed"
         # means - a strict rule would star no goalkeeper at all.
-        out.loc[grp, "minutes_factor"] = (g["minutes_avg"]
-                                          >= g["minutes_avg"].median()).astype(int)
-        out.loc[grp, "justice"] = (g["justice_margin"] > 0).astype(int)
+        mins = grp & out["minutes_factor_ok"]
+        if mins.any():
+            median = out.loc[mins, "minutes_avg"].median()
+            out.loc[mins, "minutes_factor"] = (out.loc[mins, "minutes_avg"]
+                                               >= median).astype(int)
+
+        # Justice is measured against zero, not a median, but still needs a
+        # full window to mean anything.
+        just = grp & out["justice_ok"]
+        out.loc[just, "justice"] = (out.loc[just, "justice_margin"] > 0).astype(int)
 
         quality_pct = g["xpts90"].rank(pct=True)
         owned_pct = g["selected"].rank(pct=True)
@@ -259,6 +302,14 @@ def rate_players(players: pd.DataFrame) -> pd.DataFrame:
     out["factor_letters"] = [
         "".join(FACTOR_LETTERS[f] for f in FACTORS if r[f])
         for _, r in out.iterrows()]
+    # How many factors could be scored at all: 6 for a player with a full
+    # sample, fewer for one short of an appearance window. Lets a report say
+    # "3 of 4 assessed" rather than implying two factors were failed.
+    out["factors_assessed"] = (
+        len(FACTORS) - 3
+        + out["form_ok"].astype(int)
+        + out["minutes_factor_ok"].astype(int)
+        + out["justice_ok"].astype(int))
     return out
 
 

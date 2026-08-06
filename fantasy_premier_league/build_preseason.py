@@ -32,14 +32,16 @@ FACTOR_ROWS = [
     ("V", "Value", "Expected points per 90 per £million <b>at the new "
      "price</b>. This is the factor the new price list actually moves: a "
      "player repriced down whose numbers held is the pre-season bargain."),
-    ("F", "Form", "Points over the <b>final 5 gameweeks of last season</b>. "
-     "The weakest signal here — three months stale, and a summer of "
-     "transfers in between."),
-    ("M", "Minutes", "Average minutes over the last 5 matches he played last "
-     "season, at or above the position median — the nailed-on starters."),
-    ("J", "Justice", "Under-rewarded over the <b>final 6 gameweeks of last "
-     "season</b>: attackers whose xGI beat their returns, defenders and "
-     "keepers who conceded more than their xGC."),
+    ("F", "Form", "Points over the <b>last 5 matches he actually played</b> "
+     "last season (needs 5 appearances). The weakest signal here — three "
+     "months stale, and a summer of transfers in between."),
+    ("M", "Minutes", "Average minutes over the <b>last 5 matches he actually "
+     "played</b> last season (needs 5 appearances), at or above the position "
+     "median — the nailed-on starters."),
+    ("J", "Justice", "Under-rewarded over the <b>last 6 matches he actually "
+     "played</b> last season (needs 6 appearances): attackers whose xGI beat "
+     "their returns, defenders and keepers who conceded more than their "
+     "xGC."),
     ("C", "Crowd", "Ownership percentile below quality percentile within the "
      "position — the field is underweight. Pre-season this is the "
      "<b>current</b> crowd: who managers are actually piling into right now, "
@@ -106,7 +108,8 @@ def leaderboards_html(rated) -> str:
           ("xPts/90 per £m", lambda r: f"{r.ppm:.3f}")],
          lambda b: f"median = {med(b, 'ppm', '.3f')} per £m — "
                    "star above this line"),
-        ("form", "F", "Form — sorted by final-5-gameweek points", "form_points",
+        ("form", "F", "Form — sorted by points over the last 5 matches played",
+         "form_points",
          [("Last-5 pts", lambda r: f"{r.form_points:.0f}")],
          lambda b: f"median = {med(b, 'form_points', '.0f')} points — "
                    "star above this line"),
@@ -116,7 +119,8 @@ def leaderboards_html(rated) -> str:
          [("Avg mins", lambda r: f"{r.minutes_avg:.1f}")],
          lambda b: f"median = {med(b, 'minutes_avg', '.1f')} minutes — "
                    "star at or above this line"),
-        ("justice", "J", "Justice — sorted by final-6-gameweek luck margin",
+        ("justice", "J",
+         "Justice — sorted by luck margin over the last 6 matches played",
          "justice_margin",
          [("Margin", lambda r: f"{r.justice_margin:+.1f}")],
          lambda b: "zero — star above this line (positive margin = "
@@ -136,12 +140,17 @@ def leaderboards_html(rated) -> str:
            "<p class='note'>Every rated player, sorted highest to lowest on "
            "each factor's yardstick, position by position. The purple line is "
            "the cut: tinted rows above it earn that factor's star. Tap a "
-           "position to open it.</p>"]
+           "position to open it. The three appearance-window factors list "
+           "only players with a full sample last season — the others are not "
+           "considered, so they are not ranked here either.</p>"]
     for factor, letter, title, sort_col, cols, divider_fn in specs:
         out.append(f"<h3 style='font-size:16px;margin:16px 0 4px'>"
                    f"<span class='letters'>{letter}</span> {title}</h3>")
         for pos in model.POSITIONS:
             block = elig[elig["position"] == pos].copy()
+            ok_col = f"{factor}_ok"
+            if ok_col in block.columns:
+                block = block[block[ok_col]]
             if block.empty:
                 continue
             block = block.sort_values([factor, sort_col],

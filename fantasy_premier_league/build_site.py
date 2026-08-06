@@ -69,6 +69,8 @@ summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 9px 0;
 details[open] summary { border-bottom: 1px solid var(--border); }
 tr.divider td { background: var(--accent); color: #fff; text-align: center;
   font-size: 12px; padding: 3px 8px; white-space: normal; }
+.sub2 { color: var(--muted); font-size: 12px; }
+.stale { color: #b3372f; font-size: 12px; font-weight: 600; }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #14181c; --card: #1d232a; --ink: #e6ebf0; --muted: #98a4af;
     --border: #313a44; --star: #e0b64a; }
@@ -77,6 +79,7 @@ tr.divider td { background: var(--accent); color: #fff; text-align: center;
   .yes { color: #4cc38a; }
   tr.starred td { background: rgba(224, 182, 74, .12); }
   summary { color: #c9a0d8; }
+  .stale { color: #ef7a72; }
 }
 """
 
@@ -88,16 +91,17 @@ FACTOR_ROWS = [
      "number off 130 minutes doesn't outrank a season of evidence."),
     ("V", "Value", "Expected points per 90 per £million above the position "
      "median. Points per pound funds the rest of the squad."),
-    ("F", "Form", "Points over the last 5 gameweeks above the position "
-     "median. Momentum."),
+    ("F", "Form", "Points over the last 5 matches the player actually "
+     "played, above the position median. Momentum."),
     ("M", "Minutes", "Average minutes over the last 5 matches the player "
      "actually played, at or above the position median — the nailed-on "
      "full-match starters. (At-or-above, unlike the other factors: keepers "
      "all average 90, and carrying the position's full typical load is "
      "exactly what nailed means.)"),
-    ("J", "Justice", "Under-rewarded over the last 6 gameweeks: attackers "
-     "whose xGI beats their actual returns, defenders/keepers who conceded "
-     "more than their xGC. Luck mean-reverts; the unlucky are cheap."),
+    ("J", "Justice", "Under-rewarded over the last 6 matches the player "
+     "actually played: attackers whose xGI beats their actual returns, "
+     "defenders/keepers who conceded more than their xGC. Luck "
+     "mean-reverts; the unlucky are cheap."),
     ("C", "Crowd", "Ownership percentile below quality percentile within the "
      "position — the field underweights the player (bet against beta)."),
 ]
@@ -292,9 +296,16 @@ not visibility.</p></div>"""
 def picks_table(block) -> str:
     rows = []
     for r in block.itertuples():
+        note = ""
+        if r.factors_assessed < len(model.FACTORS):
+            note += (f"<br><span class='sub2'>only {r.factors_assessed} "
+                     f"factors assessable — {r.appearances} appearances</span>")
+        if r.gws_since_app >= 2:
+            note += (f"<br><span class='stale'>last played GW"
+                     f"{r.last_app_round:.0f}</span>")
         rows.append(
             f"<tr><td><span class='stars'>{'★' * r.stars}</span></td>"
-            f"<td>{esc(r.name)}</td><td>{esc(r.team)}</td>"
+            f"<td>{esc(r.name)}{note}</td><td>{esc(r.team)}</td>"
             f"<td class='num'>£{r.price:.1f}m</td>"
             f"<td><span class='letters'>{esc(r.factor_letters)}</span></td>"
             f"<td class='num'>{r.xpts90:.1f}</td>"
@@ -380,12 +391,17 @@ def leaderboards_html(rated) -> str:
            "<p class='note'>Every eligible player, sorted from highest to "
            "lowest on each factor's yardstick, position by position. The "
            "purple line is the cut: tinted rows above it earn that factor's "
-           "star. Tap a position to open it.</p>"]
+           "star. Tap a position to open it. The three appearance-window "
+           "factors list only players with a full sample — the others are "
+           "not considered, so they are not ranked here either.</p>"]
     for factor, letter, title, sort_col, cols, divider_fn in specs:
         out.append(f"<h3 style='font-size:16px;margin:16px 0 4px'>"
                    f"<span class='letters'>{letter}</span> {title}</h3>")
         for pos in model.POSITIONS:
             block = elig[elig["position"] == pos].copy()
+            ok_col = f"{factor}_ok"
+            if ok_col in block.columns:
+                block = block[block[ok_col]]
             if block.empty:
                 continue
             if factor == "crowd":
@@ -447,11 +463,18 @@ gate; 5★ and 6★ picks below (top {PER_POSITION} per position).{thin}
 draft board — new prices, rated on this season's evidence →</a></div>
 <section><h2>The six factors</h2>
 <div class="tablewrap"><table>{factor_rows}</table></div>
-<p class="note">Eligibility gate: 45+ minutes averaged over the last
+<p class="note"><b>Eligibility gate:</b> 45+ minutes averaged over the last
 {model.MINUTES_WINDOW} matches the player <i>actually played</i> — absence
-alone never drops anyone from the ratings; short-cameo usage does. While a
-player is out, his Form star fades, but he stays visible.
-<a href="#leaderboards">Full sorted leaderboards ↓</a> ·
+alone never drops anyone from the ratings; short-cameo usage does.</p>
+<p class="note"><b>Every window counts appearances, not gameweeks</b>, so a
+spell out shifts a window back instead of filling it with zeros. The price
+is a minimum sample: Form and Minutes need <b>5</b> appearances, Justice
+needs <b>6</b>. Short of that a player takes no star for the factor
+<i>and</i> is left out of its median — a thin record neither earns a star
+nor moves the bar. Rows below say so, and flag anyone who has not played
+recently, since his numbers are otherwise indistinguishable from a
+regular's.</p>
+<p class="note"><a href="#leaderboards">Full sorted leaderboards ↓</a> ·
 <a href="#examples">Worked examples of every factor ↓</a></p></section>
 {''.join(sections)}
 <section><h2>Captain shortlist</h2>
