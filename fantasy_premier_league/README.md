@@ -150,10 +150,10 @@ branches, and in-season `index.html` is byte-identical across the change.
 
 | | In-season | Pre-season | Why |
 |---|---|---|---|
-| **Gate** | 45+ min averaged over last 4 appearances | **≥ 900 total minutes** *and* the 45-min check | Conditioning only on matches played let a keeper who started 5 games pass exactly as one who started 38 — 31 keepers rated for 20 jobs. Now 19. |
+| **Gate** | 45+ min averaged over last 4 appearances | **≥ 600 total minutes** *and* the 45-min check | Conditioning only on matches played let a keeper who started 5 games pass exactly as one who started 38 — 31 keepers rated for 20 jobs. Now 21. |
 | **Value** | xPts/90 ÷ price | **residual** of xPts/90 regressed on price, above the median residual | Price varies ~2× within a position while production varies ~6×, so dividing barely reorders: V was Quality restated. Defenders shared 48 of 56 Q-stars with V; now 34 of 47. |
 | **Minutes** | avg minutes over last 5 appearances | **share of the season's 3,420** | The average cannot tell a 5-game starter from a 38-game one. |
-| **Crowd** | ownership percentile below quality percentile | quality percentile **≥ 20 points** above ownership, and ≥ 900 minutes | Ownership under ~2% is undifferentiated, so ranking inside that band invents precision. It was handing stars to backup keepers for being unowned. |
+| **Crowd** | ownership percentile below quality percentile | quality percentile **≥ 20 points** above ownership, and past the minutes gate | Ownership under ~2% is undifferentiated, so ranking inside that band invents precision. It was handing stars to backup keepers for being unowned. |
 
 Because ownership is available, pre-season ratings use the **full 6
 factors**, same as in-season. Ownership is also the one *current* input on
@@ -176,17 +176,28 @@ The Crowd factor visibly changes the board: Haaland (75% owned) rates 3★
 rather than 6★ despite the best underlying numbers of any forward —
 bet-against-beta doing its job.
 
-**Why the gate is 900 minutes and not 1200.** 1200 lines up more neatly
-with the number of jobs (81 defenders for ~80 places against 94 at 900),
-but it drops **Fabian Schär (1089′) and Matthijs de Ligt (1170′)** from the
-board entirely — both genuine regulars whose seasons were interrupted, and
-both exactly the low-owned, heavily-played defenders the Crowd factor
-exists to surface. 900 keeps them, and solves the problem that motivated
-the gate just as completely: keepers fall 31 → 19 at either threshold,
-because the goalkeeper distribution has a natural cliff between 1440 and
-867 minutes. The cost is ~13 extra defenders and ~11 extra midfielders on
-the board. Everyone the gate does drop is listed by name on the page, since
-an injured regular looks identical to a deputy here.
+**The gate is set at 600 minutes**, about seven full matches. The
+threshold is one constant, `PRESEASON_MIN_MINUTES` in `model.py`; here is
+what the alternatives cost, so it can be moved knowingly:
+
+| Gate | Rated | GK | DEF | MID | FWD | Notes |
+|---|---|---|---|---|---|---|
+| none (recency only) | 284 | 31 | 113 | 118 | 22 | 31 keepers for 20 jobs — the problem |
+| **600 (current)** | **253** | **21** | **98** | **114** | **20** | keeps Isak (694′) and Osula (805′); readmits two clear deputy keepers |
+| 900 | 237 | 19 | 94 | 106 | 18 | every rated keeper a genuine first choice |
+| 1200 | 210 | 19 | 81 | 95 | 15 | closest to one squad per club, but drops Schär (1089′) and de Ligt (1170′) |
+
+The trade-off runs in both directions. **1200** lines up best with the
+number of actual jobs, but cuts two of the low-owned, heavily-played
+defenders the Crowd factor exists to surface. **600** keeps every injured
+regular — Isak, Osula, Branthwaite, Ben White all return — at the cost of
+readmitting two unambiguous deputies, **Mamardashvili** (867′, behind
+Alisson) and **Kinský** (630′, behind Vicario), each of whom collects 4★.
+Both carry a Crowd star for being unowned, which is the pattern the margin
+rule was added to suppress; at 600 the gate no longer removes them.
+
+Everyone the gate does drop is listed by name on the page, since an injured
+regular looks identical to a deputy here.
 
 **Name matching.** The listing arrives lowercased (`david_raya martín`);
 `display_name` restores the casing for display, keeping particles lowercase

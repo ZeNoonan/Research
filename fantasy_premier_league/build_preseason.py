@@ -294,7 +294,7 @@ They are not bad picks — they are the ones you have to judge by eye.</p>
 <div class="tablewrap"><table>{factor_rows}</table></div>
 <p class="note"><b>Eligibility gate:</b> at least
 <b>{model.PRESEASON_MIN_MINUTES:.0f} minutes</b> played in
-{esc(history_season)} — about ten full matches — <i>and</i> 45+ minutes
+{esc(history_season)} — about seven full matches — <i>and</i> 45+ minutes
 averaged over the last {model.MINUTES_WINDOW} matches he played. The
 absolute threshold is the one doing the work: a recency test alone
 conditions on matches actually played, so a keeper who started five games
