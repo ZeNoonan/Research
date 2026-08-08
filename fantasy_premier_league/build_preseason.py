@@ -49,12 +49,12 @@ FACTOR_ROWS = [
      "their returns, defenders and keepers who conceded more than their "
      "xGC."),
     ("C", "Crowd", "Quality percentile exceeding ownership percentile <b>by "
-     "at least 20 points</b> — the field is materially underweight, not just "
-     "fractionally. Pre-season ownership below about 2% is undifferentiated "
-     "(0.0% against 0.2% says nothing about conviction), so a bare gap "
-     "manufactures precision that isn't there. This is the one "
-     "<b>current</b> input on the board: who managers are piling into right "
-     "now, before a ball is kicked."),
+     f"at least {model.PRESEASON_CROWD_MARGIN:.0f} points</b> — the field is "
+     "materially underweight, not just fractionally. Pre-season ownership "
+     "below about 2% is undifferentiated (0.0% against 0.2% says nothing "
+     "about conviction), so a bare gap manufactures precision that isn't "
+     "there. This is the one <b>current</b> input on the board: who managers "
+     "are piling into right now, before a ball is kicked."),
 ]
 
 
@@ -277,7 +277,8 @@ to their quality. It is the one factor here that knows what month it is,
 and it cuts the other way too: low ownership often encodes what the crowd
 knows and last season's data cannot see — who is second choice, who has
 been signed over, who limped out of a friendly. That is why it demands a
-<b>20-percentile-point</b> margin rather than any gap, and why only players
+<b>{model.PRESEASON_CROWD_MARGIN:.0f}-percentile-point</b> margin rather
+than any gap, and why only players
 who actually played last season can earn it.</p>
 <p class="note">This board rates the <b>{model.PRESEASON_MIN_MINUTES:.0f}+
 minute</b> players of last season, which is a deliberately blunt
