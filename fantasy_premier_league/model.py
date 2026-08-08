@@ -100,7 +100,7 @@ PRIOR_MINUTES = 450.0     # shrinkage prior for per-90 rates (5 full matches)
 # ``rate_players(..., preseason=True)`` and never touch the in-season path.
 TEAM_MINUTES = 38 * 90        # a full season for one outfield place
 PRESEASON_MIN_MINUTES = 600.0  # absolute participation gate (see README)
-PRESEASON_CROWD_MARGIN = 10.0  # percentile points quality must beat ownership by
+PRESEASON_CROWD_MARGIN = 5.0   # percentile points quality must beat ownership by
 
 FACTORS = ("quality", "value", "form", "minutes_factor", "justice", "crowd")
 FACTOR_LETTERS = {"quality": "Q", "value": "V", "form": "F",
