@@ -29,23 +29,32 @@ FACTOR_ROWS = [
      "position median. Rates are shrunk toward the position average by "
      "sample size, so a big number off a handful of substitute appearances "
      "last season doesn't outrank a full campaign."),
-    ("V", "Value", "Expected points per 90 per £million <b>at the new "
-     "price</b>. This is the factor the new price list actually moves: a "
-     "player repriced down whose numbers held is the pre-season bargain."),
+    ("V", "Value", "Expected points per 90 <b>above what his price "
+     "predicts</b>. Within each position the model fits a straight line of "
+     "expected points against price; Value ranks the residual, and stars the "
+     "top half. Dividing points by price — the obvious move — barely "
+     "reorders a position, because price varies about 2× while production "
+     "varies about 6×, so it just re-states Quality. The residual asks the "
+     "question Value is for: who beats his price tag."),
     ("F", "Form", "Points over the <b>last 5 matches he actually played</b> "
      "last season (needs 5 appearances). The weakest signal here — three "
      "months stale, and a summer of transfers in between."),
-    ("M", "Minutes", "Average minutes over the <b>last 5 matches he actually "
-     "played</b> last season (needs 5 appearances), at or above the position "
-     "median — the nailed-on starters."),
+    ("M", "Minutes", "Minutes played last season as a <b>share of the full "
+     "3,420</b> available, at or above the position median — who was on the "
+     "pitch, not who happened to play 90 minutes on the days he was picked. "
+     "(Averaging the minutes of matches he played cannot tell a five-game "
+     "starter from a thirty-eight-game one.)"),
     ("J", "Justice", "Under-rewarded over the <b>last 6 matches he actually "
      "played</b> last season (needs 6 appearances): attackers whose xGI beat "
      "their returns, defenders and keepers who conceded more than their "
      "xGC."),
-    ("C", "Crowd", "Ownership percentile below quality percentile within the "
-     "position — the field is underweight. Pre-season this is the "
-     "<b>current</b> crowd: who managers are actually piling into right now, "
-     "before a ball is kicked."),
+    ("C", "Crowd", "Quality percentile exceeding ownership percentile <b>by "
+     "at least 20 points</b> — the field is materially underweight, not just "
+     "fractionally. Pre-season ownership below about 2% is undifferentiated "
+     "(0.0% against 0.2% says nothing about conviction), so a bare gap "
+     "manufactures precision that isn't there. This is the one "
+     "<b>current</b> input on the board: who managers are piling into right "
+     "now, before a ball is kicked."),
 ]
 
 
@@ -87,12 +96,12 @@ def leaderboards_html(rated) -> str:
     """Per-factor sorted leaderboards with the cut line, pre-season factors."""
     elig = rated[rated["eligible"]].copy()
     elig["ppm"] = elig["xpts90"] / elig["price"]
-    # Same percentile construction as the Crowd factor in model.rate_players.
+    # The two percentiles behind crowd_margin, for display. (Their difference
+    # reproduces the margin the model scored; asserted in build().)
     for pos in model.POSITIONS:
         grp = elig["position"] == pos
         elig.loc[grp, "xpts90_pct"] = elig.loc[grp, "xpts90"].rank(pct=True) * 100
         elig.loc[grp, "selected_pct"] = elig.loc[grp, "selected"].rank(pct=True) * 100
-    elig["crowd_gap"] = elig["xpts90_pct"] - elig["selected_pct"]
 
     def med(block, col, fmt):
         return format(block[col].median(), fmt)
@@ -102,11 +111,14 @@ def leaderboards_html(rated) -> str:
          [("xPts/90", lambda r: f"{r.xpts90:.2f}")],
          lambda b: f"median xPts/90 = {med(b, 'xpts90', '.2f')} — "
                    "star above this line"),
-        ("value", "V", "Value — sorted by xPts/90 per £million (new prices)",
-         "ppm",
+        ("value", "V",
+         "Value — sorted by expected points above what the price predicts",
+         "value_resid",
          [("Price", lambda r: f"£{r.price:.1f}m"),
-          ("xPts/90 per £m", lambda r: f"{r.ppm:.3f}")],
-         lambda b: f"median = {med(b, 'ppm', '.3f')} per £m — "
+          ("xPts/90", lambda r: f"{r.xpts90:.2f}"),
+          ("Price predicts", lambda r: f"{r.xpts90 - r.value_resid:.2f}"),
+          ("Residual", lambda r: f"{r.value_resid:+.2f}")],
+         lambda b: f"median residual = {med(b, 'value_resid', '+.2f')} — "
                    "star above this line"),
         ("form", "F", "Form — sorted by points over the last 5 matches played",
          "form_points",
@@ -114,11 +126,12 @@ def leaderboards_html(rated) -> str:
          lambda b: f"median = {med(b, 'form_points', '.0f')} points — "
                    "star above this line"),
         ("minutes_factor", "M",
-         "Minutes — sorted by average minutes over the last 5 matches played",
-         "minutes_avg",
-         [("Avg mins", lambda r: f"{r.minutes_avg:.1f}")],
-         lambda b: f"median = {med(b, 'minutes_avg', '.1f')} minutes — "
-                   "star at or above this line"),
+         "Minutes — sorted by share of the season's 3,420 minutes played",
+         "minutes_share",
+         [("Minutes", lambda r: f"{r.minutes:.0f}"),
+          ("Share of season", lambda r: f"{r.minutes_share * 100:.0f}%")],
+         lambda b: f"median = {b['minutes_share'].median() * 100:.0f}% of the "
+                   "season — star at or above this line"),
         ("justice", "J",
          "Justice — sorted by luck margin over the last 6 matches played",
          "justice_margin",
@@ -126,13 +139,13 @@ def leaderboards_html(rated) -> str:
          lambda b: "zero — star above this line (positive margin = "
                    "under-rewarded)"),
         ("crowd", "C", "Crowd — sorted by quality minus ownership percentile",
-         "crowd_gap",
+         "crowd_margin",
          [("Owned", lambda r: f"{r.owned_pct:.1f}%"),
           ("Quality pct", lambda r: f"{r.xpts90_pct:.0f}"),
           ("Owned pct", lambda r: f"{r.selected_pct:.0f}"),
-          ("Gap", lambda r: f"{r.crowd_gap:+.0f}")],
-         lambda b: "zero gap — star above this line (quality ahead of "
-                   "ownership)"),
+          ("Margin", lambda r: f"{r.crowd_margin:+.0f}")],
+         lambda b: f"margin of {model.PRESEASON_CROWD_MARGIN:.0f} points — "
+                   "star at or above this line"),
     ]
 
     out = ["<section id='leaderboards'><h2>Factor leaderboards — "
@@ -203,6 +216,19 @@ def build(listing_path: Path, history_dir: Path, out: Path,
         f"<tr><td>{esc(team)}</td><td class='num'>{n}</td></tr>"
         for team, n in by_team.items())
 
+    # Matched to a record, cleared the recency check, but under the absolute
+    # minutes bar. These are the players the new gate specifically costs, so
+    # name them rather than letting them vanish.
+    gated = rated[~rated["eligible"]
+                  & (rated["gate_minutes"] >= model.MINUTES_PER_GW)].copy()
+    gated = gated.sort_values("minutes", ascending=False)
+    gated_rows = "".join(
+        f"<tr><td>{esc(r.name)}</td><td>{esc(r.position)}</td>"
+        f"<td>{esc(r.team)}</td><td class='num'>{r.minutes:.0f}</td>"
+        f"<td class='num'>{r.appearances:.0f}</td>"
+        f"<td class='num'>{r.owned_pct:.1f}%</td></tr>"
+        for r in gated.itertuples())
+
     factor_rows = "".join(
         f"<tr><td><span class='letters'>{l}</span></td><td><b>{n}</b></td>"
         f"<td style='white-space:normal'>{d}</td></tr>"
@@ -246,8 +272,19 @@ do well — it prices last season's underlying performance against
 <b>this season's money</b>, and it says who was actually playing.</p>
 <p class="note">One input <i>is</i> current: <b>ownership</b>. The Crowd
 factor reads today's squads — who managers are piling into before a ball is
-kicked — and stars the players the field is underweight on relative to their
-quality. It is the one factor here that knows what month it is.</p>
+kicked — and stars players the field is materially underweight on relative
+to their quality. It is the one factor here that knows what month it is,
+and it cuts the other way too: low ownership often encodes what the crowd
+knows and last season's data cannot see — who is second choice, who has
+been signed over, who limped out of a friendly. That is why it demands a
+<b>20-percentile-point</b> margin rather than any gap, and why only players
+who actually played last season can earn it.</p>
+<p class="note">This board rates the <b>{model.PRESEASON_MIN_MINUTES:.0f}+
+minute</b> players of last season, which is a deliberately blunt
+instrument: it keeps a squad's worth of real starters per club and drops
+the deputies, but it also drops a genuine regular whose season was cut
+short by injury. Anyone it drops appears in the unrated list at the foot of
+the page rather than being hidden.</p>
 <p class="note">The players it cannot rate at all are listed at the bottom:
 promoted-club squads and signings from abroad have no Premier League record.
 They are not bad picks — they are the ones you have to judge by eye.</p>
@@ -255,15 +292,24 @@ They are not bad picks — they are the ones you have to judge by eye.</p>
 
 <section><h2>The {n_factors} pre-season factors</h2>
 <div class="tablewrap"><table>{factor_rows}</table></div>
-<p class="note">Eligibility gate: 45+ minutes averaged over the last 4
-matches he actually played last season.
+<p class="note"><b>Eligibility gate:</b> at least
+<b>{model.PRESEASON_MIN_MINUTES:.0f} minutes</b> played in
+{esc(history_season)} — about ten full matches — <i>and</i> 45+ minutes
+averaged over the last {model.MINUTES_WINDOW} matches he played. The
+absolute threshold is the one doing the work: a recency test alone
+conditions on matches actually played, so a keeper who started five games
+passed it exactly as one who started thirty-eight.
 <a href="#leaderboards">Full sorted leaderboards ↓</a></p></section>
 
 {''.join(sections)}
 
 <section><h2>Best points per pound</h2>
-<p class="note">Model expected points per 90 divided by the new price —
-the Value factor's raw yardstick, across all positions.</p>
+<p class="note">Model expected points per 90 divided by the new price,
+across all positions. A standalone lens, <b>not</b> the Value factor's
+yardstick — Value ranks the residual against a fitted price curve within a
+position, because raw points-per-pound mostly re-states Quality. This table
+is the blunt version, useful when the squad budget is the binding
+constraint.</p>
 <div class="tablewrap"><table>
 <tr><th>Player</th><th>Pos</th><th>Team</th><th class="num">Price</th>
 <th class="num">Owned</th><th class="num">xPts/90</th>
@@ -271,6 +317,17 @@ the Value factor's raw yardstick, across all positions.</p>
 {value_rows}</table></div></section>
 
 {leaderboards_html(rated)}
+
+<section><h2>Not rated — under the minutes bar</h2>
+<p class="note">{len(gated)} players hold a {esc(history_season)} record and
+play a full part when picked, but fall short of
+{model.PRESEASON_MIN_MINUTES:.0f} minutes for the season. Most are
+deputies. Some are not — a regular whose season ended early looks identical
+here, so this list is worth reading rather than skipping.</p>
+<div class="tablewrap"><table>
+<tr><th>Player</th><th>Pos</th><th>Team</th><th class="num">Minutes</th>
+<th class="num">Apps</th><th class="num">Owned</th></tr>
+{gated_rows}</table></div></section>
 
 <section><h2>Not rated — no Premier League record</h2>
 <p class="note">{len(unrated)} listed players have no {esc(history_season)}

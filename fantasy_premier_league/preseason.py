@@ -245,8 +245,14 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
     matched["last_price"] = hist.loc[idx, "price"].to_numpy()
     matched["price_change"] = matched["price"] - matched["last_price"]
 
-    # The in-season gate, on last season's appearances.
-    matched["eligible"] = matched["gate_minutes"] >= model.MINUTES_PER_GW
+    # Pre-season gate: an absolute participation threshold, with the
+    # in-season recency check kept as a secondary condition. The recency
+    # check alone conditions on matches actually played, so a keeper who
+    # started five games passed it exactly as one who started thirty-eight -
+    # which is how 31 keepers were rated for 20 jobs.
+    matched["eligible"] = (
+        (matched["minutes"] >= model.PRESEASON_MIN_MINUTES)
+        & (matched["gate_minutes"] >= model.MINUTES_PER_GW))
 
     # With pre-season ownership in hand the Crowd factor scores exactly as
     # in-season: it ranks on ownership, and a percentage ranks identically
@@ -256,7 +262,7 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
     if ownership:
         matched["selected"] = matched["owned_pct"]
 
-    rated = model.rate_players(matched)
+    rated = model.rate_players(matched, preseason=True)
     factors = model.FACTORS if ownership else PRESEASON_FACTORS
     if not ownership:
         rated["crowd"] = 0

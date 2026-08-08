@@ -142,6 +142,19 @@ every player **at the new price**; `build_preseason.py` writes
 python build_preseason.py    # -> preseason.html
 ```
 
+### Where the pre-season board deliberately differs from in-season
+
+Three factors and the gate use different yardsticks pre-season. The
+in-season path is untouched — `model.rate_players(..., preseason=True)`
+branches, and in-season `index.html` is byte-identical across the change.
+
+| | In-season | Pre-season | Why |
+|---|---|---|---|
+| **Gate** | 45+ min averaged over last 4 appearances | **≥ 900 total minutes** *and* the 45-min check | Conditioning only on matches played let a keeper who started 5 games pass exactly as one who started 38 — 31 keepers rated for 20 jobs. Now 19. |
+| **Value** | xPts/90 ÷ price | **residual** of xPts/90 regressed on price, above the median residual | Price varies ~2× within a position while production varies ~6×, so dividing barely reorders: V was Quality restated. Defenders shared 48 of 56 Q-stars with V; now 34 of 47. |
+| **Minutes** | avg minutes over last 5 appearances | **share of the season's 3,420** | The average cannot tell a 5-game starter from a 38-game one. |
+| **Crowd** | ownership percentile below quality percentile | quality percentile **≥ 20 points** above ownership, and ≥ 900 minutes | Ownership under ~2% is undifferentiated, so ranking inside that band invents precision. It was handing stars to backup keepers for being unowned. |
+
 Because ownership is available, pre-season ratings use the **full 6
 factors**, same as in-season. Ownership is also the one *current* input on
 the board: Quality, Value, Form, Minutes and Justice all describe last
@@ -160,8 +173,20 @@ carries the player's ownership and his price move against last season's
 close.
 
 The Crowd factor visibly changes the board: Haaland (75% owned) rates 3★
-rather than 6★ despite the best underlying numbers of any forward, while
-1.8%-owned William Osula reaches 5★ — bet-against-beta doing its job.
+rather than 6★ despite the best underlying numbers of any forward —
+bet-against-beta doing its job.
+
+**Why the gate is 900 minutes and not 1200.** 1200 lines up more neatly
+with the number of jobs (81 defenders for ~80 places against 94 at 900),
+but it drops **Fabian Schär (1089′) and Matthijs de Ligt (1170′)** from the
+board entirely — both genuine regulars whose seasons were interrupted, and
+both exactly the low-owned, heavily-played defenders the Crowd factor
+exists to surface. 900 keeps them, and solves the problem that motivated
+the gate just as completely: keepers fall 31 → 19 at either threshold,
+because the goalkeeper distribution has a natural cliff between 1440 and
+867 minutes. The cost is ~13 extra defenders and ~11 extra midfielders on
+the board. Everyone the gate does drop is listed by name on the page, since
+an injured regular looks identical to a deputy here.
 
 **Name matching.** The listing arrives lowercased (`david_raya martín`);
 `display_name` restores the casing for display, keeping particles lowercase

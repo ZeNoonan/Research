@@ -92,6 +92,16 @@ MINUTES_FACTOR_WINDOW = 5  # played matches behind the Minutes factor
 MINUTES_PER_GW = 45.0
 PRIOR_MINUTES = 450.0     # shrinkage prior for per-90 rates (5 full matches)
 
+# --- pre-season-only parameters ----------------------------------------------
+# The in-season model rates a live season, where the appearance-based gate and
+# windows are what keep an injured regular visible. A pre-season board is a
+# different problem: the whole of last season is in, nobody is "currently"
+# anything, and the question is who actually played. These apply only when
+# ``rate_players(..., preseason=True)`` and never touch the in-season path.
+TEAM_MINUTES = 38 * 90        # a full season for one outfield place
+PRESEASON_MIN_MINUTES = 900.0  # absolute participation gate (see README)
+PRESEASON_CROWD_MARGIN = 20.0  # percentile points quality must beat ownership by
+
 FACTORS = ("quality", "value", "form", "minutes_factor", "justice", "crowd")
 FACTOR_LETTERS = {"quality": "Q", "value": "V", "form": "F",
                   "minutes_factor": "M", "justice": "J", "crowd": "C"}
@@ -254,22 +264,61 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     return out.reset_index()
 
 
-def rate_players(players: pd.DataFrame) -> pd.DataFrame:
-    """Score the six factors and the star rating for every eligible player."""
+def price_residual(xpts90: pd.Series, price: pd.Series) -> tuple:
+    """OLS of expected points on price; return (residuals, slope, r2).
+
+    Dividing points by price barely reorders a position, because price
+    varies far less than production does (defenders: 2.0x against 6.3x), so
+    points-per-pound is very nearly points again. Regressing on price and
+    ranking the *residual* asks the question value is meant to ask - who
+    beats what his price predicts - and is orthogonal to quality by
+    construction.
+    """
+    x, y = price.astype(float), xpts90.astype(float)
+    var = ((x - x.mean()) ** 2).sum()
+    if var == 0:                      # one price in the whole position
+        return y - y.mean(), 0.0, 0.0
+    slope = ((x - x.mean()) * (y - y.mean())).sum() / var
+    resid = y - (y.mean() + slope * (x - x.mean()))
+    ss_tot = ((y - y.mean()) ** 2).sum()
+    r2 = 1 - (resid ** 2).sum() / ss_tot if ss_tot else 0.0
+    return resid, slope, r2
+
+
+def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame:
+    """Score the six factors and the star rating for every eligible player.
+
+    ``preseason=True`` switches three factors onto yardsticks that suit a
+    board built from a finished season (see the constants above); the
+    in-season path is untouched by it.
+    """
     out = players.copy()
     for f in FACTORS:
         out[f] = 0
     out["stars"] = 0
+    if preseason:
+        out["value_resid"] = float("nan")
+        out["minutes_share"] = float("nan")
+        out["crowd_margin"] = float("nan")
+        fits = {}
 
     for pos in POSITIONS:
         grp = out["eligible"] & (out["position"] == pos)
         if not grp.any():
             continue
         g = out.loc[grp]
-        ppm = g["xpts90"] / g["price"]
 
         out.loc[grp, "quality"] = (g["xpts90"] > g["xpts90"].median()).astype(int)
-        out.loc[grp, "value"] = (ppm > ppm.median()).astype(int)
+
+        if preseason:
+            # Value: beat the price curve, not the field.
+            resid, slope, r2 = price_residual(g["xpts90"], g["price"])
+            fits[pos] = (slope, r2, len(g))
+            out.loc[grp, "value_resid"] = resid
+            out.loc[grp, "value"] = (resid > resid.median()).astype(int)
+        else:
+            ppm = g["xpts90"] / g["price"]
+            out.loc[grp, "value"] = (ppm > ppm.median()).astype(int)
 
         # Appearance-window factors: only players with a full sample are
         # considered, and only they set the median.
@@ -279,15 +328,23 @@ def rate_players(players: pd.DataFrame) -> pd.DataFrame:
             out.loc[form, "form"] = (out.loc[form, "form_points"]
                                      > median).astype(int)
 
-        # At-or-above for this factor only: whole positions (keepers above
-        # all) sit at exactly 90 minutes, and a player averaging the
-        # position's typical full-match load is precisely what "nailed"
-        # means - a strict rule would star no goalkeeper at all.
-        mins = grp & out["minutes_factor_ok"]
-        if mins.any():
-            median = out.loc[mins, "minutes_avg"].median()
-            out.loc[mins, "minutes_factor"] = (out.loc[mins, "minutes_avg"]
-                                               >= median).astype(int)
+        if preseason:
+            # Minutes: share of a full season's minutes. Averaging the
+            # minutes of matches he played cannot tell a 5-game starter from
+            # a 38-game one; a share of the season can.
+            share = g["minutes"] / TEAM_MINUTES
+            out.loc[grp, "minutes_share"] = share
+            out.loc[grp, "minutes_factor"] = (share >= share.median()).astype(int)
+        else:
+            # At-or-above for this factor only: whole positions (keepers
+            # above all) sit at exactly 90 minutes, and a player averaging
+            # the position's typical full-match load is precisely what
+            # "nailed" means - a strict rule would star no goalkeeper at all.
+            mins = grp & out["minutes_factor_ok"]
+            if mins.any():
+                median = out.loc[mins, "minutes_avg"].median()
+                out.loc[mins, "minutes_factor"] = (out.loc[mins, "minutes_avg"]
+                                                   >= median).astype(int)
 
         # Justice is measured against zero, not a median, but still needs a
         # full window to mean anything.
@@ -296,7 +353,18 @@ def rate_players(players: pd.DataFrame) -> pd.DataFrame:
 
         quality_pct = g["xpts90"].rank(pct=True)
         owned_pct = g["selected"].rank(pct=True)
-        out.loc[grp, "crowd"] = (owned_pct < quality_pct).astype(int)
+        if preseason:
+            # Pre-season ownership below a couple of percent is
+            # undifferentiated - 0.0 against 0.2 says nothing about
+            # conviction - so require a real margin rather than any gap, and
+            # only from players who actually played last season.
+            margin = (quality_pct - owned_pct) * 100
+            out.loc[grp, "crowd_margin"] = margin
+            played = out.loc[grp, "minutes"] >= PRESEASON_MIN_MINUTES
+            out.loc[grp, "crowd"] = ((margin >= PRESEASON_CROWD_MARGIN)
+                                     & played).astype(int)
+        else:
+            out.loc[grp, "crowd"] = (owned_pct < quality_pct).astype(int)
 
     out["stars"] = out[list(FACTORS)].sum(axis=1)
     out["factor_letters"] = [
@@ -305,11 +373,15 @@ def rate_players(players: pd.DataFrame) -> pd.DataFrame:
     # How many factors could be scored at all: 6 for a player with a full
     # sample, fewer for one short of an appearance window. Lets a report say
     # "3 of 4 assessed" rather than implying two factors were failed.
+    # Pre-season, Minutes is a share of the season and needs no appearance
+    # window, so only Form and Justice can be unassessable.
+    windowed = ["form_ok", "justice_ok"] if preseason else [
+        "form_ok", "minutes_factor_ok", "justice_ok"]
     out["factors_assessed"] = (
-        len(FACTORS) - 3
-        + out["form_ok"].astype(int)
-        + out["minutes_factor_ok"].astype(int)
-        + out["justice_ok"].astype(int))
+        len(FACTORS) - len(windowed)
+        + sum(out[c].astype(int) for c in windowed))
+    if preseason:
+        out.attrs["price_fits"] = fits
     return out
 
 
