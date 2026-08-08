@@ -153,7 +153,7 @@ branches, and in-season `index.html` is byte-identical across the change.
 | **Gate** | 45+ min averaged over last 4 appearances | **≥ 600 total minutes** *and* the 45-min check | Conditioning only on matches played let a keeper who started 5 games pass exactly as one who started 38 — 31 keepers rated for 20 jobs. Now 21. |
 | **Value** | xPts/90 ÷ price | **residual** of xPts/90 regressed on price, above the median residual | Price varies ~2× within a position while production varies ~6×, so dividing barely reorders: V was Quality restated. Defenders shared 48 of 56 Q-stars with V; now 34 of 47. |
 | **Minutes** | avg minutes over last 5 appearances | **share of the season's 3,420** | The average cannot tell a 5-game starter from a 38-game one. |
-| **Crowd** | ownership percentile below quality percentile | quality percentile **≥ 20 points** above ownership, and past the minutes gate | Ownership under ~2% is undifferentiated, so ranking inside that band invents precision. It was handing stars to backup keepers for being unowned. |
+| **Crowd** | ownership percentile below quality percentile | quality percentile **≥ 10 points** above ownership, and past the minutes gate | Ownership under ~2% is undifferentiated, so ranking inside that band invents precision. It was handing stars to backup keepers for being unowned. |
 
 Because ownership is available, pre-season ratings use the **full 6
 factors**, same as in-season. Ownership is also the one *current* input on
@@ -175,6 +175,23 @@ close.
 The Crowd factor visibly changes the board: Haaland (75% owned) rates 3★
 rather than 6★ despite the best underlying numbers of any forward —
 bet-against-beta doing its job.
+
+**The Crowd margin is 10 percentile points** (`PRESEASON_CROWD_MARGIN`).
+What each setting yields on the current board:
+
+| Margin | C stars | GK | DEF | MID | FWD |
+|---|---|---|---|---|---|
+| 0 (any gap) | 128 | 11 | 47 | 58 | 12 |
+| **10 (current)** | **86** | **4** | **36** | **40** | **6** |
+| 20 | 66 | 4 | 30 | 28 | 4 |
+| 30 | 43 | 3 | 22 | 16 | 2 |
+
+The keeper count is flat between 10 and 20 — the deputies that motivated
+the rule sit well below either — so relaxing to 10 costs nothing there. It
+adds 20 outfielders, of whom the marginal cases are genuinely marginal:
+Tyrone Mings at +19 and Callum Hudson-Odoi at +20 are one point from the
+old cut, while Enzo Fernández (5.5% owned, +17) and Igor Thiago (15.9%,
++15) are the first players to earn C without being especially unfancied.
 
 **The gate is set at 600 minutes**, about seven full matches. The
 threshold is one constant, `PRESEASON_MIN_MINUTES` in `model.py`; here is
