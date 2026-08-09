@@ -176,6 +176,93 @@ The Crowd factor visibly changes the board: Haaland (75% owned) rates 3★
 rather than 6★ despite the best underlying numbers of any forward —
 bet-against-beta doing its job.
 
+### The Crowd price check, and why it is not live
+
+`crowd_price_check()` in `model.py` rebuilds Crowd on the structure of the
+[`march_madness/`](../march_madness/) **Value** factor: a price check
+against a baseline, rather than a gap test. It is implemented, derived and
+numerically verified — and it is **switched off** (`CROWD_MODE = "margin"`)
+because it fails its own acceptance list. Setting `CROWD_MODE =
+"price_check"` turns it on; read this first.
+
+**The structure.** Group = position × £1.0m price band (bands under 6
+players merged upward; the top band merges downward). Baseline is the
+**favourite**, the highest expected points μ in the group. Deviating costs
+expected points and buys variance against the field:
+
+```
+μᵢ    = xPts/90 × minutes share        (points per gameweek)
+σᵢ    = SD of his 2025/26 gameweek points, over gameweeks he appeared
+fᵢ    = ownership as a probability a rival's squad contains him
+ΔEV   = μᵢ − μ₀
+ΔVar  = σᵢ²(1 − 2fᵢ) − σ₀²(1 − 2f₀)
+star  ⇔ ΔEV = 0 (he is the favourite, free)  or  ΔVar / ΔEV ≤ −λ,  λ = 1
+```
+
+**The derivation.** With `Y = Zᵢ − Z_rival` and each rival holding player j
+with probability fⱼ: the rival holds *i* himself with probability fᵢ, so
+`Cov(Zᵢ, Z_rival) = fᵢσᵢ²`, giving
+
+```
+Var(Y) = σᵢ² + K − 2fᵢσᵢ² = σᵢ²(1 − 2fᵢ) + K,   K = Σⱼfⱼ(σⱼ² + μⱼ²) − (Σⱼfⱼμⱼ)²
+```
+
+`K` is a group constant and cancels in the difference — **the cancellation
+in the brief is correct**, confirmed both algebraically and by Monte Carlo
+(4M draws, agreement to ±0.03 on Var(Y), Cov and ΔVar, under both the
+"picks exactly one from the group" and "owns each independently" rival
+models). `−2fᵢσᵢ²` is the engine, exactly as `−2pf` is in the bracket.
+
+**Sign convention.** ΔEV is negative for every non-favourite, so dividing
+flips the inequality: the test is `ratio ≤ −λ`, never `ratio ≥ λ`. Testing
+the latter is bug 2 of the published workbook, which fires for picks that
+shed variance faster than they shed EV. The implementation tests
+`ratio <= -lam` and the favourite is starred off a separate
+`is_favourite` flag rather than by dividing by zero.
+
+**Why it is off.** It inverts the acceptance list:
+
+| | margin rule (live) | price check |
+|---|---|---|
+| Danso, Schär, Tete, de Ligt | ✅ keep C | ❌ lose C |
+| Joachim Andersen | ✅ | ✅ |
+| **Karl Darlow** (must lose) | ❌ keeps | ❌ **keeps** |
+| Haaland (must earn) | ❌ | ✅ free star as favourite |
+| C stars | 103 of 253 | 128 of 253 |
+
+The cause is structural, not a mis-set knob. **Every player on the
+must-keep list sits at 0.0–0.2% ownership**, so `(1 − 2fᵢ)` is 0.996–1.000
+for all of them: ownership is inert precisely among the players the factor
+exists to separate. What remains is `σᵢ²` against `σ₀²(1 − 2f₀)` — raw
+volatility versus the favourite's ownership-discounted volatility. So the
+test ranks the differential end of the market by **volatility**, and cannot
+tell "unowned because he is a deputy" from "unowned because the field is
+wrong", since both have f ≈ 0.
+
+Darlow illustrates it exactly. He stars despite σ 2.43 being *below* his
+band favourite Verbruggen's 2.64 — because Verbruggen is 16.7% owned, so
+`(1 − 2×0.167) = 0.666` discounts the favourite's swing to 4.64 against
+Darlow's 5.90. **The favourite's ownership sets the bar**, and a
+well-owned favourite hands a star to nearly every unowned player in the
+band. Danso fails the mirror image: his σ is simply below his favourite's.
+
+This is a property of FPL's ownership distribution, not of the algebra.
+Bracket f is ~0.25 with Σf = 1 across ~4 teams, a first-order term; FPL
+differential f is ~0.001, which is not. All three levers were swept and
+none rescues it:
+
+| Lever | Settings tried | must-keep kept | Darlow |
+|---|---|---|---|
+| λ | 0.5 / 1.0 / 2.0 | 3 / 1 / 1 of 5 | stars at all three |
+| Band width | £0.5m / £1.0m / £2.0m, min-n 4 and 6 | 1 / 1 / 2 of 5 | stars at all |
+| μ definition | season minutes share vs per-appearance | 1 / 1 of 5 | stars at both |
+
+Per the brief — report rather than tune until the list looks right — it is
+left off, with both rules computed side by side (`crowd_marginrule`,
+`crowd_pricecheck`) so the comparison stays inspectable.
+
+### The live rule
+
 **The Crowd margin is 5 percentile points** (`PRESEASON_CROWD_MARGIN`).
 What each setting yields on the current board:
 
