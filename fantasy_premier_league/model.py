@@ -229,12 +229,25 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     out["last_app_round"] = last_seen.reindex(out.index)
     out["gws_since_app"] = latest - out["last_app_round"]
 
-    # Gameweek-to-gameweek spread of a player's points, over the gameweeks he
-    # appeared in. Unused by the in-season factors; it is the sigma in the
-    # pre-season Crowd price check, where variance is what a differential
-    # buys. Needs two appearances to exist at all.
-    out["points_sd"] = (apps.groupby("element")["total_points"]
-                        .std(ddof=1).reindex(out.index))
+    # Gameweek-to-gameweek spread of a player's points. Unused by the
+    # in-season factors; it is the sigma in the pre-season Crowd price check.
+    #
+    # ``points_sd`` is measured over EVERY gameweek in the season, scoring a
+    # non-appearance as 0, because the mu it is divided against
+    # (xpts90 x minutes_share) is a season-basis per-gameweek figure. On the
+    # appearance basis the two have different denominators and a deputy is
+    # credited with a full-time player's volatility. ``points_sd_apps`` keeps
+    # the appearance-basis figure for comparison; the two agree exactly for a
+    # player who appeared in every gameweek.
+    per_round = df.groupby(["element", "round"])["total_points"].sum()
+    n_rounds = len(rounds)
+    tot = per_round.groupby("element").sum()
+    sumsq = (per_round ** 2).groupby("element").sum()
+    mean_all = tot / n_rounds
+    var_all = (sumsq - n_rounds * mean_all ** 2) / (n_rounds - 1)
+    out["points_sd"] = (var_all.clip(lower=0) ** 0.5).reindex(out.index)
+    out["points_sd_apps"] = (apps.groupby("element")["total_points"]
+                             .std(ddof=1).reindex(out.index))
 
     out["xg90"] = [_per90(g, m) for g, m in zip(out["xg"], out["minutes"])]
     out["xa90"] = [_per90(a, m) for a, m in zip(out["xa"], out["minutes"])]
@@ -349,11 +362,17 @@ def crowd_price_check(block: pd.DataFrame, lam: float = CROWD_LAMBDA) -> pd.Data
     field; the star fires only when the variance bought is worth at least
     ``lam`` points² per point of expected score given up.
 
-    With ``Y = Z_i − Z_J`` (my player minus a rival's ownership-weighted
-    pick from the same group, ownership normalised so Σf = 1 inside it):
+    With ``Y = Z_i − Z_rival``, where a rival's squad holds each player j
+    independently with probability ``f_j`` — his **raw** ownership, not a
+    share of the group. The bracket normalises (Σf = 1) because every entry
+    picks exactly one team per slot; FPL has no such constraint, since a
+    manager may hold several players from one position-and-price band or
+    none, and ownership already *is* the probability his squad contains a
+    given player. Normalising would rescale it into a quantity the game
+    does not have.
 
-        Cov(Z_i, Z_J) = f_i σ_i²        (the rival holds i with prob f_i)
-        Var(Y_i) = σ_i²(1 − 2f_i) + K,  K = Σⱼfⱼ(σⱼ² + μⱼ²) − (Σⱼfⱼμⱼ)²
+        Cov(Z_i, Z_rival) = f_i σ_i²    (the rival holds i with prob f_i)
+        Var(Y_i) = σ_i²(1 − 2f_i) + K,  K = Σⱼ[fⱼ(σⱼ² + μⱼ²) − fⱼ²μⱼ²]
 
     ``K`` is a group constant, so it cancels in the difference:
 
@@ -370,13 +389,8 @@ def crowd_price_check(block: pd.DataFrame, lam: float = CROWD_LAMBDA) -> pd.Data
     bug, which fires for picks that shed variance faster than they shed EV.)
     """
     out = block.copy()
-    # f is the raw probability a rival's squad contains this player, not a
-    # share of the group: a manager may own several players from one band or
-    # none. Under "each rival owns j independently with probability f_j" the
-    # same algebra holds - Cov(Z_i, rival) is still f_i σ_i², and the group
-    # term Σⱼ[fⱼ(σⱼ² + μⱼ²) − fⱼ²μⱼ²] still cancels in the difference.
-    f = out["eo"] / 100.0
-    out["f_norm"] = f
+    f = out["eo"] / 100.0        # raw ownership as a probability; see above
+    out["f_raw"] = f
     swing = out["points_sd"] ** 2 * (1 - 2 * f)
 
     fav = out["mu"].idxmax()
@@ -405,7 +419,7 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
     if preseason:
         out["value_resid"] = float("nan")
         out["minutes_share"] = float("nan")
-        for c in ("mu", "eo", "f_norm", "delta_ev", "delta_var", "ratio",
+        for c in ("mu", "eo", "f_raw", "delta_ev", "delta_var", "ratio",
                   "crowd_margin", "crowd_pricecheck"):
             out[c] = float("nan")
         out["price_band"] = ""
@@ -485,7 +499,7 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
                 out.loc[grp, "price"], PRICE_BAND, MIN_BAND_N)
             for band, block in out.loc[grp].groupby("price_band"):
                 scored = crowd_price_check(block, CROWD_LAMBDA)
-                for col in ("f_norm", "is_favourite", "delta_ev", "delta_var",
+                for col in ("f_raw", "is_favourite", "delta_ev", "delta_var",
                             "ratio"):
                     out.loc[scored.index, col] = scored[col]
                 out.loc[scored.index, "crowd_pricecheck"] = scored["crowd"]

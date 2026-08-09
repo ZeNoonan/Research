@@ -199,9 +199,25 @@ fᵢ    = ownership as a probability a rival's squad contains him
 star  ⇔ ΔEV = 0 (he is the favourite, free)  or  ΔVar / ΔEV ≤ −λ,  λ = 1
 ```
 
+**σ is measured on the season basis** — over all 38 gameweeks, scoring a
+non-appearance as 0 — because the μ it is divided against
+(`xPts/90 × minutes_share`) is itself a season-basis per-gameweek figure.
+Measuring σ over appearances only put the two on different denominators and
+credited a deputy with a full-time player's volatility. `points_sd_apps`
+keeps the appearance-basis figure alongside; the two agree exactly for a
+player who featured in every gameweek (Pickford: 3.40 either way).
+
+**f is raw ownership, not a group share.** The bracket normalises so
+Σf = 1 because every entry picks exactly one team per slot; FPL has no such
+constraint — a manager may hold several players from one band or none, and
+ownership already *is* the probability a rival's squad contains a given
+player. Normalising would rescale it into a quantity the game does not
+have. (An earlier docstring claimed normalisation while the code used raw;
+the docstring was wrong and has been corrected.)
+
 **The derivation.** With `Y = Zᵢ − Z_rival` and each rival holding player j
-with probability fⱼ: the rival holds *i* himself with probability fᵢ, so
-`Cov(Zᵢ, Z_rival) = fᵢσᵢ²`, giving
+independently with probability fⱼ: the rival holds *i* himself with
+probability fᵢ, so `Cov(Zᵢ, Z_rival) = fᵢσᵢ²`, giving
 
 ```
 Var(Y) = σᵢ² + K − 2fᵢσᵢ² = σᵢ²(1 − 2fᵢ) + K,   K = Σⱼfⱼ(σⱼ² + μⱼ²) − (Σⱼfⱼμⱼ)²
@@ -228,31 +244,53 @@ shed variance faster than they shed EV. The implementation tests
 | Joachim Andersen | ✅ | ✅ |
 | **Karl Darlow** (must lose) | ❌ keeps | ❌ **keeps** |
 | Haaland (must earn) | ❌ | ✅ free star as favourite |
-| C stars | 103 of 253 | 128 of 253 |
+| C stars | 103 of 253 | 105 of 253 |
 
-The cause is structural, not a mis-set knob. **Every player on the
-must-keep list sits at 0.0–0.2% ownership**, so `(1 − 2fᵢ)` is 0.996–1.000
-for all of them: ownership is inert precisely among the players the factor
-exists to separate. What remains is `σᵢ²` against `σ₀²(1 − 2f₀)` — raw
-volatility versus the favourite's ownership-discounted volatility. So the
-test ranks the differential end of the market by **volatility**, and cannot
-tell "unowned because he is a deputy" from "unowned because the field is
-wrong", since both have f ≈ 0.
+Fixing the σ units mismatch was necessary and is done — it cut the price
+check's C stars from 128 to 105 — but it did **not** rescue the list, and
+it moved the mechanism the *opposite* way from the intent:
 
-Darlow illustrates it exactly. He stars despite σ 2.43 being *below* his
-band favourite Verbruggen's 2.64 — because Verbruggen is 16.7% owned, so
-`(1 − 2×0.167) = 0.666` discounts the favourite's swing to 4.64 against
-Darlow's 5.90. **The favourite's ownership sets the bar**, and a
-well-owned favourite hands a star to nearly every unowned player in the
-band. Danso fails the mirror image: his σ is simply below his favourite's.
+| Player | apps | σ apps → season | ΔVar before → after | ratio after | C |
+|---|---|---|---|---|---|
+| Karl Darlow | 22 | 2.43 → **2.57** | +1.26 → **+1.53** | −2.68 | ⭐ still stars |
+| Bart Verbruggen (his favourite) | 38 | 2.64 → 2.76 | — | — | favourite |
+| Kevin Danso | 24 | 2.50 → 2.35 | −0.98 → −3.66 | +5.02 | ✗ |
+| Matthijs de Ligt | 13 | 2.84 → **2.27** | +0.86 → **−4.02** | +3.52 | ✗ |
 
-This is a property of FPL's ownership distribution, not of the algebra.
+The reason is the algebra of the season basis. For a player appearing a
+fraction *q* of gameweeks with conditional mean *m* and spread *s*:
+
+```
+Var_season = q·s²  +  q(1 − q)·m²
+```
+
+The second term is the on/off swing, and it is **maximised at q = ½**.
+Darlow played 22 of 38 (q = 0.58, almost exactly the maximum), so the
+correction *raises* his σ; de Ligt played 13 of 38 (q = 0.34) and his
+falls. (The identity is a population one — it reproduces the computed
+variance exactly for an ever-present like Pickford and to ±0.1 for Danso
+and de Ligt; small gaps elsewhere are the ddof correction and
+double-gameweeks.) The units fix therefore rewards the half-season deputy and
+penalises the injured regular — precisely the two groups the acceptance
+list wants separated the other way.
+
+The deeper obstacle is unchanged: **every player on the must-keep list
+sits at 0.0–0.2% ownership**, so `(1 − 2fᵢ)` is 0.996–1.000 for all of
+them. Ownership is inert exactly among the players the factor exists to
+separate, and what remains is a volatility ranking. Darlow stars because
+his favourite Verbruggen is 16.7% owned, so `(1 − 2×0.167) = 0.666`
+discounts the favourite's swing below Darlow's — **the favourite's
+ownership sets the bar**, and a well-owned favourite hands a star to
+nearly every unowned player in the band.
+
 Bracket f is ~0.25 with Σf = 1 across ~4 teams, a first-order term; FPL
-differential f is ~0.001, which is not. All three levers were swept and
+differential f is ~0.001, which is not. Every lever has now been swept and
 none rescues it:
 
 | Lever | Settings tried | must-keep kept | Darlow |
 |---|---|---|---|
+| σ basis | appearance vs season (the units fix) | 1 / 1 of 5 | stars at both |
+| f convention | raw vs group-normalised | 1 / 0 of 5 | stars at both |
 | λ | 0.5 / 1.0 / 2.0 | 3 / 1 / 1 of 5 | stars at all three |
 | Band width | £0.5m / £1.0m / £2.0m, min-n 4 and 6 | 1 / 1 / 2 of 5 | stars at all |
 | μ definition | season minutes share vs per-appearance | 1 / 1 of 5 | stars at both |
