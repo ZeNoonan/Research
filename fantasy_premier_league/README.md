@@ -199,13 +199,23 @@ fᵢ    = ownership as a probability a rival's squad contains him
 star  ⇔ ΔEV = 0 (he is the favourite, free)  or  ΔVar / ΔEV ≤ −λ,  λ = 1
 ```
 
-**σ is measured on the season basis** — over all 38 gameweeks, scoring a
-non-appearance as 0 — because the μ it is divided against
-(`xPts/90 × minutes_share`) is itself a season-basis per-gameweek figure.
-Measuring σ over appearances only put the two on different denominators and
-credited a deputy with a full-time player's volatility. `points_sd_apps`
-keeps the appearance-basis figure alongside; the two agree exactly for a
-player who featured in every gameweek (Pickford: 3.40 either way).
+**The variance term is `var_eff = q·s²`** — *q* = appearances ÷ 38, *s* =
+SD over the gameweeks he played. This is the variance a player generates
+**when he is on the pitch**, prorated by how often he was.
+
+A full-season SD (over all 38 gameweeks, scoring a non-appearance 0) works
+out as `q·s² + q(1−q)·m²`. The second term is the on/off swing of being in
+and out of the side — *minutes risk*, which the Minutes factor already
+punishes, and which peaks at q = ½, so it pays a half-season deputy the
+most. A differential should be paid only for variance created on the
+pitch, so that term is dropped. `points_sd` (full-season) and
+`points_sd_apps` (appearance-basis) are both kept as columns for
+comparison; they agree exactly for an ever-present (Pickford: 3.40 either
+way).
+
+Dropping it takes C from **105 to 95**, and it is what makes **Karl Darlow
+lose C** (ratio +2.15): he played 22 of 38, almost exactly the q that the
+on/off term rewarded most.
 
 **f is raw ownership, not a group share.** The bracket normalises so
 Σf = 1 because every entry picks exactly one team per slot; FPL has no such
@@ -236,64 +246,59 @@ shed variance faster than they shed EV. The implementation tests
 `ratio <= -lam` and the favourite is starred off a separate
 `is_favourite` flag rather than by dividing by zero.
 
-**Why it is off.** It inverts the acceptance list:
+**How it is judged.** The earlier five-name "must keep C" list (Danso,
+Schär, Tete, de Ligt, Andersen) has been **withdrawn as a bad test**. Four
+of the five played 24, 16, 22 and 13 gameweeks of 38 and carry **no Minutes
+star**; μ = `xPts/90 × minutes_share` prorates for exactly that, so the
+price check rejects them *correctly*. Only Andersen (33 appearances, M
+star) was a valid entry, and he passes. Earlier releases of this document
+hunted structural explanations for their failure — that was chasing a
+broken yardstick, and those explanations are withdrawn with it.
 
-| | margin rule (live) | price check |
-|---|---|---|
-| Danso, Schär, Tete, de Ligt | ✅ keep C | ❌ lose C |
-| Joachim Andersen | ✅ | ✅ |
-| **Karl Darlow** (must lose) | ❌ keeps | ❌ **keeps** |
-| Haaland (must earn) | ❌ | ✅ free star as favourite |
-| C stars | 103 of 253 | 105 of 253 |
+The factor is judged instead on **discrimination between two populations**:
 
-Fixing the σ units mismatch was necessary and is done — it cut the price
-check's C stars from 128 to 105 — but it did **not** rescue the list, and
-it moved the mechanism the *opposite* way from the intent:
-
-| Player | apps | σ apps → season | ΔVar before → after | ratio after | C |
-|---|---|---|---|---|---|
-| Karl Darlow | 22 | 2.43 → **2.57** | +1.26 → **+1.53** | −2.68 | ⭐ still stars |
-| Bart Verbruggen (his favourite) | 38 | 2.64 → 2.76 | — | — | favourite |
-| Kevin Danso | 24 | 2.50 → 2.35 | −0.98 → −3.66 | +5.02 | ✗ |
-| Matthijs de Ligt | 13 | 2.84 → **2.27** | +0.86 → **−4.02** | +3.52 | ✗ |
-
-The reason is the algebra of the season basis. For a player appearing a
-fraction *q* of gameweeks with conditional mean *m* and spread *s*:
-
-```
-Var_season = q·s²  +  q(1 − q)·m²
-```
-
-The second term is the on/off swing, and it is **maximised at q = ½**.
-Darlow played 22 of 38 (q = 0.58, almost exactly the maximum), so the
-correction *raises* his σ; de Ligt played 13 of 38 (q = 0.34) and his
-falls. (The identity is a population one — it reproduces the computed
-variance exactly for an ever-present like Pickford and to ±0.1 for Danso
-and de Ligt; small gaps elsewhere are the ddof correction and
-double-gameweeks.) The units fix therefore rewards the half-season deputy and
-penalises the injured regular — precisely the two groups the acceptance
-list wants separated the other way.
-
-The deeper obstacle is unchanged: **every player on the must-keep list
-sits at 0.0–0.2% ownership**, so `(1 − 2fᵢ)` is 0.996–1.000 for all of
-them. Ownership is inert exactly among the players the factor exists to
-separate, and what remains is a volatility ranking. Darlow stars because
-his favourite Verbruggen is 16.7% owned, so `(1 − 2×0.167) = 0.666`
-discounts the favourite's swing below Darlow's — **the favourite's
-ownership sets the bar**, and a well-owned favourite hands a star to
-nearly every unowned player in the band.
-
-Bracket f is ~0.25 with Σf = 1 across ~4 teams, a first-order term; FPL
-differential f is ~0.001, which is not. Every lever has now been swept and
-none rescues it:
-
-| Lever | Settings tried | must-keep kept | Darlow |
+| Population | n | keep C, full-season σ | keep C, `q·s²` |
 |---|---|---|---|
-| σ basis | appearance vs season (the units fix) | 1 / 1 of 5 | stars at both |
-| f convention | raw vs group-normalised | 1 / 0 of 5 | stars at both |
-| λ | 0.5 / 1.0 / 2.0 | 3 / 1 / 1 of 5 | stars at all three |
-| Band width | £0.5m / £1.0m / £2.0m, min-n 4 and 6 | 1 / 1 / 2 of 5 | stars at all |
-| μ definition | season minutes share vs per-appearance | 1 / 1 of 5 | stars at both |
+| **Group 1** — nailed on (M star), unowned (EO < 3%), quality (Q star) — *should mostly keep C* | 30 | 63% | **63%** |
+| **Group 2** — no M star, unowned (EO < 3%) — *should mostly lose C* | 104 | 20% | **12%** |
+| C stars, whole board | 253 | 105 | **95** |
+
+Dropping the on/off variance term leaves the signal intact (63%) and halves
+the false-positive rate (20% → 12%). Darlow moves from starring to not;
+Haaland keeps his free star as band favourite. Independently reproduced:
+63.3% / 20.2% before and 63.3% / 11.5% after.
+
+**Why it is still off.** Group 1 at 63% means **more than a third of the
+nailed-on, unowned, high-quality players still miss C**, and Group 2 at 12%
+means one in eight non-starters still collects one. That is better than it
+was, not yet good enough to replace a rule that is doing no harm. The
+remaining error has the same root as before: at EO < 3% the term
+`(1 − 2fᵢ)` is ≈ 1 for everyone, so ownership cannot discriminate inside
+the group the factor exists to serve, and what is left is a volatility
+ranking against the band favourite.
+
+Levers swept; none of these are worth adopting:
+
+| Lever | Settings tried | Result |
+|---|---|---|
+| Variance term | full-season σ² vs **`q·s²`** | **adopted** — G2 20% → 12% |
+| Baseline | highest-μ vs **most-owned** | **rejected** — C 105 → 147, and discrimination *inverts* (G1 40%, G2 57%) |
+| f convention | raw vs group-normalised | raw kept — normalising is strictly worse |
+| λ | 0.5 / 1.0 / 2.0 | unchanged at 1.0, per the paper |
+| Band width | £0.5m / £1.0m / £2.0m, min-n 4 and 6 | unchanged at £1.0m — but see below |
+
+**The £5.0–5.9m defender band holds 50 of the 98 rated defenders against a
+single free-star favourite.** Is £1.0m still defensible? As a *price*
+control, yes — the band spans 5.0–5.5 in practice, a 1.10× spread against
+the position's 2.00×, so it is genuinely comparing like with like on cost.
+As a *comparison group*, no. One free star in 50 is 2% of the band where
+the bracket's slot gives 25%, so the favourite's exemption is nearly
+meaningless; and μ₀ is the maximum of 50 draws rather than 4, which pushes
+the baseline out to the tail (van Hecke at μ 1.69 against a band median of
+1.00) and makes ΔEV systematically more negative for everyone else. The
+band width is not the thing to change — FPL defender prices are simply
+compressed — but the *grouping rule* probably should be equal-count rather
+than equal-width if this factor is ever promoted. Not changed here.
 
 Per the brief — report rather than tune until the list looks right — it is
 left off, with both rules computed side by side (`crowd_marginrule`,

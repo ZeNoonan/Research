@@ -391,7 +391,18 @@ def crowd_price_check(block: pd.DataFrame, lam: float = CROWD_LAMBDA) -> pd.Data
     out = block.copy()
     f = out["eo"] / 100.0        # raw ownership as a probability; see above
     out["f_raw"] = f
-    swing = out["points_sd"] ** 2 * (1 - 2 * f)
+
+    # Variance the player generates WHEN HE PLAYS, prorated by how often he
+    # played: var_eff = q·s², q = appearances/38, s = SD over appearances.
+    #
+    # The full-season SD also carries a q(1−q)m² term - the on/off swing of
+    # being in and out of the side. That is minutes risk, which the Minutes
+    # factor already punishes, and it peaks at q = ½, so it pays a
+    # half-season deputy the most. A differential should be paid only for
+    # the variance a player creates on the pitch. ``points_sd`` keeps the
+    # full-season figure alongside for comparison.
+    out["var_eff"] = out["q_play"] * out["points_sd_apps"] ** 2
+    swing = out["var_eff"] * (1 - 2 * f)
 
     fav = out["mu"].idxmax()
     out["is_favourite"] = out.index == fav
@@ -419,7 +430,8 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
     if preseason:
         out["value_resid"] = float("nan")
         out["minutes_share"] = float("nan")
-        for c in ("mu", "eo", "f_raw", "delta_ev", "delta_var", "ratio",
+        for c in ("mu", "eo", "f_raw", "q_play", "var_eff", "delta_ev",
+                  "delta_var", "ratio",
                   "crowd_margin", "crowd_pricecheck"):
             out[c] = float("nan")
         out["price_band"] = ""
@@ -485,6 +497,7 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
         # changelog can show either; CROWD_MODE picks which one scores.
         out["mu"] = out["xpts90"] * out["minutes_share"]
         out["eo"] = out["selected"]           # effective ownership (see docs)
+        out["q_play"] = out["appearances"] / (TEAM_MINUTES / 90)
         bands = {}
         for pos in POSITIONS:
             grp = out["eligible"] & (out["position"] == pos)
@@ -499,7 +512,7 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
                 out.loc[grp, "price"], PRICE_BAND, MIN_BAND_N)
             for band, block in out.loc[grp].groupby("price_band"):
                 scored = crowd_price_check(block, CROWD_LAMBDA)
-                for col in ("f_raw", "is_favourite", "delta_ev", "delta_var",
+                for col in ("f_raw", "var_eff", "is_favourite", "delta_ev", "delta_var",
                             "ratio"):
                     out.loc[scored.index, col] = scored[col]
                 out.loc[scored.index, "crowd_pricecheck"] = scored["crowd"]
