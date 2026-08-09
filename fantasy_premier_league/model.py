@@ -100,7 +100,17 @@ PRIOR_MINUTES = 450.0     # shrinkage prior for per-90 rates (5 full matches)
 # ``rate_players(..., preseason=True)`` and never touch the in-season path.
 TEAM_MINUTES = 38 * 90        # a full season for one outfield place
 PRESEASON_MIN_MINUTES = 600.0  # absolute participation gate (see README)
-PRESEASON_CROWD_MARGIN = 5.0   # percentile points quality must beat ownership by
+PRESEASON_CROWD_MARGIN = 5.0  # percentile points quality must beat ownership by
+PRICE_BAND = 1.0              # width of a Crowd comparison group, in £m
+MIN_BAND_N = 6                # merge a band holding fewer than this
+CROWD_LAMBDA = 1.0            # points² of variance demanded per point of EV
+
+# Which pre-season Crowd rule is live. "margin" is the percentile-gap test;
+# "price_check" is the Aaron Brown Value structure in crowd_price_check.
+# The price check is implemented and verified but does NOT pass its own
+# acceptance list on 2025/26 data - see the README section "The Crowd price
+# check, and why it is not live" before switching.
+CROWD_MODE = "margin"
 
 FACTORS = ("quality", "value", "form", "minutes_factor", "justice", "crowd")
 FACTOR_LETTERS = {"quality": "Q", "value": "V", "form": "F",
@@ -219,6 +229,26 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     out["last_app_round"] = last_seen.reindex(out.index)
     out["gws_since_app"] = latest - out["last_app_round"]
 
+    # Gameweek-to-gameweek spread of a player's points. Unused by the
+    # in-season factors; it is the sigma in the pre-season Crowd price check.
+    #
+    # ``points_sd`` is measured over EVERY gameweek in the season, scoring a
+    # non-appearance as 0, because the mu it is divided against
+    # (xpts90 x minutes_share) is a season-basis per-gameweek figure. On the
+    # appearance basis the two have different denominators and a deputy is
+    # credited with a full-time player's volatility. ``points_sd_apps`` keeps
+    # the appearance-basis figure for comparison; the two agree exactly for a
+    # player who appeared in every gameweek.
+    per_round = df.groupby(["element", "round"])["total_points"].sum()
+    n_rounds = len(rounds)
+    tot = per_round.groupby("element").sum()
+    sumsq = (per_round ** 2).groupby("element").sum()
+    mean_all = tot / n_rounds
+    var_all = (sumsq - n_rounds * mean_all ** 2) / (n_rounds - 1)
+    out["points_sd"] = (var_all.clip(lower=0) ** 0.5).reindex(out.index)
+    out["points_sd_apps"] = (apps.groupby("element")["total_points"]
+                             .std(ddof=1).reindex(out.index))
+
     out["xg90"] = [_per90(g, m) for g, m in zip(out["xg"], out["minutes"])]
     out["xa90"] = [_per90(a, m) for a, m in zip(out["xa"], out["minutes"])]
     out["xgc90"] = [_per90(c, m) for c, m in zip(out["xgc"], out["minutes"])]
@@ -285,6 +315,96 @@ def price_residual(xpts90: pd.Series, price: pd.Series) -> tuple:
     return resid, slope, r2
 
 
+def merge_bands(prices: pd.Series, width: float = PRICE_BAND,
+                min_n: int = MIN_BAND_N) -> pd.Series:
+    """Assign each price to a band label, merging any band under ``min_n``.
+
+    Bands are ``width``-wide price buckets. A thin band is merged **upward**
+    into the next band above it; the top band has nothing above, so if it is
+    still thin it merges downward. Repeats until every band is big enough or
+    only one remains.
+    """
+    floors = sorted((prices // width * width).unique())
+    groups = [[f] for f in floors]
+
+    changed = True
+    while changed and len(groups) > 1:
+        changed = False
+        sizes = [int(prices.isin([p for p in prices.unique()
+                                  if (p // width * width) in g]).sum())
+                 for g in groups]
+        for k, n in enumerate(sizes):
+            if n >= min_n:
+                continue
+            j = k + 1 if k + 1 < len(groups) else k - 1   # up, else down
+            lo, hi = min(k, j), max(k, j)
+            groups[lo] = groups[lo] + groups[hi]
+            groups.pop(hi)
+            changed = True
+            break
+
+    label = {}
+    for g in groups:
+        lo, hi = min(g), max(g)
+        name = (f"£{lo:.1f}m+" if hi != lo and hi == max(floors)
+                else f"£{lo:.1f}–{hi + width - 0.1:.1f}m" if hi != lo
+                else f"£{lo:.1f}–{lo + width - 0.1:.1f}m")
+        for f in g:
+            label[f] = name
+    return (prices // width * width).map(label)
+
+
+def crowd_price_check(block: pd.DataFrame, lam: float = CROWD_LAMBDA) -> pd.DataFrame:
+    """Aaron Brown's Value test, applied to one comparison group.
+
+    Baseline is the **favourite**: the highest expected points in the group.
+    Deviating from him costs expected points and buys variance against the
+    field; the star fires only when the variance bought is worth at least
+    ``lam`` points² per point of expected score given up.
+
+    With ``Y = Z_i − Z_rival``, where a rival's squad holds each player j
+    independently with probability ``f_j`` — his **raw** ownership, not a
+    share of the group. The bracket normalises (Σf = 1) because every entry
+    picks exactly one team per slot; FPL has no such constraint, since a
+    manager may hold several players from one position-and-price band or
+    none, and ownership already *is* the probability his squad contains a
+    given player. Normalising would rescale it into a quantity the game
+    does not have.
+
+        Cov(Z_i, Z_rival) = f_i σ_i²    (the rival holds i with prob f_i)
+        Var(Y_i) = σ_i²(1 − 2f_i) + K,  K = Σⱼ[fⱼ(σⱼ² + μⱼ²) − fⱼ²μⱼ²]
+
+    ``K`` is a group constant, so it cancels in the difference:
+
+        ΔEV  = μ_i − μ₀
+        ΔVar = σ_i²(1 − 2f_i) − σ₀²(1 − 2f₀)
+
+    ``−2f_i σ_i²`` is the engine, exactly as ``−2pf`` is in the bracket: a
+    volatile player nobody owns creates spread, while a placid unowned one
+    buys nothing and still costs expected points.
+
+    Sign convention: ΔEV is **negative** for every non-favourite, so dividing
+    flips the inequality and the test is ``ratio ≤ −lam``, never
+    ``ratio ≥ lam``. (Testing the latter is the published workbook's second
+    bug, which fires for picks that shed variance faster than they shed EV.)
+    """
+    out = block.copy()
+    f = out["eo"] / 100.0        # raw ownership as a probability; see above
+    out["f_raw"] = f
+    swing = out["points_sd"] ** 2 * (1 - 2 * f)
+
+    fav = out["mu"].idxmax()
+    out["is_favourite"] = out.index == fav
+    out["delta_ev"] = out["mu"] - out.at[fav, "mu"]
+    out["delta_var"] = swing - swing.at[fav]
+    # The favourite's ΔEV is 0; leave his ratio undefined rather than
+    # dividing, and star him on the is_favourite flag instead.
+    ratio = out["delta_var"] / out["delta_ev"].where(out["delta_ev"] != 0)
+    out["ratio"] = ratio
+    out["crowd"] = (out["is_favourite"] | (ratio <= -lam)).astype(int)
+    return out
+
+
 def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame:
     """Score the six factors and the star rating for every eligible player.
 
@@ -299,7 +419,11 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
     if preseason:
         out["value_resid"] = float("nan")
         out["minutes_share"] = float("nan")
-        out["crowd_margin"] = float("nan")
+        for c in ("mu", "eo", "f_raw", "delta_ev", "delta_var", "ratio",
+                  "crowd_margin", "crowd_pricecheck"):
+            out[c] = float("nan")
+        out["price_band"] = ""
+        out["is_favourite"] = False
         fits = {}
 
     for pos in POSITIONS:
@@ -351,20 +475,44 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
         just = grp & out["justice_ok"]
         out.loc[just, "justice"] = (out.loc[just, "justice_margin"] > 0).astype(int)
 
-        quality_pct = g["xpts90"].rank(pct=True)
-        owned_pct = g["selected"].rank(pct=True)
-        if preseason:
-            # Pre-season ownership below a couple of percent is
-            # undifferentiated - 0.0 against 0.2 says nothing about
-            # conviction - so require a real margin rather than any gap, and
-            # only from players who actually played last season.
-            margin = (quality_pct - owned_pct) * 100
-            out.loc[grp, "crowd_margin"] = margin
-            played = out.loc[grp, "minutes"] >= PRESEASON_MIN_MINUTES
-            out.loc[grp, "crowd"] = ((margin >= PRESEASON_CROWD_MARGIN)
-                                     & played).astype(int)
-        else:
+        if not preseason:
+            quality_pct = g["xpts90"].rank(pct=True)
+            owned_pct = g["selected"].rank(pct=True)
             out.loc[grp, "crowd"] = (owned_pct < quality_pct).astype(int)
+
+    if preseason:
+        # Both pre-season Crowd rules are computed so the page and the
+        # changelog can show either; CROWD_MODE picks which one scores.
+        out["mu"] = out["xpts90"] * out["minutes_share"]
+        out["eo"] = out["selected"]           # effective ownership (see docs)
+        bands = {}
+        for pos in POSITIONS:
+            grp = out["eligible"] & (out["position"] == pos)
+            if not grp.any():
+                continue
+            g = out.loc[grp]
+            margin = (g["xpts90"].rank(pct=True)
+                      - g["selected"].rank(pct=True)) * 100
+            out.loc[grp, "crowd_margin"] = margin
+
+            out.loc[grp, "price_band"] = merge_bands(
+                out.loc[grp, "price"], PRICE_BAND, MIN_BAND_N)
+            for band, block in out.loc[grp].groupby("price_band"):
+                scored = crowd_price_check(block, CROWD_LAMBDA)
+                for col in ("f_raw", "is_favourite", "delta_ev", "delta_var",
+                            "ratio"):
+                    out.loc[scored.index, col] = scored[col]
+                out.loc[scored.index, "crowd_pricecheck"] = scored["crowd"]
+                bands[(pos, band)] = len(block)
+
+        out["crowd_pricecheck"] = out["crowd_pricecheck"].fillna(0).astype(int)
+        out["crowd_marginrule"] = (
+            (out["crowd_margin"] >= PRESEASON_CROWD_MARGIN)
+            & out["eligible"]).fillna(False).astype(int)
+        out["crowd"] = (out["crowd_pricecheck"] if CROWD_MODE == "price_check"
+                        else out["crowd_marginrule"])
+        out.attrs["crowd_bands"] = bands
+        out.attrs["crowd_mode"] = CROWD_MODE
 
     out["stars"] = out[list(FACTORS)].sum(axis=1)
     out["factor_letters"] = [
