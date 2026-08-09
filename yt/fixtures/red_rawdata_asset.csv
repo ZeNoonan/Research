@@ -1,0 +1,301 @@
+YouTube red_rawdata asset report - synthetic fixture
+Country,Asset ID,Custom ID,Asset Title,Asset Labels,Partner Revenue
+AU,AID0000000,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode 1,,33.43
+GB,AID0000001,dtnb_ep01_002,Daniel Tiger's Neighborhood Episode 2,,33.02
+AU,AID0000002,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode 3,,24.29
+BR,AID0000003,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode 4,,31.41
+CA,AID0000004,dtnb_ep01_005,Daniel Tiger's Neighborhood Episode 5,,1.65
+DE,AID0000005,dtnb_ep01_006,Daniel Tiger's Neighborhood Episode 6,,33.3
+MX,AID0000006,dtnb_ep01_007,Daniel Tiger's Neighborhood Episode 7,,14.92
+CA,AID0000007,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode 8,,27.33
+IN,AID0000008,dtnb_ep01_009,Daniel Tiger's Neighborhood Episode 9,,35.9
+DE,AID0000009,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode 10,,34.17
+JP,AID0000010,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode 11,,21.97
+AU,AID0000011,dtnb_ep02_002,Daniel Tiger's Neighborhood Episode 12,,8.13
+IN,AID0000012,dtnb_ep02_003,Daniel Tiger's Neighborhood Episode 13,,33.3
+IN,AID0000013,dtnb_ep02_004,Daniel Tiger's Neighborhood Episode 14,,26.31
+GB,AID0000014,dtnb_ep02_005,Daniel Tiger's Neighborhood Episode 15,,16.92
+IN,AID0000015,dtnb_ep02_006,Daniel Tiger's Neighborhood Episode 16,,13.18
+JP,AID0000016,dtnb_ep02_007,Daniel Tiger's Neighborhood Episode 17,,9.95
+FR,AID0000017,dtnb_ep02_008,Daniel Tiger's Neighborhood Episode 18,,39.04
+DE,AID0000018,dtnb_ep02_009,Daniel Tiger's Neighborhood Episode 19,,3.54
+BR,AID0000019,dtnb_ep02_010,Daniel Tiger's Neighborhood Episode 20,,15.62
+FR,AID0000020,dtnb_ep03_001,Daniel Tiger's Neighborhood Episode 21,,7.76
+MX,AID0000021,dtnb_ep03_002,Daniel Tiger's Neighborhood Episode 22,,2.39
+AU,AID0000022,dtnb_ep03_003,Daniel Tiger's Neighborhood Episode 23,,39.9
+AU,AID0000023,dtnb_ep03_004,Daniel Tiger's Neighborhood Episode 24,,29.55
+CA,AID0000024,dtnb_ep03_005,Daniel Tiger's Neighborhood Episode 25,,21.97
+IN,AID0000025,dtnb_ep03_006,Daniel Tiger's Neighborhood Episode 26,,8.81
+JP,AID0000026,dtnb_ep03_007,Daniel Tiger's Neighborhood Episode 27,,37.98
+DE,AID0000027,dtnb_ep03_008,Daniel Tiger's Neighborhood Episode 28,,21.59
+US,AID0000028,dtnb_ep03_009,Daniel Tiger's Neighborhood Episode 29,,34.48
+AU,AID0000029,dtnb_ep03_010,Daniel Tiger's Neighborhood Episode 30,,13.88
+BR,AID0000030,dtnb_badrow_001,Daniel Tiger's Neighborhood Episode 31,,31.61
+GB,AID0000031,dtnb_badrow_002,Daniel Tiger's Neighborhood Episode 32,,10.63
+CA,AID0000032,dtnb_badrow_003,Daniel Tiger's Neighborhood Episode 33,,38.15
+GB,AID0000033,garf_ep_001,Garfield and Friends Episode 34,,10.58
+FR,AID0000034,garf_ep_002,Garfield and Friends Episode 35,,37.54
+DE,AID0000035,garf_ep_003,Garfield and Friends Episode 36,,16.35
+MX,AID0000036,garf_ep_004,Garfield and Friends Episode 37,,27.21
+JP,AID0000037,garf_ep_005,Garfield and Friends Episode 38,,32.93
+GB,AID0000038,garf_ep_006,Garfield and Friends Episode 39,,36.3
+GB,AID0000039,garf_ep_007,Garfield and Friends Episode 40,,27.12
+JP,AID0000040,garf_ep_008,Garfield and Friends Episode 1,,6.18
+DE,AID0000041,garf_ep_009,Garfield and Friends Episode 2,,22.74
+IN,AID0000042,garf_ep_010,Garfield and Friends Episode 3,,3.44
+BR,AID0000043,garf_extra_001,Garfield and Friends Episode 4,,21.63
+US,AID0000044,garf_extra_002,Garfield and Friends Episode 5,,35.73
+AU,AID0000045,garf_extra_003,Garfield and Friends Episode 6,,21.11
+DE,AID0000046,garf_extra_004,Garfield and Friends Episode 7,,1.87
+DE,AID0000047,garf_extra_005,Garfield and Friends Episode 8,,21.97
+DE,AID0000048,garf_film_001,Garfield and Friends Episode 9,,33.67
+JP,AID0000049,garf_film_002,Garfield and Friends Episode 10,,12.61
+US,AID0000050,arth_ep16_001,Arthur Episode 11,,3.16
+JP,AID0000051,arth_ep16_002,Arthur Episode 12,,11.43
+DE,AID0000052,arth_ep16_003,Arthur Episode 13,,11.78
+CA,AID0000053,arth_ep16_004,Arthur Episode 14,,10.04
+GB,AID0000054,arth_ep16_005,Arthur Episode 15,,2.46
+AU,AID0000055,arth_ep17_001,Arthur Episode 16,,4.58
+US,AID0000056,arth_ep17_002,Arthur Episode 17,,2.37
+JP,AID0000057,arth_ep17_003,Arthur Episode 18,,18.7
+JP,AID0000058,arth_ep17_004,Arthur Episode 19,,15.14
+IN,AID0000059,arth_ep17_005,Arthur Episode 20,,3.92
+FR,AID0000060,arth_ep18_001,Arthur Episode 21,,37.78
+MX,AID0000061,arth_ep18_002,Arthur Episode 22,,30.12
+US,AID0000062,arth_ep18_003,Arthur Episode 23,,7.92
+FR,AID0000063,arth_ep18_004,Arthur Episode 24,,7.06
+US,AID0000064,arth_ep18_005,Arthur Episode 25,,18.03
+IN,AID0000065,arth_ep19_001,Arthur Episode 26,,8.81
+BR,AID0000066,arth_ep19_002,Arthur Episode 27,,4.22
+MX,AID0000067,arth_ep19_003,Arthur Episode 28,,26.33
+DE,AID0000068,arth_ep19_004,Arthur Episode 29,,14.21
+IN,AID0000069,arth_ep19_005,Arthur Episode 30,,32.61
+JP,AID0000070,anne_ep_001,Anne with an E Episode 31,,29.99
+MX,AID0000071,anne_ep_002,Anne with an E Episode 32,,16.19
+MX,AID0000072,anne_ep_003,Anne with an E Episode 33,,1.56
+JP,AID0000073,anne_ep_004,Anne with an E Episode 34,,25.6
+GB,AID0000074,anne_ep_005,Anne with an E Episode 35,,2.15
+JP,AID0000075,scmx_ep03_001,Science Max Episode 36,,8.14
+IN,AID0000076,scmx_ep03_002,Science Max Episode 37,,35.4
+GB,AID0000077,scmx_ep03_003,Science Max Episode 38,,34.49
+JP,AID0000078,scmx_ep03_004,Science Max Episode 39,,35.37
+CA,AID0000079,scmx_ep03_005,Science Max Episode 40,,27.04
+CA,AID0000080,scmx_ep05_001,Science Max Episode 1,,17.94
+US,AID0000081,scmx_ep05_002,Science Max Episode 2,,28.72
+CA,AID0000082,scmx_ep05_003,Science Max Episode 3,,33.91
+US,AID0000083,scmx_ep05_004,Science Max Episode 4,,35.61
+AU,AID0000084,scmx_ep05_005,Science Max Episode 5,,13.68
+DE,AID0000085,krma_ep_001,Karma's World Episode 6,,2.39
+US,AID0000086,krma_ep_002,Karma's World Episode 7,,15.12
+BR,AID0000087,krma_ep_003,Karma's World Episode 8,,32.0
+BR,AID0000088,krma_ep_004,Karma's World Episode 9,,27.59
+GB,AID0000089,krma_ep_005,Karma's World Episode 10,,33.06
+US,AID0000090,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode 11,,26.48
+MX,AID0000091,dtnb_ep01_002,Daniel Tiger's Neighborhood Episode 12,,13.52
+CA,AID0000092,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode 13,,27.49
+DE,AID0000093,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode 14,,27.31
+DE,AID0000094,dtnb_ep01_005,Daniel Tiger's Neighborhood Episode 15,,6.16
+MX,AID0000095,dtnb_ep01_006,Daniel Tiger's Neighborhood Episode 16,,8.25
+DE,AID0000096,dtnb_ep01_007,Daniel Tiger's Neighborhood Episode 17,,20.2
+IN,AID0000097,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode 18,,38.51
+DE,AID0000098,dtnb_ep01_009,Daniel Tiger's Neighborhood Episode 19,,6.47
+CA,AID0000099,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode 20,,7.0
+GB,AID0000100,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode 21,,24.4
+CA,AID0000101,dtnb_ep02_002,Daniel Tiger's Neighborhood Episode 22,,39.18
+GB,AID0000102,dtnb_ep02_003,Daniel Tiger's Neighborhood Episode 23,,10.78
+FR,AID0000103,dtnb_ep02_004,Daniel Tiger's Neighborhood Episode 24,,23.07
+DE,AID0000104,dtnb_ep02_005,Daniel Tiger's Neighborhood Episode 25,,29.75
+IN,AID0000105,dtnb_ep02_006,Daniel Tiger's Neighborhood Episode 26,,39.23
+AU,AID0000106,dtnb_ep02_007,Daniel Tiger's Neighborhood Episode 27,,39.1
+AU,AID0000107,dtnb_ep02_008,Daniel Tiger's Neighborhood Episode 28,,32.86
+IN,AID0000108,dtnb_ep02_009,Daniel Tiger's Neighborhood Episode 29,,16.8
+IN,AID0000109,dtnb_ep02_010,Daniel Tiger's Neighborhood Episode 30,,14.42
+BR,AID0000110,dtnb_ep03_001,Daniel Tiger's Neighborhood Episode 31,,1.04
+BR,AID0000111,dtnb_ep03_002,Daniel Tiger's Neighborhood Episode 32,,23.96
+DE,AID0000112,dtnb_ep03_003,Daniel Tiger's Neighborhood Episode 33,,15.54
+US,AID0000113,dtnb_ep03_004,Daniel Tiger's Neighborhood Episode 34,,5.54
+AU,AID0000114,dtnb_ep03_005,Daniel Tiger's Neighborhood Episode 35,,32.35
+MX,AID0000115,dtnb_ep03_006,Daniel Tiger's Neighborhood Episode 36,,10.67
+MX,AID0000116,dtnb_ep03_007,Daniel Tiger's Neighborhood Episode 37,,29.0
+GB,AID0000117,dtnb_ep03_008,Daniel Tiger's Neighborhood Episode 38,,17.34
+IN,AID0000118,dtnb_ep03_009,Daniel Tiger's Neighborhood Episode 39,,25.59
+BR,AID0000119,dtnb_ep03_010,Daniel Tiger's Neighborhood Episode 40,,19.19
+US,AID0000120,dtnb_badrow_001,Daniel Tiger's Neighborhood Episode 1,,26.01
+JP,AID0000121,dtnb_badrow_002,Daniel Tiger's Neighborhood Episode 2,,14.09
+CA,AID0000122,dtnb_badrow_003,Daniel Tiger's Neighborhood Episode 3,,8.4
+US,AID0000123,garf_ep_001,Garfield and Friends Episode 4,,4.4
+FR,AID0000124,garf_ep_002,Garfield and Friends Episode 5,,32.34
+DE,AID0000125,garf_ep_003,Garfield and Friends Episode 6,,16.26
+BR,AID0000126,garf_ep_004,Garfield and Friends Episode 7,,24.6
+MX,AID0000127,garf_ep_005,Garfield and Friends Episode 8,,24.83
+MX,AID0000128,garf_ep_006,Garfield and Friends Episode 9,,16.78
+IN,AID0000129,garf_ep_007,Garfield and Friends Episode 10,,23.55
+FR,AID0000130,garf_ep_008,Garfield and Friends Episode 11,,24.91
+DE,AID0000131,garf_ep_009,Garfield and Friends Episode 12,,18.47
+GB,AID0000132,garf_ep_010,Garfield and Friends Episode 13,,24.38
+JP,AID0000133,garf_extra_001,Garfield and Friends Episode 14,,22.78
+FR,AID0000134,garf_extra_002,Garfield and Friends Episode 15,,29.02
+IN,AID0000135,garf_extra_003,Garfield and Friends Episode 16,,34.34
+BR,AID0000136,garf_extra_004,Garfield and Friends Episode 17,,18.3
+US,AID0000137,garf_extra_005,Garfield and Friends Episode 18,,25.64
+CA,AID0000138,garf_film_001,Garfield and Friends Episode 19,,3.19
+US,AID0000139,garf_film_002,Garfield and Friends Episode 20,,38.31
+BR,AID0000140,arth_ep16_001,Arthur Episode 21,,9.42
+IN,AID0000141,arth_ep16_002,Arthur Episode 22,,5.47
+MX,AID0000142,arth_ep16_003,Arthur Episode 23,,26.46
+GB,AID0000143,arth_ep16_004,Arthur Episode 24,,39.3
+DE,AID0000144,arth_ep16_005,Arthur Episode 25,,10.33
+DE,AID0000145,arth_ep17_001,Arthur Episode 26,,36.17
+FR,AID0000146,arth_ep17_002,Arthur Episode 27,,4.85
+IN,AID0000147,arth_ep17_003,Arthur Episode 28,,20.66
+AU,AID0000148,arth_ep17_004,Arthur Episode 29,,1.08
+DE,AID0000149,arth_ep17_005,Arthur Episode 30,,37.22
+BR,AID0000150,arth_ep18_001,Arthur Episode 31,,35.93
+MX,AID0000151,arth_ep18_002,Arthur Episode 32,,9.54
+GB,AID0000152,arth_ep18_003,Arthur Episode 33,,38.73
+MX,AID0000153,arth_ep18_004,Arthur Episode 34,,3.21
+FR,AID0000154,arth_ep18_005,Arthur Episode 35,,22.55
+GB,AID0000155,arth_ep19_001,Arthur Episode 36,,21.87
+JP,AID0000156,arth_ep19_002,Arthur Episode 37,,20.46
+GB,AID0000157,arth_ep19_003,Arthur Episode 38,,16.74
+BR,AID0000158,arth_ep19_004,Arthur Episode 39,,26.73
+BR,AID0000159,arth_ep19_005,Arthur Episode 40,,24.22
+BR,AID0000160,anne_ep_001,Anne with an E Episode 1,,10.48
+BR,AID0000161,anne_ep_002,Anne with an E Episode 2,,17.53
+US,AID0000162,anne_ep_003,Anne with an E Episode 3,,24.07
+IN,AID0000163,anne_ep_004,Anne with an E Episode 4,,24.98
+GB,AID0000164,anne_ep_005,Anne with an E Episode 5,,35.3
+DE,AID0000165,scmx_ep03_001,Science Max Episode 6,,25.71
+FR,AID0000166,scmx_ep03_002,Science Max Episode 7,,21.74
+GB,AID0000167,scmx_ep03_003,Science Max Episode 8,,36.6
+GB,AID0000168,scmx_ep03_004,Science Max Episode 9,,39.3
+GB,AID0000169,scmx_ep03_005,Science Max Episode 10,,28.88
+JP,AID0000170,scmx_ep05_001,Science Max Episode 11,,20.68
+GB,AID0000171,scmx_ep05_002,Science Max Episode 12,,10.74
+IN,AID0000172,scmx_ep05_003,Science Max Episode 13,,8.0
+CA,AID0000173,scmx_ep05_004,Science Max Episode 14,,6.35
+IN,AID0000174,scmx_ep05_005,Science Max Episode 15,,6.36
+FR,AID0000175,krma_ep_001,Karma's World Episode 16,,16.17
+US,AID0000176,krma_ep_002,Karma's World Episode 17,,14.07
+FR,AID0000177,krma_ep_003,Karma's World Episode 18,,29.67
+AU,AID0000178,krma_ep_004,Karma's World Episode 19,,9.34
+CA,AID0000179,krma_ep_005,Karma's World Episode 20,,32.27
+MX,AID0000180,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode 21,,22.69
+BR,AID0000181,dtnb_ep01_002,Daniel Tiger's Neighborhood Episode 22,,5.67
+US,AID0000182,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode 23,,2.92
+AU,AID0000183,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode 24,,14.15
+DE,AID0000184,dtnb_ep01_005,Daniel Tiger's Neighborhood Episode 25,,30.03
+FR,AID0000185,dtnb_ep01_006,Daniel Tiger's Neighborhood Episode 26,,33.78
+IN,AID0000186,dtnb_ep01_007,Daniel Tiger's Neighborhood Episode 27,,34.09
+MX,AID0000187,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode 28,,39.29
+CA,AID0000188,dtnb_ep01_009,Daniel Tiger's Neighborhood Episode 29,,30.94
+AU,AID0000189,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode 30,,15.16
+US,AID0000190,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode 31,,11.0
+GB,AID0000191,dtnb_ep02_002,Daniel Tiger's Neighborhood Episode 32,,5.95
+US,AID0000192,dtnb_ep02_003,Daniel Tiger's Neighborhood Episode 33,,26.91
+GB,AID0000193,dtnb_ep02_004,Daniel Tiger's Neighborhood Episode 34,,1.88
+US,AID0000194,dtnb_ep02_005,Daniel Tiger's Neighborhood Episode 35,,26.57
+AU,AID0000195,dtnb_ep02_006,Daniel Tiger's Neighborhood Episode 36,,13.48
+FR,AID0000196,dtnb_ep02_007,Daniel Tiger's Neighborhood Episode 37,,0.86
+DE,AID0000197,dtnb_ep02_008,Daniel Tiger's Neighborhood Episode 38,,29.92
+GB,AID0000198,dtnb_ep02_009,Daniel Tiger's Neighborhood Episode 39,,26.66
+FR,AID0000199,dtnb_ep02_010,Daniel Tiger's Neighborhood Episode 40,,28.32
+MX,AID0000200,dtnb_ep03_001,Daniel Tiger's Neighborhood Episode 1,,22.06
+BR,AID0000201,dtnb_ep03_002,Daniel Tiger's Neighborhood Episode 2,,8.05
+FR,AID0000202,dtnb_ep03_003,Daniel Tiger's Neighborhood Episode 3,,30.76
+US,AID0000203,dtnb_ep03_004,Daniel Tiger's Neighborhood Episode 4,,10.04
+MX,AID0000204,dtnb_ep03_005,Daniel Tiger's Neighborhood Episode 5,,23.98
+BR,AID0000205,dtnb_ep03_006,Daniel Tiger's Neighborhood Episode 6,,14.18
+GB,AID0000206,dtnb_ep03_007,Daniel Tiger's Neighborhood Episode 7,,18.12
+AU,AID0000207,dtnb_ep03_008,Daniel Tiger's Neighborhood Episode 8,,32.61
+IN,AID0000208,dtnb_ep03_009,Daniel Tiger's Neighborhood Episode 9,,21.71
+CA,AID0000209,dtnb_ep03_010,Daniel Tiger's Neighborhood Episode 10,,17.07
+AU,AID0000210,dtnb_badrow_001,Daniel Tiger's Neighborhood Episode 11,,5.28
+IN,AID0000211,dtnb_badrow_002,Daniel Tiger's Neighborhood Episode 12,,16.77
+AU,AID0000212,dtnb_badrow_003,Daniel Tiger's Neighborhood Episode 13,,34.35
+JP,AID0000213,garf_ep_001,Garfield and Friends Episode 14,,33.3
+MX,AID0000214,garf_ep_002,Garfield and Friends Episode 15,,22.93
+MX,AID0000215,garf_ep_003,Garfield and Friends Episode 16,,0.72
+MX,AID0000216,garf_ep_004,Garfield and Friends Episode 17,,9.29
+US,AID0000217,garf_ep_005,Garfield and Friends Episode 18,,32.15
+IN,AID0000218,garf_ep_006,Garfield and Friends Episode 19,,4.26
+US,AID0000219,garf_ep_007,Garfield and Friends Episode 20,,22.06
+JP,AID0000220,garf_ep_008,Garfield and Friends Episode 21,,12.98
+FR,AID0000221,garf_ep_009,Garfield and Friends Episode 22,,9.8
+BR,AID0000222,garf_ep_010,Garfield and Friends Episode 23,,11.01
+BR,AID0000223,garf_extra_001,Garfield and Friends Episode 24,,31.09
+JP,AID0000224,garf_extra_002,Garfield and Friends Episode 25,,15.34
+DE,AID0000225,garf_extra_003,Garfield and Friends Episode 26,,7.54
+BR,AID0000226,garf_extra_004,Garfield and Friends Episode 27,,29.58
+FR,AID0000227,garf_extra_005,Garfield and Friends Episode 28,,24.79
+DE,AID0000228,garf_film_001,Garfield and Friends Episode 29,,19.75
+FR,AID0000229,garf_film_002,Garfield and Friends Episode 30,,5.77
+AU,AID0000230,arth_ep16_001,Arthur Episode 31,,36.96
+DE,AID0000231,arth_ep16_002,Arthur Episode 32,,28.2
+MX,AID0000232,arth_ep16_003,Arthur Episode 33,,28.81
+US,AID0000233,arth_ep16_004,Arthur Episode 34,,21.2
+CA,AID0000234,arth_ep16_005,Arthur Episode 35,,33.0
+GB,AID0000235,arth_ep17_001,Arthur Episode 36,,5.45
+AU,AID0000236,arth_ep17_002,Arthur Episode 37,,24.98
+GB,AID0000237,arth_ep17_003,Arthur Episode 38,,26.24
+DE,AID0000238,arth_ep17_004,Arthur Episode 39,,20.81
+GB,AID0000239,arth_ep17_005,Arthur Episode 40,,36.89
+AU,AID0000240,arth_ep18_001,Arthur Episode 1,,22.34
+JP,AID0000241,arth_ep18_002,Arthur Episode 2,,12.56
+CA,AID0000242,arth_ep18_003,Arthur Episode 3,,26.59
+IN,AID0000243,arth_ep18_004,Arthur Episode 4,,32.05
+IN,AID0000244,arth_ep18_005,Arthur Episode 5,,10.85
+MX,AID0000245,arth_ep19_001,Arthur Episode 6,,36.08
+MX,AID0000246,arth_ep19_002,Arthur Episode 7,,25.86
+US,AID0000247,arth_ep19_003,Arthur Episode 8,,16.02
+GB,AID0000248,arth_ep19_004,Arthur Episode 9,,12.97
+IN,AID0000249,arth_ep19_005,Arthur Episode 10,,35.15
+DE,AID0000250,anne_ep_001,Anne with an E Episode 11,,26.05
+MX,AID0000251,anne_ep_002,Anne with an E Episode 12,,18.03
+MX,AID0000252,anne_ep_003,Anne with an E Episode 13,,27.77
+MX,AID0000253,anne_ep_004,Anne with an E Episode 14,,13.33
+BR,AID0000254,anne_ep_005,Anne with an E Episode 15,,20.07
+BR,AID0000255,scmx_ep03_001,Science Max Episode 16,,31.9
+IN,AID0000256,scmx_ep03_002,Science Max Episode 17,,22.88
+GB,AID0000257,scmx_ep03_003,Science Max Episode 18,,23.14
+CA,AID0000258,scmx_ep03_004,Science Max Episode 19,,14.79
+FR,AID0000259,scmx_ep03_005,Science Max Episode 20,,30.45
+GB,AID0000260,scmx_ep05_001,Science Max Episode 21,,0.65
+AU,AID0000261,scmx_ep05_002,Science Max Episode 22,,20.43
+DE,AID0000262,scmx_ep05_003,Science Max Episode 23,,10.44
+FR,AID0000263,scmx_ep05_004,Science Max Episode 24,,3.53
+FR,AID0000264,scmx_ep05_005,Science Max Episode 25,,32.43
+FR,AID0000265,krma_ep_001,Karma's World Episode 26,,19.37
+US,AID0000266,krma_ep_002,Karma's World Episode 27,,29.48
+MX,AID0000267,krma_ep_003,Karma's World Episode 28,,35.01
+FR,AID0000268,krma_ep_004,Karma's World Episode 29,,18.47
+US,AID0000269,krma_ep_005,Karma's World Episode 30,,12.96
+AU,AID0000270,dtnb_ep01_001,Daniel Tiger's Neighborhood Episode 31,,24.12
+MX,AID0000271,dtnb_ep01_002,Daniel Tiger's Neighborhood Episode 32,,32.33
+JP,AID0000272,dtnb_ep01_003,Daniel Tiger's Neighborhood Episode 33,,19.78
+CA,AID0000273,dtnb_ep01_004,Daniel Tiger's Neighborhood Episode 34,,8.45
+MX,AID0000274,dtnb_ep01_005,Daniel Tiger's Neighborhood Episode 35,,10.79
+FR,AID0000275,dtnb_ep01_006,Daniel Tiger's Neighborhood Episode 36,,31.44
+IN,AID0000276,dtnb_ep01_007,Daniel Tiger's Neighborhood Episode 37,,3.78
+JP,AID0000277,dtnb_ep01_008,Daniel Tiger's Neighborhood Episode 38,,21.01
+US,AID0000278,dtnb_ep01_009,Daniel Tiger's Neighborhood Episode 39,,36.2
+US,AID0000279,dtnb_ep01_010,Daniel Tiger's Neighborhood Episode 40,,21.81
+AU,AID0000280,dtnb_ep02_001,Daniel Tiger's Neighborhood Episode 1,,15.0
+FR,AID0000281,dtnb_ep02_002,Daniel Tiger's Neighborhood Episode 2,,27.25
+DE,AID0000282,dtnb_ep02_003,Daniel Tiger's Neighborhood Episode 3,,0.67
+JP,AID0000283,dtnb_ep02_004,Daniel Tiger's Neighborhood Episode 4,,1.94
+US,AID0000284,dtnb_ep02_005,Daniel Tiger's Neighborhood Episode 5,,10.55
+IN,AID0000285,dtnb_ep02_006,Daniel Tiger's Neighborhood Episode 6,,10.62
+FR,AID0000286,dtnb_ep02_007,Daniel Tiger's Neighborhood Episode 7,,3.91
+IN,AID0000287,dtnb_ep02_008,Daniel Tiger's Neighborhood Episode 8,,3.98
+JP,AID0000288,dtnb_ep02_009,Daniel Tiger's Neighborhood Episode 9,,9.4
+US,AID0000289,dtnb_ep02_010,Daniel Tiger's Neighborhood Episode 10,,39.77
+US,AID9000001,fug_unmapped_001,Fugget About It - Best Moments,,16.61
+CA,AID9000002,dtnb_movie_special,Backpack Adventures Movie,,10.59
+US,AID9000003,d7mst_tivfg,Untitled Bus Adventure,,18.91
+GB,AID9000004,wwtr_weird_waters_s05,Deep Lake Compilation,,39.23
+US,AID9000005,zzz_unknown_asset_001,Mystery Compilation Vol 1,,24.88
+DE,AID9000006,zzz_unknown_asset_002,Mystery Compilation Vol 2,,25.59
+FR,AID9000007,zzz_unknown_asset_003,Mystery Compilation Vol 3,,25.35
+US,AID9000008,,,garf_ep_004,4.16
+CA,AID9000009,,,dtnb_ep02_003,24.52
