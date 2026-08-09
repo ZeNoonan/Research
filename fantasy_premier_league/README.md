@@ -151,7 +151,7 @@ branches, and in-season `index.html` is byte-identical across the change.
 | | In-season | Pre-season | Why |
 |---|---|---|---|
 | **Gate** | 45+ min averaged over last 4 appearances | **≥ 600 total minutes** *and* the 45-min check | Conditioning only on matches played let a keeper who started 5 games pass exactly as one who started 38 — 31 keepers rated for 20 jobs. Now 21. |
-| **Value** | xPts/90 ÷ price | **residual** of xPts/90 regressed on price, above the median residual | Price varies ~2× within a position while production varies ~6×, so dividing barely reorders: V was Quality restated. Defenders shared 48 of 56 Q-stars with V; now 34 of 47. |
+| **Value** | xPts/90 ÷ price | **leave-one-out residual** of xPts/90 regressed on price, above the median residual | Price varies ~2× within a position while production varies ~6×, so dividing barely reorders: V was Quality restated. Defenders shared 48 of 56 Q-stars with V; now 34 of 47. LOO because an isolated price otherwise grades its own line — see below. |
 | **Minutes** | avg minutes over last 5 appearances | **share of the season's 3,420** | The average cannot tell a 5-game starter from a 38-game one. |
 | **Crowd** | ownership percentile below quality percentile | quality percentile **≥ 5 points** above ownership, and past the minutes gate | Ownership under ~2% is undifferentiated, so ranking inside that band invents precision. It was handing stars to backup keepers for being unowned. |
 
@@ -175,6 +175,122 @@ close.
 The Crowd factor visibly changes the board: Haaland (75% owned) rates 3★
 rather than 6★ despite the best underlying numbers of any forward —
 bet-against-beta doing its job.
+
+### Value is scored leave-one-out
+
+**This factor scores the live board.** A high-leverage price point drags the
+fitted line through itself and so shrinks its own residual — the player ends
+up grading his own line. Among 2026/27 forwards the rated prices are 5.5,
+5.5, 5.5, ten at 6.0, then 7.0, 7.5, 7.5, 8.0, 8.0, 9.0 — and **Haaland
+alone at £15.5m**, carrying leverage `h_ii = 0.816` against a mean of 0.100
+and a next-highest of 0.094. He sets the slope almost single-handedly, and
+his raw residual reads **+0.0063** against a median of +0.0187, missing the
+V star by 0.012. Fitted *without* him the same residual is **+0.0342** —
+all but exactly the other nineteen forwards' median of +0.0343. The miss
+was him deleting his own residual, not a judgement about his value.
+
+Each player is now scored against a line fitted without him. No refitting is
+needed; for OLS the closed form is exact:
+
+```
+e_loo_i = e_i / (1 − h_ii),   h_ii = 1/n + (x_i − x̄)² / Σ(x_j − x̄)²
+```
+
+Verified against genuine refits for **all 253 rated players**, agreeing to
+3.5×10⁻¹⁵. The raw OLS residual is kept as `value_resid_raw` and the
+leverage as `price_leverage`.
+
+**Leverage by position** — the problem is confined to forwards:
+
+| Position | n | price range | max h | mean h | V flips |
+|---|---|---|---|---|---|
+| GK | 21 | 4.0–6.0 | 0.326 | 0.095 | 2 |
+| DEF | 98 | 4.0–8.0 | 0.248 | 0.020 | 0 |
+| MID | 114 | 4.5–12.0 | 0.274 | 0.018 | 0 |
+| FWD | 20 | 5.5–15.5 | **0.816** | 0.100 | 2 |
+
+**Four stars moved, not two.** The two forwards are the expected ones —
+**Haaland gains V** (3★ → 4★) and **Ollie Watkins loses it** (4★ → 3★, LOO
++0.0313 against a median of +0.0327; the margin is 1.5×10⁻³, about 10¹² times
+machine epsilon, so a real flip and not a boundary artefact). The two
+goalkeepers were not predicted and are worth understanding: **Đorđe
+Petrović gains V** (2★ → 3★) and **Gianluigi Donnarumma loses it** (5★ →
+4★). They sit adjacent on either side of the GK median, 0.0013 apart on raw
+residual, but at prices £4.5m and £5.5m they carry different leverage
+(0.086 against 0.130) — so dividing by `1 − h` rescales them unequally and
+**reverses their order** (raw gap −0.00123 becomes LOO gap +0.00058). This
+is intrinsic to the transform: `e/(1−h)` is monotone in `e` only at fixed
+`h`, so any two players close together but differently levered can swap. It
+is the correction working, not a second bug — nothing else changed.
+
+**Guard.** As `h_ii → 1` the division diverges. Nothing approaches it today
+(0.816 is the maximum across all four positions), but a thin position in a
+future season could, so any player with `h_ii > LEVERAGE_GUARD = 0.9` is
+**flagged and left unscored** — no V star, and no vote in the median —
+rather than divided. `price_residual` returns `high_leverage` so the caller
+can surface it; currently **0 players are flagged**.
+
+#### Three things examined and not acted on
+
+**(a) Out-of-support extrapolation.** Even under LOO, Haaland's residual
+comes from extrapolating a line fitted on 5.5–9.0 out to 15.5. How far
+outside support each position's dearest player sits:
+
+| Position | top | 2nd | gap | gap ÷ IQR | gap as % of price range |
+|---|---|---|---|---|---|
+| GK (Raya) | 6.0 | 5.5 | 0.5 | 1.0 | 25% |
+| DEF (Gabriel) | 8.0 | 6.5 | 1.5 | 1.5 | 38% |
+| MID (Bruno) | 12.0 | 9.5 | 2.5 | 1.7 | 33% |
+| **FWD (Haaland)** | 15.5 | 9.0 | **6.5** | **4.3** | **65%** |
+
+Haaland is in a different category — 4.3 IQRs clear of the next forward,
+where nobody else exceeds 1.7. **My view: mark him undefined rather than
+compute a V star.** The honest statement is that the data cannot say what
+£15.5m ought to buy, because nothing else is priced within £6.5m of him;
+any number there is the linear form's assumption, not evidence. Treating
+him as unassessable is exactly how the model already handles a player short
+of an appearance window — no star, no vote in the median — and it is more
+defensible than either the old answer (he grades himself down) or the new
+one (he is graded on an extrapolation). The counter-argument is real
+though: the most expensive forward is a decision every manager actually
+faces, and refusing to score him removes the model from the one pick it is
+most often asked about. Not implemented.
+
+**(b) Robust fitting is the wrong remedy, and the gap is exactly two
+players.** Theil–Sen and Huber refits per position, compared with LOO:
+
+| Position | Theil–Sen slope | differs | Huber slope | differs |
+|---|---|---|---|---|
+| GK | +0.311 | 2 (Petrović, Donnarumma) | +0.381 | 0 |
+| DEF | +0.500 | 0 | +0.480 | 2 (Fofana, Guéhi) |
+| MID | +0.306 | 2 (Cairney, Szoboszlai) | +0.282 | 0 |
+| FWD | +0.151 | **2 (Watkins, Haaland)** | +0.152 | **2 (Watkins, Haaland)** |
+
+For forwards *both* robust estimators disagree with LOO on exactly the two
+players at issue — and they disagree by reverting to the old answer, with
+Haaland losing V and Watkins keeping it. That is the philosophical
+difference made concrete: a robust fit downweights Haaland as an outlier,
+so his own residual stays small and he grades himself down again; LOO
+treats his price as a legitimate observation that simply must not set its
+own bar. **Price is not noise — it is the exact quantity the factor is
+about — so LOO is the right choice.** Not implemented.
+
+**(c) Mild concavity, not material.** Quadratic and log-price fits per
+position:
+
+| Position | R² linear | R² quadratic | x² coefficient | R² log-price | V differs (quad / log) |
+|---|---|---|---|---|---|
+| GK | 0.3563 | 0.3592 | +0.049 | 0.3534 | 0 / 0 |
+| DEF | 0.4536 | 0.4565 | −0.034 | 0.4571 | 2 / 2 |
+| MID | 0.5377 | 0.5456 | −0.014 | 0.5444 | 2 / 4 |
+| FWD | 0.5012 | 0.5019 | −0.002 | 0.4962 | 2 / 2 |
+
+The x² coefficient is negative for all three outfield positions, so there
+is a hint of diminishing returns to price, but the R² gains are 0.003–0.008
+and log-price is no better than quadratic. Two to four V stars would move
+per position — comparable to the noise the LOO fix itself resolves, without
+a comparable justification. Not worth the added assumption. Not
+implemented.
 
 ### The Crowd price check, and why it is not live
 

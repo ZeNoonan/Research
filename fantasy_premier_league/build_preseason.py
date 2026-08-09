@@ -35,7 +35,11 @@ FACTOR_ROWS = [
      "top half. Dividing points by price — the obvious move — barely "
      "reorders a position, because price varies about 2× while production "
      "varies about 6×, so it just re-states Quality. The residual asks the "
-     "question Value is for: who beats his price tag."),
+     "question Value is for: who beats his price tag. Each player is scored "
+     "against a line fitted <b>without him</b> (leave-one-out), so an "
+     "isolated price cannot drag the line through itself and erase its own "
+     "residual — without that, Haaland at £15.5m sets the forwards' slope "
+     "almost single-handedly and grades himself down to nothing."),
     ("F", "Form", "Points over the <b>last 5 matches he actually played</b> "
      "last season (needs 5 appearances). The weakest signal here — three "
      "months stale, and a summer of transfers in between."),
@@ -112,13 +116,15 @@ def leaderboards_html(rated) -> str:
          lambda b: f"median xPts/90 = {med(b, 'xpts90', '.2f')} — "
                    "star above this line"),
         ("value", "V",
-         "Value — sorted by expected points above what the price predicts",
+         "Value — sorted by expected points above what the price predicts "
+         "(leave-one-out)",
          "value_resid",
          [("Price", lambda r: f"£{r.price:.1f}m"),
           ("xPts/90", lambda r: f"{r.xpts90:.2f}"),
-          ("Price predicts", lambda r: f"{r.xpts90 - r.value_resid:.2f}"),
-          ("Residual", lambda r: f"{r.value_resid:+.2f}")],
-         lambda b: f"median residual = {med(b, 'value_resid', '+.2f')} — "
+          ("Price predicts", lambda r: f"{r.xpts90 - r.value_resid_raw:.2f}"),
+          ("Leverage", lambda r: f"{r.price_leverage:.3f}"),
+          ("Residual (LOO)", lambda r: f"{r.value_resid:+.3f}")],
+         lambda b: f"median residual = {med(b, 'value_resid', '+.3f')} — "
                    "star above this line"),
         ("form", "F", "Form — sorted by points over the last 5 matches played",
          "form_points",

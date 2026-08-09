@@ -11,8 +11,10 @@ The six factors
 1. Quality  – the model's expected points per 90 (rebuilt from FPL scoring
    rules and the player's underlying per-90 numbers) above the position
    median. Process stats, not outcomes.
-2. Value    – expected points per 90 per million of price above the position
-   median. Points per pound is the pick that funds the rest of the squad.
+2. Value    – in-season, expected points per 90 per million of price above
+   the position median. Pre-season, the **leave-one-out residual** of
+   expected points regressed on price: who beats what his price predicts,
+   measured against a line fitted without him (see ``price_residual``).
 3. Form     – total FPL points over the last 5 matches the player actually
    played, above the position median. Momentum.
 4. Minutes  – average minutes over the last 5 matches the player actually
@@ -294,8 +296,11 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     return out.reset_index()
 
 
-def price_residual(xpts90: pd.Series, price: pd.Series) -> tuple:
-    """OLS of expected points on price; return (residuals, slope, r2).
+LEVERAGE_GUARD = 0.9   # above this h_ii, refuse to compute a LOO residual
+
+
+def price_residual(xpts90: pd.Series, price: pd.Series) -> dict:
+    """OLS of expected points on price, scored on leave-one-out residuals.
 
     Dividing points by price barely reorders a position, because price
     varies far less than production does (defenders: 2.0x against 6.3x), so
@@ -303,16 +308,49 @@ def price_residual(xpts90: pd.Series, price: pd.Series) -> tuple:
     ranking the *residual* asks the question value is meant to ask - who
     beats what his price predicts - and is orthogonal to quality by
     construction.
+
+    **Leave-one-out.** A high-leverage price point drags the fitted line
+    through itself and so shrinks its own residual: the player grades his
+    own line. Among 2026/27 forwards Haaland at £15.5m carries
+    ``h_ii = 0.816`` against a mean of 0.100 and a next-highest of 0.094 -
+    he sets the slope essentially alone, and his raw residual of +0.0063
+    understates him badly. Fitted without him the same residual is +0.0342,
+    which is all but exactly the other nineteen forwards' median of +0.0343.
+
+    So each player is scored against a line fitted **without him**. For OLS
+    that needs no refitting; the closed form is exact:
+
+        e_loo_i = e_i / (1 - h_ii),   h_ii = 1/n + (x_i - x̄)² / Σ(x_j - x̄)²
+
+    (verified against genuine refits for all 253 rated players, agreeing to
+    3.5e-15).
+
+    As ``h_ii -> 1`` the division diverges. Nothing currently comes close -
+    0.816 is the maximum across all four positions - but a thin position in
+    some future season could, so any player above ``LEVERAGE_GUARD`` is
+    **flagged and left unscored** rather than divided: he takes no Value
+    star and is excluded from the median, exactly as an unassessable player
+    is treated elsewhere. Returns ``high_leverage`` so callers can surface
+    it instead of failing silently.
     """
     x, y = price.astype(float), xpts90.astype(float)
-    var = ((x - x.mean()) ** 2).sum()
-    if var == 0:                      # one price in the whole position
-        return y - y.mean(), 0.0, 0.0
-    slope = ((x - x.mean()) * (y - y.mean())).sum() / var
-    resid = y - (y.mean() + slope * (x - x.mean()))
+    n = len(x)
+    sxx = ((x - x.mean()) ** 2).sum()
+    if sxx == 0 or n < 3:             # one price, or too few to leave one out
+        zero = y - y.mean() if sxx == 0 else y * 0.0
+        return {"loo": zero, "raw": zero, "leverage": pd.Series(1.0 / max(n, 1),
+                index=x.index), "slope": 0.0, "r2": 0.0,
+                "high_leverage": pd.Series(False, index=x.index)}
+
+    slope = ((x - x.mean()) * (y - y.mean())).sum() / sxx
+    raw = y - (y.mean() + slope * (x - x.mean()))
+    h = 1.0 / n + (x - x.mean()) ** 2 / sxx
+    flagged = h > LEVERAGE_GUARD
+    loo = (raw / (1.0 - h)).where(~flagged)
     ss_tot = ((y - y.mean()) ** 2).sum()
-    r2 = 1 - (resid ** 2).sum() / ss_tot if ss_tot else 0.0
-    return resid, slope, r2
+    r2 = 1 - (raw ** 2).sum() / ss_tot if ss_tot else 0.0
+    return {"loo": loo, "raw": raw, "leverage": h, "slope": slope, "r2": r2,
+            "high_leverage": flagged}
 
 
 def merge_bands(prices: pd.Series, width: float = PRICE_BAND,
@@ -429,6 +467,9 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
     out["stars"] = 0
     if preseason:
         out["value_resid"] = float("nan")
+        out["value_resid_raw"] = float("nan")
+        out["price_leverage"] = float("nan")
+        out["value_high_leverage"] = False
         out["minutes_share"] = float("nan")
         for c in ("mu", "eo", "f_raw", "q_play", "var_eff", "delta_ev",
                   "delta_var", "ratio",
@@ -447,11 +488,23 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
         out.loc[grp, "quality"] = (g["xpts90"] > g["xpts90"].median()).astype(int)
 
         if preseason:
-            # Value: beat the price curve, not the field.
-            resid, slope, r2 = price_residual(g["xpts90"], g["price"])
-            fits[pos] = (slope, r2, len(g))
-            out.loc[grp, "value_resid"] = resid
-            out.loc[grp, "value"] = (resid > resid.median()).astype(int)
+            # Value: beat the price curve, not the field - and beat a line
+            # fitted without you, so nobody grades his own line.
+            fit = price_residual(g["xpts90"], g["price"])
+            fits[pos] = (fit["slope"], fit["r2"], len(g),
+                         float(fit["leverage"].max()),
+                         int(fit["high_leverage"].sum()))
+            out.loc[grp, "value_resid"] = fit["loo"]
+            out.loc[grp, "value_resid_raw"] = fit["raw"]
+            out.loc[grp, "price_leverage"] = fit["leverage"]
+            out.loc[grp, "value_high_leverage"] = fit["high_leverage"]
+            # A flagged player is unscored, not zero-scored: no star, and no
+            # vote in the median either.
+            scored = grp & ~out["value_high_leverage"].fillna(False)
+            if scored.any():
+                median = out.loc[scored, "value_resid"].median()
+                out.loc[scored, "value"] = (out.loc[scored, "value_resid"]
+                                            > median).astype(int)
         else:
             ppm = g["xpts90"] / g["price"]
             out.loc[grp, "value"] = (ppm > ppm.median()).astype(int)
