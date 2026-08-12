@@ -118,6 +118,22 @@ FACTORS = ("quality", "value", "form", "minutes_factor", "justice", "crowd")
 FACTOR_LETTERS = {"quality": "Q", "value": "V", "form": "F",
                   "minutes_factor": "M", "justice": "J", "crowd": "C"}
 
+# Crowd is scored in-season but **not pre-season**. Every other factor is an
+# estimator of expected points; Crowd is a variance factor, and at equal
+# weight on a pre-season board it pulls against the other five for an
+# objective (win a ~40-person mini-league, or top 3) where the edge is
+# already past the point at which variance helps. It stays fully computed -
+# ``crowd``, ``crowd_marginrule``, ``crowd_pricecheck``, ``crowd_margin`` and
+# their supporting columns are all still produced - and still renders as a
+# diagnostic; it simply no longer feeds ``stars``. See the README section
+# "Why Crowd is no longer scored pre-season".
+PRESEASON_SCORING = ("quality", "value", "form", "minutes_factor", "justice")
+
+
+def scoring_factors(preseason: bool = False) -> tuple:
+    """The factors that feed the star count, which differs pre-season."""
+    return PRESEASON_SCORING if preseason else FACTORS
+
 # Columns the engine actually uses; everything else in a gw file is carried
 # ("xP" and other extras are optional and ignored).
 REQUIRED = ["name", "position", "team", "element", "round", "minutes",
@@ -580,9 +596,17 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
         out.attrs["crowd_bands"] = bands
         out.attrs["crowd_mode"] = CROWD_MODE
 
-    out["stars"] = out[list(FACTORS)].sum(axis=1)
+    scored = scoring_factors(preseason)
+    out["stars"] = out[list(scored)].sum(axis=1)
+    # Letters cover the scored factors only; any factor that is computed but
+    # unscored (pre-season Crowd) is exposed separately so the page can show
+    # it as a diagnostic without implying it earned a star.
     out["factor_letters"] = [
-        "".join(FACTOR_LETTERS[f] for f in FACTORS if r[f])
+        "".join(FACTOR_LETTERS[f] for f in scored if r[f])
+        for _, r in out.iterrows()]
+    unscored = [f for f in FACTORS if f not in scored]
+    out["diagnostic_letters"] = [
+        "".join(FACTOR_LETTERS[f] for f in unscored if r[f])
         for _, r in out.iterrows()]
     # How many factors could be scored at all: 6 for a player with a full
     # sample, fewer for one short of an appearance window. Lets a report say
@@ -592,7 +616,7 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
     windowed = ["form_ok", "justice_ok"] if preseason else [
         "form_ok", "minutes_factor_ok", "justice_ok"]
     out["factors_assessed"] = (
-        len(FACTORS) - len(windowed)
+        len(scored) - len(windowed)
         + sum(out[c].astype(int) for c in windowed))
     if preseason:
         out.attrs["price_fits"] = fits

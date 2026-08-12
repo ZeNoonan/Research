@@ -52,13 +52,16 @@ FACTOR_ROWS = [
      "played</b> last season (needs 6 appearances): attackers whose xGI beat "
      "their returns, defenders and keepers who conceded more than their "
      "xGC."),
+]
+
+# Computed and displayed, but not counted toward the star rating.
+DIAGNOSTIC_ROWS = [
     ("C", "Crowd", "Quality percentile exceeding ownership percentile <b>by "
      f"at least {model.PRESEASON_CROWD_MARGIN:.0f} points</b> — the field is "
-     "materially underweight, not just fractionally. Pre-season ownership "
-     "below about 2% is undifferentiated (0.0% against 0.2% says nothing "
-     "about conviction), so a bare gap manufactures precision that isn't "
-     "there. This is the one <b>current</b> input on the board: who managers "
-     "are piling into right now, before a ball is kicked."),
+     "materially underweight. <b>Unscored:</b> every other factor estimates "
+     "expected points, this one estimates variance, and variance only pays a "
+     "manager who is behind. Kept as a tie-breaker to apply by eye between "
+     "players the board already rates alike."),
 ]
 
 
@@ -83,6 +86,12 @@ def picks_table(block, n_factors: int) -> str:
                 if r.moved else "")
         letters = (f"<span class='letters'>{esc(r.factor_letters)}</span>"
                    if r.factor_letters else "<span class='sub2'>—</span>")
+        if r.diagnostic_letters:
+            # Visually distinct so an unscored letter cannot be mistaken for
+            # a star: hollow, muted, and separated by a middot.
+            letters += (f" <span class='letters diag' title='diagnostic only "
+                        f"— not counted in the star rating'>"
+                        f"{esc(r.diagnostic_letters)}</span>")
         rows.append(
             f"<tr><td><span class='stars'>{'★' * r.stars}</span></td>"
             f"<td>{esc(r.name)}{note}</td><td>{esc(r.team)}</td>"
@@ -144,7 +153,10 @@ def leaderboards_html(rated) -> str:
          [("Margin", lambda r: f"{r.justice_margin:+.1f}")],
          lambda b: "zero — star above this line (positive margin = "
                    "under-rewarded)"),
-        ("crowd", "C", "Crowd — sorted by quality minus ownership percentile",
+        ("crowd", "C",
+         "Crowd — <b>diagnostic only, not counted in the star rating</b> "
+         "(demoted: it estimates variance, not expected points, and it has "
+         "no quality floor) — sorted by quality minus ownership percentile",
          "crowd_margin",
          [("Owned", lambda r: f"{r.owned_pct:.1f}%"),
           ("Quality pct", lambda r: f"{r.xpts90_pct:.0f}"),
@@ -239,6 +251,11 @@ def build(listing_path: Path, history_dir: Path, out: Path,
         f"<tr><td><span class='letters'>{l}</span></td><td><b>{n}</b></td>"
         f"<td style='white-space:normal'>{d}</td></tr>"
         for l, n, d in FACTOR_ROWS)
+    factor_rows += "".join(
+        f"<tr class='diagrow'><td><span class='letters diag'>{l}</span></td>"
+        f"<td><b>{n}</b> <span class='sub2'>— not scored</span></td>"
+        f"<td style='white-space:normal'>{d}</td></tr>"
+        for l, n, d in DIAGNOSTIC_ROWS)
 
     n_matched = len(rated)
     n_total = n_matched + len(unrated)
@@ -251,6 +268,9 @@ def build(listing_path: Path, history_dir: Path, out: Path,
 .up {{ color: #b3372f; font-weight: 600; }}
 .down {{ color: #1e7d46; font-weight: 600; }}
 .sub2 {{ color: var(--muted); font-size: 12px; }}
+.letters.diag {{ background: transparent; border: 1px dashed var(--border);
+  color: var(--muted); font-style: italic; }}
+tr.diagrow td {{ background: rgba(128,128,128,.07); }}
 .two {{ display: grid; grid-template-columns: 1fr; gap: 12px; }}
 @media (min-width: 720px) {{ .two {{ grid-template-columns: 1fr 1fr; }} }}
 @media (prefers-color-scheme: dark) {{
@@ -265,8 +285,9 @@ judged against position peers.</p></header>
 <b>{esc(history_season)}</b>. {n_matched} of {n_total} listed players matched
 to a {esc(history_season)} record, <b>{len(elig)}</b> of them with enough
 minutes to rate — all shown below, by position. Ratings are out of
-<b>{n_factors} stars</b>, the full set: pre-season ownership is in, so the
-Crowd factor scores too.
+<b>{n_factors} stars</b> — Quality, Value, Form, Minutes and Justice, all
+five of them estimators of expected points. Crowd is computed and shown as
+a diagnostic but no longer scored.
 <a href="index.html" style="color:var(--accent2)">In-season app →</a></div>
 
 <section><h2>Read this first</h2>
@@ -276,16 +297,18 @@ genuinely weaker than in-season data: it cannot see pre-season friendlies,
 new signings settling, managerial changes or injuries. Two things it does
 do well — it prices last season's underlying performance against
 <b>this season's money</b>, and it says who was actually playing.</p>
-<p class="note">One input <i>is</i> current: <b>ownership</b>. The Crowd
-factor reads today's squads — who managers are piling into before a ball is
-kicked — and stars players the field is materially underweight on relative
-to their quality. It is the one factor here that knows what month it is,
-and it cuts the other way too: low ownership often encodes what the crowd
-knows and last season's data cannot see — who is second choice, who has
-been signed over, who limped out of a friendly. That is why it demands a
-<b>{model.PRESEASON_CROWD_MARGIN:.0f}-percentile-point</b> margin rather
-than any gap, and why only players
-who actually played last season can earn it.</p>
+<p class="note"><b>Ownership is no longer scored.</b> Crowd — how far the
+field underweights a player relative to his quality — used to be a sixth
+star. It has been demoted to a <b>diagnostic</b>: still computed, still
+shown, but no longer counted. The other five factors all estimate expected
+points; Crowd estimates <i>variance</i>, and at equal weight it was pulling
+against them. Variance only helps a manager who is behind, and for a
+mini-league of about forty this board's user is not — so the factor's sign
+was wrong for the objective. It also had no quality floor, starring 28
+players who sat below their position's median quality. Where it still
+earns its place is as a tie-breaker you apply by eye: among two players the
+board rates alike, the less-owned one moves you further if he comes off.
+Its leaderboard is at the foot of the page.</p>
 <p class="note">This board rates the <b>{model.PRESEASON_MIN_MINUTES:.0f}+
 minute</b> players of last season, which is a deliberately blunt
 instrument: it keeps a squad's worth of real starters per club and drops
@@ -297,7 +320,7 @@ promoted-club squads and signings from abroad have no Premier League record.
 They are not bad picks — they are the ones you have to judge by eye.</p>
 </section>
 
-<section><h2>The {n_factors} pre-season factors</h2>
+<section><h2>The {n_factors} scored factors, and one diagnostic</h2>
 <div class="tablewrap"><table>{factor_rows}</table></div>
 <p class="note"><b>Eligibility gate:</b> at least
 <b>{model.PRESEASON_MIN_MINUTES:.0f} minutes</b> played in

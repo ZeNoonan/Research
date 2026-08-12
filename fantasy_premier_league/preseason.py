@@ -263,14 +263,17 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
         matched["selected"] = matched["owned_pct"]
 
     rated = model.rate_players(matched, preseason=True)
-    factors = model.FACTORS if ownership else PRESEASON_FACTORS
     if not ownership:
-        rated["crowd"] = 0
-    rated["stars"] = rated[list(factors)].sum(axis=1)
-    rated["factor_letters"] = [
-        "".join(model.FACTOR_LETTERS[f] for f in factors if r[f])
-        for _, r in rated.iterrows()]
-    rated.attrs["factors"] = factors
+        # No ownership data at all: Crowd cannot even be computed as a
+        # diagnostic. It is not in the scoring set either way.
+        for col in ("crowd", "crowd_marginrule", "crowd_pricecheck"):
+            if col in rated:
+                rated[col] = 0
+        rated["diagnostic_letters"] = ""
+    rated.attrs["factors"] = model.scoring_factors(preseason=True)
+    rated.attrs["diagnostic_factors"] = tuple(
+        f for f in model.FACTORS if f not in rated.attrs["factors"])
+    rated.attrs["has_ownership"] = ownership
     return rated, unrated
 
 

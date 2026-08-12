@@ -5,8 +5,10 @@ A weekly player-recommendation model for **Fantasy Premier League**
 [`march_madness/`](../march_madness/) and [`nfl_report/`](../nfl_report/):
 a simple, **additive binary-factor model** in the spirit of Aaron Brown's
 demonstration systems. Each factor is one yes/no comparison against a
-player's *position peers*; the sum is a **0–6 star rating**, and the weekly
-pick sheet is everyone at 5★ and 6★.
+player's *position peers*; the sum is a **0–6 star rating** in-season
+(everyone at 5★ and 6★ makes the weekly pick sheet), and **0–5 pre-season**,
+where Crowd is computed as a diagnostic but not scored — see
+[Why Crowd is no longer scored pre-season](#why-crowd-is-no-longer-scored-pre-season).
 
 **Open [`index.html`](index.html)** — a self-contained, phone-friendly page
 (no external assets, same treatment as `nfl_report/`) with the factor
@@ -37,7 +39,7 @@ Six factors, each worth one star, each judged within position
 | 3 | **Form** | points over the **last 5 matches the player actually played** above the position median | momentum |
 | 4 | **Minutes** | average minutes over the **last 5 matches the player actually played**, at or above the position median | the nailed-on full-match starters (at-or-above, not strictly above: keepers all average 90, and carrying the position's full typical load is exactly what "nailed" means) |
 | 5 | **Justice** | under-rewarded over the **last 6 matches the player actually played**: attackers whose xGI exceeds actual goals+assists; defenders/keepers who conceded more than their xGC (defenders count both) | luck mean-reverts and the crowd over-reacts to outcomes, so the unlucky are cheap |
-| 6 | **Crowd** | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off |
+| 6 | **Crowd** *(in-season only)* | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off. **Not scored pre-season** — computed and displayed as a diagnostic; see below |
 
 **Eligibility gate** (the analogue of the NFL system only betting at
 \|System #\| ≥ 3): a player must average **45+ minutes over the last 4
@@ -153,16 +155,15 @@ branches, and in-season `index.html` is byte-identical across the change.
 | **Gate** | 45+ min averaged over last 4 appearances | **≥ 600 total minutes** *and* the 45-min check | Conditioning only on matches played let a keeper who started 5 games pass exactly as one who started 38 — 31 keepers rated for 20 jobs. Now 21. |
 | **Value** | xPts/90 ÷ price | **leave-one-out residual** of xPts/90 regressed on price, above the median residual | Price varies ~2× within a position while production varies ~6×, so dividing barely reorders: V was Quality restated. Defenders shared 48 of 56 Q-stars with V; now 34 of 47. LOO because an isolated price otherwise grades its own line — see below. |
 | **Minutes** | avg minutes over last 5 appearances | **share of the season's 3,420** | The average cannot tell a 5-game starter from a 38-game one. |
-| **Crowd** | ownership percentile below quality percentile | quality percentile **≥ 5 points** above ownership, and past the minutes gate | Ownership under ~2% is undifferentiated, so ranking inside that band invents precision. It was handing stars to backup keepers for being unowned. |
+| **Crowd** | ownership percentile below quality percentile — **scored** | **not scored at all**; computed and shown as a diagnostic | It is a variance factor among five EV estimators, and variance only pays a manager who is behind. See "Why Crowd is no longer scored pre-season". |
 
-Because ownership is available, pre-season ratings use the **full 6
-factors**, same as in-season. Ownership is also the one *current* input on
-the board: Quality, Value, Form, Minutes and Justice all describe last
-season, but Crowd reads today's squads, so it stars the players the field
-is underweight on right now. (`owned_pct` is a percentage rather than the
-in-season headcount; the factor ranks, and a percentage ranks identically.)
-A sanity check on the export: ownership sums to **1500%** — exactly 15
-players per squad.
+Pre-season ratings are out of **5 stars**: Quality, Value, Form, Minutes and
+Justice, every one of them an estimator of expected points. Ownership is
+still read — it is the one *current* input on a board otherwise built from
+last season — but it now feeds the Crowd **diagnostic** rather than a sixth
+star. (`owned_pct` is a percentage rather than the in-season headcount; the
+factor ranks, and a percentage ranks identically.) A sanity check on the
+export: ownership sums to **1500%** — exactly 15 players per squad.
 
 Form and Justice run on the last 5 and 6 matches each player actually
 played in 2025/26 (needing 5 and 6 appearances to be scored) and are
@@ -291,6 +292,86 @@ and log-price is no better than quadratic. Two to four V stars would move
 per position — comparable to the noise the LOO fix itself resolves, without
 a comparable justification. Not worth the added assumption. Not
 implemented.
+
+### Why Crowd is no longer scored pre-season
+
+**This changed the live board.** The pre-season rating went from six stars
+to **five**: Quality, Value, Form, Minutes, Justice. Crowd is still computed
+in full — `crowd`, `crowd_marginrule`, `crowd_pricecheck`, `crowd_margin`
+and every supporting column — still has its leaderboard on the page, and
+still renders its letter beside a player's factors, in a dashed outline to
+mark it as unscored. It simply no longer feeds the star count. The code is
+retained deliberately so a five-factor board can be backtested against a
+six-factor one.
+
+Four reasons:
+
+**1. It is the only factor that is not an expected-points estimator.**
+Quality, Form, Minutes and Justice all estimate expected points. So does
+Value — price efficiency is what makes the £100m budget bind. Crowd
+estimates *variance*, and it was sitting at equal weight pulling against
+the other five.
+
+**2. Its sign is wrong for the objective.** The goal is to win a ~40-person
+mini-league or finish top 3. Simulated as 39 rivals with a skill spread
+plus season noise, differentials stop helping once your edge exceeds
+roughly one skill-σ above the league mean for top 3 (about 1.5σ for an
+outright win). Past that line variance costs you: at a wide field and a
++300 point edge, going full differential drops P(top 3) from **0.72 to
+0.51**. A manager who is already ahead does not want more variance.
+
+**3. It fails on its own terms.** It has no quality floor — **28 of its 103
+stars sat below their position's median quality**. Savona (1.27 xPts/90,
+0.0% owned) scores a +33 margin and stars. Both principled rebuilds also
+failed structurally: the Value price check and a bet-against-beta port both
+break because the bracket's favourite-as-baseline does not survive contact
+with FPL, where the highest-xPts defender is 0.5% owned.
+
+**4. Variance is cheaper elsewhere.** When it is wanted, it is bought more
+precisely at the captaincy in-season, sized to the actual gap to third
+place. It does not belong on a pre-season board at all.
+
+**In-season Crowd is unchanged and still scored** — mid-season the board is
+being read by someone who may well be behind, and the factor's diagnostics
+are the same either way.
+
+#### What it did to the board
+
+| Stars | 6-factor | 5-factor |
+|---|---|---|
+| 0★ | 14 | 18 |
+| 1★ | 44 | 49 |
+| 2★ | 55 | 64 |
+| 3★ | 41 | 63 |
+| 4★ | 62 | 48 |
+| 5★ | 31 | 11 |
+| 6★ | 6 | 0 |
+
+The top band moves from **37 at 5+ of 6** to **59 at 4+ of 5** — 23% of the
+253 rated players.
+
+#### Is a 23% top band still a useful screen?
+
+Both options, judged on whether the screen can actually fill a legal squad
+(2 GK, 5 DEF, 5 MID, 3 FWD, max 3 per club):
+
+| | 4★+ of 5 *(current)* | 5 of 5 |
+|---|---|---|
+| Players | 59 (23%) | 11 (4%) |
+| GK | 3, from 3 clubs | **1** — cannot fill 2 |
+| DEF | 21, from 10 clubs | **1** — cannot fill 5 |
+| MID | 31, from 14 clubs | 9, from 7 clubs |
+| FWD | 4, from 4 clubs | **0** — cannot fill 3 |
+| Legal XV from the pool alone? | yes | **no** |
+
+**Recommendation: keep 4★+ of 5.** The 23% headline is misleading because
+it is carried entirely by the deep positions — midfield (31) and defence
+(21), where the rated pool is genuinely large. Where a squad is actually
+constrained the screen is *tight*, not loose: 3 goalkeepers for 2 places
+and 4 forwards for 3. A 5-of-5 band is not a screen at all — it is an
+11-name, midfield-heavy shortlist with no forwards and one goalkeeper, from
+which no legal squad can be built. Worth revisiting only if the rated pool
+grows materially. **Your call — say the word and I'll change it.**
 
 ### The Crowd price check, and why it is not live
 
@@ -544,7 +625,8 @@ factor is also reported standalone (with-star vs without, the analogue of
 
 ### Results — full 2025/26 season (37 scoreable gameweeks, 11,513 player-weeks)
 
-Run with the current six factors and the appearance-based gate. (The gate
+Run with the **in-season** six factors (Crowd included — the removal is
+pre-season only) and the appearance-based gate. (The gate
 keeps recently-absent players in the pool — by design — so averages sit
 lower than a calendar-gated run would show; the absent score zeros.)
 
