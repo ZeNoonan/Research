@@ -106,6 +106,85 @@ def picks_table(block, n_factors: int) -> str:
     return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
 
 
+def squads_html(listing_path, history_dir) -> str:
+    """Two optimal 15-man squads: the board's, and the crowd's."""
+    import squad as squad_mod
+    factor, crowd = squad_mod.build(listing_path, history_dir)
+
+    def table(sq, by, captain_by, cols):
+        rows = []
+        xi = sq[sq["xi"]]
+        cap = xi.nlargest(2, captain_by)
+        cap_names = {cap.iloc[0]["name"]: "C", cap.iloc[-1]["name"]: "V"}
+        started = False
+        for r in squad_mod._order(sq, by).itertuples():
+            if not r.xi and not started:
+                started = True
+                rows.append("<tr class='divider'><td colspan='6'>bench</td></tr>")
+            band = cap_names.get(r.name, "")
+            badge = (f" <span class='letters'>{band}</span>") if band else ""
+            rows.append(
+                f"<tr><td>{esc(r.position)}</td>"
+                f"<td>{esc(r.name)}{badge}</td><td>{esc(r.team)}</td>"
+                f"<td class='num'>£{r.price:.1f}m</td>"
+                + "".join(f"<td class='num'>{fn(r)}</td>" for _, fn in cols)
+                + "</tr>")
+        head = ("<tr><th>Pos</th><th>Player</th><th>Team</th>"
+                "<th class='num'>Price</th>"
+                + "".join(f"<th class='num'>{h}</th>" for h, _ in cols)
+                + "</tr>")
+        return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
+
+    def shape(sq):
+        xi = sq[sq["xi"]]
+        return "-".join(str(int((xi["position"] == p).sum()))
+                        for p in ("DEF", "MID", "FWD"))
+
+    f_tbl = table(factor, "stars", "xpts90",
+                  [("Stars", lambda r: "★" * int(r.stars)),
+                   ("Factors", lambda r: f"<span class='letters'>{esc(r.factor_letters)}</span>"),
+                   ("xPts/90", lambda r: f"{r.xpts90:.2f}"),
+                   ("Owned", lambda r: f"{r.owned_pct:.1f}%")])
+    c_tbl = table(crowd, "owned_pct", "owned_pct",
+                  [("Owned", lambda r: f"{r.owned_pct:.1f}%")])
+    overlap = sorted(set(factor["name"]) & set(crowd["name"]))
+
+    return f"""<section id="squads"><h2>Two squads</h2>
+<p class='note'>Both are legal and <b>solved exactly</b> (integer program,
+not a greedy pick): £100.0m, 2 GK / 5 DEF / 5 MID / 3 FWD, at most 3 from
+one club, and a starting XI in a legal formation. <b>C</b> and <b>V</b> mark
+captain and vice — on expected points, since captaincy doubles a score.</p>
+
+<h3 style='font-size:16px;margin:16px 0 4px'>The factor squad — the board's
+own answer</h3>
+<p class='note'>Maximises total stars ({int(factor['stars'].sum())} of a
+possible 75), ties broken on the quality engine. Drawn from the
+{len(factor)} of 253 rated players. Formation {shape(factor)}, spending
+£{factor['price'].sum():.1f}m.</p>
+{f_tbl}
+
+<h3 style='font-size:16px;margin:16px 0 4px'>The crowd squad — what the
+field is holding</h3>
+<p class='note'>Maximises total ownership
+({crowd['owned_pct'].sum():.0f} percentage points across 15 players).
+Drawn from <b>every</b> listed player, not just the rated ones: about 240
+points of ownership sit with players this board cannot rate — promoted-club
+squads, new signings, and regulars who fell under the minutes gate — and
+leaving them out would misrepresent the crowd. Formation {shape(crowd)},
+spending £{crowd['price'].sum():.1f}m.</p>
+{c_tbl}
+
+<p class='note'><b>They share {len(overlap)} of 15 players</b>
+({', '.join(esc(n) for n in overlap)}). That is the point of the exercise:
+the board and the field agree on almost nobody. The factor squad is built
+on last season's underlying numbers and buys minutes and chance creation
+cheaply — seven of its fifteen are owned by under 2% of managers, five of
+them starters. The crowd
+squad is concentrated in the expensive, well-known end. Whether that gap is
+edge or blind spot is exactly what a season settles.</p>
+</section>"""
+
+
 def leaderboards_html(rated) -> str:
     """Per-factor sorted leaderboards with the cut line, pre-season factors."""
     elig = rated[rated["eligible"]].copy()
@@ -333,6 +412,8 @@ passed it exactly as one who started thirty-eight.
 <a href="#leaderboards">Full sorted leaderboards ↓</a></p></section>
 
 {''.join(sections)}
+
+{squads_html(listing_path, history_dir)}
 
 <section><h2>Best points per pound</h2>
 <p class="note">Model expected points per 90 divided by the new price,

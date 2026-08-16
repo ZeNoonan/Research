@@ -630,6 +630,44 @@ Ipswich) and signings from abroad — have no Premier League history and are
 reported as **unrated** rather than dropped: they are exactly the players
 you have to judge by eye.
 
+## Two squads
+
+`squad.py` turns the board into an actual team, and builds the crowd's team
+beside it for contrast. Both are **solved exactly** by integer program (CBC)
+rather than picked greedily — the £100m budget and the 3-per-club cap
+interact, and a greedy pick gets that wrong.
+
+```bash
+python squad.py       # prints both squads; also rendered on preseason.html
+```
+
+| | Factor squad | Crowd squad |
+|---|---|---|
+| Objective | most total stars (ties → quality engine) | most total ownership |
+| Pool | the 253 rated players | **all 567 listed** |
+| Result | 71 of a possible 75 stars | 470 ownership points |
+| Formation | 4-5-1 | 4-3-3 |
+| Spend | £100.0m | £100.0m |
+| Captain | Haaland (highest xPts/90) | Haaland (most owned) |
+
+The pools differ on purpose. The factor squad can only use players the board
+can rate; the crowd squad draws from everyone, because **about 240 of the
+1500 ownership points sit with players this board cannot rate** —
+promoted-club squads, new signings, and regulars who fell under the minutes
+gate — and excluding them would misrepresent what the field actually holds.
+
+**They share 2 of 15 players** (Haaland and Calvert-Lewin). The factor squad
+buys minutes and chance creation cheaply: **seven of its fifteen are owned
+by under 2% of managers**, five of them starters — Timber and Saliba at
+0.5%, van den Berg at 0.7%, Ouattara at 1.3%, Tavernier at 1.9%, with
+Ekitiké (0.2%) and Darlow (0.1%) on the bench. The crowd squad is concentrated in the expensive,
+well-known end. Whether that gap is edge or blind spot is what a season
+settles; it is also the natural thing to backtest once 2026/27 gameweeks
+land.
+
+Captaincy is assigned on expected points rather than star count — half the
+factor squad ties at 5★, so picking the captain by stars would be arbitrary.
+
 ## Getting ready for the season proper
 
 Prices and squads for the new season appear in the API when the game
@@ -658,6 +696,7 @@ weekly_report.py    terminal pick sheet + full rated CSV into reports/
 build_site.py       rated season -> index.html (static, phone-friendly)
 backtest.py         star ratings vs next-gameweek points (needs 2+ GW files)
 fetch_data.py       official FPL API -> data/<season>/gw<N>.csv
+squad.py            exact 15-man squads: the board's, and the crowd's
 preseason.py        new-season price list x last season's record
 build_preseason.py  -> preseason.html, the draft board
 data/2025-26/       the full 2025/26 season, gw1.csv .. gw38.csv
