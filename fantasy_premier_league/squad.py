@@ -139,7 +139,15 @@ def build(listing: str | Path, history: str | Path, respect_availability: bool =
     factor = pick_squad(board, "stars", "xpts90").copy()
     crowd = pick_squad(everyone, "owned_pct").copy()
 
-    factor["xi"] = factor.index.isin(pick_xi(factor, "stars").index)
+    # Which eleven start is decided on projected points, not on stars.
+    # Stars are a five-level ordinal, so they tie constantly and the tie
+    # falls to index order - which benched Gabriel (86.4 projected points,
+    # 80% of the minutes) to start Calafiori (54.9, 50%), both 4*. This is
+    # the same reasoning that already picks the captain on xpts90.
+    factor["xpts_season"] = factor["xpts90"] * factor["minutes_share"] * 38
+    factor["xi"] = factor.index.isin(pick_xi(factor, "xpts_season").index)
+    # The crowd pool deliberately has no ratings - unrated players have
+    # none - so its XI stays on ownership.
     crowd["xi"] = crowd.index.isin(pick_xi(crowd, "owned_pct").index)
     return factor, crowd
 

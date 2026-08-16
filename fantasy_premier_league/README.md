@@ -679,8 +679,29 @@ well-known end. Whether that gap is edge or blind spot is what a season
 settles; it is also the natural thing to backtest once 2026/27 gameweeks
 land.
 
-Captaincy is assigned on expected points rather than star count — half the
-factor squad ties at 5★, so picking the captain by stars would be arbitrary.
+**Which eleven start, and who captains, are both decided on projected
+points — not on stars.** Stars are a five-level ordinal, so they tie
+constantly, and a tie falls to whatever order the rows happen to be in.
+That was picking the captain arbitrarily until it was fixed; the same
+reasoning had never been applied to the other ten, and it was benching
+**Gabriel** (86.4 projected points, 80% of the minutes) to start
+**Calafiori** (54.9, 50%) — both 4★, separated by nothing but index order.
+
+The XI is now chosen by maximising `xpts90 × minutes_share × 38` under the
+formation rules. It is worth **+31.6 projected points over a season**
+(772.8 → 804.3 for the XI, 876.2 → 907.8 with the captain doubled — the
+endpoints are rounded, the difference is not) and costs nothing: the same
+fifteen players, the same 3-5-2, zero transfers.
+Bench spend falls £23.5m → £21.0m, since the expensive defender is now on
+the pitch.
+
+The crowd squad's XI stays on ownership. Its pool is deliberately
+rating-free — unrated players have no `xpts90` — so there is nothing else
+to sort it by.
+
+> The projection is backward-looking: `minutes_share` is last season's, used
+> as a proxy for next season's. It is fine for ordering an XI within a squad
+> already chosen, which is all it is used for here.
 
 ## Getting ready for the season proper
 
