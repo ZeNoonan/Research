@@ -1,14 +1,17 @@
-# Fantasy Premier League — a six-factor weekly pick sheet
+# Fantasy Premier League — a seven-factor weekly pick sheet
 
 A weekly player-recommendation model for **Fantasy Premier League**
 (2026/27 season onward), built in the family style of
 [`march_madness/`](../march_madness/) and [`nfl_report/`](../nfl_report/):
 a simple, **additive binary-factor model** in the spirit of Aaron Brown's
 demonstration systems. Each factor is one yes/no comparison against a
-player's *position peers*; the sum is a **0–6 star rating** in-season
-(everyone at 5★ and 6★ makes the weekly pick sheet), and **0–5 pre-season**,
+player's *position peers*; the sum is a **0–7 star rating** in-season
+(everyone at 6★ and 7★ makes the weekly pick sheet), and **0–6 pre-season**,
 where Crowd is computed as a diagnostic but not scored — see
 [Why Crowd is no longer scored pre-season](#why-crowd-is-no-longer-scored-pre-season).
+Six *questions*, seven stars: **Minutes is asked twice**, because it is the
+term season points vary most with — see
+[Minutes gets two cuts](#minutes-gets-two-cuts).
 
 **Open [`index.html`](index.html)** — a self-contained, phone-friendly page
 (no external assets, same treatment as `nfl_report/`) with the factor
@@ -29,17 +32,18 @@ repo's default branch, so a change goes live when its branch is merged.)
 
 ## The model
 
-Six factors, each worth one star, each judged within position
-(GK / DEF / MID / FWD) among players who pass the minutes gate:
+Seven stars, each judged within position (GK / DEF / MID / FWD) among
+players who pass the minutes gate — except Nailed, whose bar is absolute:
 
 | # | Factor | Star when… | Intuition |
 |---|---|---|---|
 | 1 | **Quality** | model expected points per 90 above the position median | process stats over outcomes — xG, not goals |
 | 2 | **Value** | expected points per 90 **per £million** above the position median | points per pound funds the rest of the squad |
 | 3 | **Form** | points over the **last 5 matches the player actually played** above the position median | momentum |
-| 4 | **Minutes** | average minutes over the **last 5 matches the player actually played**, at or above the position median | the nailed-on full-match starters (at-or-above, not strictly above: keepers all average 90, and carrying the position's full typical load is exactly what "nailed" means) |
-| 5 | **Justice** | **xGI (xG + xA) over the last 8 matches the player actually played** above the position median | chance creation is the process behind attacking returns and persists where the returns themselves bounce around |
-| 6 | **Crowd** *(in-season only)* | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off. **Not scored pre-season** — computed and displayed as a diagnostic; see below |
+| 4 | **Minutes** | **share of the minutes his club actually had available** — last 5 *gameweeks* in-season, last season as a whole pre-season — at or above the position median | who was on the pitch, not who happened to play 90 on the days he was picked (at-or-above, not strictly above: whole positions sit on the same value, and a strict rule would star no keeper) |
+| 5 | **Nailed** | the same share at or above **75%**, an **absolute** bar with no position group | Minutes' second star: three quarters of the minutes means the same thing for a keeper and a forward, which is not true of a rate stat |
+| 6 | **Justice** | **xGI (xG + xA) over the last 8 matches the player actually played** above the position median | chance creation is the process behind attacking returns and persists where the returns themselves bounce around |
+| 7 | **Crowd** *(in-season only)* | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off. **Not scored pre-season** — computed and displayed as a diagnostic; see below |
 
 **Eligibility gate** (the analogue of the NFL system only betting at
 \|System #\| ≥ 3): a player must average **45+ minutes over the last 4
@@ -48,34 +52,48 @@ ratings, but a player used only for short cameos does not make the cut.
 
 ### Appearance windows, minimum samples, and the caveat they create
 
-**Every window counts the player's own appearances, not calendar
+**Form and Justice count the player's own appearances, not calendar
 gameweeks.** A spell on the bench or in the treatment room shifts a window
 back rather than filling it with zeros, so Form measures how a player has
 actually been playing rather than partly measuring whether he played at
 all.
 
 The price is a **minimum sample**: a player must have made at least as many
-appearances as the window is long to be scored on it — **5 for Form and
-Minutes, 8 for Justice**. Short of that he takes no star for that factor
-**and is left out of its median**, so a thin record neither earns a star nor
-moves the bar for everyone else. `factors_assessed` records how many of the
-six could be scored, so a 3★ off one appearance is not mistaken for a 3★ off
-a full season.
+appearances as the window is long to be scored on it — **5 for Form, 8 for
+Justice**. Short of that he takes no star for that factor **and is left out
+of its median**, so a thin record neither earns a star nor moves the bar for
+everyone else. `factors_assessed` records how many could be scored, so a 3★
+off one appearance is not mistaken for a 3★ off a full season.
 
-Early in a season this means the appearance-window factors are dormant for
-everybody until enough football has been played — which is honest: there is
-no five-match form in gameweek three.
+Early in a season this means those factors are dormant for everybody until
+enough football has been played — which is honest: there is no five-match
+form in gameweek three.
 
-> **The caveat.** With the gate *and* all three windows counting
-> appearances, **nothing in the model knows a player is currently absent** —
+**Minutes and Nailed are the deliberate exception.** They count the last 5
+*gameweeks* and a match missed counts as a **zero**, because there an
+absence is not a hole in the sample — it is the measurement. They have no
+minimum sample and no unassessed state: a player who has barely featured
+simply has a low share. See
+[Minutes gets two cuts](#minutes-gets-two-cuts).
+
+> **The caveat.** With the gate *and* the Form and Justice windows counting
+> appearances, **most of the model does not know a player is currently
+> absent** —
 > someone injured since October carries the same numbers as a weekly
 > starter. That is the deliberate cost of never dropping the injured, and
-> it bites: rating 2025/26 through GW38, Matthijs de Ligt rates 6★ on a
-> record that stops at **GW13**. So `gws_since_app` and `last_app_round`
-> are computed and surfaced — the terminal report and the web page flag
-> anyone who has not featured for two or more gameweeks (`last played
-> GW13`). It is a caveat shown, not a factor: check it before transferring
-> anyone in.
+> it bites: rating 2025/26 through GW38, Matthijs de Ligt rated **6★ of 6**
+> on a record that stops at **GW13**. So `gws_since_app` and
+> `last_app_round` are computed and surfaced — the terminal report and the
+> web page flag anyone who has not featured for two or more gameweeks
+> (`last played GW13`). It is a caveat shown, not a factor: check it before
+> transferring anyone in.
+>
+> Minutes and Nailed *do* see the absence, which is part of why the split
+> was worth making. De Ligt's share of the last five gameweeks is **0.0**,
+> so he takes neither star and now rates **5★ of 7** — `QVFJC`. Still too
+> high for a man who has not played since November, because Quality, Value,
+> Form and Justice all still read his last appearances; but the board no
+> longer calls him one of its very best defenders.
 
 ### The quality engine
 
@@ -146,22 +164,24 @@ python build_preseason.py    # -> preseason.html
 
 ### Where the pre-season board deliberately differs from in-season
 
-Three factors and the gate use different yardsticks pre-season. The
-in-season path is untouched — `model.rate_players(..., preseason=True)`
-branches, and in-season `index.html` is byte-identical across the change.
+The gate and three of the factors use different yardsticks pre-season, via
+the `preseason=True` branch in `model.rate_players`. (Each of these
+pre-season changes left the in-season path byte-identical when it landed.
+The later [Minutes gets two cuts](#minutes-gets-two-cuts) change is the one
+that deliberately altered both.)
 
 | | In-season | Pre-season | Why |
 |---|---|---|---|
 | **Gate** | 45+ min averaged over last 4 appearances | **≥ 600 total minutes** *and* the 45-min check | Conditioning only on matches played let a keeper who started 5 games pass exactly as one who started 38 — 31 keepers rated for 20 jobs. Now 21. |
 | **Value** | xPts/90 ÷ price | **leave-one-out residual** of xPts/90 regressed on price, above the median residual | Price varies ~2× within a position while production varies ~6×, so dividing barely reorders: V was Quality restated. Defenders shared 48 of 56 Q-stars with V; now 34 of 47. LOO because an isolated price otherwise grades its own line — see below. |
-| **Minutes** | avg minutes over last 5 appearances | **share of the season's 3,420** | The average cannot tell a 5-game starter from a 38-game one. |
-| **Crowd** | ownership percentile below quality percentile — **scored** | **not scored at all**; computed and shown as a diagnostic | It is a variance factor among five EV estimators, and variance only pays a manager who is behind. See "Why Crowd is no longer scored pre-season". |
+| **Minutes / Nailed** | share of the last **5 gameweeks'** available minutes | **share of the season's 3,420** | Same quantity, different window: in-season asks who is playing *now*, pre-season has a whole season to read and no "now" to speak of. |
+| **Crowd** | ownership percentile below quality percentile — **scored** | **not scored at all**; computed and shown as a diagnostic | It is a variance factor among six EV estimators, and variance only pays a manager who is behind. See "Why Crowd is no longer scored pre-season". |
 
-Pre-season ratings are out of **5 stars**: Quality, Value, Form, Minutes and
-Justice, every one of them an estimator of expected points. Ownership is
-still read — it is the one *current* input on a board otherwise built from
-last season — but it now feeds the Crowd **diagnostic** rather than a sixth
-star. (`owned_pct` is a percentage rather than the in-season headcount; the
+Pre-season ratings are out of **6 stars**: Quality, Value, Form, Minutes,
+Nailed and Justice, every one of them an estimator of expected points.
+Ownership is still read — it is the one *current* input on a board
+otherwise built from last season — but it now feeds the Crowd **diagnostic**
+rather than a star. (`owned_pct` is a percentage rather than the in-season headcount; the
 factor ranks, and a percentage ranks identically.) A sanity check on the
 export: ownership sums to **1500%** — exactly 15 players per squad.
 
@@ -173,9 +193,10 @@ best points-per-pound and the full per-factor leaderboards. Each row
 carries the player's ownership and his price move against last season's
 close.
 
-The Crowd factor visibly changes the board: Haaland (75% owned) rates 3★
-rather than 6★ despite the best underlying numbers of any forward —
-bet-against-beta doing its job.
+Without Crowd in the scoring set, Haaland (75% owned, and the best
+underlying numbers of any forward) rates the full **6★**. Under the old
+rule the factor docked him for being popular; it now says so in the
+diagnostic column instead of in the score.
 
 ### Value is scored leave-one-out
 
@@ -340,23 +361,176 @@ measured something real about his side.
 
 **Recommendation: leave goalkeepers unscored on Justice**, the way a player
 short of an appearance window is already treated — no star, no vote in the
-median — which would make a keeper's rating out of 4 pre-season and 5
+median — which would make a keeper's rating out of 5 pre-season and 6
 in-season. The alternative is to keep the old conceded-minus-xGC ledger for
 keepers only, but that reintroduces the under-reward idea the change was
 meant to remove. As shipped the factor is applied uniformly, keepers
 included, since that is what was asked for; say the word and it is a
 one-line change.
 
+### Minutes gets two cuts
+
+**This changed both boards, and it is the largest single change the model
+has had.** Minutes went from one star to two, the in-season quantity it
+reads changed, and the in-season rating is now out of 7 rather than 6.
+
+#### Why
+
+Season points are, near enough, a per-90 rate **multiplied by** minutes
+played. Across the rated pre-season pool the log-variance of
+`minutes_share` (0.191) is **2.2× that of `xpts90`** (0.088) — minutes are
+the more variable of the two terms. But the star count correlated 0.735
+with `xpts90` and only 0.430 with `minutes_share`: the scale was tracking
+the smaller source of variation and largely ignoring the bigger one.
+
+That follows from the shape rather than from a bug. Four of the factors are
+rate-like (Quality, Value, Form, Justice), minutes got one binary, and a
+median cut cannot express the difference between 61% of the minutes and
+97%. The symptom was a scale that was **flat in minutes across its middle**:
+
+| stars | n | mean `minutes_share` |
+|---|---|---|
+| 0 | 29 | 0.390 |
+| 1 | 50 | 0.569 |
+| 2 | 47 | 0.595 |
+| 3 | 49 | 0.575 |
+| 4 | 57 | 0.743 |
+| 5 | 21 | 0.767 |
+
+1★ to 3★ sat at ~0.58 with 2★ *above* 3★. And it showed up directly:
+`minutes_factor` **alone** ranked projected points better than the whole
+five-star composite (0.754 against 0.731). Adding the other four factors
+made the ordering worse.
+
+#### What changed
+
+Two things, and the second was necessary to make the first work.
+
+**1. A second cut.** `minutes_nailed` (letter `N`) stars a player at or
+above **75% of the available minutes**. The bar is **absolute**, not a
+position percentile, and that is deliberate: minutes are directly
+comparable across positions and multiply straight into points, unlike a
+rate stat, so peer-ranking them throws that comparability away. Measured
+against actual next-gameweek points, absolute beat position-relative at
+every level tried (0.264 against 0.249 at the same nominal 75%).
+
+**2. The in-season quantity.** Minutes used to read `minutes_avg` — the
+mean minutes of the last 5 matches the player *actually played*. That
+cannot tell a nailed-on starter from a man who plays 90 minutes whenever he
+happens to be picked, and it measured almost nothing: against actual
+next-gameweek points it scored **0.197**, against **0.361** for a share of
+the minutes actually available. The pre-season path had already been fixed
+to use a share; in-season had been left behind, and its own code comment
+said so.
+
+So in-season Minutes now reads **minutes over the last 5 gameweeks ÷ the
+minutes the player's club actually had available**. This is the only window
+in the model that counts **gameweeks rather than appearances**, because a
+match missed is the quantity being measured, not a hole in the sample. It
+follows that Minutes and Nailed have no minimum sample and no unassessed
+state — a thin record is a low share, which is the answer.
+
+> Available minutes are counted **per club**, not as a flat 5 × 90. FPL has
+> blank and double gameweeks: over the last five gameweeks of 2025/26 five
+> clubs had only four fixtures (360 available minutes) and Crystal Palace
+> had six (540). A flat denominator would have marked every player at a
+> blanking club as not nailed for something his club did not do. Fixtures
+> per club-gameweek is the *modal* rows-per-player, so a genuine double
+> counts and a stray duplicated row in the source data does not.
+
+#### Picking the bar
+
+Swept against actual next-gameweek points over 37 gameweeks and 11,513
+player-week ratings, all on the windowed share:
+
+| second cut | ρ vs next-GW pts | monotone | top band | 4+ edge |
+|---|---|---|---|---|
+| *none (one cut only)* | 0.195 | yes | 3.51 | +1.07 |
+| position p65 | 0.255 | yes | 3.65 | +1.23 |
+| position p75 | 0.249 | yes | 3.76 | +1.21 |
+| absolute 0.60 | **0.270** | yes | 3.51 | +1.24 |
+| absolute 0.70 | 0.266 | yes | 3.56 | +1.23 |
+| **absolute 0.75** *(shipped)* | 0.264 | yes | 3.56 | **+1.24** |
+| absolute 0.90 | 0.251 | yes | 3.66 | +1.23 |
+
+Absolute 0.60 wins on rank correlation by 0.006. It was not taken: "60% of
+the available minutes" is not what anyone means by nailed on, the 4+ edge
+is identical, and a threshold chosen because it topped a sweep by less than
+noise is a worse thing to defend than one that means something. **0.75 is
+the interpretable point that the sweep says costs nothing.**
+
+#### What it did — measured, not asserted
+
+Against **actual next-gameweek points**, 37 gameweeks, 11,513 player-week
+ratings (`python backtest.py`):
+
+| | before (6 stars) | after (7 stars) |
+|---|---|---|
+| monotone in stars? | **no** — 0★ 1.99 > 1★ 1.88 | **yes**, all eight bands |
+| top band | 3.29 (n=699) | **3.55** (n=637) |
+| Minutes standalone edge | +1.01 | **+1.66** (and Nailed +1.64) |
+| 4+ picks vs the rest | 3.04 vs 2.10 (+0.95) | 3.13 vs 1.88 (**+1.25**) |
+
+The old scale was **not monotone** — its 1★ band scored *less* than its 0★
+band — which is the one thing the family's validation criterion asks for.
+The new one rises across all eight bands: 1.45, 1.52, 2.06, 2.14, 2.61,
+3.22, 3.53, 3.55.
+
+Like-for-like on selectivity, since 4+ of 7 is a wider net than 4+ of 6:
+
+| | n | pts/week |
+|---|---|---|
+| old 4+ of 6 | 3,716 | 3.04 |
+| **new 5+ of 7** | 3,208 | **3.39** |
+| old 5+ of 6 | 2,176 | 3.13 |
+| **new 6+ of 7** | 1,726 | **3.54** |
+
+**Default pick-sheet levels moved up one** to hold selectivity constant:
+in-season `--min-stars` 5 → **6**, pre-season `picks(min_stars=...)` 4 →
+**5**.
+
+#### And on the pre-season board
+
+The diagnosis that prompted this was pre-season, so the same measurements
+there:
+
+| | before | after |
+|---|---|---|
+| Spearman(stars, projected points) | 0.731 | **0.821** |
+| Kendall τ-b | 0.575 | **0.668** |
+| inverted star pairs | 18.3% | **13.6%** |
+| top-15 agreement with the points ranking | 6/15 (40%) | **8/15 (53%)** |
+| top-50 | 74% | **88%** |
+| `minutes_share` monotone across bands | **no** (flat 1★–3★) | **yes** |
+
+And the star-versus-points squad gap this was diagnosed from closed by more
+than a third: **+98.8 → +63.2** projected points, with squad overlap up
+from 4 of 15 to **6 of 15**.
+
+#### What this is not
+
+Every "after" number above is in-sample on 2025/26 — the same season the
+thresholds were swept on. The sweep was shallow (one parameter, seven
+values, all monotone) and the direction was fixed by theory before it was
+measured, so this is not a fitted result in the dangerous sense. But the
+honest test is a season the model has not seen, and that is 2026/27.
+
+The pre-season table is also measured against *projected* points, which
+contain `minutes_share` as a multiplicative term — a minutes factor
+correlating with it is partly definitional. The in-season next-gameweek
+numbers carry no such circularity, and they are the ones to trust.
+
 ### Why Crowd is no longer scored pre-season
 
-**This changed the live board.** The pre-season rating went from six stars
-to **five**: Quality, Value, Form, Minutes, Justice. Crowd is still computed
+**This changed the live board.** The pre-season rating dropped Crowd from
+its scoring set, leaving Quality, Value, Form, Minutes, Nailed and Justice
+— six of the seven. Crowd is still computed
 in full — `crowd`, `crowd_marginrule`, `crowd_pricecheck`, `crowd_margin`
 and every supporting column — still has its leaderboard on the page, and
 still renders its letter beside a player's factors, in a dashed outline to
 mark it as unscored. It simply no longer feeds the star count. The code is
-retained deliberately so a five-factor board can be backtested against a
-six-factor one.
+retained deliberately so a board without Crowd can be backtested against
+one with it.
 
 Four reasons:
 
@@ -506,7 +680,11 @@ star) was a valid entry, and he passes. Earlier releases of this document
 hunted structural explanations for their failure — that was chasing a
 broken yardstick, and those explanations are withdrawn with it.
 
-The factor is judged instead on **discrimination between two populations**:
+The factor is judged instead on **discrimination between two populations**.
+The counts below were measured when Minutes was a single star read off
+average minutes per appearance; the M-star groups would be drawn slightly
+differently today, and the table has not been re-measured because the rule
+it judges is not live:
 
 | Population | n | keep C, full-season σ | keep C, `q·s²` |
 |---|---|---|---|
@@ -645,7 +823,7 @@ python squad.py       # prints both squads; also rendered on preseason.html
 |---|---|---|
 | Objective | most total stars (ties → quality engine) | most total ownership |
 | Pool | the 253 rated players | **all 567 listed** |
-| Result | 69 of a possible 75 stars | 470 ownership points |
+| Result | 84 of a possible 90 stars | 470 ownership points |
 | Formation | 3-5-2 | 4-3-3 |
 | Spend | £100.0m | £100.0m |
 | Captain | Haaland (highest xPts/90) | Haaland (most owned) |
@@ -660,10 +838,9 @@ rather than being ignored: a typo would otherwise leave an injured player
 quietly selectable. `squad.py` reports what the flag costs, and
 `build(..., respect_availability=False)` shows the squad you would have had.
 
-Currently out: **Saliba, Timber, Ekitiké**. That costs the factor squad two
-stars (71 → 69) and reshapes it from 4-5-1 to 3-5-2 — Verbruggen and Enzo
-Fernández drop out alongside the three, and Raya, Gabriel, Schär, Anderson
-and Welbeck come in.
+Currently out: **Saliba, Timber, Ekitiké**. That costs the factor squad one
+star (85 → 84) — Szoboszlai drops out alongside Saliba and Timber (Ekitiké
+was not in it), and Mbeumo, Richards and O'Reilly come in.
 
 The pools differ on purpose. The factor squad can only use players the board
 can rate; the crowd squad draws from everyone, because **about 240 of the
@@ -672,28 +849,26 @@ promoted-club squads, new signings, and regulars who fell under the minutes
 gate — and excluding them would misrepresent what the field actually holds.
 
 **They share 3 of 15 players** (Haaland, Calvert-Lewin and Raya). The
-factor squad still buys minutes and chance creation cheaply — van den Berg
-at 0.7%, Ouattara at 1.3%, Tavernier at 1.9%, Schär at 0.2% and Darlow at
-0.1% are all owned by under 2% of managers. The crowd squad is concentrated in the expensive,
-well-known end. Whether that gap is edge or blind spot is what a season
+factor squad still buys minutes and chance creation cheaply — Joachim
+Andersen at 0.1%, van den Berg at 0.7%, Chris Richards at 0.8% and
+Tavernier at 1.9% are all owned by under 2% of managers. The crowd squad is
+concentrated in the expensive, well-known end. Whether that gap is edge or blind spot is what a season
 settles; it is also the natural thing to backtest once 2026/27 gameweeks
 land.
 
 **Which eleven start, and who captains, are both decided on projected
-points — not on stars.** Stars are a five-level ordinal, so they tie
-constantly, and a tie falls to whatever order the rows happen to be in.
-That was picking the captain arbitrarily until it was fixed; the same
-reasoning had never been applied to the other ten, and it was benching
-**Gabriel** (86.4 projected points, 80% of the minutes) to start
-**Calafiori** (54.9, 50%) — both 4★, separated by nothing but index order.
+points — not on stars.** Stars are a coarse ordinal, so they tie constantly,
+and a tie falls to whatever order the rows happen to be in. That was picking
+the captain arbitrarily until it was fixed, and the same reasoning had never
+been applied to the other ten.
 
-The XI is now chosen by maximising `xpts90 × minutes_share × 38` under the
-formation rules. It is worth **+31.6 projected points over a season**
-(772.8 → 804.3 for the XI, 876.2 → 907.8 with the captain doubled — the
-endpoints are rounded, the difference is not) and costs nothing: the same
-fifteen players, the same 3-5-2, zero transfers.
-Bench spend falls £23.5m → £21.0m, since the expensive defender is now on
-the pitch.
+The XI is chosen by maximising `xpts90 × minutes_share × 38` under the
+formation rules. On the current board that is worth **+27.4 projected points
+over a season** (812.5 → 839.9 for the XI, 916.0 → 943.4 with the captain
+doubled) and costs nothing: the same fifteen players, zero transfers. Bench
+spend falls £22.5m → £20.5m. The swaps are Igor Thiago (87.1 projected, 96%
+of the minutes) and Calvert-Lewin (64.1) starting ahead of van den Berg
+(57.4) and Andersen (61.7) — pairs the star count could not separate.
 
 The crowd squad's XI stays on ownership. Its pool is deliberately
 rating-free — unrated players have no `xpts90` — so there is nothing else
@@ -723,22 +898,25 @@ Both are printed side by side at the foot of every run:
 
 | | stars (default) | points |
 |---|---|---|
-| XI projected points | 804.3 | **903.0** |
-| with the captain doubled | 907.8 | **1006.6** |
-| total stars | **69** | 62 |
-| bench spend | £21.0m | £20.5m |
+| XI projected points | 839.9 | **903.0** |
+| with the captain doubled | 943.4 | **1006.6** |
+| total stars | **84** | 76 |
+| bench spend | £20.5m | £20.5m |
 | formation | 3-5-2 | 4-5-1 |
 | captain | Haaland | Bruno Fernandes |
-| owned by under 2% of managers | 5 of 15 | 1 of 15 |
+| owned by under 2% of managers | 4 of 15 | 1 of 15 |
 
-**The gap is +98.8 projected points over a season — about 2.6 a gameweek —
-and the two squads share only 4 of 15** (Raya, Gabriel, Anderson,
-Calvert-Lewin). It is not a rounding difference. The star count is a lossy
-summary of the thing it stands in for, in two specific ways: a player one
-point above his position's median scores the same star as one at the top of
-it, and maximising the total implicitly prices a bench place identically to
-a starting one — which is how £21.0m ends up on four players who mostly will
-not play.
+**The gap is +63.2 projected points over a season — about 1.7 a gameweek —
+and the two squads share 6 of 15.** It is not a rounding difference. The
+star count is still a lossy summary of the thing it stands in for: a player
+one point above his position's median scores the same star as one at the
+top of it.
+
+That gap used to be **+98.8**, with an overlap of only 4 of 15. Giving
+Minutes a second cut closed more than a third of it — see
+[Minutes gets two cuts](#minutes-gets-two-cuts), which this measurement is
+what prompted. The remaining +63.2 is the honest residual cost of a binary
+scale, and the same argument below still applies to it.
 
 **The default stays stars, deliberately.** The board is an additive
 binary-factor model on purpose: its claim is that crossing several
@@ -746,8 +924,8 @@ independent medians is more robust than any one continuous estimate,
 *because* the estimate is noisy. Maximising projected points hands the
 entire squad to `xpts90 × minutes_share`, and `minutes_share` is last
 season's — the least durable quantity in the whole calculation. The points
-squad drops Haaland outright on a projection that knows nothing about a
-transfer or a change of role.
+squad still drops Haaland outright, on a projection that knows nothing
+about a transfer or a change of role.
 
 And the comparison is scored on the projection's own yardstick: of course
 the squad that maximises projected points wins on projected points. What
@@ -779,7 +957,7 @@ file.)*
 ## Files
 
 ```
-model.py            the six-factor engine (all model logic)
+model.py            the seven-factor engine (all model logic)
 weekly_report.py    terminal pick sheet + full rated CSV into reports/
 build_site.py       rated season -> index.html (static, phone-friendly)
 backtest.py         star ratings vs next-gameweek points (needs 2+ GW files)
@@ -809,29 +987,40 @@ factor is also reported standalone (with-star vs without, the analogue of
 
 ### Results — full 2025/26 season (37 scoreable gameweeks, 11,513 player-weeks)
 
-Run with the **in-season** six factors (Crowd included — the removal is
-pre-season only) and the appearance-based gate. (The gate
-keeps recently-absent players in the pool — by design — so averages sit
-lower than a calendar-gated run would show; the absent score zeros.)
+Run with the **in-season** seven factors (Crowd included — the removal is
+pre-season only) and the appearance-based gate. (The gate keeps
+recently-absent players in the pool — by design — so averages sit lower
+than a calendar-gated run would show; the absent score zeros.)
 
 Average actual next-gameweek points by star rating:
 
-| Stars | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
-|---|---|---|---|---|---|---|---|
-| **Next-GW pts** | 2.06 | 1.89 | 2.16 | 2.45 | 2.81 | 2.99 | 3.08 |
-| n | 961 | 2097 | 2533 | 2139 | 1949 | 1348 | 486 |
+| Stars | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| **Next-GW pts** | 1.45 | 1.52 | 2.06 | 2.14 | 2.61 | 3.22 | 3.53 | 3.55 |
+| n | 1132 | 1349 | 1888 | 2307 | 1629 | 1482 | 1089 | 637 |
 
-The 4★+ picks averaged **2.91 pts/week vs 2.15 for the rest** of the
-eligible pool. Each factor standalone:
+**It rises across every band**, which the six-factor scale did not do — its
+1★ band scored 1.88 against 1.99 for 0★. See
+[Minutes gets two cuts](#minutes-gets-two-cuts) for the before-and-after.
+
+The 4★+ picks averaged **3.13 pts/week vs 1.88 for the rest** of the
+eligible pool; at the pick sheet's own 6★+ level it is **3.54**. Each
+factor standalone:
 
 | Factor | with star | without | edge |
 |---|---|---|---|
 | Quality | 2.74 | 2.07 | **+0.67** |
 | Value | 2.52 | 2.28 | **+0.24** |
 | Form | 2.94 | 2.06 | **+0.88** |
-| Minutes | 2.96 | 1.95 | **+1.01** |
-| Justice | 2.45 | 2.37 | +0.07 |
+| **Minutes** | 3.21 | 1.55 | **+1.66** |
+| **Nailed** | 3.25 | 1.61 | **+1.64** |
+| Justice | 2.94 | 2.12 | **+0.82** |
 | Crowd | 2.22 | 2.57 | −0.34 |
+
+Minutes and Nailed are far and away the strongest single factors, which is
+the whole argument for giving minutes two stars rather than one. They are
+also strongly correlated with each other by construction — the two edges
+are not additive.
 
 **What moving Form onto appearance windows cost, and why it is still
 right.** Calendar-based Form scored **+1.42**; appearance-based Form scores
@@ -891,7 +1080,8 @@ is one line to revert.
 2. **Fixture factor** — the model rates players on season-to-date process;
    it doesn't yet see *who they play next*. Add upcoming fixture difficulty
    (the API's `fixtures/` endpoint) — likely as an overlay on the pick
-   sheet rather than another star, to keep the six-factor shape.
+   sheet rather than another star, rather than growing the star count
+   again.
 3. **Squad optimizer** — turn the pick sheet into a legal 15 (£100m budget,
    2 GK / 5 DEF / 5 MID / 3 FWD, max 3 per club) once prices land in July.
 4. **Chip planning** — bench boost / triple captain timing off double

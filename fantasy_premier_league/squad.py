@@ -233,10 +233,9 @@ def build(listing: str | Path, history: str | Path,
     if objective == "stars":
         factor = pick_squad(board, "stars", "xpts90").copy()
         # Which eleven start is decided on projected points, not on stars.
-        # Stars are a five-level ordinal, so they tie constantly and the
-        # tie falls to index order - which benched Gabriel (86.4 projected
-        # points, 80% of the minutes) to start Calafiori (54.9, 50%), both
-        # 4*. Same reasoning that already picks the captain on xpts90.
+        # Stars are a coarse ordinal, so they tie constantly and the
+        # tie falls to index order, which is nobody's idea of a team
+        # sheet. Same reasoning that already picks the captain on xpts90.
         factor["xi"] = factor.index.isin(
             pick_xi(factor, "xpts_season").index)
     else:
@@ -325,7 +324,7 @@ def main() -> None:
                           objective=args.objective,
                           bench_weight=args.bench_weight)
     f = factor.copy()
-    f["show"] = [f"{int(s)}★ {l:<5} xP/90 {x:.2f}  owned {o:>5.1f}%"
+    f["show"] = [f"{int(s)}★ {l:<6} xP/90 {x:.2f}  owned {o:>5.1f}%"
                  for s, l, x, o in zip(f["stars"], f["factor_letters"],
                                        f["xpts90"], f["owned_pct"])]
     title = ("THE FACTOR SQUAD — best total stars the rules allow"

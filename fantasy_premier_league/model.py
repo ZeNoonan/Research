@@ -1,13 +1,23 @@
-"""The FPL six-factor player rating engine.
+"""The FPL seven-factor player rating engine.
 
 An additive binary-factor model for weekly Fantasy Premier League picks, in
 the spirit of the factor systems in ``march_madness/`` (one star per factor
 versus the seed-group median) and ``nfl_report/`` (five binary votes). Each
 factor compares a player to their *position peers* (GK / DEF / MID / FWD)
-and awards one star. A player's rating is the sum, 0-6 stars.
+and awards one star. A player's rating is the sum, 0-7 stars in-season and
+0-6 pre-season (where Crowd is computed but not scored).
 
-The six factors
----------------
+**Minutes carries two of those stars, not one.** Season points are
+roughly a per-90 rate multiplied by minutes, and minutes are the more
+variable of the two terms; a single median cut cannot tell a player on 61%
+of the minutes from one on 97%. So Minutes is asked two questions - is he
+above the position median, and is he *nailed on* - and the second is an
+absolute bar rather than a peer rank, because minutes are directly
+comparable across positions in a way that rate stats are not. See the
+README section "Minutes gets two cuts".
+
+The seven factors
+-----------------
 1. Quality  – the model's expected points per 90 (rebuilt from FPL scoring
    rules and the player's underlying per-90 numbers) above the position
    median. Process stats, not outcomes.
@@ -17,28 +27,44 @@ The six factors
    measured against a line fitted without him (see ``price_residual``).
 3. Form     – total FPL points over the last 5 matches the player actually
    played, above the position median. Momentum.
-4. Minutes  – average minutes over the last 5 matches the player actually
-   played, at or above the position median (at-or-above, not strictly
-   above: keepers all average 90, and averaging the position's typical
-   full-match load is what "nailed" means). The 90-minute starters.
-5. Justice  – expected goal involvements (xG + xA) over the last 8 matches
+4. Minutes  – **share of the available minutes**, at or above the position
+   median. In-season that is minutes played over the last 5 *gameweeks*
+   divided by the minutes the player's **club** actually had in them (so a
+   blank gameweek costs nobody and a double counts twice); pre-season it is
+   last season's minutes over 38 x 90. Unlike every other window here this
+   one counts gameweeks, not appearances, because a missed match is exactly
+   the thing the factor is measuring - a zero is the signal, not a gap in
+   the sample. At-or-above, not strictly above: whole positions sit at the
+   same value.
+5. Nailed   – the same share at or above 75% of the available minutes. An
+   absolute bar, not a median: "three quarters of the minutes" means the
+   same thing for a keeper and a forward, whereas a position rank does not.
+   This is the second Minutes star and it is what separates a starter from
+   a rotation player.
+6. Justice  – expected goal involvements (xG + xA) over the last 8 matches
    the player actually played, above the position median. Chances created
    and taken up are the process behind attacking returns, and they persist
    where the returns themselves bounce around.
 
-Every window counts the player's **own appearances**, not calendar
-gameweeks, so a spell on the bench or in the treatment room shifts a
-window back rather than filling it with zeros. The price of that is a
-minimum sample: a player must have made at least as many appearances as
-the window is long to be scored on it at all (5 for Form and Minutes, 8
-for Justice). Players short of it take no star for that factor **and are
-left out of its median**, so a thin sample neither earns a star nor moves
-the bar for everyone else. Early in a season this means the appearance-
-window factors are dormant for everybody until enough football has been
-played - which is honest: there is no five-match form in gameweek three.
-6. Crowd    – ownership percentile below quality percentile within the
+7. Crowd    – ownership percentile below quality percentile within the
    position: the field underweights the player (bet against beta - the
-   differential pick that gains you rank when it comes off).
+   differential pick that gains you rank when it comes off). Scored
+   in-season only.
+
+The Form and Justice windows count the player's **own appearances**, not
+calendar gameweeks, so a spell on the bench or in the treatment room
+shifts a window back rather than filling it with zeros. The price of that
+is a minimum sample: a player must have made at least as many appearances
+as the window is long to be scored on it at all (5 for Form, 8 for
+Justice). Players short of it take no star for that factor **and are left
+out of its median**, so a thin sample neither earns a star nor moves the
+bar for everyone else. Early in a season this means those factors are
+dormant for everybody until enough football has been played - which is
+honest: there is no five-match form in gameweek three.
+
+Minutes and Nailed are the deliberate exception, for the reason above: an
+absence is not missing data there, it is the measurement. They have no
+minimum sample and no unassessed state.
 
 Eligibility gate (the analogue of the NFL system only betting at |#| >= 3):
 a player must average 45+ minutes over the last 4 matches he actually
@@ -89,7 +115,17 @@ DC_THRESHOLD = {"DEF": 10, "MID": 12, "FWD": 12}  # GKs are not eligible
 FORM_WINDOW = 5           # gameweeks of points behind the Form factor
 JUSTICE_WINDOW = 8        # appearances of xGI behind the Justice factor
 MINUTES_WINDOW = 4        # played matches behind the eligibility gate
-MINUTES_FACTOR_WINDOW = 5  # played matches behind the Minutes factor
+# GAMEWEEKS - not appearances - behind the Minutes and Nailed factors. These
+# two are the only windows that count zeros, because a match the player sat
+# out is the quantity being measured rather than a hole in the sample.
+MINUTES_FACTOR_WINDOW = 5
+# The absolute bar for the second Minutes star: three quarters of the
+# available minutes. Absolute rather than a position percentile because
+# minutes are directly comparable across positions. Swept against actual
+# next-gameweek points over 2025/26 - see the README table; 0.60 edges it
+# on rank correlation but "60% of the minutes" is not what nailed means,
+# and the difference is 0.006.
+NAILED_SHARE = 0.75
 MINUTES_PER_GW = 45.0
 PRIOR_MINUTES = 450.0     # shrinkage prior for per-90 rates (5 full matches)
 
@@ -113,9 +149,11 @@ CROWD_LAMBDA = 1.0            # points² of variance demanded per point of EV
 # check, and why it is not live" before switching.
 CROWD_MODE = "margin"
 
-FACTORS = ("quality", "value", "form", "minutes_factor", "justice", "crowd")
+FACTORS = ("quality", "value", "form", "minutes_factor", "minutes_nailed",
+           "justice", "crowd")
 FACTOR_LETTERS = {"quality": "Q", "value": "V", "form": "F",
-                  "minutes_factor": "M", "justice": "J", "crowd": "C"}
+                  "minutes_factor": "M", "minutes_nailed": "N",
+                  "justice": "J", "crowd": "C"}
 
 # Crowd is scored in-season but **not pre-season**. Every other factor is an
 # estimator of expected points; Crowd is a variance factor, and at equal
@@ -126,7 +164,8 @@ FACTOR_LETTERS = {"quality": "Q", "value": "V", "form": "F",
 # their supporting columns are all still produced - and still renders as a
 # diagnostic; it simply no longer feeds ``stars``. See the README section
 # "Why Crowd is no longer scored pre-season".
-PRESEASON_SCORING = ("quality", "value", "form", "minutes_factor", "justice")
+PRESEASON_SCORING = ("quality", "value", "form", "minutes_factor",
+                     "minutes_nailed", "justice")
 
 
 def scoring_factors(preseason: bool = False) -> tuple:
@@ -201,6 +240,26 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     gate = last_apps(MINUTES_WINDOW).groupby("element")["minutes"].mean()
     mins_avg = (last_apps(MINUTES_FACTOR_WINDOW)
                 .groupby("element")["minutes"].mean())
+
+    # Minutes and Nailed: share of the minutes actually available over the
+    # last MINUTES_FACTOR_WINDOW *gameweeks*. Counting gameweeks rather than
+    # appearances is the whole point - a match he sat out has to count as
+    # zero, or the factor cannot tell a starter from a man who plays 90
+    # minutes whenever he is fit. A player with no row in a gameweek did not
+    # feature, which is the same as a row of zero minutes.
+    #
+    # Available minutes are per **team**, not a flat 90 a gameweek: a team
+    # can play twice in one gameweek (a double) or not at all (a blank), and
+    # a flat denominator would mark every player at a blanking club as not
+    # nailed. Fixtures in a team-round is the modal rows-per-player - a real
+    # double gives every player two rows, while a stray duplicated row in
+    # the source gives exactly one player two and must not count as one.
+    recent = window(MINUTES_FACTOR_WINDOW)
+    per_elem = recent.groupby(["team", "round", "element"]).size()
+    fixtures = per_elem.groupby(["team", "round"]).agg(
+        lambda s: s.mode().iloc[0])
+    avail = fixtures.groupby("team").sum() * 90.0
+    mins_win = recent.groupby("element")["minutes"].sum()
     form = (last_apps(FORM_WINDOW)
             .groupby("element")["total_points"].sum())
     jw = last_apps(JUSTICE_WINDOW).groupby("element")[
@@ -229,19 +288,30 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
     out["gate_minutes"] = gate.reindex(out.index).fillna(0.0)
     out["eligible"] = out["gate_minutes"] >= MINUTES_PER_GW
     out["minutes_avg"] = mins_avg.reindex(out.index).fillna(0.0)
+    out["minutes_available"] = (avail.reindex(out["team"]).fillna(0.0)
+                                .to_numpy())
+    out["minutes_recent"] = mins_win.reindex(out.index).fillna(0.0)
+    out["minutes_share"] = (out["minutes_recent"] / out["minutes_available"]
+                            ).where(out["minutes_available"] > 0, 0.0)
     out["dc_rate"] = dc_rate.reindex(out.index).fillna(0.0)
 
-    # A window is only scored on a full sample: fewer appearances than the
-    # window is long and the player is not considered for that factor - no
-    # star, and no vote in its median either.
+    # An appearance window is only scored on a full sample: fewer
+    # appearances than the window is long and the player is not considered
+    # for that factor - no star, and no vote in its median either.
+    #
+    # There is deliberately no ``minutes_factor_ok``. Minutes and Nailed are
+    # shares of the available minutes, so a thin sample is not missing data,
+    # it is a low share - which is the answer. A gate here would also make
+    # the leaderboards lie, since they filter on ``<factor>_ok`` when the
+    # column exists.
     out["form_ok"] = out["appearances"] >= FORM_WINDOW
-    out["minutes_factor_ok"] = out["appearances"] >= MINUTES_FACTOR_WINDOW
     out["justice_ok"] = out["appearances"] >= JUSTICE_WINDOW
 
-    # Because every window counts appearances, nothing above can tell a
-    # player who featured last week from one absent since October - both
-    # carry the same numbers. This is not a factor, it is the caveat: how
-    # many gameweeks ago the record was actually set.
+    # Because the appearance windows count appearances, Form and Justice
+    # cannot tell a player who featured last week from one absent since
+    # October - both carry the same numbers. This is not a factor, it is the
+    # caveat: how many gameweeks ago the record was actually set. (Minutes
+    # and Nailed do see the difference, which is the point of them.)
     last_seen = apps.groupby("element")["round"].max()
     out["last_app_round"] = last_seen.reindex(out.index)
     out["gws_since_app"] = latest - out["last_app_round"]
@@ -476,7 +546,7 @@ def crowd_price_check(block: pd.DataFrame, lam: float = CROWD_LAMBDA) -> pd.Data
 
 
 def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame:
-    """Score the six factors and the star rating for every eligible player.
+    """Score the seven factors and the star rating for every eligible player.
 
     ``preseason=True`` switches three factors onto yardsticks that suit a
     board built from a finished season (see the constants above); the
@@ -538,23 +608,23 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
             out.loc[form, "form"] = (out.loc[form, "form_points"]
                                      > median).astype(int)
 
-        if preseason:
-            # Minutes: share of a full season's minutes. Averaging the
-            # minutes of matches he played cannot tell a 5-game starter from
-            # a 38-game one; a share of the season can.
-            share = g["minutes"] / TEAM_MINUTES
-            out.loc[grp, "minutes_share"] = share
-            out.loc[grp, "minutes_factor"] = (share >= share.median()).astype(int)
-        else:
-            # At-or-above for this factor only: whole positions (keepers
-            # above all) sit at exactly 90 minutes, and a player averaging
-            # the position's typical full-match load is precisely what
-            # "nailed" means - a strict rule would star no goalkeeper at all.
-            mins = grp & out["minutes_factor_ok"]
-            if mins.any():
-                median = out.loc[mins, "minutes_avg"].median()
-                out.loc[mins, "minutes_factor"] = (out.loc[mins, "minutes_avg"]
-                                                   >= median).astype(int)
+        # Minutes and Nailed both read the same quantity: the share of the
+        # minutes that were available to him. Pre-season that is last
+        # season's whole record; in-season it is the last
+        # MINUTES_FACTOR_WINDOW gameweeks, supplied by ``player_table``.
+        # Averaging the minutes of the matches he played cannot tell a
+        # 5-game starter from a 38-game one; a share can, because the games
+        # he missed are in the denominator.
+        share = (g["minutes"] / TEAM_MINUTES) if preseason else g["minutes_share"]
+        out.loc[grp, "minutes_share"] = share
+        # At-or-above for these two only: whole positions sit on the same
+        # value - every first-choice keeper is at 1.0 - and a player on the
+        # position's typical full load is precisely what the factor is
+        # looking for, so a strict rule would star no goalkeeper at all.
+        out.loc[grp, "minutes_factor"] = (share >= share.median()).astype(int)
+        # Nailed needs no peer group: the bar is absolute, so a keeper and a
+        # forward are held to the same three quarters of the minutes.
+        out.loc[grp, "minutes_nailed"] = (share >= NAILED_SHARE).astype(int)
 
         # Justice: expected goal involvements over the window, median cut
         # within position like Quality, Value and Form. Needs a full window
@@ -617,13 +687,13 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
     out["diagnostic_letters"] = [
         "".join(FACTOR_LETTERS[f] for f in unscored if r[f])
         for _, r in out.iterrows()]
-    # How many factors could be scored at all: 6 for a player with a full
-    # sample, fewer for one short of an appearance window. Lets a report say
-    # "3 of 4 assessed" rather than implying two factors were failed.
-    # Pre-season, Minutes is a share of the season and needs no appearance
-    # window, so only Form and Justice can be unassessable.
-    windowed = ["form_ok", "justice_ok"] if preseason else [
-        "form_ok", "minutes_factor_ok", "justice_ok"]
+    # How many factors could be scored at all: all of them for a player with
+    # a full sample, fewer for one short of an appearance window. Lets a
+    # report say "3 of 4 assessed" rather than implying two factors were
+    # failed. Minutes and Nailed are shares and need no appearance window -
+    # a player who has not played simply has a low share - so only Form and
+    # Justice can ever be unassessable, on either path.
+    windowed = ["form_ok", "justice_ok"]
     out["factors_assessed"] = (
         len(scored) - len(windowed)
         + sum(out[c].astype(int) for c in windowed))
@@ -637,7 +707,7 @@ def rate_season(data_dir: str | Path, through_gw: int | None = None) -> pd.DataF
     return rate_players(player_table(load_season(data_dir), through_gw))
 
 
-def recommendations(rated: pd.DataFrame, min_stars: int = 5) -> pd.DataFrame:
+def recommendations(rated: pd.DataFrame, min_stars: int = 6) -> pd.DataFrame:
     """The weekly pick list: eligible players at ``min_stars``+ stars, by
     position, strongest first (stars, then quality engine)."""
     picks = rated[rated["eligible"] & (rated["stars"] >= min_stars)].copy()

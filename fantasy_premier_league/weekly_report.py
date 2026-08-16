@@ -1,8 +1,8 @@
 """Print the weekly FPL pick list and write it to a CSV.
 
-Rates every eligible player on the six factors (see ``model.py``) using all
-gameweek files in the season directory, prints the 5- and 6-star picks by
-position, and writes the full rated table to ``reports/``.
+Rates every eligible player on the seven factors (see ``model.py``) using
+all gameweek files in the season directory, prints the 6- and 7-star picks
+by position, and writes the full rated table to ``reports/``.
 
     python weekly_report.py                          # data/2025-26, all GWs
     python weekly_report.py --data data/2026-27      # the new season
@@ -23,7 +23,8 @@ POSITION_NAMES = {"GK": "Goalkeepers", "DEF": "Defenders",
 
 REPORT_COLUMNS = ["name", "position", "team", "price", "stars",
                   "factors_assessed", "factor_letters", "xpts90",
-                  "form_points", "minutes_avg", "justice_margin", "selected",
+                  "form_points", "minutes_avg", "minutes_share", "justice_margin",
+                  "selected",
                   "minutes", "appearances", "gws_since_app", "points",
                   "eligible"]
 
@@ -36,14 +37,14 @@ def print_report(rated, min_stars: int, top: int | None) -> None:
     through = int(rated["through_gw"].iloc[0])
     used = int(rated["gws_used"].iloc[0])
     n_eligible = int(rated["eligible"].sum())
-    print(f"FPL six-factor picks - through GW{through} "
+    print(f"FPL seven-factor picks - through GW{through} "
           f"({used} gameweek{'s' if used != 1 else ''} of evidence, "
           f"{n_eligible} eligible players)")
     if used < model.MINUTES_WINDOW:
         print(f"NOTE: fewer than {model.MINUTES_WINDOW} gameweeks loaded; "
               "form/justice windows are thin, treat ratings as provisional.")
-    print("Factors: Q quality  V value  F form  M minutes  J justice  "
-          f"C crowd (one star each; {min_stars}+ stars shown)\n")
+    print("Factors: Q quality  V value  F form  M minutes  N nailed  "
+          f"J justice  C crowd (one star each; {min_stars}+ stars shown)\n")
 
     picks = model.recommendations(rated, min_stars=min_stars)
     for pos in model.POSITIONS:
@@ -59,7 +60,7 @@ def print_report(rated, min_stars: int, top: int | None) -> None:
             stale = f"  [last played GW{r.last_app_round:.0f}]" \
                 if r.gws_since_app >= 2 else ""
             print(f"  {r.stars}*{of:<3}{r.name:<28} {r.team:<15} "
-                  f"£{r.price:>4.1f}m  {r.factor_letters:<6} "
+                  f"£{r.price:>4.1f}m  {r.factor_letters:<7} "
                   f"xPts/90 {r.xpts90:4.1f}  "
                   f"owned {fmt_selected(r.selected):>6}{stale}")
         print()
@@ -76,7 +77,11 @@ def main() -> None:
                     help="season directory of gw<N>.csv files")
     ap.add_argument("--through-gw", type=int, default=None,
                     help="rate using only gameweeks up to this round")
-    ap.add_argument("--min-stars", type=int, default=5)
+    # 6 of 7, not 5 of 7: Minutes went from one star to two, so the old
+    # 5-of-6 default would now show a materially wider list. 6+ keeps the
+    # same selectivity (n=1726 player-weeks over 2025/26, against 2176 at
+    # the old 5+ of 6).
+    ap.add_argument("--min-stars", type=int, default=6)
     ap.add_argument("--top", type=int, default=None,
                     help="cap the printed list per position")
     ap.add_argument("--out", default=None,
