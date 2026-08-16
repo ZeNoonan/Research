@@ -118,10 +118,11 @@ def picks_table(block, n_factors: int) -> str:
     return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
 
 
-def squads_html(listing_path, history_dir) -> str:
+def squads_html(listing_path, history_dir, n_factors: int,
+                n_rated: int) -> str:
     """Two optimal 15-man squads: the board's, and the crowd's."""
-    import squad as squad_mod
-    factor, crowd = squad_mod.build(listing_path, history_dir)
+    import squad
+    factor, crowd = squad.build(listing_path, history_dir)
 
     def table(sq, by, captain_by, cols):
         rows = []
@@ -129,7 +130,7 @@ def squads_html(listing_path, history_dir) -> str:
         cap = xi.nlargest(2, captain_by)
         cap_names = {cap.iloc[0]["name"]: "C", cap.iloc[-1]["name"]: "V"}
         started = False
-        for r in squad_mod._order(sq, by).itertuples():
+        for r in squad._order(sq, by).itertuples():
             if not r.xi and not started:
                 started = True
                 rows.append("<tr class='divider'><td colspan='6'>bench</td></tr>")
@@ -164,7 +165,7 @@ def squads_html(listing_path, history_dir) -> str:
     out_list = preseason.load_unavailable(Path(listing_path).parent
                                           / "unavailable.csv")
     if len(out_list):
-        had, _ = squad_mod.build(listing_path, history_dir,
+        had, _ = squad.build(listing_path, history_dir,
                                  respect_availability=False)
         dropped = sorted(set(had["name"]) - set(factor["name"]))
         gained = sorted(set(factor["name"]) - set(had["name"]))
@@ -193,8 +194,13 @@ captain and vice — on expected points, since captaincy doubles a score.</p>
 <h3 style='font-size:16px;margin:16px 0 4px'>The factor squad — the board's
 own answer</h3>
 <p class='note'>Maximises total stars ({int(factor['stars'].sum())} of a
-possible 75), ties broken on the quality engine. Drawn from the
-{len(factor)} of 253 rated players. Formation {shape(factor)}, spending
+possible {len(factor) * n_factors}), ties broken on the quality engine.
+Drawn from the {n_rated} rated players, plus — for a benched forward only —
+the unrated ones at £{squad.BENCH_FWD_MAX_PRICE:.1f}m or less. Three
+forwards are compulsory but only one has to start, so the third is a dead
+spot; a forward dearer than that cap must be in the eleven if he is bought
+at all, which stops the squad paying for a player it has already decided
+not to field. Formation {shape(factor)}, spending
 £{factor['price'].sum():.1f}m.</p>
 {f_tbl}
 
@@ -456,7 +462,7 @@ passed it exactly as one who started thirty-eight.
 
 {''.join(sections)}
 
-{squads_html(listing_path, history_dir)}
+{squads_html(listing_path, history_dir, n_factors, len(elig))}
 
 <section><h2>Best points per pound</h2>
 <p class="note">Model expected points per 90 divided by the new price,

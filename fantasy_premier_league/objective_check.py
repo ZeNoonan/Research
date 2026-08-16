@@ -4,10 +4,23 @@
 """Star-max squad vs direct expected-points squad, same constraints."""
 import pandas as pd, pulp, preseason, squad
 
-rated, _ = preseason.rate_preseason('data/2026-27/player_listing.csv', 'data/2025-26')
-b = rated[rated['eligible'] & ~rated['unavailable']].copy().reset_index(drop=True)
+rated, unrated = preseason.rate_preseason('data/2026-27/player_listing.csv',
+                                          'data/2025-26')
+b = rated[rated['eligible'] & ~rated['unavailable']].copy()
 # projected season points = xPts/90 * expected minutes / 90
 b['xpts_season'] = b['xpts90'] * b['minutes_share'] * 38.0
+# Same bench-forward cap squad.py applies, and the same scoreless filler it
+# needs to satisfy it - otherwise this stops being a check on the same
+# problem. Recomputed here rather than imported, which is the point.
+CAP = 4.5
+fodder = unrated[(unrated['position'] == 'FWD') & (unrated['price'] <= CAP)
+                 & ~unrated['unavailable']].copy()
+for col in ('stars', 'xpts90', 'xpts_season', 'owned_pct'):
+    if col not in fodder or col in ('stars', 'xpts90', 'xpts_season'):
+        fodder[col] = 0.0
+b = pd.concat([b, fodder], ignore_index=True)
+FORCED = [i for i in b.index
+          if b.at[i, 'position'] == 'FWD' and b.at[i, 'price'] > CAP]
 
 SQ = {"GK": 2, "DEF": 5, "MID": 5, "FWD": 3}
 XI_MIN = {"GK": 1, "DEF": 3, "MID": 2, "FWD": 1}
@@ -37,6 +50,8 @@ def optimise(df, col, bench_weight=0.0, captain=True):
     for club in df['team'].unique():
         m = [i for i in df.index if df.at[i, 'team'] == club]
         p += pulp.lpSum(x[i] for i in m) <= 3
+    for i in FORCED:
+        p += x[i] <= y[i]
     p.solve(pulp.PULP_CBC_CMD(msg=0))
     sel = df.loc[[i for i in df.index if x[i].value() > .5]].copy()
     sel['xi'] = [y[i].value() > .5 for i in sel.index]

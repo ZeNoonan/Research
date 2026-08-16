@@ -816,15 +816,57 @@ rather than picked greedily — the £100m budget and the 3-per-club cap
 interact, and a greedy pick gets that wrong.
 
 ```bash
-python squad.py       # prints both squads; also rendered on preseason.html
+python squad.py                     # prints both squads; also on preseason.html
+python squad.py --bench-fwd-max 99  # without the benched-forward cap
 ```
+
+**A benched forward is a dead spot, and is capped at £4.5m.** Three
+forwards are compulsory but only one has to start, so the third is often
+bought purely to fill the slot — and every pound there is a pound not in
+the eleven. The constraint is stated the way an integer program can use it:
+*a forward costing more than the cap must be in the eleven if he is bought
+at all.* Choosing the fifteen and the eleven therefore has to happen in one
+program, since a squad picked first and split afterwards can be one the cap
+makes unstartable.
+
+No **rated** forward is that cheap — the cheapest is £5.5m, and every
+£4.5m forward in the listing has no Premier League minutes to rate. So the
+pool gains those unrated forwards, at zero on every objective, for that
+slot alone. A dead bench spot is the one place where the absence of a
+rating is not a reason to exclude a player: he is bought to be a legal
+body, which is exactly why he is cheap.
+
+**It binds on one objective and not the other, and that is informative:**
+
+| | bench forwards | bench spend | XI spend | projected pts |
+|---|---|---|---|---|
+| stars, no cap | Calvert-Lewin £6.0m | £20.5m | £79.5m | 943.4 |
+| **stars, capped** | none — all three start | £20.5m | £79.5m | 941.3 |
+| points, no cap | Betuncal £5.5m, Calvert-Lewin £6.0m | £20.5m | £79.5m | 1006.6 |
+| **points, capped** | Bassette £4.5m, Destan £4.5m | **£18.5m** | **£81.5m** | **1008.8** |
+
+Under `--objective points` it does exactly what it is for: £2.0m moves off
+the bench and into the eleven, worth +2.2 projected points. Under the
+default star objective it frees nothing — the optimiser simply starts all
+three forwards (3-5-2 → 3-4-3) and the cap is satisfied vacuously, at a
+cost of 2.1 projected points.
+
+That is not a bug in the cap, it is the star objective's known blind spot
+showing up again: **maximising total stars prices a bench seat exactly like
+a starting one**, so it will never trade a 6★ forward for £4.5m filler no
+matter how dead the slot. See
+[Stars or points](#stars-or-points-the-objective-measured-not-changed). If
+you want the dead spot exploited under the star objective too, the fix is
+to discount bench stars the way the points objective already discounts
+bench points — a change to what the star count means, so it is not made
+here.
 
 | | Factor squad | Crowd squad |
 |---|---|---|
 | Objective | most total stars (ties → quality engine) | most total ownership |
-| Pool | the 253 rated players | **all 567 listed** |
+| Pool | the 253 rated players, plus £4.5m bench-forward filler | **all 567 listed** |
 | Result | 84 of a possible 90 stars | 470 ownership points |
-| Formation | 3-5-2 | 4-3-3 |
+| Formation | 3-4-3 | 4-3-3 |
 | Spend | £100.0m | £100.0m |
 | Captain | Haaland (highest xPts/90) | Haaland (most owned) |
 
@@ -842,9 +884,10 @@ Currently out: **Saliba, Timber, Ekitiké**. That costs the factor squad one
 star (85 → 84) — Szoboszlai drops out alongside Saliba and Timber (Ekitiké
 was not in it), and Mbeumo, Richards and O'Reilly come in.
 
-The pools differ on purpose. The factor squad can only use players the board
-can rate; the crowd squad draws from everyone, because **about 240 of the
-1500 ownership points sit with players this board cannot rate** —
+The pools differ on purpose. The factor squad uses players the board can
+rate (plus capped bench-forward filler); the crowd squad draws from
+everyone, because **about 240 of the 1500 ownership points sit with players
+this board cannot rate** —
 promoted-club squads, new signings, and regulars who fell under the minutes
 gate — and excluding them would misrepresent what the field actually holds.
 
@@ -863,12 +906,11 @@ the captain arbitrarily until it was fixed, and the same reasoning had never
 been applied to the other ten.
 
 The XI is chosen by maximising `xpts90 × minutes_share × 38` under the
-formation rules. On the current board that is worth **+27.4 projected points
-over a season** (812.5 → 839.9 for the XI, 916.0 → 943.4 with the captain
-doubled) and costs nothing: the same fifteen players, zero transfers. Bench
-spend falls £22.5m → £20.5m. The swaps are Igor Thiago (87.1 projected, 96%
-of the minutes) and Calvert-Lewin (64.1) starting ahead of van den Berg
-(57.4) and Andersen (61.7) — pairs the star count could not separate.
+formation rules. On the current board that is worth **+8.2 projected points
+over a season** (829.6 → 837.8 for the XI, 933.1 → 941.3 with the captain
+doubled) and costs nothing: the same fifteen players, zero transfers. It
+swaps Tavernier and Enzo le Fée in for van den Berg and Andersen — pairs
+the star count could not separate.
 
 The crowd squad's XI stays on ownership. Its pool is deliberately
 rating-free — unrated players have no `xpts90` — so there is nothing else
@@ -898,25 +940,27 @@ Both are printed side by side at the foot of every run:
 
 | | stars (default) | points |
 |---|---|---|
-| XI projected points | 839.9 | **903.0** |
-| with the captain doubled | 943.4 | **1006.6** |
-| total stars | **84** | 76 |
-| bench spend | £20.5m | £20.5m |
-| formation | 3-5-2 | 4-5-1 |
+| XI projected points | 837.8 | **905.3** |
+| with the captain doubled | 941.3 | **1008.8** |
+| total stars | **84** | 69 |
+| bench spend | £20.5m | **£18.5m** |
+| formation | 3-4-3 | 4-5-1 |
 | captain | Haaland | Bruno Fernandes |
-| owned by under 2% of managers | 4 of 15 | 1 of 15 |
+| benched forwards | none | two at £4.5m |
 
-**The gap is +63.2 projected points over a season — about 1.7 a gameweek —
-and the two squads share 6 of 15.** It is not a rounding difference. The
+**The gap is +67.5 projected points over a season — about 1.8 a gameweek —
+and the two squads share 7 of 15.** It is not a rounding difference. The
 star count is still a lossy summary of the thing it stands in for: a player
 one point above his position's median scores the same star as one at the
 top of it.
 
 That gap used to be **+98.8**, with an overlap of only 4 of 15. Giving
-Minutes a second cut closed more than a third of it — see
+Minutes a second cut closed more than a third of it, to +63.2 — see
 [Minutes gets two cuts](#minutes-gets-two-cuts), which this measurement is
-what prompted. The remaining +63.2 is the honest residual cost of a binary
-scale, and the same argument below still applies to it.
+what prompted. The benched-forward cap then widened it again to +67.5,
+because the points objective can act on a dead bench slot and the star
+count cannot see one. The residual is the honest cost of a binary scale,
+and the same argument below still applies to it.
 
 **The default stays stars, deliberately.** The board is an additive
 binary-factor model on purpose: its claim is that crossing several
