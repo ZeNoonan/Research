@@ -703,6 +703,59 @@ to sort it by.
 > as a proxy for next season's. It is fine for ordering an XI within a squad
 > already chosen, which is all it is used for here.
 
+#### Stars or points: the objective measured, not changed
+
+Choosing the XI on projected points left untouched which fifteen get
+*bought*. That is still "most total stars" — and a star is a count of
+median-crossings, not a quantity of points. `--objective points` adds the
+alternative so the difference can be measured rather than assumed:
+identical constraints, identical solver, but maximising
+`xpts90 × minutes_share × 38` over the XI, plus `BENCH_WEIGHT = 0.1` of it
+per bench place and a second helping for the captain.
+
+```bash
+python squad.py                     # stars — still the default
+python squad.py --objective points  # the alternative
+python squad.py --bench-weight 0.2  # what a bench place is worth
+```
+
+Both are printed side by side at the foot of every run:
+
+| | stars (default) | points |
+|---|---|---|
+| XI projected points | 804.3 | **903.0** |
+| with the captain doubled | 907.8 | **1006.6** |
+| total stars | **69** | 62 |
+| bench spend | £21.0m | £20.5m |
+| formation | 3-5-2 | 4-5-1 |
+| captain | Haaland | Bruno Fernandes |
+| owned by under 2% of managers | 5 of 15 | 1 of 15 |
+
+**The gap is +98.8 projected points over a season — about 2.6 a gameweek —
+and the two squads share only 4 of 15** (Raya, Gabriel, Anderson,
+Calvert-Lewin). It is not a rounding difference. The star count is a lossy
+summary of the thing it stands in for, in two specific ways: a player one
+point above his position's median scores the same star as one at the top of
+it, and maximising the total implicitly prices a bench place identically to
+a starting one — which is how £21.0m ends up on four players who mostly will
+not play.
+
+**The default stays stars, deliberately.** The board is an additive
+binary-factor model on purpose: its claim is that crossing several
+independent medians is more robust than any one continuous estimate,
+*because* the estimate is noisy. Maximising projected points hands the
+entire squad to `xpts90 × minutes_share`, and `minutes_share` is last
+season's — the least durable quantity in the whole calculation. The points
+squad drops Haaland outright on a projection that knows nothing about a
+transfer or a change of role.
+
+And the comparison is scored on the projection's own yardstick: of course
+the squad that maximises projected points wins on projected points. What
+that cannot show is whether it wins on **actual** ones. Settling it needs
+the 2026/27 backtest the factor-versus-crowd comparison is already waiting
+on — which is why both objectives are one flag apart, so the test can be run
+on both. Measured, not changed.
+
 ## Getting ready for the season proper
 
 Prices and squads for the new season appear in the API when the game
@@ -732,6 +785,8 @@ build_site.py       rated season -> index.html (static, phone-friendly)
 backtest.py         star ratings vs next-gameweek points (needs 2+ GW files)
 fetch_data.py       official FPL API -> data/<season>/gw<N>.csv
 squad.py            exact 15-man squads: the board's, and the crowd's
+objective_check.py  independent re-solve of the points objective, for
+                    checking squad.py against a second implementation
 preseason.py        new-season price list x last season's record
 build_preseason.py  -> preseason.html, the draft board
 data/2025-26/       the full 2025/26 season, gw1.csv .. gw38.csv

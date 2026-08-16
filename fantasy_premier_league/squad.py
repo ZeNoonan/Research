@@ -20,7 +20,13 @@ under FPL's formation rules (1 GK, 3-5 DEF, 2-5 MID, 1-3 FWD).
 Solved exactly with CBC rather than greedily - a greedy pick is easy to get
 wrong when the club cap and the budget interact.
 
+``--objective points`` swaps the factor squad's objective from stars to
+projected points, under identical constraints, so the cost of the binary
+summary can be measured rather than argued about. Stars remain the default;
+every run prints the two side by side.
+
     python squad.py
+    python squad.py --objective points
 """
 
 from __future__ import annotations
@@ -43,6 +49,21 @@ MAX_PER_CLUB = 3
 XI_MIN = {"GK": 1, "DEF": 3, "MID": 2, "FWD": 1}
 XI_MAX = {"GK": 1, "DEF": 5, "MID": 5, "FWD": 3}
 XI_SIZE = 11
+SEASON_GWS = 38
+# What a bench place is worth relative to a starting one, when the squad is
+# chosen on projected points. A bench player only scores through
+# autosubs, so he is worth a fraction of a starter - not the same, which is
+# what maximising total stars implicitly assumes.
+BENCH_WEIGHT = 0.1
+
+
+def projected_points(df: pd.DataFrame) -> pd.Series:
+    """Projected season points: xPts/90 x expected minutes / 90.
+
+    Backward-looking - ``minutes_share`` is last season's - so it is a
+    working proxy for comparing squads, not a forecast of 2026/27.
+    """
+    return df["xpts90"] * df["minutes_share"] * SEASON_GWS
 
 
 def _solve(pool: pd.DataFrame, objective: pd.Series, budget: float | None,
@@ -107,6 +128,62 @@ def pick_squad(pool: pd.DataFrame, primary: str, secondary: str | None = None,
     return pool.loc[[i for i in pool.index if x[i].value() > 0.5]]
 
 
+def pick_squad_points(pool: pd.DataFrame, col: str = "xpts_season",
+                      bench_weight: float = BENCH_WEIGHT,
+                      captain: bool = True,
+                      budget: float = BUDGET) -> pd.DataFrame:
+    """Best legal 15 on projected points, choosing squad, XI and captain at once.
+
+    Maximising total stars over the 15 treats a bench place as worth a
+    starting one, which is how £23.5m of a £100m budget ended up on the
+    bench. Here the three decisions are one problem: ``x`` picks the 15,
+    ``y`` the XI with ``y <= x``, ``c`` the captain with ``c <= y``, and the
+    objective is ``XI + bench_weight x bench + captain``. Solving them
+    jointly matters - the best 15 under a bench discount is not the best 15
+    picked first and then split.
+
+    Note the captain conventions differ by design: ``c`` doubles season
+    points, while ``report`` names the captain on ``xpts90`` because
+    captaincy is a weekly decision made among players who are playing.
+    They agree on the current data (Bruno Fernandes on both) but need not
+    in general, so ``capt`` is returned rather than assumed.
+    """
+    prob = pulp.LpProblem("squad_points", pulp.LpMaximize)
+    x = {i: pulp.LpVariable(f"x_{i}", cat="Binary") for i in pool.index}
+    y = {i: pulp.LpVariable(f"y_{i}", cat="Binary") for i in pool.index}
+    c = {i: pulp.LpVariable(f"c_{i}", cat="Binary") for i in pool.index}
+
+    prob += pulp.lpSum(
+        pool.at[i, col] * (y[i] + bench_weight * (x[i] - y[i])
+                           + (c[i] if captain else 0))
+        for i in pool.index)
+
+    prob += pulp.lpSum(x[i] for i in pool.index) == sum(SQUAD.values())
+    prob += pulp.lpSum(y[i] for i in pool.index) == XI_SIZE
+    prob += pulp.lpSum(c[i] for i in pool.index) == (1 if captain else 0)
+    prob += pulp.lpSum(pool.at[i, "price"] * x[i] for i in pool.index) <= budget
+    for i in pool.index:
+        prob += y[i] <= x[i]
+        prob += c[i] <= y[i]
+    for pos, n in SQUAD.items():
+        members = [i for i in pool.index if pool.at[i, "position"] == pos]
+        prob += pulp.lpSum(x[i] for i in members) == n
+        prob += pulp.lpSum(y[i] for i in members) <= XI_MAX[pos]
+        prob += pulp.lpSum(y[i] for i in members) >= XI_MIN[pos]
+    for club in pool["team"].unique():
+        members = [i for i in pool.index if pool.at[i, "team"] == club]
+        prob += pulp.lpSum(x[i] for i in members) <= MAX_PER_CLUB
+
+    status = prob.solve(pulp.PULP_CBC_CMD(msg=0))
+    if pulp.LpStatus[status] != "Optimal":
+        raise RuntimeError(f"no optimal squad found: {pulp.LpStatus[status]}")
+    chosen = [i for i in pool.index if x[i].value() > 0.5]
+    out = pool.loc[chosen].copy()
+    out["xi"] = [y[i].value() > 0.5 for i in chosen]
+    out["capt"] = [c[i].value() > 0.5 for i in chosen]
+    return out
+
+
 def pick_xi(squad: pd.DataFrame, objective: str) -> pd.DataFrame:
     """The best legal starting XI out of the 15."""
     # The 15 are already paid for, so the XI has no budget of its own.
@@ -116,14 +193,28 @@ def pick_xi(squad: pd.DataFrame, objective: str) -> pd.DataFrame:
     return squad.loc[chosen]
 
 
-def build(listing: str | Path, history: str | Path, respect_availability: bool = True):
+def build(listing: str | Path, history: str | Path,
+          respect_availability: bool = True, objective: str = "stars",
+          bench_weight: float = BENCH_WEIGHT):
     """Return (factor_squad, crowd_squad), each with an ``xi`` flag.
+
+    ``objective`` picks how the factor squad is chosen:
+
+    * ``"stars"`` (default) - most total stars over the 15, ties broken on
+      the quality engine. This is the board's own answer, and the one every
+      argument in the README is built on.
+    * ``"points"`` - most projected points, bench discounted by
+      ``bench_weight`` and the captain doubled, all solved jointly.
+
+    The crowd squad is unaffected either way: it is chosen on ownership.
 
     Players flagged in ``unavailable.csv`` are barred from both squads. The
     board still rates them - an injury does not change what a player is
     worth - but you cannot field one, so neither squad may pick one. Pass
     ``respect_availability=False`` to see what the squads would have been.
     """
+    if objective not in ("stars", "points"):
+        raise ValueError(f"objective must be 'stars' or 'points', got {objective!r}")
     rated, unrated = preseason.rate_preseason(listing, history)
     board = rated[rated["eligible"]].copy()
 
@@ -136,16 +227,22 @@ def build(listing: str | Path, history: str | Path, respect_availability: bool =
         board = board[~board["unavailable"]]
         everyone = everyone[~everyone["unavailable"]]
 
-    factor = pick_squad(board, "stars", "xpts90").copy()
-    crowd = pick_squad(everyone, "owned_pct").copy()
+    board = board.copy()
+    board["xpts_season"] = projected_points(board)
 
-    # Which eleven start is decided on projected points, not on stars.
-    # Stars are a five-level ordinal, so they tie constantly and the tie
-    # falls to index order - which benched Gabriel (86.4 projected points,
-    # 80% of the minutes) to start Calafiori (54.9, 50%), both 4*. This is
-    # the same reasoning that already picks the captain on xpts90.
-    factor["xpts_season"] = factor["xpts90"] * factor["minutes_share"] * 38
-    factor["xi"] = factor.index.isin(pick_xi(factor, "xpts_season").index)
+    if objective == "stars":
+        factor = pick_squad(board, "stars", "xpts90").copy()
+        # Which eleven start is decided on projected points, not on stars.
+        # Stars are a five-level ordinal, so they tie constantly and the
+        # tie falls to index order - which benched Gabriel (86.4 projected
+        # points, 80% of the minutes) to start Calafiori (54.9, 50%), both
+        # 4*. Same reasoning that already picks the captain on xpts90.
+        factor["xi"] = factor.index.isin(
+            pick_xi(factor, "xpts_season").index)
+    else:
+        factor = pick_squad_points(board, "xpts_season", bench_weight)
+
+    crowd = pick_squad(everyone, "owned_pct").copy()
     # The crowd pool deliberately has no ratings - unrated players have
     # none - so its XI stays on ownership.
     crowd["xi"] = crowd.index.isin(pick_xi(crowd, "owned_pct").index)
@@ -180,19 +277,61 @@ def report(squad: pd.DataFrame, title: str, by: str, extra: str | None,
               f"{r['team'][:14]:15} £{r['price']:>4.1f}m  {val}")
 
 
+def compare(listing, history, bench_weight: float) -> None:
+    """Star objective against points objective, same constraints."""
+    squads = {o: build(listing, history, objective=o,
+                       bench_weight=bench_weight)[0]
+              for o in ("stars", "points")}
+
+    def score(sq):
+        xi = sq[sq["xi"]]
+        capt = (xi[xi["capt"]]["xpts_season"].iloc[0] if "capt" in sq
+                and sq["capt"].any()
+                else xi.nlargest(1, "xpts90")["xpts_season"].iloc[0])
+        return xi["xpts_season"].sum(), xi["xpts_season"].sum() + capt
+
+    print(f"\nOBJECTIVE COMPARISON  (bench weighted {bench_weight}, "
+          "captain doubled, identical constraints)")
+    print(f"  {'objective':<10} {'XI pts':>8} {'+capt':>8} {'stars':>6} "
+          f"{'bench £m':>9} {'spend':>7}")
+    for name, sq in squads.items():
+        xi_pts, total = score(sq)
+        print(f"  {name:<10} {xi_pts:>8.1f} {total:>8.1f} "
+              f"{int(sq['stars'].sum()):>6} "
+              f"{sq[~sq['xi']]['price'].sum():>9.1f} "
+              f"{sq['price'].sum():>6.1f}m")
+    gap = score(squads["points"])[1] - score(squads["stars"])[1]
+    shared = set(squads["stars"]["name"]) & set(squads["points"]["name"])
+    print(f"\n  the points objective is worth {gap:+.1f} projected points "
+          f"over a season")
+    print(f"  the two squads share {len(shared)} of 15: "
+          f"{', '.join(sorted(shared)) if shared else 'none'}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--listing", default=HERE / "data" / "2026-27" / "player_listing.csv")
     ap.add_argument("--history", default=HERE / "data" / "2025-26")
+    ap.add_argument("--objective", choices=("stars", "points"), default="stars",
+                    help="how to choose the factor squad (default: stars)")
+    ap.add_argument("--bench-weight", type=float, default=BENCH_WEIGHT,
+                    help="worth of a bench place vs a starting one, for "
+                         "--objective points (default: %(default)s)")
+    ap.add_argument("--no-compare", action="store_true",
+                    help="skip the star-vs-points comparison")
     args = ap.parse_args()
 
-    factor, crowd = build(args.listing, args.history)
+    factor, crowd = build(args.listing, args.history,
+                          objective=args.objective,
+                          bench_weight=args.bench_weight)
     f = factor.copy()
     f["show"] = [f"{int(s)}★ {l:<5} xP/90 {x:.2f}  owned {o:>5.1f}%"
                  for s, l, x, o in zip(f["stars"], f["factor_letters"],
                                        f["xpts90"], f["owned_pct"])]
-    report(f, "THE FACTOR SQUAD — best total stars the rules allow",
-           "stars", "show", captain_by="xpts90")
+    title = ("THE FACTOR SQUAD — best total stars the rules allow"
+             if args.objective == "stars" else
+             "THE FACTOR SQUAD — most projected points the rules allow")
+    report(f, title, "stars", "show", captain_by="xpts90")
     c = crowd.copy()
     c["show"] = [f"owned {o:>5.1f}%" for o in c["owned_pct"]]
     report(c, "THE CROWD SQUAD — the most-owned legal 15",
@@ -216,6 +355,9 @@ def main() -> None:
         if dropped:
             print(f"  out: {', '.join(dropped)}")
             print(f"  in:  {', '.join(added)}")
+
+    if not args.no_compare:
+        compare(args.listing, args.history, args.bench_weight)
 
 
 if __name__ == "__main__":
