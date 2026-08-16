@@ -645,10 +645,25 @@ python squad.py       # prints both squads; also rendered on preseason.html
 |---|---|---|
 | Objective | most total stars (ties → quality engine) | most total ownership |
 | Pool | the 253 rated players | **all 567 listed** |
-| Result | 71 of a possible 75 stars | 470 ownership points |
-| Formation | 4-5-1 | 4-3-3 |
+| Result | 69 of a possible 75 stars | 470 ownership points |
+| Formation | 3-5-2 | 4-3-3 |
 | Spend | £100.0m | £100.0m |
 | Captain | Haaland (highest xPts/90) | Haaland (most owned) |
+
+**Injuries and suspensions** live in
+[`data/2026-27/unavailable.csv`](data/2026-27/unavailable.csv) — one row per
+player, `name, status, note`. A flagged player is still **rated** on the
+board, because an injury does not change what he is worth, but he is
+**barred from both squads** and the page marks him "not selectable" wherever
+he appears. A name in that file which matches nobody in the listing raises
+rather than being ignored: a typo would otherwise leave an injured player
+quietly selectable. `squad.py` reports what the flag costs, and
+`build(..., respect_availability=False)` shows the squad you would have had.
+
+Currently out: **Saliba, Timber, Ekitiké**. That costs the factor squad two
+stars (71 → 69) and reshapes it from 4-5-1 to 3-5-2 — Verbruggen and Enzo
+Fernández drop out alongside the three, and Raya, Gabriel, Schär, Anderson
+and Welbeck come in.
 
 The pools differ on purpose. The factor squad can only use players the board
 can rate; the crowd squad draws from everyone, because **about 240 of the
@@ -656,11 +671,10 @@ can rate; the crowd squad draws from everyone, because **about 240 of the
 promoted-club squads, new signings, and regulars who fell under the minutes
 gate — and excluding them would misrepresent what the field actually holds.
 
-**They share 2 of 15 players** (Haaland and Calvert-Lewin). The factor squad
-buys minutes and chance creation cheaply: **seven of its fifteen are owned
-by under 2% of managers**, five of them starters — Timber and Saliba at
-0.5%, van den Berg at 0.7%, Ouattara at 1.3%, Tavernier at 1.9%, with
-Ekitiké (0.2%) and Darlow (0.1%) on the bench. The crowd squad is concentrated in the expensive,
+**They share 3 of 15 players** (Haaland, Calvert-Lewin and Raya). The
+factor squad still buys minutes and chance creation cheaply — van den Berg
+at 0.7%, Ouattara at 1.3%, Tavernier at 1.9%, Schär at 0.2% and Darlow at
+0.1% are all owned by under 2% of managers. The crowd squad is concentrated in the expensive,
 well-known end. Whether that gap is edge or blind spot is what a season
 settles; it is also the natural thing to backtest once 2026/27 gameweeks
 land.
@@ -701,6 +715,7 @@ preseason.py        new-season price list x last season's record
 build_preseason.py  -> preseason.html, the draft board
 data/2025-26/       the full 2025/26 season, gw1.csv .. gw38.csv
 data/2026-27/       player_listing.csv — 2026/27 prices + ownership
+                    unavailable.csv    — injured/suspended, barred from squads
 index.html          generated web view of the current picks
 preseason.html      generated pre-season draft board
 ```

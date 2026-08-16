@@ -109,6 +109,24 @@ def load_listing(path: str | Path) -> pd.DataFrame:
     return listing
 
 
+def load_unavailable(path: str | Path) -> pd.DataFrame:
+    """Read the injured/suspended list sitting beside a season's listing.
+
+    ``name, status, note`` — one row per player who cannot be picked. The
+    file is optional; a season without one simply has nobody ruled out.
+    Names are matched after ``display_name``/case normalisation, and any
+    name that matches nobody in the listing is reported rather than
+    silently ignored, since a typo would otherwise leave an injured player
+    quietly selectable.
+    """
+    path = Path(path)
+    if not path.exists():
+        return pd.DataFrame(columns=["name", "status", "note"])
+    out = pd.read_csv(path)
+    out["name"] = out["name"].map(display_name)
+    return out
+
+
 def has_ownership(listing: pd.DataFrame) -> bool:
     return "owned_pct" in listing.columns and listing["owned_pct"].notna().any()
 
@@ -223,6 +241,20 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
     carries ownership, the five in ``PRESEASON_FACTORS`` when it does not.
     """
     listing = load_listing(listing_path)
+    # Injuries and suspensions live beside the listing. They do not change
+    # any rating - the board still shows what a player is worth - but they
+    # bar him from a squad, so the flag rides along on every row.
+    out_list = load_unavailable(Path(listing_path).parent / "unavailable.csv")
+    status = dict(zip(out_list["name"], out_list["status"]))
+    unmatched = sorted(set(status) - set(listing["name"]))
+    if unmatched:
+        raise ValueError(
+            "unavailable.csv names nobody in the listing: "
+            + ", ".join(unmatched)
+            + " — fix the spelling, or an injured player stays selectable")
+    listing["unavailable"] = listing["name"].isin(status)
+    listing["unavailable_status"] = listing["name"].map(status).fillna("")
+
     hist = model.player_table(model.load_season(history_dir))
     joined = match_players(listing, hist)
 

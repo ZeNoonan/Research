@@ -116,17 +116,25 @@ def pick_xi(squad: pd.DataFrame, objective: str) -> pd.DataFrame:
     return squad.loc[chosen]
 
 
-def build(listing: str | Path, history: str | Path):
-    """Return (factor_squad, crowd_squad), each with an ``xi`` flag."""
+def build(listing: str | Path, history: str | Path, respect_availability: bool = True):
+    """Return (factor_squad, crowd_squad), each with an ``xi`` flag.
+
+    Players flagged in ``unavailable.csv`` are barred from both squads. The
+    board still rates them - an injury does not change what a player is
+    worth - but you cannot field one, so neither squad may pick one. Pass
+    ``respect_availability=False`` to see what the squads would have been.
+    """
     rated, unrated = preseason.rate_preseason(listing, history)
     board = rated[rated["eligible"]].copy()
 
     # The crowd's pool is everyone listed: ownership is known for all of
     # them, and a sixth of it sits off the rated board.
-    everyone = pd.concat([
-        rated[["name", "position", "team", "price", "owned_pct"]],
-        unrated[["name", "position", "team", "price", "owned_pct"]],
-    ], ignore_index=True)
+    cols = ["name", "position", "team", "price", "owned_pct", "unavailable"]
+    everyone = pd.concat([rated[cols], unrated[cols]], ignore_index=True)
+
+    if respect_availability:
+        board = board[~board["unavailable"]]
+        everyone = everyone[~everyone["unavailable"]]
 
     factor = pick_squad(board, "stars", "xpts90").copy()
     crowd = pick_squad(everyone, "owned_pct").copy()
@@ -185,6 +193,21 @@ def main() -> None:
     overlap = set(factor["name"]) & set(crowd["name"])
     print(f"\nOverlap: {len(overlap)} of 15 — "
           + (", ".join(sorted(overlap)) if overlap else "none"))
+
+    # What the availability list cost, spelled out.
+    out_list = preseason.load_unavailable(
+        Path(args.listing).parent / "unavailable.csv")
+    if len(out_list):
+        names = ", ".join(out_list["name"])
+        print(f"\nUnavailable and therefore not selectable: {names}")
+        had, _ = build(args.listing, args.history, respect_availability=False)
+        dropped = sorted(set(had["name"]) - set(factor["name"]))
+        added = sorted(set(factor["name"]) - set(had["name"]))
+        print(f"  without the flag the factor squad scored "
+              f"{int(had['stars'].sum())} stars; with it, {int(factor['stars'].sum())}")
+        if dropped:
+            print(f"  out: {', '.join(dropped)}")
+            print(f"  in:  {', '.join(added)}")
 
 
 if __name__ == "__main__":

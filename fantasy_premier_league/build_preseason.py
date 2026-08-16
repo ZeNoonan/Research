@@ -85,6 +85,9 @@ def picks_table(block, n_factors: int) -> str:
             move = f" <span class='{cls}'>{r.price_change:+.1f}</span>"
         note = (f"<br><span class='sub2'>from {esc(r.last_team)}</span>"
                 if r.moved else "")
+        if r.unavailable:
+            note += (f"<br><span class='stale'>{esc(r.unavailable_status)} — "
+                     "not selectable</span>")
         letters = (f"<span class='letters'>{esc(r.factor_letters)}</span>"
                    if r.factor_letters else "<span class='sub2'>—</span>")
         if r.diagnostic_letters:
@@ -149,11 +152,34 @@ def squads_html(listing_path, history_dir) -> str:
                   [("Owned", lambda r: f"{r.owned_pct:.1f}%")])
     overlap = sorted(set(factor["name"]) & set(crowd["name"]))
 
+    out_list = preseason.load_unavailable(Path(listing_path).parent
+                                          / "unavailable.csv")
+    if len(out_list):
+        had, _ = squad_mod.build(listing_path, history_dir,
+                                 respect_availability=False)
+        dropped = sorted(set(had["name"]) - set(factor["name"]))
+        gained = sorted(set(factor["name"]) - set(had["name"]))
+        names = ", ".join(f"<b>{esc(n)}</b> ({esc(s)})" for n, s
+                          in zip(out_list["name"], out_list["status"]))
+        unavail = f"""
+<p class='note' style='border-left:3px solid #b3372f;padding-left:10px'>
+<b>Ruled out and excluded from both squads:</b> {names}. They are still
+rated on the board above — an injury does not change what a player is
+worth — but they cannot be picked, and both squads below are built
+without them. It costs the factor squad
+{int(had['stars'].sum()) - int(factor['stars'].sum())} stars
+({int(had['stars'].sum())} → {int(factor['stars'].sum())}): out go
+{', '.join(esc(n) for n in dropped)}; in come
+{', '.join(esc(n) for n in gained)}.</p>"""
+    else:
+        unavail = ""
+
     return f"""<section id="squads"><h2>Two squads</h2>
 <p class='note'>Both are legal and <b>solved exactly</b> (integer program,
 not a greedy pick): £100.0m, 2 GK / 5 DEF / 5 MID / 3 FWD, at most 3 from
 one club, and a starting XI in a legal formation. <b>C</b> and <b>V</b> mark
 captain and vice — on expected points, since captaincy doubles a score.</p>
+{unavail}
 
 <h3 style='font-size:16px;margin:16px 0 4px'>The factor squad — the board's
 own answer</h3>
