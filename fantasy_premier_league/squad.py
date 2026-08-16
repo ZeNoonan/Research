@@ -121,6 +121,51 @@ def _solve(pool: pd.DataFrame, objective: pd.Series, budget: float | None,
     return [i for i in pool.index if x[i].value() > 0.5]
 
 
+def star_ceiling(pool: pd.DataFrame, col: str = "stars") -> tuple[int, dict]:
+    """Highest ``col`` total any legal 2/5/5/3 could reach, and the breakdown.
+
+    Take the best ``n`` ratings in each position, where ``n`` is what the
+    shape requires, and add them up. This ignores the budget and the club
+    cap, so it is an upper bound rather than an achievable total - which is
+    what makes it useful: if the squad *reaches* it, those constraints did
+    not bind and the objective is exhausted.
+    """
+    per = {pos: sorted(pool.loc[pool["position"] == pos, col],
+                       reverse=True)[:n]
+           for pos, n in SQUAD.items()}
+    return int(sum(sum(v) for v in per.values())), per
+
+
+def saturation(squad: pd.DataFrame, pool: pd.DataFrame,
+               col: str = "stars") -> dict:
+    """Whether the primary objective has run out of discriminating power.
+
+    A saturated objective is not a failure - it means the board rates
+    enough players highly that the shape, not the ratings, is the binding
+    constraint. It does need to be visible, because at the ceiling every
+    candidate squad ties on the primary and the **tie-break is selecting
+    the team**. A silent saturated objective is how a bad tie-break hides.
+    """
+    ceiling, per = star_ceiling(pool, col)
+    achieved = int(squad[col].sum())
+    return {"achieved": achieved, "ceiling": ceiling,
+            "saturated": achieved >= ceiling, "per_position": per}
+
+
+def saturation_note(sat: dict, secondary: str | None) -> str:
+    """One line describing the saturation state, for terminal and page."""
+    shape = "  ".join(f"{pos} {'+'.join(str(int(s)) for s in v)}"
+                      for pos, v in sat["per_position"].items())
+    if not sat["saturated"]:
+        return (f"{sat['achieved']} of a reachable {sat['ceiling']} stars "
+                f"({shape}) — the budget or the 3-per-club cap is binding.")
+    return (f"{sat['achieved']} stars, which is the ceiling for this shape "
+            f"({shape}). The star objective is exhausted: every legal "
+            f"fifteen at {sat['ceiling']} ties on it, so "
+            + (f"the tie-break ({secondary}) is selecting the team."
+               if secondary else "the tie-break is selecting the team."))
+
+
 def _squad_problem(pool: pd.DataFrame, budget: float, forced: set):
     """The 15-man problem, plus the eleven only when the bench cap needs it.
 
@@ -357,6 +402,13 @@ def build(listing: str | Path, history: str | Path,
         factor = pick_squad_points(board, "xpts_season", bench_weight,
                                    forced=forced)
 
+    # Is the star objective still discriminating, or has it run out? Only
+    # meaningful for the star path; the points objective is continuous and
+    # does not saturate.
+    factor.attrs["saturation"] = (
+        saturation(factor, board) if objective == "stars" else None)
+    factor.attrs["secondary"] = "xpts_season" if objective == "stars" else None
+
     crowd = pick_squad(everyone, "owned_pct").copy()
     # The crowd pool deliberately has no ratings - unrated players have
     # none - so its XI stays on ownership.
@@ -384,7 +436,11 @@ def report(squad: pd.DataFrame, title: str, by: str, extra: str | None,
     # star count - half the squad ties at 5 stars and nlargest would then
     # pick arbitrarily.
     order = xi.nlargest(2, captain_by)
-    print(f"  captain {order.iloc[0]['name']}   vice {order.iloc[-1]['name']}\n")
+    print(f"  captain {order.iloc[0]['name']}   vice {order.iloc[-1]['name']}")
+    sat = squad.attrs.get("saturation")
+    if sat:
+        print("  " + saturation_note(sat, squad.attrs.get("secondary")))
+    print()
     for _, r in _order(squad, by).iterrows():
         mark = " " if r["xi"] else "B"
         val = f"{r[extra]}" if extra else ""

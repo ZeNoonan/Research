@@ -808,6 +808,22 @@ Ipswich) and signings from abroad — have no Premier League history and are
 reported as **unrated** rather than dropped: they are exactly the players
 you have to judge by eye.
 
+**Two known blemishes in the 2026/27 listing, noted and left alone.**
+
+- **Illan Meslier and Christos Tzolis are both listed under Arsenal**, and
+  both look wrong — Meslier's own 2025/26 record is at Leeds, and Tzolis
+  has no Premier League history at all. Neither affects anything: Meslier
+  played **0 minutes** last season so is matched but unrated, Tzolis is
+  unmatched, and neither reaches either squad. Arsenal contributes one
+  player (Raya) to each, so the 3-per-club cap is nowhere near binding.
+  33 of the 457 matched players changed club over the summer, which is an
+  ordinary transfer window — this is two bad rows, not a mapping fault, and
+  the loader is not the place to fix it.
+- **Ownership sums to 1499.6%, not 1500.0%.** Deliberately not scaled: the
+  0.4 is rounding in the published percentages, and normalising it would
+  invent precision the source does not have. Every use of ownership here
+  ranks rather than sums, so it changes nothing.
+
 ## Two squads
 
 `squad.py` turns the board into an actual team, and builds the crowd's team
@@ -863,9 +879,9 @@ here.
 
 | | Factor squad | Crowd squad |
 |---|---|---|
-| Objective | most total stars (ties → quality engine) | most total ownership |
+| Objective | most total stars (ties → projected points) | most total ownership |
 | Pool | the 253 rated players, plus £4.5m bench-forward filler | **all 567 listed** |
-| Result | 84 of a possible 90 stars | 470 ownership points |
+| Result | 84 stars — **the ceiling**, see below | 470 ownership points |
 | Formation | 3-4-3 | 4-3-3 |
 | Spend | £100.0m | £100.0m |
 | Captain | Haaland (highest xPts/90) | Haaland (most owned) |
@@ -891,11 +907,11 @@ this board cannot rate** —
 promoted-club squads, new signings, and regulars who fell under the minutes
 gate — and excluding them would misrepresent what the field actually holds.
 
-**They share 3 of 15 players** (Haaland, Calvert-Lewin and Raya). The
-factor squad still buys minutes and chance creation cheaply — Joachim
-Andersen at 0.1%, van den Berg at 0.7%, Chris Richards at 0.8% and
-Tavernier at 1.9% are all owned by under 2% of managers. The crowd squad is
-concentrated in the expensive, well-known end. Whether that gap is edge or blind spot is what a season
+**They share 4 of 15 players** (Haaland, Calvert-Lewin, Szoboszlai and
+Raya). The factor squad still buys minutes and chance creation cheaply —
+Joachim Andersen at 0.1%, van den Berg at 0.7% and Tavernier at 1.9% are
+all owned by under 2% of managers. The crowd squad is concentrated in the
+expensive, well-known end. Whether that gap is edge or blind spot is what a season
 settles; it is also the natural thing to backtest once 2026/27 gameweeks
 land.
 
@@ -906,10 +922,10 @@ the captain arbitrarily until it was fixed, and the same reasoning had never
 been applied to the other ten.
 
 The XI is chosen by maximising `xpts90 × minutes_share × 38` under the
-formation rules. On the current board that is worth **+8.2 projected points
-over a season** (829.6 → 837.8 for the XI, 933.1 → 941.3 with the captain
+formation rules. On the current board that is worth **+21.9 projected points
+over a season** (838.9 → 860.9 for the XI, 942.4 → 964.3 with the captain
 doubled) and costs nothing: the same fifteen players, zero transfers. It
-swaps Tavernier and Enzo le Fée in for van den Berg and Andersen — pairs
+swaps Tavernier and Enzo le Fée in for van den Berg and van Dijk — pairs
 the star count could not separate.
 
 The crowd squad's XI stays on ownership. Its pool is deliberately
@@ -919,6 +935,67 @@ to sort it by.
 > The projection is backward-looking: `minutes_share` is last season's, used
 > as a proxy for next season's. It is fine for ordering an XI within a squad
 > already chosen, which is all it is used for here.
+
+#### The star objective is saturated, and the tie-break picks the team
+
+**84 is the ceiling, not a near-miss.** Fifteen players at six stars would
+be 90, but 90 is unreachable by construction. Take the best available
+rating in each position, as many as the shape requires:
+
+| Position | needed | best available | subtotal |
+|---|---|---|---|
+| GK | 2 | 5 + 5 | 10 |
+| DEF | 5 | 6 + 6 + 5 + 5 + 5 | 27 |
+| MID | 5 | 6 + 6 + 6 + 6 + 6 | 30 |
+| FWD | 3 | 6 + 6 + 5 | 17 |
+| | | | **84** |
+
+**There is no six-star goalkeeper on the whole board** — that alone is two
+of the six missing stars, and it is not an accident: Justice is xGI, and a
+keeper's xGI is ~0.01, so the factor is noise for the position (see
+[It does not work for goalkeepers](#it-does-not-work-for-goalkeepers)).
+Defenders give up three more and forwards one.
+
+That ceiling is computed **ignoring the £100m budget and the 3-per-club
+cap** — and the squad reaches it anyway. So neither constraint is what
+stopped it, and the interesting consequence follows:
+
+> **Every legal fifteen scoring 84 ties on the primary objective.** There
+> are a great many of them. The star count is not choosing between them —
+> the **tie-break** is.
+
+That makes the tie-break load-bearing, and it used to be `xpts90`: a
+per-90 rate, which says nothing about how often a player is on the pitch,
+and treats all fifteen alike when only eleven ever score. It is now
+**projected season points** (`xPts/90 × minutes share × 38`) — the same
+correction already made one level down for the starting XI, applied to the
+selection of the fifteen. Worth **+23.0 projected points** (941.3 → 964.3
+with the captain doubled) at **zero cost in stars or money**: 84 and
+£100.0m both unchanged, because the solve is lexicographic and the
+secondary is only ever optimised over squads already at the best primary
+total. Three of the fifteen changed — Mbeumo, Richards and O'Reilly out;
+Szoboszlai, Senesi and van Dijk in, all three of whom play more.
+
+**Read the squad accordingly.** It is "the highest-projecting fifteen among
+those tied at the star ceiling", not a uniquely optimal one. A different
+tie-break gives a different, equally 84-star squad.
+
+`squad.py` now says so on every run rather than leaving it to be
+discovered:
+
+```
+84 stars, which is the ceiling for this shape (GK 5+5  DEF 6+6+5+5+5
+MID 6+6+6+6+6  FWD 6+6+5). The star objective is exhausted: every legal
+fifteen at 84 ties on it, so the tie-break (xpts_season) is selecting
+the team.
+```
+
+`star_ceiling` and `saturation` compute it; the page carries the same
+panel. When the ceiling is *not* reached the same line reports the shortfall
+instead ("78 of a reachable 84 — the budget or the 3-per-club cap is
+binding"), which is the state that says the ratings, not the shape, are
+doing the work. Saturation is a legitimate state, not an error, so it is
+reported and never raised.
 
 #### Stars or points: the objective measured, not changed
 
@@ -940,27 +1017,28 @@ Both are printed side by side at the foot of every run:
 
 | | stars (default) | points |
 |---|---|---|
-| XI projected points | 837.8 | **905.3** |
-| with the captain doubled | 941.3 | **1008.8** |
+| XI projected points | 860.9 | **905.3** |
+| with the captain doubled | 964.3 | **1008.8** |
 | total stars | **84** | 69 |
 | bench spend | £20.5m | **£18.5m** |
 | formation | 3-4-3 | 4-5-1 |
 | captain | Haaland | Bruno Fernandes |
 | benched forwards | none | two at £4.5m |
 
-**The gap is +67.5 projected points over a season — about 1.8 a gameweek —
-and the two squads share 7 of 15.** It is not a rounding difference. The
+**The gap is +44.5 projected points over a season — about 1.2 a gameweek —
+and the two squads share 8 of 15.** It is not a rounding difference. The
 star count is still a lossy summary of the thing it stands in for: a player
 one point above his position's median scores the same star as one at the
 top of it.
 
-That gap used to be **+98.8**, with an overlap of only 4 of 15. Giving
-Minutes a second cut closed more than a third of it, to +63.2 — see
-[Minutes gets two cuts](#minutes-gets-two-cuts), which this measurement is
-what prompted. The benched-forward cap then widened it again to +67.5,
-because the points objective can act on a dead bench slot and the star
-count cannot see one. The residual is the honest cost of a binary scale,
-and the same argument below still applies to it.
+That gap has more than halved as the star path was repaired. It was
+**+98.8** with an overlap of 4 of 15; giving Minutes a second cut took it
+to +63.2 (see [Minutes gets two cuts](#minutes-gets-two-cuts), which this
+measurement prompted); the benched-forward cap widened it to +67.5, because
+the points objective can act on a dead bench slot and the star count cannot
+see one; and fixing the saturated tie-break above closed it to **+44.5**.
+The residual is the honest cost of a binary scale, and the same argument
+below still applies to it.
 
 **The default stays stars, deliberately.** The board is an additive
 binary-factor model on purpose: its claim is that crossing several
@@ -970,6 +1048,29 @@ entire squad to `xpts90 × minutes_share`, and `minutes_share` is last
 season's — the least durable quantity in the whole calculation. The points
 squad still drops Haaland outright, on a projection that knows nothing
 about a transfer or a change of role.
+
+**There is also a metric artefact underneath it that should be understood
+before anyone switches.** `xpts90` is deliberately shrunk toward the
+position mean by sample size, which compresses elite output — spread falls
+from sd 0.544 raw to 0.453 shrunk, and the p90/p10 ratio from 2.29 to 1.92.
+`minutes_share` is not shrunk at all. So inside the product
+`xpts90 × minutes_share`, shrinkage hands minutes a bigger share of the
+variation than the underlying data does:
+
+| | log-variance of `xpts90` | of `minutes_share` |
+|---|---|---|
+| on raw rates | 0.161 (**45%**) | 0.193 (55%) |
+| on shrunk rates (what the objective sees) | 0.087 (**31%**) | 0.193 (**69%**) |
+
+An EV-max squad is therefore *more* of a minutes machine than the evidence
+warrants, and the tell is at the top: Haaland projects **103.46** against
+Bruno Fernandes' **103.58** — the objective separates them by 0.12 points
+over a whole season, and hands the armband and £3.5m of budget on that. It
+drops Haaland from the squad entirely. A 0.12-point margin is not a
+judgement, it is a coin toss dressed as one. Shrinkage is right for the
+binary factors, which only ask which side of a median a player is on; it
+is doing something subtler and less defensible inside a product that is
+then maximised directly.
 
 And the comparison is scored on the projection's own yardstick: of course
 the squad that maximises projected points wins on projected points. What

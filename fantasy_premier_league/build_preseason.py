@@ -162,6 +162,29 @@ def squads_html(listing_path, history_dir, n_factors: int,
                   [("Owned", lambda r: f"{r.owned_pct:.1f}%")])
     overlap = sorted(set(factor["name"]) & set(crowd["name"]))
 
+    # Whether the star objective still discriminates. At the ceiling it does
+    # not, and the tie-break is choosing the team - which the reader should
+    # be told, since it changes what the squad is evidence of.
+    sat = factor.attrs.get("saturation") or {}
+    ceiling = sat.get("ceiling", len(factor) * n_factors)
+    if sat.get("saturated"):
+        breakdown = "; ".join(
+            f"{pos} {'+'.join(str(int(v)) for v in vals)}"
+            for pos, vals in sat["per_position"].items())
+        sat_note = f"""
+<p class='note' style='border-left:3px solid var(--star);padding-left:10px'>
+<b>The star objective is saturated.</b> {ceiling} is the most any legal
+2/5/5/3 could score given who is available ({breakdown}) — and the squad
+reaches it, so neither the budget nor the 3-per-club cap is what stopped
+it. Every legal fifteen at {ceiling} ties on stars, which means the
+<b>tie-break is picking the team</b>: projected season points
+(<code>xPts/90 × minutes share × 38</code>). Read the fifteen as "the
+highest-projecting squad among those tied at the star ceiling", not as a
+uniquely optimal one. Note there is no six-star goalkeeper on the whole
+board, which is where two of the six missing stars go.</p>"""
+    else:
+        sat_note = ""
+
     out_list = preseason.load_unavailable(Path(listing_path).parent
                                           / "unavailable.csv")
     if len(out_list):
@@ -194,7 +217,7 @@ captain and vice — on expected points, since captaincy doubles a score.</p>
 <h3 style='font-size:16px;margin:16px 0 4px'>The factor squad — the board's
 own answer</h3>
 <p class='note'>Maximises total stars ({int(factor['stars'].sum())} of a
-possible {len(factor) * n_factors}), ties broken on the quality engine.
+reachable {ceiling}), ties broken on projected season points.
 Drawn from the {n_rated} rated players, plus — for a benched forward only —
 the unrated ones at £{squad.BENCH_FWD_MAX_PRICE:.1f}m or less. Three
 forwards are compulsory but only one has to start, so the third is a dead
@@ -202,6 +225,7 @@ spot; a forward dearer than that cap must be in the eleven if he is bought
 at all, which stops the squad paying for a player it has already decided
 not to field. Formation {shape(factor)}, spending
 £{factor['price'].sum():.1f}m.</p>
+{sat_note}
 {f_tbl}
 
 <h3 style='font-size:16px;margin:16px 0 4px'>The crowd squad — what the
