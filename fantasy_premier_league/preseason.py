@@ -10,21 +10,22 @@ What carries over, and what doesn't
 * **Quality**  – season-long per-90 rates. Carries.
 * **Value**    – recomputed at the **new** price, which is the whole point:
   a player whose price fell while his numbers held is this month's bargain.
-* **Minutes**  – last 5 matches played of 2025/26. Carries as a nailed-on
-  signal, subject to the summer's transfers.
+* **Minutes**  – share of 2025/26's minutes, above the position median.
+  Carries as a participation signal, subject to the summer's transfers.
+* **Nailed**   – the same share at 75%+ of the season. The second Minutes
+  star; see the README section "Minutes gets two cuts".
 * **Justice**  – xGI over the last 8 matches played of 2025/26. Carries:
   chance creation is the most persistent attacking signal there is.
 * **Form**     – last 5 gameweeks of 2025/26. Included and flagged: three
-  months stale, the weakest of the five here.
-* **Crowd**    – scored whenever the listing carries ``owned_pct``. This is
-  the one *current* input on the board: every other factor describes last
-  season, while Crowd reads today's squads and stars whoever the field is
-  underweight on before a ball is kicked. Without ownership the factor is
-  dropped and a rating is out of 5.
+  months stale, the weakest of the six here.
+* **Crowd**    – computed whenever the listing carries ``owned_pct``, and
+  shown as a diagnostic, but **not scored** pre-season (see the README
+  section "Why Crowd is no longer scored pre-season"). Ownership still
+  drives the crowd squad in ``squad.py``.
 
-So a pre-season rating is **0-6 stars** with ownership in hand, matching
-the in-season model. Once real gameweeks exist, ``weekly_report.py`` takes
-over and this module is done for the year.
+So a pre-season rating is **0-6 stars**, one short of the in-season seven
+because Crowd is not scored here. Once real gameweeks exist,
+``weekly_report.py`` takes over and this module is done for the year.
 
 Name matching
 -------------
@@ -52,8 +53,9 @@ import model
 
 HERE = Path(__file__).parent
 
-# Factors available before the season starts (Crowd needs ownership data).
-PRESEASON_FACTORS = ("quality", "value", "form", "minutes_factor", "justice")
+# Factors scored before the season starts. Kept as an alias rather than a
+# second literal so it cannot drift from the engine's own definition.
+PRESEASON_FACTORS = model.PRESEASON_SCORING
 
 # Letters NFKD does not decompose to ASCII.
 SPECIAL = str.maketrans({"ı": "i", "ø": "o", "đ": "d", "ð": "d", "þ": "th",
@@ -97,9 +99,10 @@ def display_name(name: str) -> str:
 def load_listing(path: str | Path) -> pd.DataFrame:
     """Read the new season's list (name, position, team, price[, owned_pct]).
 
-    ``owned_pct`` is pre-season ownership as a percentage of squads. When it
-    is present the Crowd factor can be scored and a rating is out of 6; when
-    it is absent (a bare price list) the board falls back to 5 factors.
+    ``owned_pct`` is pre-season ownership as a percentage of squads. It is
+    optional: the rating is out of 6 either way, since Crowd is not scored
+    pre-season. With ownership the Crowd diagnostic is computed and
+    ``squad.py`` can build the crowd's team; without it, neither.
     """
     listing = pd.read_csv(path)
     missing = {"name", "position", "team", "price"} - set(listing.columns)
@@ -237,8 +240,8 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
 
     ``rated`` carries the scored factors, ``stars`` and the **new** price;
     ``unrated`` is everyone with no Premier League history. Which factors
-    were used is on ``rated.attrs["factors"]`` - all six when the listing
-    carries ownership, the five in ``PRESEASON_FACTORS`` when it does not.
+    were used is on ``rated.attrs["factors"]`` - the six in
+    ``PRESEASON_FACTORS``, with or without ownership.
     """
     listing = load_listing(listing_path)
     # Injuries and suspensions live beside the listing. They do not change
@@ -264,7 +267,7 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
     carry = ["xpts90", "xpts90_raw", "form_points", "minutes_avg",
              "justice_margin", "justice_xgi", "gate_minutes", "minutes", "points",
              "appearances", "selected", "xg90", "xa90", "xgc90", "dc_rate",
-             "form_ok", "minutes_factor_ok", "justice_ok", "points_sd", "points_sd_apps"]
+             "form_ok", "justice_ok", "points_sd", "points_sd_apps"]
     idx = matched["_hist_idx"].astype(int)
     for col in carry:
         matched[col] = hist.loc[idx, col].to_numpy()
@@ -310,7 +313,7 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
     return rated, unrated
 
 
-def picks(rated: pd.DataFrame, min_stars: int = 4) -> pd.DataFrame:
+def picks(rated: pd.DataFrame, min_stars: int = 5) -> pd.DataFrame:
     """Eligible players at ``min_stars``+, by position, strongest first."""
     out = rated[rated["eligible"] & (rated["stars"] >= min_stars)].copy()
     out["position"] = pd.Categorical(out["position"], model.POSITIONS)

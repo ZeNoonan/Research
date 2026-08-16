@@ -48,6 +48,15 @@ FACTOR_ROWS = [
      "pitch, not who happened to play 90 minutes on the days he was picked. "
      "(Averaging the minutes of matches he played cannot tell a five-game "
      "starter from a thirty-eight-game one.)"),
+    ("N", "Nailed", "The same share, at or above "
+     f"<b>{model.NAILED_SHARE:.0%}</b> of the season — roughly 28 full "
+     "matches. Minutes' second star, and an <b>absolute</b> bar rather than "
+     "a position rank: three quarters of the minutes means the same thing "
+     "for a keeper as for a forward, which is not true of a rate statistic. "
+     "Minutes is worth two stars because season points are a per-90 rate "
+     "<i>times</i> minutes played, and minutes are the more variable of the "
+     "two — a single median cut cannot separate a player on 61% of the "
+     "minutes from one on 97%."),
     ("J", "Justice", "<b>Expected goal involvements</b> (xG + xA) over the "
      "last 8 matches he actually played last season, above the position "
      "median (needs 8 appearances). Chances made and got on the end of are "
@@ -109,10 +118,11 @@ def picks_table(block, n_factors: int) -> str:
     return f"<div class='tablewrap'><table>{head}{''.join(rows)}</table></div>"
 
 
-def squads_html(listing_path, history_dir) -> str:
+def squads_html(listing_path, history_dir, n_factors: int,
+                n_rated: int) -> str:
     """Two optimal 15-man squads: the board's, and the crowd's."""
-    import squad as squad_mod
-    factor, crowd = squad_mod.build(listing_path, history_dir)
+    import squad
+    factor, crowd = squad.build(listing_path, history_dir)
 
     def table(sq, by, captain_by, cols):
         rows = []
@@ -120,7 +130,7 @@ def squads_html(listing_path, history_dir) -> str:
         cap = xi.nlargest(2, captain_by)
         cap_names = {cap.iloc[0]["name"]: "C", cap.iloc[-1]["name"]: "V"}
         started = False
-        for r in squad_mod._order(sq, by).itertuples():
+        for r in squad._order(sq, by).itertuples():
             if not r.xi and not started:
                 started = True
                 rows.append("<tr class='divider'><td colspan='6'>bench</td></tr>")
@@ -152,10 +162,33 @@ def squads_html(listing_path, history_dir) -> str:
                   [("Owned", lambda r: f"{r.owned_pct:.1f}%")])
     overlap = sorted(set(factor["name"]) & set(crowd["name"]))
 
+    # Whether the star objective still discriminates. At the ceiling it does
+    # not, and the tie-break is choosing the team - which the reader should
+    # be told, since it changes what the squad is evidence of.
+    sat = factor.attrs.get("saturation") or {}
+    ceiling = sat.get("ceiling", len(factor) * n_factors)
+    if sat.get("saturated"):
+        breakdown = "; ".join(
+            f"{pos} {'+'.join(str(int(v)) for v in vals)}"
+            for pos, vals in sat["per_position"].items())
+        sat_note = f"""
+<p class='note' style='border-left:3px solid var(--star);padding-left:10px'>
+<b>The star objective is saturated.</b> {ceiling} is the most any legal
+2/5/5/3 could score given who is available ({breakdown}) — and the squad
+reaches it, so neither the budget nor the 3-per-club cap is what stopped
+it. Every legal fifteen at {ceiling} ties on stars, which means the
+<b>tie-break is picking the team</b>: projected season points
+(<code>xPts/90 × minutes share × 38</code>). Read the fifteen as "the
+highest-projecting squad among those tied at the star ceiling", not as a
+uniquely optimal one. Note there is no six-star goalkeeper on the whole
+board, which is where two of the six missing stars go.</p>"""
+    else:
+        sat_note = ""
+
     out_list = preseason.load_unavailable(Path(listing_path).parent
                                           / "unavailable.csv")
     if len(out_list):
-        had, _ = squad_mod.build(listing_path, history_dir,
+        had, _ = squad.build(listing_path, history_dir,
                                  respect_availability=False)
         dropped = sorted(set(had["name"]) - set(factor["name"]))
         gained = sorted(set(factor["name"]) - set(had["name"]))
@@ -184,9 +217,15 @@ captain and vice — on expected points, since captaincy doubles a score.</p>
 <h3 style='font-size:16px;margin:16px 0 4px'>The factor squad — the board's
 own answer</h3>
 <p class='note'>Maximises total stars ({int(factor['stars'].sum())} of a
-possible 75), ties broken on the quality engine. Drawn from the
-{len(factor)} of 253 rated players. Formation {shape(factor)}, spending
+reachable {ceiling}), ties broken on projected season points.
+Drawn from the {n_rated} rated players, plus — for a benched forward only —
+the unrated ones at £{squad.BENCH_FWD_MAX_PRICE:.1f}m or less. Three
+forwards are compulsory but only one has to start, so the third is a dead
+spot; a forward dearer than that cap must be in the eleven if he is bought
+at all, which stops the squad paying for a player it has already decided
+not to field. Formation {shape(factor)}, spending
 £{factor['price'].sum():.1f}m.</p>
+{sat_note}
 {f_tbl}
 
 <h3 style='font-size:16px;margin:16px 0 4px'>The crowd squad — what the
@@ -253,6 +292,12 @@ def leaderboards_html(rated) -> str:
           ("Share of season", lambda r: f"{r.minutes_share * 100:.0f}%")],
          lambda b: f"median = {b['minutes_share'].median() * 100:.0f}% of the "
                    "season — star at or above this line"),
+        ("minutes_nailed", "N",
+         "Nailed — the same share, against an absolute three-quarter bar",
+         "minutes_share",
+         [("Share of season", lambda r: f"{r.minutes_share * 100:.0f}%")],
+         lambda b: f"{model.NAILED_SHARE:.0%} of the season — star at or "
+                   "above this line, the same bar for every position"),
         ("justice", "J",
          "Justice — sorted by xGI over the last 8 matches played",
          "justice_xgi",
@@ -385,15 +430,17 @@ tr.diagrow td {{ background: rgba(128,128,128,.07); }}
 </style></head><body><div class="wrap">
 <header><h1>FPL {esc(season)} — pre-season draft board</h1>
 <p class="sub">The new season's price list rated on last season's evidence.
-Same additive binary-factor model as the in-season app, one star per factor,
-judged against position peers.</p></header>
+Same additive binary-factor model as the in-season app, one star per factor
+(two for Minutes), judged against position peers.</p></header>
 <div class="banner">Prices: <b>{esc(season)}</b> · Evidence:
 <b>{esc(history_season)}</b>. {n_matched} of {n_total} listed players matched
 to a {esc(history_season)} record, <b>{len(elig)}</b> of them with enough
 minutes to rate — all shown below, by position. Ratings are out of
-<b>{n_factors} stars</b> — Quality, Value, Form, Minutes and Justice, all
-five of them estimators of expected points. Crowd is computed and shown as
-a diagnostic but no longer scored.
+<b>{n_factors} stars</b> — Quality, Value, Form, Minutes, Nailed and
+Justice, all of them estimators of expected points. Minutes is asked twice
+(above the position median, then above an absolute three-quarter bar)
+because it is the term season points vary most with. Crowd is computed and
+shown as a diagnostic but no longer scored.
 <a href="index.html" style="color:var(--accent2)">In-season app →</a></div>
 
 <section><h2>Read this first</h2>
@@ -404,9 +451,9 @@ new signings settling, managerial changes or injuries. Two things it does
 do well — it prices last season's underlying performance against
 <b>this season's money</b>, and it says who was actually playing.</p>
 <p class="note"><b>Ownership is no longer scored.</b> Crowd — how far the
-field underweights a player relative to his quality — used to be a sixth
+field underweights a player relative to his quality — used to be a scoring
 star. It has been demoted to a <b>diagnostic</b>: still computed, still
-shown, but no longer counted. The other five factors all estimate expected
+shown, but no longer counted. The other factors all estimate expected
 points; Crowd estimates <i>variance</i>, and at equal weight it was pulling
 against them. Variance only helps a manager who is behind, and for a
 mini-league of about forty this board's user is not — so the factor's sign
@@ -439,7 +486,7 @@ passed it exactly as one who started thirty-eight.
 
 {''.join(sections)}
 
-{squads_html(listing_path, history_dir)}
+{squads_html(listing_path, history_dir, n_factors, len(elig))}
 
 <section><h2>Best points per pound</h2>
 <p class="note">Model expected points per 90 divided by the new price,
