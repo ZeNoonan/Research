@@ -38,7 +38,7 @@ Six factors, each worth one star, each judged within position
 | 2 | **Value** | expected points per 90 **per £million** above the position median | points per pound funds the rest of the squad |
 | 3 | **Form** | points over the **last 5 matches the player actually played** above the position median | momentum |
 | 4 | **Minutes** | average minutes over the **last 5 matches the player actually played**, at or above the position median | the nailed-on full-match starters (at-or-above, not strictly above: keepers all average 90, and carrying the position's full typical load is exactly what "nailed" means) |
-| 5 | **Justice** | under-rewarded over the **last 6 matches the player actually played**: attackers whose xGI exceeds actual goals+assists; defenders/keepers who conceded more than their xGC (defenders count both) | luck mean-reverts and the crowd over-reacts to outcomes, so the unlucky are cheap |
+| 5 | **Justice** | **xGI (xG + xA) over the last 8 matches the player actually played** above the position median | chance creation is the process behind attacking returns and persists where the returns themselves bounce around |
 | 6 | **Crowd** *(in-season only)* | ownership percentile **below** quality percentile within position | bet against beta — the differential that gains rank when it comes off. **Not scored pre-season** — computed and displayed as a diagnostic; see below |
 
 **Eligibility gate** (the analogue of the NFL system only betting at
@@ -56,7 +56,7 @@ all.
 
 The price is a **minimum sample**: a player must have made at least as many
 appearances as the window is long to be scored on it — **5 for Form and
-Minutes, 6 for Justice**. Short of that he takes no star for that factor
+Minutes, 8 for Justice**. Short of that he takes no star for that factor
 **and is left out of its median**, so a thin record neither earns a star nor
 moves the bar for everyone else. `factors_assessed` records how many of the
 six could be scored, so a 3★ off one appearance is not mistaken for a 3★ off
@@ -165,8 +165,8 @@ star. (`owned_pct` is a percentage rather than the in-season headcount; the
 factor ranks, and a percentage ranks identically.) A sanity check on the
 export: ownership sums to **1500%** — exactly 15 players per squad.
 
-Form and Justice run on the last 5 and 6 matches each player actually
-played in 2025/26 (needing 5 and 6 appearances to be scored) and are
+Form and Justice run on the last 5 and 8 matches each player actually
+played in 2025/26 (needing 5 and 8 appearances to be scored) and are
 flagged on the page as the stalest inputs. The board lists **every rated
 player by position**, strongest first and banded by star count, plus the
 best points-per-pound and the full per-factor leaderboards. Each row
@@ -292,6 +292,60 @@ and log-price is no better than quadratic. Two to four V stars would move
 per position — comparable to the noise the LOO fix itself resolves, without
 a comparable justification. Not worth the added assumption. Not
 implemented.
+
+### Justice: xGI, not under-reward
+
+**This changed both boards** — Justice is shared by the in-season sheet and
+the pre-season draft board.
+
+Justice used to be a *luck* factor: attackers whose xGI exceeded their
+actual goals and assists, defenders and keepers whose side conceded more
+than its xGC, over the last 6 appearances, starred when the margin was
+positive. It is now simply **expected goal involvements (xG + xA) over the
+last 8 appearances, above the position median** — the same median-cut shape
+as Quality, Value and Form. The under-reward subtraction is gone, and the
+defensive ledger with it.
+
+The case for the change is that the subtraction was doing two jobs at once.
+`xGI − (G + A)` is large both for a player creating a lot of chances and
+for one converting badly, and the model already counts conversion twice
+over — goals and assists are in Quality (via xG/xA per 90) and in Form (via
+points). What is left once you stop subtracting is the part that actually
+persists week to week: how often he gets into positions.
+
+Two implementation notes:
+
+- **xGI is summed from xG + xA, not read from `expected_goal_involvements`.**
+  That column is rounded to 2dp per gameweek and drifts from the component
+  sum by up to 0.01 across a window.
+- **The old margin is retained** as `justice_margin`, computed exactly as
+  before, so the two definitions can be backtested against each other.
+  `justice_xgi` is the new scoring quantity.
+
+#### It does not work for goalkeepers
+
+A keeper's xGI is structurally almost zero — he is only in the box for set
+pieces. Across the 20 rated keepers with 8+ appearances the entire
+distribution is:
+
+| xGI over 8 appearances | 0.00 | 0.01 | 0.02 | 0.03 | 0.05 | 0.13 | 0.16 |
+|---|---|---|---|---|---|---|---|
+| Keepers | 8 | 5 | 3 | 1 | 1 | 1 | 1 |
+
+The median is **0.01**, so the factor stars a keeper for having got a head
+to roughly one corner in eight matches. Nick Pope takes the star on 0.16;
+David Raya misses it on 0.01. That is not a signal, it is rounding — and
+under the old rule the keeper ledger (goals conceded against xGC) at least
+measured something real about his side.
+
+**Recommendation: leave goalkeepers unscored on Justice**, the way a player
+short of an appearance window is already treated — no star, no vote in the
+median — which would make a keeper's rating out of 4 pre-season and 5
+in-season. The alternative is to keep the old conceded-minus-xGC ledger for
+keepers only, but that reintroduces the under-reward idea the change was
+meant to remove. As shipped the factor is applied uniformly, keepers
+included, since that is what was asked for; say the word and it is a
+one-line change.
 
 ### Why Crowd is no longer scored pre-season
 

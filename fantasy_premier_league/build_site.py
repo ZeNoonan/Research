@@ -98,10 +98,11 @@ FACTOR_ROWS = [
      "full-match starters. (At-or-above, unlike the other factors: keepers "
      "all average 90, and carrying the position's full typical load is "
      "exactly what nailed means.)"),
-    ("J", "Justice", "Under-rewarded over the last 6 matches the player "
-     "actually played: attackers whose xGI beats their actual returns, "
-     "defenders/keepers who conceded more than their xGC. Luck "
-     "mean-reverts; the unlucky are cheap."),
+    ("J", "Justice", "Expected goal involvements (xG + xA) over the last 8 "
+     "matches the player actually played, above the position median. "
+     "Chances made and got on the end of are the process behind attacking "
+     "returns, and they persist where the returns themselves bounce "
+     "around."),
     ("C", "Crowd", "Ownership percentile below quality percentile within the "
      "position — the field underweights the player (bet against beta)."),
 ]
@@ -233,28 +234,31 @@ keeps the star here — where the Quality example cost him one.</p></div>"""
 
     justice = """
 <div class="ex"><h3><span class="letters">J</span> Justice — worked example</h3>
-<p>Over the <b>last 6 gameweeks</b>, compare what the underlying numbers say
-a player <i>should</i> have returned with what he actually got. Made-up
-numbers:</p>
+<p>Add up a player's <b>expected goal involvements</b> — xG plus xA — over
+the <b>last 8 matches he actually played</b>, and compare to the position
+median. It counts chances, not what they turned into: a shot that hits the
+post and a shot that goes in are worth the same here. Made-up midfielders,
+each with 8 appearances behind them:</p>
 <div class="tablewrap"><table>
-<tr><th>Player</th><th class="num">xG + xA (6 GWs)</th><th class="num">Actual G + A</th>
-<th class="num">Conceded − xGC</th><th class="num">Justice margin</th><th class="num">Star?</th></tr>
-<tr class="starred"><td>Player F (FWD)</td><td class="num">3.1 + 0.6 = 3.7</td>
-<td class="num">1 + 1 = 2</td><td class="num">—</td>
-<td class="num calc">3.7 − 2 = +1.7</td><td class="num yes">★ yes</td></tr>
-<tr><td>Player G (MID)</td><td class="num">0.9 + 0.3 = 1.2</td>
-<td class="num">3 + 1 = 4</td><td class="num">—</td>
-<td class="num calc">1.2 − 4 = −2.8</td><td class="num no">no</td></tr>
-<tr class="starred"><td>Player H (DEF)</td><td class="num">0.5 + 0.1 = 0.6</td>
-<td class="num">0 + 0 = 0</td><td class="num">9 − 7.0 = +2.0</td>
-<td class="num calc">0.6 + 2.0 = +2.6</td><td class="num yes">★ yes</td></tr>
+<tr><th>Player</th><th class="num">xG (8 apps)</th><th class="num">xA (8 apps)</th>
+<th class="num">xGI</th><th class="num">Star?</th></tr>
+<tr class="starred"><td>Player F</td><td class="num">3.10</td><td class="num">0.60</td>
+<td class="num calc">3.70</td><td class="num yes">★ yes</td></tr>
+<tr class="starred"><td>Player G</td><td class="num">0.90</td><td class="num">1.30</td>
+<td class="num calc">2.20</td><td class="num yes">★ yes</td></tr>
+<tr><td>Player H</td><td class="num">0.50</td><td class="num">0.60</td>
+<td class="num calc">1.10</td><td class="num no">no</td></tr>
+<tr><td>Player I</td><td class="num">0.20</td><td class="num">0.30</td>
+<td class="num calc">0.50</td><td class="num no">no</td></tr>
 </table></div>
-<p>Player F has banked 3.7 expected goal involvements but cashed only 2 —
-he is <b>due</b>, so he gets the star. Player G has scored far above his
-numbers — that usually washes out, so no star. Defenders add a second
-ledger: Player H's team conceded 9 against an xGC of 7.0, so his side has
-been unlucky at the back too (goalkeepers use only that second ledger).
-Any margin above zero earns the star.</p></div>"""
+<p>Median xGI is <b>1.65</b>, so F and G take the star. Note what this
+factor deliberately ignores: whether any of it was <i>converted</i>. A
+forward who has racked up 3.7 xGI and scored four times rates exactly the
+same as one who has racked up 3.7 and scored none — the claim is only that
+he keeps getting into positions, which is the part that carries into next
+week. Goals themselves are already counted by Quality and Form.</p>
+<p class="note">Needs 8 appearances to be scored at all — under that, no
+star and no vote in the median.</p></div>"""
 
     crowd = f"""
 <div class="ex"><h3><span class="letters">C</span> Crowd — worked example</h3>
@@ -372,11 +376,11 @@ def leaderboards_html(rated) -> str:
          [("Avg mins", lambda r: f"{r.minutes_avg:.1f}")],
          lambda b: f"median = {med(b, 'minutes_avg', '.1f')} minutes — "
                    "star at or above this line"),
-        ("justice", "J", "Justice — sorted by 6-gameweek luck margin",
-         "justice_margin",
-         [("Margin", lambda r: f"{r.justice_margin:+.1f}")],
-         lambda b: "zero — star above this line (positive margin = "
-                   "under-rewarded)"),
+        ("justice", "J", "Justice — sorted by xGI over the last 8 matches played",
+         "justice_xgi",
+         [("xGI (last 8)", lambda r: f"{r.justice_xgi:.2f}")],
+         lambda b: f"median xGI = {med(b, 'justice_xgi', '.2f')} — "
+                   "star above this line"),
         ("crowd", "C", "Crowd — sorted by quality minus ownership percentile",
          "crowd_gap",
          [("Quality pct", lambda r: f"{r.xpts90_pct:.0f}"),

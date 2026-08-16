@@ -48,10 +48,11 @@ FACTOR_ROWS = [
      "pitch, not who happened to play 90 minutes on the days he was picked. "
      "(Averaging the minutes of matches he played cannot tell a five-game "
      "starter from a thirty-eight-game one.)"),
-    ("J", "Justice", "Under-rewarded over the <b>last 6 matches he actually "
-     "played</b> last season (needs 6 appearances): attackers whose xGI beat "
-     "their returns, defenders and keepers who conceded more than their "
-     "xGC."),
+    ("J", "Justice", "<b>Expected goal involvements</b> (xG + xA) over the "
+     "last 8 matches he actually played last season, above the position "
+     "median (needs 8 appearances). Chances made and got on the end of are "
+     "the process behind attacking returns, and they persist where the "
+     "returns themselves bounce around."),
 ]
 
 # Computed and displayed, but not counted toward the star rating.
@@ -148,11 +149,11 @@ def leaderboards_html(rated) -> str:
          lambda b: f"median = {b['minutes_share'].median() * 100:.0f}% of the "
                    "season — star at or above this line"),
         ("justice", "J",
-         "Justice — sorted by luck margin over the last 6 matches played",
-         "justice_margin",
-         [("Margin", lambda r: f"{r.justice_margin:+.1f}")],
-         lambda b: "zero — star above this line (positive margin = "
-                   "under-rewarded)"),
+         "Justice — sorted by xGI over the last 8 matches played",
+         "justice_xgi",
+         [("xGI (last 8)", lambda r: f"{r.justice_xgi:.2f}")],
+         lambda b: f"median xGI = {med(b, 'justice_xgi', '.2f')} — "
+                   "star above this line"),
         ("crowd", "C",
          "Crowd — <b>diagnostic only, not counted in the star rating</b> "
          "(demoted: it estimates variance, not expected points, and it has "

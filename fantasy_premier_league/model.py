@@ -21,17 +21,16 @@ The six factors
    played, at or above the position median (at-or-above, not strictly
    above: keepers all average 90, and averaging the position's typical
    full-match load is what "nailed" means). The 90-minute starters.
-5. Justice  – under-rewarded versus the underlying numbers over the last 6
-   matches the player actually played: attackers whose expected goal
-   involvements exceed their actual returns, defenders/keepers who conceded
-   more than their expected goals conceded. Luck mean-reverts and the crowd
-   over-reacts to outcomes, so the unlucky are cheap.
+5. Justice  – expected goal involvements (xG + xA) over the last 8 matches
+   the player actually played, above the position median. Chances created
+   and taken up are the process behind attacking returns, and they persist
+   where the returns themselves bounce around.
 
 Every window counts the player's **own appearances**, not calendar
 gameweeks, so a spell on the bench or in the treatment room shifts a
 window back rather than filling it with zeros. The price of that is a
 minimum sample: a player must have made at least as many appearances as
-the window is long to be scored on it at all (5 for Form and Minutes, 6
+the window is long to be scored on it at all (5 for Form and Minutes, 8
 for Justice). Players short of it take no star for that factor **and are
 left out of its median**, so a thin sample neither earns a star nor moves
 the bar for everyone else. Early in a season this means the appearance-
@@ -88,7 +87,7 @@ DC_THRESHOLD = {"DEF": 10, "MID": 12, "FWD": 12}  # GKs are not eligible
 
 # --- window and gate parameters ----------------------------------------------
 FORM_WINDOW = 5           # gameweeks of points behind the Form factor
-JUSTICE_WINDOW = 6        # gameweeks of luck behind the Justice factor
+JUSTICE_WINDOW = 8        # appearances of xGI behind the Justice factor
 MINUTES_WINDOW = 4        # played matches behind the eligibility gate
 MINUTES_FACTOR_WINDOW = 5  # played matches behind the Minutes factor
 MINUTES_PER_GW = 45.0
@@ -294,10 +293,16 @@ def player_table(gws: pd.DataFrame, through_gw: int | None = None) -> pd.DataFra
             (mins * block["xpts90_raw"] + PRIOR_MINUTES * prior)
             / (mins + PRIOR_MINUTES))
 
-    # Justice margin, in goals of unearned/withheld reward over the window:
-    # attackers bank xGI they haven't cashed; defensive players bank goals
-    # conceded beyond the xGC they actually faced. Defenders straddle both.
+    # Justice: expected goal involvements over the last JUSTICE_WINDOW
+    # appearances. xGI is summed from its components rather than read from
+    # ``expected_goal_involvements``, which is rounded to 2dp per gameweek
+    # and drifts from xG + xA by up to 0.01 over a window.
     jw = jw.reindex(out.index).fillna(0)
+    out["justice_xgi"] = jw["expected_goals"] + jw["expected_assists"]
+
+    # The previous "under-rewarded" formulation, kept as a diagnostic so the
+    # two can be compared: attackers banked xGI they had not cashed,
+    # defensive players banked goals conceded beyond the xGC they faced.
     attack_luck = (jw["expected_goals"] + jw["expected_assists"]
                    - jw["goals_scored"] - jw["assists"])
     defence_luck = jw["goals_conceded"] - jw["expected_goals_conceded"]
@@ -551,10 +556,14 @@ def rate_players(players: pd.DataFrame, preseason: bool = False) -> pd.DataFrame
                 out.loc[mins, "minutes_factor"] = (out.loc[mins, "minutes_avg"]
                                                    >= median).astype(int)
 
-        # Justice is measured against zero, not a median, but still needs a
-        # full window to mean anything.
+        # Justice: expected goal involvements over the window, median cut
+        # within position like Quality, Value and Form. Needs a full window
+        # to be scored at all.
         just = grp & out["justice_ok"]
-        out.loc[just, "justice"] = (out.loc[just, "justice_margin"] > 0).astype(int)
+        if just.any():
+            median = out.loc[just, "justice_xgi"].median()
+            out.loc[just, "justice"] = (out.loc[just, "justice_xgi"]
+                                        > median).astype(int)
 
         if not preseason:
             quality_pct = g["xpts90"].rank(pct=True)

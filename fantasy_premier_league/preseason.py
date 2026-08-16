@@ -12,7 +12,8 @@ What carries over, and what doesn't
   a player whose price fell while his numbers held is this month's bargain.
 * **Minutes**  – last 5 matches played of 2025/26. Carries as a nailed-on
   signal, subject to the summer's transfers.
-* **Justice**  – last 6 gameweeks of 2025/26. Carries, but decays.
+* **Justice**  – xGI over the last 8 matches played of 2025/26. Carries:
+  chance creation is the most persistent attacking signal there is.
 * **Form**     – last 5 gameweeks of 2025/26. Included and flagged: three
   months stale, the weakest of the five here.
 * **Crowd**    – scored whenever the listing carries ``owned_pct``. This is
@@ -229,7 +230,7 @@ def rate_preseason(listing_path: str | Path, history_dir: str | Path):
     unrated = joined[joined["_hist_idx"].isna()].copy()
 
     carry = ["xpts90", "xpts90_raw", "form_points", "minutes_avg",
-             "justice_margin", "gate_minutes", "minutes", "points",
+             "justice_margin", "justice_xgi", "gate_minutes", "minutes", "points",
              "appearances", "selected", "xg90", "xa90", "xgc90", "dc_rate",
              "form_ok", "minutes_factor_ok", "justice_ok", "points_sd", "points_sd_apps"]
     idx = matched["_hist_idx"].astype(int)
