@@ -340,7 +340,13 @@ def build(listing: str | Path, history: str | Path,
     forced = must_start(board, bench_fwd_max)
 
     if objective == "stars":
-        factor = pick_squad(board, "stars", "xpts90", forced=forced).copy()
+        # The tie-break is projected season points, not the raw per-90 rate.
+        # The star total is saturated - it hits its positional ceiling, so
+        # every legal fifteen at the ceiling ties on the primary and the
+        # SECONDARY objective is what actually picks the team. A per-90 rate
+        # ignores how often a player is on the pitch, which is the same
+        # mistake pick_xi used to make one level down.
+        factor = pick_squad(board, "stars", "xpts_season", forced=forced).copy()
         # Which eleven start is decided on projected points, not on stars.
         # Stars are a coarse ordinal, so they tie constantly and the
         # tie falls to index order, which is nobody's idea of a team
