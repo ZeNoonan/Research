@@ -475,17 +475,26 @@ def build(listing: str | Path, history: str | Path,
 
 def build_eleven(listing: str | Path, history: str | Path,
                  budget: float, formation: str = "4-5-1",
-                 respect_availability: bool = True):
+                 respect_availability: bool = True,
+                 objective: str = "stars"):
     """Return (factor_eleven, crowd_eleven) at a fixed formation and budget.
 
-    The same two-pool contrast as ``build``, for a bench-free eleven: the
-    factor side maximises stars over the players the board can rate, ties
-    broken on projected season points; the crowd side maximises ownership
-    over everyone listed.
+    The same two-pool contrast as ``build``, for a bench-free eleven. The
+    crowd side always maximises ownership; ``objective`` picks how the
+    factor side is chosen:
+
+    * ``"stars"`` (default) - most total stars, ties broken on projected
+      season points.
+    * ``"points"`` - most projected season points outright, stars ignored.
+      With no bench this is a clean objective: every player picked is a
+      player who scores, so there is no bench discount to argue about.
 
     No bench-forward filler here - filler exists to fill a dead bench spot,
     and there is no bench.
     """
+    if objective not in ("stars", "points"):
+        raise ValueError(
+            f"objective must be 'stars' or 'points', got {objective!r}")
     rated, unrated = preseason.rate_preseason(listing, history)
     board = rated[rated["eligible"]].copy()
     cols = ["name", "position", "team", "price", "owned_pct", "unavailable"]
@@ -495,13 +504,21 @@ def build_eleven(listing: str | Path, history: str | Path,
         everyone = everyone[~everyone["unavailable"]]
 
     board["xpts_season"] = projected_points(board)
-    factor = pick_eleven(board, "stars", "xpts_season", budget, formation).copy()
+    if objective == "stars":
+        factor = pick_eleven(board, "stars", "xpts_season",
+                             budget, formation).copy()
+    else:
+        factor = pick_eleven(board, "xpts_season", None,
+                             budget, formation).copy()
     crowd = pick_eleven(everyone, "owned_pct", None, budget, formation).copy()
     factor["xi"] = True
     crowd["xi"] = True
-    factor.attrs["saturation"] = saturation(
-        factor, board, shape=parse_formation(formation))
-    factor.attrs["secondary"] = "xpts_season"
+    # Saturation is a property of the star objective; the points objective
+    # is continuous and cannot exhaust itself.
+    factor.attrs["saturation"] = (
+        saturation(factor, board, shape=parse_formation(formation))
+        if objective == "stars" else None)
+    factor.attrs["secondary"] = "xpts_season" if objective == "stars" else None
     return factor, crowd
 
 
@@ -577,9 +594,11 @@ def compare(listing, history, bench_weight: float,
         print(f"  {name:<7} benched forwards: {note}")
 
 
-def report_eleven(listing, history, budget: float, formation: str) -> None:
+def report_eleven(listing, history, budget: float, formation: str,
+                  objective: str = "stars") -> None:
     """Print the factor eleven and the crowd eleven at a fixed formation."""
-    factor, crowd = build_eleven(listing, history, budget, formation)
+    factor, crowd = build_eleven(listing, history, budget, formation,
+                                 objective=objective)
 
     def block(sq, title, by, extra):
         print(f"\n{title}")
@@ -602,8 +621,10 @@ def report_eleven(listing, history, budget: float, formation: str) -> None:
             print(f"     {r['position']:4} {r['name'][:28]:29} "
                   f"{r['team'][:14]:15} £{r['price']:>4.1f}m  {extra(r)}")
 
-    block(factor, f"THE FACTOR ELEVEN — {formation}, best total stars",
-          "stars",
+    title = ("best total stars" if objective == "stars"
+             else "most projected points")
+    block(factor, f"THE FACTOR ELEVEN — {formation}, {title}",
+          "stars" if objective == "stars" else "xpts_season",
           lambda r: f"{int(r['stars'])}★ {r['factor_letters']:<6} "
                     f"xP/90 {r['xpts90']:.2f}  proj {r['xpts_season']:>5.1f}  "
                     f"owned {r['owned_pct']:>5.1f}%")
@@ -658,7 +679,8 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.eleven:
-        report_eleven(args.listing, args.history, args.xi_budget, args.eleven)
+        report_eleven(args.listing, args.history, args.xi_budget,
+                      args.eleven, objective=args.objective)
         return
 
     factor, crowd = build(args.listing, args.history,
