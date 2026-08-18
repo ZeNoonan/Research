@@ -1107,7 +1107,9 @@ weekly_report.py    terminal pick sheet + full rated CSV into reports/
 build_site.py       rated season -> index.html (static, phone-friendly)
 backtest.py         star ratings vs next-gameweek points (needs 2+ GW files)
 fetch_data.py       official FPL API -> data/<season>/gw<N>.csv
+                    --fixtures        -> data/<season>/fixtures.csv
 squad.py            exact 15-man squads: the board's, and the crowd's
+hold8.py            an 8-gameweek hold: fixture-adjusted, no transfers
 objective_check.py  independent re-solve of the points objective, for
                     checking squad.py against a second implementation
 preseason.py        new-season price list x last season's record
@@ -1121,6 +1123,96 @@ preseason.html      generated pre-season draft board
 
 Run: `pip install -r requirements.txt`, then any of the commands above —
 defaults point at the `data/2025-26/` sample.
+
+## An eight-gameweek hold — `hold8.py`
+
+A separate script for a separate question: which fifteen would you buy if
+you could not transfer for eight gameweeks? Stars play no part — they
+saturate, and they carry no fixture information — so it ranks on
+fixture-adjusted projected points.
+
+```bash
+python hold8.py --validate   # the gate below
+python hold8.py --demo       # rate GW1-30, hold GW31-38, no lookahead
+python hold8.py              # the real thing; needs data/<season>/fixtures.csv
+```
+
+**The eleven is a per-gameweek decision, so the fifteen cannot be chosen by
+per-player sums.** Squad membership, the starting eleven in each of the
+eight weeks and the captain in each week are one integer program. That is
+what makes **fixture diversity** worth something: two squads with identical
+eight-week per-player totals are not equally good, because only eleven can
+start in any one week, and a per-player sum cannot see the difference.
+
+**Two of the three forwards are dead slots** at £4.5m or less, barred from
+starting, so exactly one forward is ever fielded. With ten DEF/MID covering
+nine outfield places that leaves 5-4-1 and 4-5-1 — which falls out of the
+constraints rather than being hard-coded.
+
+### Does the fixture layer actually predict anything?
+
+It had to clear this before being worth keeping. Rate on data through
+gameweek G, project the eight weeks after it, score against what players
+actually did. Strengths come only from rounds ≤ G; the fixture *list* is
+not lookahead, since the schedule is published a season ahead.
+
+| | Spearman vs actual next-8-GW points |
+|---|---|
+| plain `xpts90` projection | 0.5028 |
+| fixture-adjusted | **0.5055** |
+| paired difference | **+0.0027**, winning 16 of 21 origins |
+| moving-block bootstrap 95% CI | [+0.0018, +0.0046] |
+
+**It passes, and it is small.** +0.003 on a correlation of 0.50. The
+interval uses a moving-block bootstrap because the windows overlap — an
+origin at G shares seven of its eight weeks with G+1 — and an iid interval
+there is far too narrow to mean anything.
+
+The effect is **not stable across the season**, and the pattern is the
+interesting part:
+
+| origins | mean difference | positive |
+|---|---|---|
+| GW10–19 | **+0.0048** | 10 of 10 |
+| GW24–30 | −0.0007 | 3 of 7 |
+
+Fixture information helps when the base rate is least settled and does
+nothing once it is. A GW1–8 hold is the extreme of that regime — which
+argues for the layer, and is also the caveat: **GW1 has no current-season
+evidence at all**, further out than anything testable with one season of
+data in the repo.
+
+> The reported projection says how much of itself comes from the fixture
+> adjustment rather than the base rate, so the size of the bet is visible.
+> On the GW31–38 demo it is +3.4 points of 449.7 — **0.8%**. Eight fixtures
+> is a short window and fixture ease mean-reverts; this is a thin layer on
+> top of an already-shrunk estimate, not a new source of signal.
+
+### What the diagnostics are for
+
+`--demo` prints the eleven and captain for each of the eight weeks, the
+shape mix, and three things that only matter because there are no
+transfers:
+
+- **Drop-one robustness** — the eight-week total if a player misses the
+  whole window and cannot be replaced. On the demo squad the lone forward
+  costs **34.9 points**, 73% more than the next man, because losing him
+  forces a £4.2m dead slot into the eleven.
+- **Real bench depth** — four players sit out each week, but two of the
+  fifteen never start at all, and the rest rotate. Usable cover for an
+  injury: **0**.
+- **Minutes floor** — the lowest minutes share in the fifteen, since a
+  rotation risk cannot be traded away.
+
+Two things it states rather than solves: all forward output rides on one
+unhedged player for eight weeks, and the two dead slots are **£8.6m of
+deliberate waste** bought in exchange for a stronger eleven.
+
+> **Not yet on `preseason.html`.** Terminal output only until this has been
+> run against a real fixture list. The FPL API is blocked from the sandbox
+> this was developed in, so `data/2026-27/fixtures.csv` does not exist yet
+> and `python hold8.py` says so and stops; `--demo` exercises the whole
+> machine on a real no-lookahead window of 2025/26 instead.
 
 ## Validation — the same treatment as the siblings
 
