@@ -16,6 +16,8 @@ import argparse
 from datetime import date
 from pathlib import Path
 
+import pandas as pd
+
 import model
 import preseason
 from build_site import CSS, _leaderboard_table, esc
@@ -158,14 +160,59 @@ def squads_html(listing_path, history_dir, n_factors: int,
         return "-".join(str(int((xi["position"] == p).sum()))
                         for p in ("DEF", "MID", "FWD"))
 
-    # A third squad: the manager fills the two cheap dead slots himself and
-    # the model spends what is left. Rendered for the configuration in
-    # FILL_SLOTS so the page shows the same thing `squad.py --fill` prints.
+    # A third and fourth squad: the manager fills the two cheap dead slots
+    # himself and the model spends what is left. Rendered for the
+    # configuration in FILL_SLOTS so the page shows the same thing
+    # `squad.py --fill --two-teams` prints. The second may reuse nobody
+    # from the first, so it is the best REMAINING answer rather than a
+    # variation on the same one.
     fill = squad.build_fill(listing_path, history_dir, FILL_SLOTS)
     fill_holders = fill.attrs["placeholders"]
     fill_mine = fill[~fill.index.isin(fill_holders)]
     fill_xi = fill[fill["xi"]]
     fill_capt = fill_xi.nlargest(1, "xpts90").iloc[0]
+
+    fill2 = squad.build_fill(listing_path, history_dir, FILL_SLOTS,
+                             exclude=set(fill_mine["name"]))
+    fill2_holders = fill2.attrs["placeholders"]
+    fill2_mine = fill2[~fill2.index.isin(fill2_holders)]
+    fill2_xi = fill2[fill2["xi"]]
+    fill2_capt = fill2_xi.nlargest(1, "xpts90").iloc[0]
+
+    profile = squad.minutes_profile(history_dir)
+
+    def fill_table(sq):
+        return table(sq, "xpts_season", "xpts90",
+                     [("Stars", lambda r: "★" * int(r.stars) if r.rated else "—"),
+                      ("Factors", lambda r: f"<span class='letters'>{esc(r.factor_letters)}</span>"
+                                            if r.factor_letters
+                                            else "<span class='sub2'>you pick</span>"),
+                      ("xPts/90", lambda r: f"{r.xpts90:.2f}" if r.rated else "—"),
+                      ("Projected", lambda r: f"{r.xpts_season:.0f}" if r.rated else "—")])
+
+    def durability_table_html(sq, holders):
+        """Minutes durability against scoring rate, ranked."""
+        d = squad.durability_table(sq, profile, holders)
+        rows = []
+        for _, r in d.iterrows():
+            f90 = ("—" if pd.isna(r["full90_rate"]) else
+                   f"{int(r['full90'])}/{int(r['starts'])} "
+                   f"<b>({r['full90_rate']:.0%})</b>")
+            rows.append(
+                f"<tr><td>{esc(r['name'])}</td><td>{esc(r['position'])}</td>"
+                f"<td class='num'>{r['avg_min_app']:.1f}</td>"
+                f"<td class='num'>{f90}</td>"
+                f"<td class='num'>{r['xpts90']:.2f}</td>"
+                f"<td class='num'>{r['minutes_rank']:.2f}</td>"
+                f"<td class='num'>{r['r_points']:.2f}</td>"
+                f"<td class='num'><b>{r['combined']:.2f}</b></td></tr>")
+        head = ("<tr><th>Player</th><th>Pos</th><th class='num'>Avg mins</th>"
+                "<th class='num'>Full 90s / starts</th>"
+                "<th class='num'>xPts/90</th><th class='num'>Mins rank</th>"
+                "<th class='num'>Pts rank</th>"
+                "<th class='num'>Combined</th></tr>")
+        return (f"<div class='tablewrap'><table>{head}"
+                f"{''.join(rows)}</table></div>")
 
     f_tbl = table(factor, "stars", "xpts90",
                   [("Stars", lambda r: "★" * int(r.stars)),
@@ -270,14 +317,42 @@ placeholders, so they take a position and a price and are never started.
 Formation {shape(fill)}, captain {esc(fill_capt['name'])}, projected
 <b>{fill_xi['xpts_season'].sum() + fill_capt['xpts_season']:.0f}</b> points
 with the captain doubled.</p>
-{table(fill, "xpts_season", "xpts90",
-       [("Stars", lambda r: "★" * int(r.stars) if r.rated else "—"),
-        ("Factors", lambda r: f"<span class='letters'>{esc(r.factor_letters)}</span>"
-                              if r.factor_letters else "<span class='sub2'>you pick</span>"),
-        ("xPts/90", lambda r: f"{r.xpts90:.2f}" if r.rated else "—"),
-        ("Projected", lambda r: f"{r.xpts_season:.0f}" if r.rated else "—")])}
+{fill_table(fill)}
+{durability_table_html(fill, fill_holders)}
+
+<h3 style='font-size:16px;margin:16px 0 4px'>The second fill squad — the
+best remaining thirteen, sharing nobody with the first</h3>
+<p class='note'>Same slots, same budget, but <b>every player above is
+barred</b>. So this is not a variation on the first squad, it is the best
+answer left once the first has taken its picks — which is what makes
+comparing the two worth anything. Formation {shape(fill2)}, captain
+{esc(fill2_capt['name'])}, spending £{fill2_mine['price'].sum():.1f}m of
+the £{100.0 - sum(pr for _, pr in FILL_SLOTS):.1f}m, projected
+<b>{fill2_xi['xpts_season'].sum() + fill2_capt['xpts_season']:.0f}</b>
+points with the captain doubled — {fill_xi['xpts_season'].sum()
++ fill_capt['xpts_season'] - fill2_xi['xpts_season'].sum()
+- fill2_capt['xpts_season']:.0f} behind the first, which is the cost of
+going second.</p>
+{fill_table(fill2)}
+{durability_table_html(fill2, fill2_holders)}
+
+<p class='note'><b>Reading the minutes tables.</b> <b>Avg mins</b> is the
+mean over matches he <i>appeared</i> in, so a late cameo drags it down —
+it measures how a player is used overall. <b>Full 90s</b> conditions on
+being <i>started</i> and asks only whether he stayed on, which is the
+"did he play the full ninety" question. A player can be strong on one and
+weak on the other, and keeping them apart is what shows it: Mbeumo
+averages a respectable 79 minutes but finishes barely half his starts,
+while van Dijk, Raya and Tarkowski finished every one.</p>
+<p class='note'>The points axis of the combined rank is <b>xPts/90, not
+projected season points</b>. Season points are already a rate multiplied by
+minutes, so ranking durability against them would count minutes on both
+sides of the trade-off and reward the same thing twice. Ranks are
+percentiles <b>within each squad</b>; <b>combined</b> is the mean of the
+minutes rank and the points rank, so a player has to be both worth picking
+and reliably on the pitch to finish high.</p>
 <p class='note'>Reproduce with
-<code>python squad.py --fill "{','.join(f'{p}:{pr:.1f}' for p, pr in FILL_SLOTS)}"</code>,
+<code>python squad.py --fill "{','.join(f'{p}:{pr:.1f}' for p, pr in FILL_SLOTS)}" --two-teams</code>,
 or pass your own slots.</p>
 
 <p class='note'><b>They share {len(overlap)} of 15 players</b>
