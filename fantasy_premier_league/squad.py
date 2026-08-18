@@ -520,7 +520,8 @@ def placeholder_rows(slots: list, index_from: int = 10 ** 7) -> pd.DataFrame:
 def build_fill(listing: str | Path, history: str | Path, slots: list,
                budget: float = BUDGET, bench_weight: float = BENCH_WEIGHT,
                respect_availability: bool = True,
-               bench_fwd_max: float | None = None):
+               bench_fwd_max: float | None = None,
+               exclude: set | None = None):
     """Pick the rest of a squad around slots the manager has already filled.
 
     Solved as the whole fifteen, not as a detached thirteen. That matters:
@@ -534,6 +535,8 @@ def build_fill(listing: str | Path, history: str | Path, slots: list,
     board = rated[rated["eligible"]].copy()
     if respect_availability:
         board = board[~board["unavailable"]]
+    if exclude:
+        board = board[~board["name"].isin(exclude)]
     board["xpts_season"] = projected_points(board)
     board["rated"] = True
 
@@ -547,6 +550,84 @@ def build_fill(listing: str | Path, history: str | Path, slots: list,
                               forced=must_start(pool, bench_fwd_max))
     squad.attrs["placeholders"] = set(holders.index)
     return squad
+
+
+def minutes_profile(history: str | Path) -> pd.DataFrame:
+    """Per-player durability from last season's match-by-match record.
+
+    Two different questions, deliberately kept apart:
+
+    * ``avg_min_app`` - average minutes in matches he appeared in. Includes
+      substitute cameos, so a 20-minute impact sub drags it down.
+    * ``full90_rate`` - of the matches he **started**, the share he
+      finished. This is the one that answers "does he play ninety
+      minutes", because it conditions on being picked and asks only
+      whether he stayed on.
+
+    A player can score well on one and badly on the other: a nailed starter
+    who is always hooked on 70 has a high ``avg_min_start`` and a low
+    ``full90_rate``, and a squad player used only as a late sub has a low
+    ``avg_min_app`` but may finish every rare start.
+    """
+    gws = model.load_season(history)
+    apps = gws[gws["minutes"] > 0]
+    starts = gws[gws["starts"] == 1]
+    out = pd.DataFrame({
+        "appearances": apps.groupby("name").size(),
+        "avg_min_app": apps.groupby("name")["minutes"].mean(),
+        "total_minutes": gws.groupby("name")["minutes"].sum(),
+        "starts": starts.groupby("name").size(),
+        "avg_min_start": starts.groupby("name")["minutes"].mean(),
+        "full90": starts.assign(f=starts["minutes"] >= 90)
+                        .groupby("name")["f"].sum(),
+    })
+    out["full90_rate"] = (out["full90"] / out["starts"]).where(out["starts"] > 0)
+    out["start_rate"] = out["starts"] / out["appearances"]
+    return out
+
+
+def durability_table(squad: pd.DataFrame, profile: pd.DataFrame,
+                     placeholders: set | None = None) -> pd.DataFrame:
+    """Join the durability profile onto a squad and rank it.
+
+    The points axis is ``xpts90``, **not** projected season points. Season
+    points are already a rate multiplied by minutes, so ranking durability
+    against them would count minutes on both sides of the comparison and
+    quietly reward the same thing twice. ``xpts90`` is the minutes-free
+    rate, which is what you want to trade off against playing time.
+
+    ``minutes_rank`` averages the two durability measures; ``combined``
+    averages that against the points rank, so a player has to be both worth
+    picking and reliably on the pitch to finish high.
+    """
+    placeholders = placeholders or set()
+    d = squad[~squad.index.isin(placeholders)].copy()
+    key = d["hist_name"] if "hist_name" in d else d["name"]
+    for col in ("avg_min_app", "avg_min_start", "full90_rate", "full90",
+                "starts", "appearances", "total_minutes"):
+        d[col] = key.map(profile[col])
+
+    # percentile ranks within this squad, high = better
+    d["r_avg_min"] = d["avg_min_app"].rank(pct=True)
+    d["r_full90"] = d["full90_rate"].rank(pct=True)
+    d["minutes_rank"] = (d["r_avg_min"] + d["r_full90"]) / 2
+    d["r_points"] = d["xpts90"].rank(pct=True)
+    d["combined"] = (d["minutes_rank"] + d["r_points"]) / 2
+    return d.sort_values("combined", ascending=False)
+
+
+def print_durability(d: pd.DataFrame, title: str) -> None:
+    print(f"\n  {title}")
+    print(f"     {'player':<27}{'pos':<5}{'avg min':>8}   {'full 90s':<12}"
+          f"{'xP/90':>6}{'mins rk':>9}{'pts rk':>8}{'COMBINED':>10}")
+    for _, r in d.iterrows():
+        f90 = ("—" if pd.isna(r["full90_rate"])
+               else f"{int(r['full90'])}/{int(r['starts'])}"
+                    f" ({r['full90_rate']:.0%})")
+        print(f"     {r['name'][:26]:<27}{r['position']:<5}"
+              f"{r['avg_min_app']:>8.1f}   {f90:<12}"
+              f"{r['xpts90']:>6.2f}{r['minutes_rank']:>9.2f}"
+              f"{r['r_points']:>8.2f}{r['combined']:>10.2f}")
 
 
 def build_eleven(listing: str | Path, history: str | Path,
@@ -732,8 +813,11 @@ def report_eleven(listing, history, budget: float, formation: str,
           f"projected points; the two share {len(shared)} of 11")
 
 
-def report_fill(listing, history, slots, bench_weight: float) -> None:
+def report_fill(listing, history, slots, bench_weight: float,
+                two_teams: bool = False) -> None:
     """Print the squad chosen around the manager's own picks."""
+    if two_teams:
+        return report_two_teams(listing, history, slots, bench_weight)
     squad = build_fill(listing, history, slots, bench_weight=bench_weight)
     holders = squad.attrs["placeholders"]
     mine = squad[~squad.index.isin(holders)]
@@ -778,6 +862,60 @@ def report_fill(listing, history, slots, bench_weight: float) -> None:
               f"your two from these clubs.")
 
 
+def report_two_teams(listing, history, slots, bench_weight: float) -> None:
+    """Two disjoint squads, plus how durable each player's minutes are.
+
+    The second squad may not reuse anyone from the first, so it is the
+    best remaining answer rather than a variation on the same one - which
+    is what makes comparing them worth anything.
+    """
+    a = build_fill(listing, history, slots, bench_weight=bench_weight)
+    mine_a = a[~a.index.isin(a.attrs["placeholders"])]
+    b = build_fill(listing, history, slots, bench_weight=bench_weight,
+                   exclude=set(mine_a["name"]))
+    profile = minutes_profile(history)
+
+    for label, sq in (("TEAM 1", a), ("TEAM 2", b)):
+        holders = sq.attrs["placeholders"]
+        mine = sq[~sq.index.isin(holders)]
+        xi = sq[sq["xi"]]
+        capt = xi.nlargest(1, "xpts90").iloc[0]
+        shape = "-".join(str(int((xi["position"] == p).sum()))
+                         for p in ("DEF", "MID", "FWD"))
+        print(f"\n{'=' * 78}")
+        print(f"{label} — {len(mine)} players, £{mine['price'].sum():.1f}m "
+              f"(your two slots reserve "
+              f"£{sum(pr for _, pr in slots):.1f}m)")
+        print(f"{'=' * 78}")
+        print(f"  XI {shape}, captain {capt['name']}, projected "
+              f"{xi['xpts_season'].sum() + capt['xpts_season']:.1f} with the "
+              f"captain doubled")
+        for _, r in _order(sq, "xpts_season").iterrows():
+            mark = " " if r["xi"] else "B"
+            if r.name in holders:
+                print(f"   {mark} {r['position']:4} {r['name'][:28]:29} "
+                      f"{'—':15} £{r['price']:>4.1f}m  (you pick this one)")
+            else:
+                print(f"   {mark} {r['position']:4} {r['name'][:28]:29} "
+                      f"{r['team'][:14]:15} £{r['price']:>4.1f}m  "
+                      f"xP/90 {r['xpts90']:.2f}  proj {r['xpts_season']:>5.1f}")
+        print_durability(durability_table(sq, profile, holders),
+                         f"{label} — minutes durability vs scoring rate")
+
+    overlap = set(mine_a["name"]) & set(
+        b[~b.index.isin(b.attrs["placeholders"])]["name"])
+    print(f"\n  Overlap between the two teams: "
+          f"{', '.join(sorted(overlap)) if overlap else 'none, by construction'}")
+    print(f"\n  avg min  = mean minutes in matches he appeared in "
+          f"(cameos drag it down)")
+    print(f"  full 90s = of the matches he STARTED, how many he finished")
+    print(f"  ranks are percentiles WITHIN each team; combined is the mean "
+          f"of the minutes")
+    print(f"  rank and the xP/90 rank. Points axis is xP/90, not season "
+          f"points, so that")
+    print(f"  minutes are not counted on both sides of the trade-off.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--listing", default=HERE / "data" / "2026-27" / "player_listing.csv")
@@ -798,6 +936,10 @@ def main() -> None:
                          "position:price pairs (e.g. 'GK:4.0,FWD:4.5'). "
                          "The rest of the fifteen is chosen around them on "
                          "projected points.")
+    ap.add_argument("--two-teams", action="store_true",
+                    help="with --fill, also build a second squad that shares "
+                         "no player with the first, and report minutes "
+                         "durability for both")
     ap.add_argument("--eleven", metavar="FORMATION", nargs="?", const="4-5-1",
                     help="build a bench-free starting XI at this formation "
                          "(e.g. 4-5-1) instead of a 15-man squad")
@@ -807,7 +949,7 @@ def main() -> None:
 
     if args.fill:
         report_fill(args.listing, args.history, parse_slots(args.fill),
-                    args.bench_weight)
+                    args.bench_weight, two_teams=args.two_teams)
         return
 
     if args.eleven:
