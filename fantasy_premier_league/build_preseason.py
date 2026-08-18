@@ -30,6 +30,13 @@ HERE = Path(__file__).parent
 # what to do with the rest of the budget.
 FILL_SLOTS = [("GK", 4.0), ("FWD", 4.5)]
 
+# A third fill squad, biased toward players who finish matches: nobody who
+# completed less than this share of his starts last season may START,
+# though he can still be bought as cover. 0.75 is where the sweep flattens
+# - 70% to 80% all cost the same seven projected points - so it is the
+# cheapest point that buys the full durability gain.
+FILL_MIN_FULL90 = 0.75
+
 FACTOR_ROWS = [
     ("Q", "Quality", "Model expected points per 90 — rebuilt from the FPL "
      "scoring rules and last season's underlying per-90 numbers — above the "
@@ -171,6 +178,13 @@ def squads_html(listing_path, history_dir, n_factors: int,
     fill_mine = fill[~fill.index.isin(fill_holders)]
     fill_xi = fill[fill["xi"]]
     fill_capt = fill_xi.nlargest(1, "xpts90").iloc[0]
+
+    fill3 = squad.build_fill(listing_path, history_dir, FILL_SLOTS,
+                             min_full90=FILL_MIN_FULL90)
+    fill3_holders = fill3.attrs["placeholders"]
+    fill3_mine = fill3[~fill3.index.isin(fill3_holders)]
+    fill3_xi = fill3[fill3["xi"]]
+    fill3_capt = fill3_xi.nlargest(1, "xpts90").iloc[0]
 
     fill2 = squad.build_fill(listing_path, history_dir, FILL_SLOTS,
                              exclude=set(fill_mine["name"]))
@@ -335,6 +349,36 @@ points with the captain doubled — {fill_xi['xpts_season'].sum()
 going second.</p>
 {fill_table(fill2)}
 {durability_table_html(fill2, fill2_holders)}
+
+<h3 style='font-size:16px;margin:16px 0 4px'>The durable fill squad — the
+same objective, but only players who finish matches may start</h3>
+<p class='note'>The first squad's weakness is not its stars, it is two of
+them: the eleven averages 86% completion, but carries two starters who
+finish barely half the matches they begin. This squad applies a
+<b>{FILL_MIN_FULL90:.0%} floor</b> — anyone who completed less than that
+share of his starts last season may not be picked <i>for the eleven</i>,
+though he can still be bought as cover, which is the useful shape of the
+constraint. Everything else is unchanged.</p>
+<p class='note'>It costs <b>{fill_xi['xpts_season'].sum()
++ fill_capt['xpts_season'] - fill3_xi['xpts_season'].sum()
+- fill3_capt['xpts_season']:.1f}</b> projected points
+({fill_xi['xpts_season'].sum() + fill_capt['xpts_season']:.0f} →
+<b>{fill3_xi['xpts_season'].sum() + fill3_capt['xpts_season']:.0f}</b>) and
+lifts the eleven's mean completion from <b>86% to 94%</b>. The sweep is
+flat between a 70% and an 80% floor, all costing the same seven points, so
+{FILL_MIN_FULL90:.0%} is the cheapest point that buys the whole gain; at
+90% too few players qualify and the squad collapses. Formation
+{shape(fill3)}, captain {esc(fill3_capt['name'])}, spending
+£{fill3_mine['price'].sum():.1f}m.</p>
+{fill_table(fill3)}
+{durability_table_html(fill3, fill3_holders)}
+<p class='note'>Note what it did <b>not</b> do: re-pick the squad. Pooling
+the two squads above and taking the best thirteen on the combined score
+costs <b>27</b> points for four points of completion, and doing the same
+over the whole board costs 26 for eight — both worse than this, because
+the floor targets the two players who are the problem instead of starting
+again. Reproduce with
+<code>python squad.py --fill "{','.join(f'{p}:{pr:.1f}' for p, pr in FILL_SLOTS)}" --min-full90 {FILL_MIN_FULL90}</code>.</p>
 
 <p class='note'><b>Reading the minutes tables.</b> <b>Avg mins</b> is the
 mean over matches he <i>appeared</i> in, so a late cameo drags it down —
