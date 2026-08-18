@@ -253,7 +253,8 @@ def pick_squad_points(pool: pd.DataFrame, col: str = "xpts_season",
                       captain: bool = True,
                       budget: float = BUDGET,
                       forced: set | None = None,
-                      required: set | None = None) -> pd.DataFrame:
+                      required: set | None = None,
+                      no_start: set | None = None) -> pd.DataFrame:
     """Best legal 15 on projected points, choosing squad, XI and captain at once.
 
     Maximising total stars over the 15 treats a bench place as worth a
@@ -302,6 +303,10 @@ def pick_squad_points(pool: pd.DataFrame, col: str = "xpts_season",
     # the objective thinks of them.
     for i in (required or set()) & set(pool.index):
         prob += x[i] == 1
+    # Buyable but not startable - a player kept for cover whom you do not
+    # want in the eleven. The mirror of ``forced``.
+    for i in (no_start or set()) & set(pool.index):
+        prob += y[i] == 0
 
     status = prob.solve(pulp.PULP_CBC_CMD(msg=0))
     if pulp.LpStatus[status] != "Optimal":
@@ -521,7 +526,8 @@ def build_fill(listing: str | Path, history: str | Path, slots: list,
                budget: float = BUDGET, bench_weight: float = BENCH_WEIGHT,
                respect_availability: bool = True,
                bench_fwd_max: float | None = None,
-               exclude: set | None = None):
+               exclude: set | None = None,
+               min_full90: float | None = None):
     """Pick the rest of a squad around slots the manager has already filled.
 
     Solved as the whole fifteen, not as a detached thirteen. That matters:
@@ -542,12 +548,25 @@ def build_fill(listing: str | Path, history: str | Path, slots: list,
 
     holders = placeholder_rows(slots)
     pool = pd.concat([board, holders])
+
+    # A full-90 floor bars a player from STARTING, not from being bought.
+    # That is the useful shape of the constraint: a low-completion player
+    # is still fine as cover, and barring him outright would throw away
+    # cheap bench depth for no reason.
+    no_start = set()
+    if min_full90:
+        prof = minutes_profile(history)
+        key = pool["hist_name"] if "hist_name" in pool else pool["name"]
+        rate = key.map(prof["full90_rate"])
+        no_start = set(pool.index[rate.fillna(0.0) < min_full90]) - set(
+            holders.index)
     # The manager's own cheap forward already fills the dead bench slot, so
     # the benched-forward cap is OFF by default here. Pass a price to put it
     # back and every dearer forward bought must start.
     squad = pick_squad_points(pool, "xpts_season", bench_weight,
                               budget=budget, required=set(holders.index),
-                              forced=must_start(pool, bench_fwd_max))
+                              forced=must_start(pool, bench_fwd_max),
+                              no_start=no_start)
     squad.attrs["placeholders"] = set(holders.index)
     return squad
 
@@ -814,11 +833,14 @@ def report_eleven(listing, history, budget: float, formation: str,
 
 
 def report_fill(listing, history, slots, bench_weight: float,
-                two_teams: bool = False) -> None:
+                two_teams: bool = False,
+                min_full90: float | None = None) -> None:
     """Print the squad chosen around the manager's own picks."""
     if two_teams:
-        return report_two_teams(listing, history, slots, bench_weight)
-    squad = build_fill(listing, history, slots, bench_weight=bench_weight)
+        return report_two_teams(listing, history, slots, bench_weight,
+                                min_full90)
+    squad = build_fill(listing, history, slots, bench_weight=bench_weight,
+                       min_full90=min_full90)
     holders = squad.attrs["placeholders"]
     mine = squad[~squad.index.isin(holders)]
     theirs = squad[squad.index.isin(holders)]
@@ -862,17 +884,19 @@ def report_fill(listing, history, slots, bench_weight: float,
               f"your two from these clubs.")
 
 
-def report_two_teams(listing, history, slots, bench_weight: float) -> None:
+def report_two_teams(listing, history, slots, bench_weight: float,
+                     min_full90: float | None = None) -> None:
     """Two disjoint squads, plus how durable each player's minutes are.
 
     The second squad may not reuse anyone from the first, so it is the
     best remaining answer rather than a variation on the same one - which
     is what makes comparing them worth anything.
     """
-    a = build_fill(listing, history, slots, bench_weight=bench_weight)
+    a = build_fill(listing, history, slots, bench_weight=bench_weight,
+                   min_full90=min_full90)
     mine_a = a[~a.index.isin(a.attrs["placeholders"])]
     b = build_fill(listing, history, slots, bench_weight=bench_weight,
-                   exclude=set(mine_a["name"]))
+                   exclude=set(mine_a["name"]), min_full90=min_full90)
     profile = minutes_profile(history)
 
     for label, sq in (("TEAM 1", a), ("TEAM 2", b)):
@@ -936,6 +960,11 @@ def main() -> None:
                          "position:price pairs (e.g. 'GK:4.0,FWD:4.5'). "
                          "The rest of the fifteen is chosen around them on "
                          "projected points.")
+    ap.add_argument("--min-full90", type=float, default=None,
+                    metavar="RATE",
+                    help="with --fill, bar anyone who finished fewer than "
+                         "this share of his starts last season from the XI "
+                         "(e.g. 0.75). He can still be bought as cover.")
     ap.add_argument("--two-teams", action="store_true",
                     help="with --fill, also build a second squad that shares "
                          "no player with the first, and report minutes "
@@ -949,7 +978,8 @@ def main() -> None:
 
     if args.fill:
         report_fill(args.listing, args.history, parse_slots(args.fill),
-                    args.bench_weight, two_teams=args.two_teams)
+                    args.bench_weight, two_teams=args.two_teams,
+                    min_full90=args.min_full90)
         return
 
     if args.eleven:
