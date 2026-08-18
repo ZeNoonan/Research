@@ -252,7 +252,8 @@ def pick_squad_points(pool: pd.DataFrame, col: str = "xpts_season",
                       bench_weight: float = BENCH_WEIGHT,
                       captain: bool = True,
                       budget: float = BUDGET,
-                      forced: set | None = None) -> pd.DataFrame:
+                      forced: set | None = None,
+                      required: set | None = None) -> pd.DataFrame:
     """Best legal 15 on projected points, choosing squad, XI and captain at once.
 
     Maximising total stars over the 15 treats a bench place as worth a
@@ -297,6 +298,10 @@ def pick_squad_points(pool: pd.DataFrame, col: str = "xpts_season",
     # A forward over the bench cap has to start if he is bought at all.
     for i in (forced or set()) & set(pool.index):
         prob += x[i] <= y[i]
+    # Slots the manager has already filled himself: in the squad whatever
+    # the objective thinks of them.
+    for i in (required or set()) & set(pool.index):
+        prob += x[i] == 1
 
     status = prob.solve(pulp.PULP_CBC_CMD(msg=0))
     if pulp.LpStatus[status] != "Optimal":
@@ -471,6 +476,77 @@ def build(listing: str | Path, history: str | Path,
     # none - so its XI stays on ownership.
     crowd["xi"] = crowd.index.isin(pick_xi(crowd, "owned_pct").index)
     return factor, crowd
+
+
+def parse_slots(text: str) -> list:
+    """``"GK:4.0,FWD:4.5"`` -> ``[("GK", 4.0), ("FWD", 4.5)]``."""
+    out = []
+    for chunk in text.split(","):
+        pos, _, price = chunk.strip().partition(":")
+        pos = pos.strip().upper()
+        if pos not in SQUAD or not price:
+            raise ValueError(
+                f"slot must look like 'GK:4.0', got {chunk.strip()!r}")
+        out.append((pos, float(price)))
+    return out
+
+
+def placeholder_rows(slots: list, index_from: int = 10 ** 7) -> pd.DataFrame:
+    """Stand-ins for squad places the manager is filling himself.
+
+    They enter at **zero** on every objective, which is the honest
+    statement: this script is not choosing them and knows nothing about
+    them. Because they score nothing they are never started, so they take
+    a bench place and their price out of the budget - which is exactly
+    what a cheap filler does - and the solve optimises everything else
+    around them.
+
+    Each gets its own dummy club so it cannot eat a real club's share of
+    the three-per-club cap.
+    """
+    rows = []
+    for n, (pos, price) in enumerate(slots):
+        rows.append({
+            "name": f"[your {pos} £{price:.1f}m]", "position": pos,
+            "team": f"(your pick {n + 1})", "price": price,
+            "owned_pct": 0.0, "unavailable": False, "rated": False,
+            "stars": 0, "xpts90": 0.0, "xpts_season": 0.0,
+            "minutes_share": 0.0, "factor_letters": "",
+            "diagnostic_letters": "", "factors_assessed": 0,
+        })
+    return pd.DataFrame(rows, index=range(index_from, index_from + len(rows)))
+
+
+def build_fill(listing: str | Path, history: str | Path, slots: list,
+               budget: float = BUDGET, bench_weight: float = BENCH_WEIGHT,
+               respect_availability: bool = True,
+               bench_fwd_max: float | None = None):
+    """Pick the rest of a squad around slots the manager has already filled.
+
+    Solved as the whole fifteen, not as a detached thirteen. That matters:
+    the squad rules (2/5/5/3, £100m, three per club) and the eleven/bench
+    split are properties of the FULL squad, so the pre-filled places have
+    to be inside the same program. Modelling them as scoreless placeholders
+    gets that for free - they occupy their position and their price, they
+    never start, and everything else is optimised around them.
+    """
+    rated, unrated = preseason.rate_preseason(listing, history)
+    board = rated[rated["eligible"]].copy()
+    if respect_availability:
+        board = board[~board["unavailable"]]
+    board["xpts_season"] = projected_points(board)
+    board["rated"] = True
+
+    holders = placeholder_rows(slots)
+    pool = pd.concat([board, holders])
+    # The manager's own cheap forward already fills the dead bench slot, so
+    # the benched-forward cap is OFF by default here. Pass a price to put it
+    # back and every dearer forward bought must start.
+    squad = pick_squad_points(pool, "xpts_season", bench_weight,
+                              budget=budget, required=set(holders.index),
+                              forced=must_start(pool, bench_fwd_max))
+    squad.attrs["placeholders"] = set(holders.index)
+    return squad
 
 
 def build_eleven(listing: str | Path, history: str | Path,
@@ -656,6 +732,52 @@ def report_eleven(listing, history, budget: float, formation: str,
           f"projected points; the two share {len(shared)} of 11")
 
 
+def report_fill(listing, history, slots, bench_weight: float) -> None:
+    """Print the squad chosen around the manager's own picks."""
+    squad = build_fill(listing, history, slots, bench_weight=bench_weight)
+    holders = squad.attrs["placeholders"]
+    mine = squad[~squad.index.isin(holders)]
+    theirs = squad[squad.index.isin(holders)]
+    xi = squad[squad["xi"]]
+    capt = xi.nlargest(1, "xpts90")
+
+    reserved = sum(p for _, p in slots)
+    print(f"\nYOUR {len(mine)} PLAYERS — chosen on projected points, "
+          f"around {len(theirs)} slots you are filling yourself")
+    print(f"  your picks reserve £{reserved:.1f}m "
+          f"({', '.join(f'{p} £{pr:.1f}m' for p, pr in slots)}), leaving "
+          f"£{BUDGET - reserved:.1f}m")
+    print(f"  spent £{mine['price'].sum():.1f}m of that "
+          f"(£{BUDGET - reserved - mine['price'].sum():.1f}m unspent); "
+          f"full squad £{squad['price'].sum():.1f}m")
+    shape = "-".join(str(int((xi["position"] == p).sum()))
+                     for p in ("DEF", "MID", "FWD"))
+    print(f"  starting XI {shape}, captain {capt.iloc[0]['name']}")
+    print(f"  projected {xi['xpts_season'].sum():.1f} from the XI, "
+          f"{xi['xpts_season'].sum() + capt.iloc[0]['xpts_season']:.1f} "
+          f"with the captain doubled\n")
+
+    for _, r in _order(squad, "xpts_season").iterrows():
+        mark = " " if r["xi"] else "B"
+        if r.name in holders:
+            print(f"   {mark} {r['position']:4} {r['name'][:28]:29} "
+                  f"{'—':15} £{r['price']:>4.1f}m  (you pick this one)")
+        else:
+            print(f"   {mark} {r['position']:4} {r['name'][:28]:29} "
+                  f"{r['team'][:14]:15} £{r['price']:>4.1f}m  "
+                  f"{int(r['stars'])}★ {r['factor_letters']:<6} "
+                  f"xP/90 {r['xpts90']:.2f}  proj {r['xpts_season']:>5.1f}  "
+                  f"owned {r['owned_pct']:>5.1f}%")
+
+    counts = mine.groupby("team").size().sort_values(ascending=False)
+    full = sorted(counts[counts >= MAX_PER_CLUB].index)
+    print(f"\n  Club counts among my {len(mine)}: "
+          + ", ".join(f"{t} {n}" for t, n in counts.items() if n > 1))
+    if full:
+        print(f"  AT THE 3-PER-CLUB LIMIT: {', '.join(full)} — do not pick "
+              f"your two from these clubs.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--listing", default=HERE / "data" / "2026-27" / "player_listing.csv")
@@ -671,12 +793,22 @@ def main() -> None:
                          "number to drop the cap.")
     ap.add_argument("--no-compare", action="store_true",
                     help="skip the star-vs-points comparison")
+    ap.add_argument("--fill", metavar="SLOTS",
+                    help="squad places you are filling yourself, as "
+                         "position:price pairs (e.g. 'GK:4.0,FWD:4.5'). "
+                         "The rest of the fifteen is chosen around them on "
+                         "projected points.")
     ap.add_argument("--eleven", metavar="FORMATION", nargs="?", const="4-5-1",
                     help="build a bench-free starting XI at this formation "
                          "(e.g. 4-5-1) instead of a 15-man squad")
     ap.add_argument("--xi-budget", type=float, default=86.5,
                     help="budget for --eleven (default: %(default)s)")
     args = ap.parse_args()
+
+    if args.fill:
+        report_fill(args.listing, args.history, parse_slots(args.fill),
+                    args.bench_weight)
+        return
 
     if args.eleven:
         report_eleven(args.listing, args.history, args.xi_budget,
