@@ -25,8 +25,13 @@ projected points, under identical constraints, so the cost of the binary
 summary can be measured rather than argued about. Stars remain the default;
 every run prints the two side by side.
 
+``--eleven`` builds a bench-free starting XI instead: a fixed formation and
+its own budget, no bench and therefore no bench-forward cap. Different
+problem, not a slice of the 15-man one.
+
     python squad.py
     python squad.py --objective points
+    python squad.py --eleven 4-5-1 --xi-budget 86.5
 """
 
 from __future__ import annotations
@@ -89,14 +94,24 @@ def must_start(pool: pd.DataFrame,
 def _solve(pool: pd.DataFrame, objective: pd.Series, budget: float | None,
            shape: dict, total: int, min_shape: dict | None = None,
            max_per_club: int | None = MAX_PER_CLUB,
-           equality: bool = True, forced: set | None = None) -> list:
-    """Maximise ``objective`` subject to the squad rules. Returns row labels."""
+           equality: bool = True, forced: set | None = None,
+           floor: tuple | None = None) -> list:
+    """Maximise ``objective`` subject to the squad rules. Returns row labels.
+
+    ``floor`` is an optional ``(series, value)`` pair constraining that
+    series' selected total to at least ``value`` - the second leg of a
+    lexicographic solve, where a tie-break may not cost anything on the
+    primary objective.
+    """
     prob = pulp.LpProblem("squad", pulp.LpMaximize)
     x = {i: pulp.LpVariable(f"x_{i}", cat="Binary") for i in pool.index}
 
     prob += pulp.lpSum(objective[i] * x[i] for i in pool.index)
     for i in forced or set():
         prob += x[i] == 1
+    if floor is not None:
+        series, value = floor
+        prob += pulp.lpSum(series[i] * x[i] for i in pool.index) >= value
     prob += pulp.lpSum(x[i] for i in pool.index) == total
     if budget is not None:
         prob += pulp.lpSum(pool.at[i, "price"] * x[i]
@@ -121,8 +136,9 @@ def _solve(pool: pd.DataFrame, objective: pd.Series, budget: float | None,
     return [i for i in pool.index if x[i].value() > 0.5]
 
 
-def star_ceiling(pool: pd.DataFrame, col: str = "stars") -> tuple[int, dict]:
-    """Highest ``col`` total any legal 2/5/5/3 could reach, and the breakdown.
+def star_ceiling(pool: pd.DataFrame, col: str = "stars",
+                 shape: dict | None = None) -> tuple[int, dict]:
+    """Highest ``col`` total any legal ``shape`` could reach, and the breakdown.
 
     Take the best ``n`` ratings in each position, where ``n`` is what the
     shape requires, and add them up. This ignores the budget and the club
@@ -132,12 +148,12 @@ def star_ceiling(pool: pd.DataFrame, col: str = "stars") -> tuple[int, dict]:
     """
     per = {pos: sorted(pool.loc[pool["position"] == pos, col],
                        reverse=True)[:n]
-           for pos, n in SQUAD.items()}
+           for pos, n in (shape or SQUAD).items()}
     return int(sum(sum(v) for v in per.values())), per
 
 
 def saturation(squad: pd.DataFrame, pool: pd.DataFrame,
-               col: str = "stars") -> dict:
+               col: str = "stars", shape: dict | None = None) -> dict:
     """Whether the primary objective has run out of discriminating power.
 
     A saturated objective is not a failure - it means the board rates
@@ -146,10 +162,11 @@ def saturation(squad: pd.DataFrame, pool: pd.DataFrame,
     candidate squad ties on the primary and the **tie-break is selecting
     the team**. A silent saturated objective is how a bad tie-break hides.
     """
-    ceiling, per = star_ceiling(pool, col)
+    ceiling, per = star_ceiling(pool, col, shape)
     achieved = int(squad[col].sum())
     return {"achieved": achieved, "ceiling": ceiling,
-            "saturated": achieved >= ceiling, "per_position": per}
+            "saturated": achieved >= ceiling, "per_position": per,
+            "noun": "eleven" if shape else "fifteen"}
 
 
 def saturation_note(sat: dict, secondary: str | None) -> str:
@@ -161,7 +178,7 @@ def saturation_note(sat: dict, secondary: str | None) -> str:
                 f"({shape}) — the budget or the 3-per-club cap is binding.")
     return (f"{sat['achieved']} stars, which is the ceiling for this shape "
             f"({shape}). The star objective is exhausted: every legal "
-            f"fifteen at {sat['ceiling']} ties on it, so "
+            f"{sat.get('noun', 'fifteen')} at {sat['ceiling']} ties on it, so "
             + (f"the tie-break ({secondary}) is selecting the team."
                if secondary else "the tie-break is selecting the team."))
 
@@ -235,7 +252,8 @@ def pick_squad_points(pool: pd.DataFrame, col: str = "xpts_season",
                       bench_weight: float = BENCH_WEIGHT,
                       captain: bool = True,
                       budget: float = BUDGET,
-                      forced: set | None = None) -> pd.DataFrame:
+                      forced: set | None = None,
+                      required: set | None = None) -> pd.DataFrame:
     """Best legal 15 on projected points, choosing squad, XI and captain at once.
 
     Maximising total stars over the 15 treats a bench place as worth a
@@ -280,6 +298,10 @@ def pick_squad_points(pool: pd.DataFrame, col: str = "xpts_season",
     # A forward over the bench cap has to start if he is bought at all.
     for i in (forced or set()) & set(pool.index):
         prob += x[i] <= y[i]
+    # Slots the manager has already filled himself: in the squad whatever
+    # the objective thinks of them.
+    for i in (required or set()) & set(pool.index):
+        prob += x[i] == 1
 
     status = prob.solve(pulp.PULP_CBC_CMD(msg=0))
     if pulp.LpStatus[status] != "Optimal":
@@ -289,6 +311,46 @@ def pick_squad_points(pool: pd.DataFrame, col: str = "xpts_season",
     out["xi"] = [y[i].value() > 0.5 for i in chosen]
     out["capt"] = [c[i].value() > 0.5 for i in chosen]
     return out
+
+
+def parse_formation(text: str) -> dict:
+    """``"4-5-1"`` -> ``{"GK": 1, "DEF": 4, "MID": 5, "FWD": 1}``, validated."""
+    try:
+        d, m, f = (int(p) for p in text.split("-"))
+    except ValueError:
+        raise ValueError(f"formation must look like '4-5-1', got {text!r}")
+    shape = {"GK": 1, "DEF": d, "MID": m, "FWD": f}
+    if sum(shape.values()) != XI_SIZE:
+        raise ValueError(f"{text} is {sum(shape.values())} players, not {XI_SIZE}")
+    for pos, n in shape.items():
+        if not XI_MIN[pos] <= n <= XI_MAX[pos]:
+            raise ValueError(
+                f"{text} is not a legal FPL formation: {n} {pos}, "
+                f"allowed {XI_MIN[pos]}-{XI_MAX[pos]}")
+    return shape
+
+
+def pick_eleven(pool: pd.DataFrame, primary: str, secondary: str | None = None,
+                budget: float = BUDGET, formation: str = "4-5-1") -> pd.DataFrame:
+    """The best legal starting XI at a fixed formation and budget - no bench.
+
+    A different problem from ``pick_squad``, not a slice of it. With no
+    bench there is no dead spot to cap and no bench discount to argue
+    about: every player picked is a player who scores, so the objective
+    means exactly what it says. The 3-per-club cap still applies - it is an
+    FPL squad rule, and an eleven is part of a squad.
+
+    Solved lexicographically like ``pick_squad``: ``secondary`` is only
+    optimised over elevens already achieving the best possible ``primary``.
+    """
+    shape = parse_formation(formation)
+    chosen = _solve(pool, pool[primary], budget, shape, XI_SIZE)
+    if secondary is None:
+        return pool.loc[chosen]
+    best = float(pool.loc[chosen, primary].sum())
+    chosen = _solve(pool, pool[secondary], budget, shape, XI_SIZE,
+                    floor=(pool[primary], best))
+    return pool.loc[chosen]
 
 
 def pick_xi(squad: pd.DataFrame, objective: str,
@@ -416,6 +478,207 @@ def build(listing: str | Path, history: str | Path,
     return factor, crowd
 
 
+def parse_slots(text: str) -> list:
+    """``"GK:4.0,FWD:4.5"`` -> ``[("GK", 4.0), ("FWD", 4.5)]``."""
+    out = []
+    for chunk in text.split(","):
+        pos, _, price = chunk.strip().partition(":")
+        pos = pos.strip().upper()
+        if pos not in SQUAD or not price:
+            raise ValueError(
+                f"slot must look like 'GK:4.0', got {chunk.strip()!r}")
+        out.append((pos, float(price)))
+    return out
+
+
+def placeholder_rows(slots: list, index_from: int = 10 ** 7) -> pd.DataFrame:
+    """Stand-ins for squad places the manager is filling himself.
+
+    They enter at **zero** on every objective, which is the honest
+    statement: this script is not choosing them and knows nothing about
+    them. Because they score nothing they are never started, so they take
+    a bench place and their price out of the budget - which is exactly
+    what a cheap filler does - and the solve optimises everything else
+    around them.
+
+    Each gets its own dummy club so it cannot eat a real club's share of
+    the three-per-club cap.
+    """
+    rows = []
+    for n, (pos, price) in enumerate(slots):
+        rows.append({
+            "name": f"[your {pos} £{price:.1f}m]", "position": pos,
+            "team": f"(your pick {n + 1})", "price": price,
+            "owned_pct": 0.0, "unavailable": False, "rated": False,
+            "stars": 0, "xpts90": 0.0, "xpts_season": 0.0,
+            "minutes_share": 0.0, "factor_letters": "",
+            "diagnostic_letters": "", "factors_assessed": 0,
+        })
+    return pd.DataFrame(rows, index=range(index_from, index_from + len(rows)))
+
+
+def build_fill(listing: str | Path, history: str | Path, slots: list,
+               budget: float = BUDGET, bench_weight: float = BENCH_WEIGHT,
+               respect_availability: bool = True,
+               bench_fwd_max: float | None = None,
+               exclude: set | None = None):
+    """Pick the rest of a squad around slots the manager has already filled.
+
+    Solved as the whole fifteen, not as a detached thirteen. That matters:
+    the squad rules (2/5/5/3, £100m, three per club) and the eleven/bench
+    split are properties of the FULL squad, so the pre-filled places have
+    to be inside the same program. Modelling them as scoreless placeholders
+    gets that for free - they occupy their position and their price, they
+    never start, and everything else is optimised around them.
+    """
+    rated, unrated = preseason.rate_preseason(listing, history)
+    board = rated[rated["eligible"]].copy()
+    if respect_availability:
+        board = board[~board["unavailable"]]
+    if exclude:
+        board = board[~board["name"].isin(exclude)]
+    board["xpts_season"] = projected_points(board)
+    board["rated"] = True
+
+    holders = placeholder_rows(slots)
+    pool = pd.concat([board, holders])
+    # The manager's own cheap forward already fills the dead bench slot, so
+    # the benched-forward cap is OFF by default here. Pass a price to put it
+    # back and every dearer forward bought must start.
+    squad = pick_squad_points(pool, "xpts_season", bench_weight,
+                              budget=budget, required=set(holders.index),
+                              forced=must_start(pool, bench_fwd_max))
+    squad.attrs["placeholders"] = set(holders.index)
+    return squad
+
+
+def minutes_profile(history: str | Path) -> pd.DataFrame:
+    """Per-player durability from last season's match-by-match record.
+
+    Two different questions, deliberately kept apart:
+
+    * ``avg_min_app`` - average minutes in matches he appeared in. Includes
+      substitute cameos, so a 20-minute impact sub drags it down.
+    * ``full90_rate`` - of the matches he **started**, the share he
+      finished. This is the one that answers "does he play ninety
+      minutes", because it conditions on being picked and asks only
+      whether he stayed on.
+
+    A player can score well on one and badly on the other: a nailed starter
+    who is always hooked on 70 has a high ``avg_min_start`` and a low
+    ``full90_rate``, and a squad player used only as a late sub has a low
+    ``avg_min_app`` but may finish every rare start.
+    """
+    gws = model.load_season(history)
+    apps = gws[gws["minutes"] > 0]
+    starts = gws[gws["starts"] == 1]
+    out = pd.DataFrame({
+        "appearances": apps.groupby("name").size(),
+        "avg_min_app": apps.groupby("name")["minutes"].mean(),
+        "total_minutes": gws.groupby("name")["minutes"].sum(),
+        "starts": starts.groupby("name").size(),
+        "avg_min_start": starts.groupby("name")["minutes"].mean(),
+        "full90": starts.assign(f=starts["minutes"] >= 90)
+                        .groupby("name")["f"].sum(),
+    })
+    out["full90_rate"] = (out["full90"] / out["starts"]).where(out["starts"] > 0)
+    out["start_rate"] = out["starts"] / out["appearances"]
+    return out
+
+
+def durability_table(squad: pd.DataFrame, profile: pd.DataFrame,
+                     placeholders: set | None = None) -> pd.DataFrame:
+    """Join the durability profile onto a squad and rank it.
+
+    The points axis is ``xpts90``, **not** projected season points. Season
+    points are already a rate multiplied by minutes, so ranking durability
+    against them would count minutes on both sides of the comparison and
+    quietly reward the same thing twice. ``xpts90`` is the minutes-free
+    rate, which is what you want to trade off against playing time.
+
+    ``minutes_rank`` averages the two durability measures; ``combined``
+    averages that against the points rank, so a player has to be both worth
+    picking and reliably on the pitch to finish high.
+    """
+    placeholders = placeholders or set()
+    d = squad[~squad.index.isin(placeholders)].copy()
+    key = d["hist_name"] if "hist_name" in d else d["name"]
+    for col in ("avg_min_app", "avg_min_start", "full90_rate", "full90",
+                "starts", "appearances", "total_minutes"):
+        d[col] = key.map(profile[col])
+
+    # percentile ranks within this squad, high = better
+    d["r_avg_min"] = d["avg_min_app"].rank(pct=True)
+    d["r_full90"] = d["full90_rate"].rank(pct=True)
+    d["minutes_rank"] = (d["r_avg_min"] + d["r_full90"]) / 2
+    d["r_points"] = d["xpts90"].rank(pct=True)
+    d["combined"] = (d["minutes_rank"] + d["r_points"]) / 2
+    return d.sort_values("combined", ascending=False)
+
+
+def print_durability(d: pd.DataFrame, title: str) -> None:
+    print(f"\n  {title}")
+    print(f"     {'player':<27}{'pos':<5}{'avg min':>8}   {'full 90s':<12}"
+          f"{'xP/90':>6}{'mins rk':>9}{'pts rk':>8}{'COMBINED':>10}")
+    for _, r in d.iterrows():
+        f90 = ("—" if pd.isna(r["full90_rate"])
+               else f"{int(r['full90'])}/{int(r['starts'])}"
+                    f" ({r['full90_rate']:.0%})")
+        print(f"     {r['name'][:26]:<27}{r['position']:<5}"
+              f"{r['avg_min_app']:>8.1f}   {f90:<12}"
+              f"{r['xpts90']:>6.2f}{r['minutes_rank']:>9.2f}"
+              f"{r['r_points']:>8.2f}{r['combined']:>10.2f}")
+
+
+def build_eleven(listing: str | Path, history: str | Path,
+                 budget: float, formation: str = "4-5-1",
+                 respect_availability: bool = True,
+                 objective: str = "stars"):
+    """Return (factor_eleven, crowd_eleven) at a fixed formation and budget.
+
+    The same two-pool contrast as ``build``, for a bench-free eleven. The
+    crowd side always maximises ownership; ``objective`` picks how the
+    factor side is chosen:
+
+    * ``"stars"`` (default) - most total stars, ties broken on projected
+      season points.
+    * ``"points"`` - most projected season points outright, stars ignored.
+      With no bench this is a clean objective: every player picked is a
+      player who scores, so there is no bench discount to argue about.
+
+    No bench-forward filler here - filler exists to fill a dead bench spot,
+    and there is no bench.
+    """
+    if objective not in ("stars", "points"):
+        raise ValueError(
+            f"objective must be 'stars' or 'points', got {objective!r}")
+    rated, unrated = preseason.rate_preseason(listing, history)
+    board = rated[rated["eligible"]].copy()
+    cols = ["name", "position", "team", "price", "owned_pct", "unavailable"]
+    everyone = pd.concat([rated[cols], unrated[cols]], ignore_index=True)
+    if respect_availability:
+        board = board[~board["unavailable"]]
+        everyone = everyone[~everyone["unavailable"]]
+
+    board["xpts_season"] = projected_points(board)
+    if objective == "stars":
+        factor = pick_eleven(board, "stars", "xpts_season",
+                             budget, formation).copy()
+    else:
+        factor = pick_eleven(board, "xpts_season", None,
+                             budget, formation).copy()
+    crowd = pick_eleven(everyone, "owned_pct", None, budget, formation).copy()
+    factor["xi"] = True
+    crowd["xi"] = True
+    # Saturation is a property of the star objective; the points objective
+    # is continuous and cannot exhaust itself.
+    factor.attrs["saturation"] = (
+        saturation(factor, board, shape=parse_formation(formation))
+        if objective == "stars" else None)
+    factor.attrs["secondary"] = "xpts_season" if objective == "stars" else None
+    return factor, crowd
+
+
 def _order(df: pd.DataFrame, by: str) -> pd.DataFrame:
     df = df.copy()
     df["position"] = pd.Categorical(df["position"], model.POSITIONS)
@@ -488,6 +751,171 @@ def compare(listing, history, bench_weight: float,
         print(f"  {name:<7} benched forwards: {note}")
 
 
+def report_eleven(listing, history, budget: float, formation: str,
+                  objective: str = "stars") -> None:
+    """Print the factor eleven and the crowd eleven at a fixed formation."""
+    factor, crowd = build_eleven(listing, history, budget, formation,
+                                 objective=objective)
+
+    def block(sq, title, by, extra):
+        print(f"\n{title}")
+        print(f"  cost £{sq['price'].sum():.1f}m of £{budget:.1f}m"
+              f"   (£{budget - sq['price'].sum():.1f}m unspent)")
+        print(f"  formation {formation}")
+        order = sq.nlargest(2, "xpts90" if "xpts90" in sq else "owned_pct")
+        print(f"  captain {order.iloc[0]['name']}   "
+              f"vice {order.iloc[-1]['name']}")
+        sat = sq.attrs.get("saturation")
+        if sat:
+            print("  " + saturation_note(sat, sq.attrs.get("secondary")))
+        proj = sq["xpts_season"].sum() if "xpts_season" in sq else None
+        if proj is not None:
+            capt = order.iloc[0]["xpts_season"]
+            print(f"  projected {proj:.1f} over a season, {proj + capt:.1f} "
+                  f"with the captain doubled")
+        print()
+        for _, r in _order(sq, by).iterrows():
+            print(f"     {r['position']:4} {r['name'][:28]:29} "
+                  f"{r['team'][:14]:15} £{r['price']:>4.1f}m  {extra(r)}")
+
+    title = ("best total stars" if objective == "stars"
+             else "most projected points")
+    block(factor, f"THE FACTOR ELEVEN — {formation}, {title}",
+          "stars" if objective == "stars" else "xpts_season",
+          lambda r: f"{int(r['stars'])}★ {r['factor_letters']:<6} "
+                    f"xP/90 {r['xpts90']:.2f}  proj {r['xpts_season']:>5.1f}  "
+                    f"owned {r['owned_pct']:>5.1f}%")
+    block(crowd, f"THE CROWD ELEVEN — {formation}, most owned",
+          "owned_pct", lambda r: f"owned {r['owned_pct']:>5.1f}%")
+
+    overlap = sorted(set(factor["name"]) & set(crowd["name"]))
+    print(f"\nOverlap: {len(overlap)} of 11 — "
+          + (", ".join(overlap) if overlap else "none"))
+
+    # The same star-versus-points contrast the 15-man path prints. With no
+    # bench it is a cleaner comparison: every player picked actually scores.
+    rated, _ = preseason.rate_preseason(listing, history)
+    board = rated[rated["eligible"] & ~rated["unavailable"]].copy()
+    board["xpts_season"] = projected_points(board)
+    alt = pick_eleven(board, "xpts_season", None, budget, formation)
+    a_capt = alt.nlargest(1, "xpts90")["xpts_season"].iloc[0]
+    f_capt = factor.nlargest(1, "xpts90")["xpts_season"].iloc[0]
+    print(f"\nOBJECTIVE COMPARISON  ({formation}, £{budget:.1f}m, "
+          "captain doubled)")
+    print(f"  {'objective':<12} {'stars':>6} {'spend':>8} {'proj':>8} {'+capt':>8}")
+    for lbl, xi, capt in (("stars", factor, f_capt), ("points", alt, a_capt)):
+        print(f"  {lbl:<12} {int(xi['stars'].sum()):>6} "
+              f"{xi['price'].sum():>7.1f}m {xi['xpts_season'].sum():>8.1f} "
+              f"{xi['xpts_season'].sum() + capt:>8.1f}")
+    shared = set(factor["name"]) & set(alt["name"])
+    print(f"  the points objective is worth "
+          f"{(alt['xpts_season'].sum() + a_capt) - (factor['xpts_season'].sum() + f_capt):+.1f} "
+          f"projected points; the two share {len(shared)} of 11")
+
+
+def report_fill(listing, history, slots, bench_weight: float,
+                two_teams: bool = False) -> None:
+    """Print the squad chosen around the manager's own picks."""
+    if two_teams:
+        return report_two_teams(listing, history, slots, bench_weight)
+    squad = build_fill(listing, history, slots, bench_weight=bench_weight)
+    holders = squad.attrs["placeholders"]
+    mine = squad[~squad.index.isin(holders)]
+    theirs = squad[squad.index.isin(holders)]
+    xi = squad[squad["xi"]]
+    capt = xi.nlargest(1, "xpts90")
+
+    reserved = sum(p for _, p in slots)
+    print(f"\nYOUR {len(mine)} PLAYERS — chosen on projected points, "
+          f"around {len(theirs)} slots you are filling yourself")
+    print(f"  your picks reserve £{reserved:.1f}m "
+          f"({', '.join(f'{p} £{pr:.1f}m' for p, pr in slots)}), leaving "
+          f"£{BUDGET - reserved:.1f}m")
+    print(f"  spent £{mine['price'].sum():.1f}m of that "
+          f"(£{BUDGET - reserved - mine['price'].sum():.1f}m unspent); "
+          f"full squad £{squad['price'].sum():.1f}m")
+    shape = "-".join(str(int((xi["position"] == p).sum()))
+                     for p in ("DEF", "MID", "FWD"))
+    print(f"  starting XI {shape}, captain {capt.iloc[0]['name']}")
+    print(f"  projected {xi['xpts_season'].sum():.1f} from the XI, "
+          f"{xi['xpts_season'].sum() + capt.iloc[0]['xpts_season']:.1f} "
+          f"with the captain doubled\n")
+
+    for _, r in _order(squad, "xpts_season").iterrows():
+        mark = " " if r["xi"] else "B"
+        if r.name in holders:
+            print(f"   {mark} {r['position']:4} {r['name'][:28]:29} "
+                  f"{'—':15} £{r['price']:>4.1f}m  (you pick this one)")
+        else:
+            print(f"   {mark} {r['position']:4} {r['name'][:28]:29} "
+                  f"{r['team'][:14]:15} £{r['price']:>4.1f}m  "
+                  f"{int(r['stars'])}★ {r['factor_letters']:<6} "
+                  f"xP/90 {r['xpts90']:.2f}  proj {r['xpts_season']:>5.1f}  "
+                  f"owned {r['owned_pct']:>5.1f}%")
+
+    counts = mine.groupby("team").size().sort_values(ascending=False)
+    full = sorted(counts[counts >= MAX_PER_CLUB].index)
+    print(f"\n  Club counts among my {len(mine)}: "
+          + ", ".join(f"{t} {n}" for t, n in counts.items() if n > 1))
+    if full:
+        print(f"  AT THE 3-PER-CLUB LIMIT: {', '.join(full)} — do not pick "
+              f"your two from these clubs.")
+
+
+def report_two_teams(listing, history, slots, bench_weight: float) -> None:
+    """Two disjoint squads, plus how durable each player's minutes are.
+
+    The second squad may not reuse anyone from the first, so it is the
+    best remaining answer rather than a variation on the same one - which
+    is what makes comparing them worth anything.
+    """
+    a = build_fill(listing, history, slots, bench_weight=bench_weight)
+    mine_a = a[~a.index.isin(a.attrs["placeholders"])]
+    b = build_fill(listing, history, slots, bench_weight=bench_weight,
+                   exclude=set(mine_a["name"]))
+    profile = minutes_profile(history)
+
+    for label, sq in (("TEAM 1", a), ("TEAM 2", b)):
+        holders = sq.attrs["placeholders"]
+        mine = sq[~sq.index.isin(holders)]
+        xi = sq[sq["xi"]]
+        capt = xi.nlargest(1, "xpts90").iloc[0]
+        shape = "-".join(str(int((xi["position"] == p).sum()))
+                         for p in ("DEF", "MID", "FWD"))
+        print(f"\n{'=' * 78}")
+        print(f"{label} — {len(mine)} players, £{mine['price'].sum():.1f}m "
+              f"(your two slots reserve "
+              f"£{sum(pr for _, pr in slots):.1f}m)")
+        print(f"{'=' * 78}")
+        print(f"  XI {shape}, captain {capt['name']}, projected "
+              f"{xi['xpts_season'].sum() + capt['xpts_season']:.1f} with the "
+              f"captain doubled")
+        for _, r in _order(sq, "xpts_season").iterrows():
+            mark = " " if r["xi"] else "B"
+            if r.name in holders:
+                print(f"   {mark} {r['position']:4} {r['name'][:28]:29} "
+                      f"{'—':15} £{r['price']:>4.1f}m  (you pick this one)")
+            else:
+                print(f"   {mark} {r['position']:4} {r['name'][:28]:29} "
+                      f"{r['team'][:14]:15} £{r['price']:>4.1f}m  "
+                      f"xP/90 {r['xpts90']:.2f}  proj {r['xpts_season']:>5.1f}")
+        print_durability(durability_table(sq, profile, holders),
+                         f"{label} — minutes durability vs scoring rate")
+
+    overlap = set(mine_a["name"]) & set(
+        b[~b.index.isin(b.attrs["placeholders"])]["name"])
+    print(f"\n  Overlap between the two teams: "
+          f"{', '.join(sorted(overlap)) if overlap else 'none, by construction'}")
+    print(f"\n  avg min  = mean minutes in matches he appeared in "
+          f"(cameos drag it down)")
+    print(f"  full 90s = of the matches he STARTED, how many he finished")
+    print(f"  ranks are percentiles WITHIN each team; combined is the mean "
+          f"of the minutes")
+    print(f"  rank and the xP/90 rank. Points axis is xP/90, not season "
+          f"points, so that")
+    print(f"  minutes are not counted on both sides of the trade-off.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--listing", default=HERE / "data" / "2026-27" / "player_listing.csv")
@@ -503,7 +931,31 @@ def main() -> None:
                          "number to drop the cap.")
     ap.add_argument("--no-compare", action="store_true",
                     help="skip the star-vs-points comparison")
+    ap.add_argument("--fill", metavar="SLOTS",
+                    help="squad places you are filling yourself, as "
+                         "position:price pairs (e.g. 'GK:4.0,FWD:4.5'). "
+                         "The rest of the fifteen is chosen around them on "
+                         "projected points.")
+    ap.add_argument("--two-teams", action="store_true",
+                    help="with --fill, also build a second squad that shares "
+                         "no player with the first, and report minutes "
+                         "durability for both")
+    ap.add_argument("--eleven", metavar="FORMATION", nargs="?", const="4-5-1",
+                    help="build a bench-free starting XI at this formation "
+                         "(e.g. 4-5-1) instead of a 15-man squad")
+    ap.add_argument("--xi-budget", type=float, default=86.5,
+                    help="budget for --eleven (default: %(default)s)")
     args = ap.parse_args()
+
+    if args.fill:
+        report_fill(args.listing, args.history, parse_slots(args.fill),
+                    args.bench_weight, two_teams=args.two_teams)
+        return
+
+    if args.eleven:
+        report_eleven(args.listing, args.history, args.xi_budget,
+                      args.eleven, objective=args.objective)
+        return
 
     factor, crowd = build(args.listing, args.history,
                           objective=args.objective,

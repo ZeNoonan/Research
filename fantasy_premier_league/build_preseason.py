@@ -23,6 +23,11 @@ from weekly_report import POSITION_NAMES
 
 HERE = Path(__file__).parent
 
+# The squad places a manager typically fills himself: a bench keeper and a
+# bench forward at the floor price. The page renders the model's answer for
+# what to do with the rest of the budget.
+FILL_SLOTS = [("GK", 4.0), ("FWD", 4.5)]
+
 FACTOR_ROWS = [
     ("Q", "Quality", "Model expected points per 90 — rebuilt from the FPL "
      "scoring rules and last season's underlying per-90 numbers — above the "
@@ -153,6 +158,15 @@ def squads_html(listing_path, history_dir, n_factors: int,
         return "-".join(str(int((xi["position"] == p).sum()))
                         for p in ("DEF", "MID", "FWD"))
 
+    # A third squad: the manager fills the two cheap dead slots himself and
+    # the model spends what is left. Rendered for the configuration in
+    # FILL_SLOTS so the page shows the same thing `squad.py --fill` prints.
+    fill = squad.build_fill(listing_path, history_dir, FILL_SLOTS)
+    fill_holders = fill.attrs["placeholders"]
+    fill_mine = fill[~fill.index.isin(fill_holders)]
+    fill_xi = fill[fill["xi"]]
+    fill_capt = fill_xi.nlargest(1, "xpts90").iloc[0]
+
     f_tbl = table(factor, "stars", "xpts90",
                   [("Stars", lambda r: "★" * int(r.stars)),
                    ("Factors", lambda r: f"<span class='letters'>{esc(r.factor_letters)}</span>"),
@@ -200,7 +214,8 @@ board, which is where two of the six missing stars go.</p>"""
 rated on the board above — an injury does not change what a player is
 worth — but they cannot be picked, and both squads below are built
 without them. It costs the factor squad
-{int(had['stars'].sum()) - int(factor['stars'].sum())} stars
+{int(had['stars'].sum()) - int(factor['stars'].sum())}
+star{'' if int(had['stars'].sum()) - int(factor['stars'].sum()) == 1 else 's'}
 ({int(had['stars'].sum())} → {int(factor['stars'].sum())}): out go
 {', '.join(esc(n) for n in dropped)}; in come
 {', '.join(esc(n) for n in gained)}.</p>"""
@@ -238,6 +253,32 @@ squads, new signings, and regulars who fell under the minutes gate — and
 leaving them out would misrepresent the crowd. Formation {shape(crowd)},
 spending £{crowd['price'].sum():.1f}m.</p>
 {c_tbl}
+
+<h3 style='font-size:16px;margin:16px 0 4px'>The fill squad — you pick the
+cheap slots, the model spends the rest</h3>
+<p class='note'>Most managers fill the two dead places themselves — a
+bench keeper and a bench forward at the floor price — and want the model to
+spend what is left. Here that is
+{", ".join(f"a <b>{p} at £{pr:.1f}m</b>" for p, pr in FILL_SLOTS)},
+reserving £{sum(pr for _, pr in FILL_SLOTS):.1f}m and leaving
+<b>£{100.0 - sum(pr for _, pr in FILL_SLOTS):.1f}m</b> for the other
+{len(fill_mine)}. Chosen on <b>projected points</b>, not stars, and solved
+as the whole fifteen rather than as a detached thirteen — the budget, the
+2/5/5/3 shape, the three-per-club cap and the eleven/bench split are all
+properties of the full squad. Your two slots enter as scoreless
+placeholders, so they take a position and a price and are never started.
+Formation {shape(fill)}, captain {esc(fill_capt['name'])}, projected
+<b>{fill_xi['xpts_season'].sum() + fill_capt['xpts_season']:.0f}</b> points
+with the captain doubled.</p>
+{table(fill, "xpts_season", "xpts90",
+       [("Stars", lambda r: "★" * int(r.stars) if r.rated else "—"),
+        ("Factors", lambda r: f"<span class='letters'>{esc(r.factor_letters)}</span>"
+                              if r.factor_letters else "<span class='sub2'>you pick</span>"),
+        ("xPts/90", lambda r: f"{r.xpts90:.2f}" if r.rated else "—"),
+        ("Projected", lambda r: f"{r.xpts_season:.0f}" if r.rated else "—")])}
+<p class='note'>Reproduce with
+<code>python squad.py --fill "{','.join(f'{p}:{pr:.1f}' for p, pr in FILL_SLOTS)}"</code>,
+or pass your own slots.</p>
 
 <p class='note'><b>They share {len(overlap)} of 15 players</b>
 ({', '.join(esc(n) for n in overlap)}). That is the point of the exercise:

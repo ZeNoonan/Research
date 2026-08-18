@@ -107,14 +107,76 @@ def fetch_season(out_dir: Path, gws: set[int] | None) -> None:
         print(f"wrote {path} ({len(block)} players)")
 
 
+def fetch_fixtures(out_dir: Path, upto_gw: int | None = None) -> None:
+    """Cache the fixture list to ``fixtures.csv`` — event, team_h, team_a.
+
+    Unlike the per-gameweek files this is available **before** a ball is
+    kicked, which is the whole point: ``hold8.py`` needs to know who plays
+    whom in gameweeks 1-8 in order to choose a squad to hold through them.
+
+    Team names rather than ids are written, so the file joins to everything
+    else in ``data/`` without a lookup. Fixtures with no ``event`` are
+    unscheduled (postponed, or awaiting a cup outcome) and are dropped with
+    a count, not silently: a missing fixture is a blank gameweek for two
+    clubs and the caller must be able to see that it happened.
+    """
+    session = requests.Session()
+    boot = get(session, f"{API}/bootstrap-static/")
+    if not boot:
+        sys.exit("bootstrap-static returned nothing - is the API reachable?")
+    teams = {t["id"]: t["name"] for t in boot["teams"]}
+
+    raw = get(session, f"{API}/fixtures/")
+    if not raw:
+        sys.exit("fixtures/ returned nothing - is the API reachable?")
+
+    rows, unscheduled = [], 0
+    for f in raw:
+        if f.get("event") is None:
+            unscheduled += 1
+            continue
+        if upto_gw is not None and f["event"] > upto_gw:
+            continue
+        rows.append({"event": f["event"],
+                     "fixture": f.get("id"),
+                     "team_h": teams.get(f["team_h"], f["team_h"]),
+                     "team_a": teams.get(f["team_a"], f["team_a"]),
+                     "kickoff_time": f.get("kickoff_time", "")})
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "fixtures.csv"
+    df = pd.DataFrame(rows).sort_values(["event", "fixture"])
+    df.to_csv(path, index=False)
+
+    per_club = pd.concat([df["team_h"], df["team_a"]]).value_counts()
+    blanks = sorted(per_club[per_club < per_club.max()].index)
+    print(f"wrote {path} ({len(df)} fixtures, "
+          f"GW{int(df['event'].min())}-{int(df['event'].max())})")
+    if unscheduled:
+        print(f"  {unscheduled} fixture(s) have no gameweek yet and were "
+              f"skipped - those are blanks until the API assigns them")
+    if blanks:
+        print(f"  uneven fixture counts (blank or double gameweeks): "
+              f"{', '.join(blanks)}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--season", default="2026-27",
                     help="season directory name under data/")
     ap.add_argument("--gws", default=None,
                     help="comma-separated gameweeks (default: all finished)")
+    ap.add_argument("--fixtures", action="store_true",
+                    help="fetch the fixture list to fixtures.csv instead of "
+                         "per-gameweek player data (works before the season "
+                         "starts, which gw files do not)")
+    ap.add_argument("--upto-gw", type=int, default=None,
+                    help="with --fixtures, keep only gameweeks up to this")
     args = ap.parse_args()
 
+    if args.fixtures:
+        fetch_fixtures(HERE / "data" / args.season, args.upto_gw)
+        return
     gws = ({int(g) for g in args.gws.split(",")} if args.gws else None)
     fetch_season(HERE / "data" / args.season, gws)
 
