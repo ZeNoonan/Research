@@ -28,7 +28,15 @@ HERE = Path(__file__).parent
 # The squad places a manager typically fills himself: a bench keeper and a
 # bench forward at the floor price. The page renders the model's answer for
 # what to do with the rest of the budget.
-FILL_SLOTS = [("GK", 4.0), ("FWD", 4.5)]
+# Each configuration is a set of places the manager fills himself. More dead
+# slots means fewer players for the model to choose and less money to spend
+# them on, so the page renders both and lets the totals show what the extra
+# dead slot costs.
+FILL_CONFIGS = [
+    [("GK", 4.0), ("FWD", 4.5)],
+    [("GK", 4.0), ("FWD", 4.5), ("FWD", 4.5)],
+]
+FILL_SLOTS = FILL_CONFIGS[0]      # the configuration prose refers to
 
 # A third fill squad, biased toward players who finish matches: nobody who
 # completed less than this share of his starts last season may START,
@@ -167,31 +175,87 @@ def squads_html(listing_path, history_dir, n_factors: int,
         return "-".join(str(int((xi["position"] == p).sum()))
                         for p in ("DEF", "MID", "FWD"))
 
-    # A third and fourth squad: the manager fills the two cheap dead slots
-    # himself and the model spends what is left. Rendered for the
-    # configuration in FILL_SLOTS so the page shows the same thing
-    # `squad.py --fill --two-teams` prints. The second may reuse nobody
-    # from the first, so it is the best REMAINING answer rather than a
-    # variation on the same one.
-    fill = squad.build_fill(listing_path, history_dir, FILL_SLOTS)
-    fill_holders = fill.attrs["placeholders"]
-    fill_mine = fill[~fill.index.isin(fill_holders)]
-    fill_xi = fill[fill["xi"]]
-    fill_capt = fill_xi.nlargest(1, "xpts90").iloc[0]
+    # For each configuration: the points-max fill squad, the best squad
+    # sharing nobody with it, and the same objective under a completion
+    # floor. Built per config rather than once, so the page shows what an
+    # extra dead slot actually costs.
+    def build_set(slots):
+        one = squad.build_fill(listing_path, history_dir, slots)
+        mine = one[~one.index.isin(one.attrs["placeholders"])]
+        two = squad.build_fill(listing_path, history_dir, slots,
+                               exclude=set(mine["name"]))
+        three = squad.build_fill(listing_path, history_dir, slots,
+                                 min_full90=FILL_MIN_FULL90)
+        return {"slots": slots, "one": one, "two": two, "three": three}
 
-    fill3 = squad.build_fill(listing_path, history_dir, FILL_SLOTS,
-                             min_full90=FILL_MIN_FULL90)
-    fill3_holders = fill3.attrs["placeholders"]
-    fill3_mine = fill3[~fill3.index.isin(fill3_holders)]
-    fill3_xi = fill3[fill3["xi"]]
-    fill3_capt = fill3_xi.nlargest(1, "xpts90").iloc[0]
+    fill_sets = [build_set(sl) for sl in FILL_CONFIGS]
 
-    fill2 = squad.build_fill(listing_path, history_dir, FILL_SLOTS,
-                             exclude=set(fill_mine["name"]))
-    fill2_holders = fill2.attrs["placeholders"]
-    fill2_mine = fill2[~fill2.index.isin(fill2_holders)]
-    fill2_xi = fill2[fill2["xi"]]
-    fill2_capt = fill2_xi.nlargest(1, "xpts90").iloc[0]
+    def fill_section(fs, first: bool) -> str:
+        """The three fill squads for one configuration of dead slots."""
+        slots = fs["slots"]
+        reserved = sum(pr for _, pr in slots)
+        budget = 100.0 - reserved
+        n = 15 - len(slots)
+        cmd = ",".join(f"{pos}:{pr:.1f}" for pos, pr in slots)
+        want = ", ".join(f"a <b>{pos} at £{pr:.1f}m</b>" for pos, pr in slots)
+
+        def tot(sq):
+            xi = sq[sq["xi"]]
+            return xi["xpts_season"].sum() + xi.nlargest(
+                1, "xpts90")["xpts_season"].iloc[0]
+
+        def mine(sq):
+            return sq[~sq.index.isin(sq.attrs["placeholders"])]
+
+        def capt(sq):
+            return sq[sq["xi"]].nlargest(1, "xpts90").iloc[0]
+
+        one, two, three = fs["one"], fs["two"], fs["three"]
+        head = (f"<h3 style='font-size:17px;margin:22px 0 4px'>Filling "
+                f"{len(slots)} places yourself — {n} players for "
+                f"£{budget:.1f}m</h3>")
+        intro = (
+            f"<p class='note'>You take {want}, reserving £{reserved:.1f}m "
+            f"and leaving <b>£{budget:.1f}m</b> for the other {n}. Chosen on "
+            f"<b>projected points</b>, and solved as the whole fifteen rather "
+            f"than as a detached {n} — the budget, the 2/5/5/3 shape, the "
+            f"three-per-club cap and the eleven/bench split are all properties "
+            f"of the full squad. Your slots enter as scoreless placeholders, "
+            f"so they take a position and a price and are never started.</p>"
+            if first else
+            f"<p class='note'>The same three squads with <b>{len(slots)} dead "
+            f"places</b> instead of {len(FILL_CONFIGS[0])}: you take {want}, "
+            f"leaving <b>£{budget:.1f}m</b> for {n} players. Everything else "
+            f"is as above.</p>")
+
+        blocks = [f"""
+<p class='note'><b>1 · Points-max.</b> Formation {shape(one)}, captain
+{esc(capt(one)['name'])}, spending £{mine(one)['price'].sum():.1f}m,
+projected <b>{tot(one):.0f}</b> with the captain doubled.</p>
+{fill_table(one)}
+{durability_table_html(one, one.attrs['placeholders'])}""", f"""
+<p class='note'><b>2 · Best remaining</b>, sharing nobody with the first, so
+it is the best answer left rather than a variation on the same one.
+Formation {shape(two)}, captain {esc(capt(two)['name'])}, spending
+£{mine(two)['price'].sum():.1f}m, projected <b>{tot(two):.0f}</b> —
+{tot(one) - tot(two):.0f} behind, the cost of going second.</p>
+{fill_table(two)}
+{durability_table_html(two, two.attrs['placeholders'])}""", f"""
+<p class='note'><b>3 · Durable</b>, the same objective under a
+<b>{FILL_MIN_FULL90:.0%} completion floor</b>: anyone who finished less than
+that share of his starts last season may not be picked <i>for the eleven</i>,
+though he can still be bought as cover. Formation {shape(three)}, captain
+{esc(capt(three)['name'])}, spending £{mine(three)['price'].sum():.1f}m,
+projected <b>{tot(three):.0f}</b> — {tot(one) - tot(three):.0f} behind the
+points-max squad, in exchange for an eleven that finishes matches.</p>
+{fill_table(three)}
+{durability_table_html(three, three.attrs['placeholders'])}"""]
+        foot = (f"<p class='note'>Reproduce with "
+                f"<code>python squad.py --fill \"{cmd}\"</code>, adding "
+                f"<code>--two-teams</code> or "
+                f"<code>--min-full90 {FILL_MIN_FULL90}</code>.</p>")
+        return head + intro + "".join(blocks) + foot
+
 
     profile = squad.minutes_profile(history_dir)
 
@@ -235,6 +299,9 @@ def squads_html(listing_path, history_dir, n_factors: int,
                    ("Owned", lambda r: f"{r.owned_pct:.1f}%")])
     c_tbl = table(crowd, "owned_pct", "owned_pct",
                   [("Owned", lambda r: f"{r.owned_pct:.1f}%")])
+    fill_html = "".join(fill_section(fs, i == 0)
+                        for i, fs in enumerate(fill_sets))
+
     overlap = sorted(set(factor["name"]) & set(crowd["name"]))
 
     # Whether the star objective still discriminates. At the ceiling it does
@@ -315,70 +382,7 @@ leaving them out would misrepresent the crowd. Formation {shape(crowd)},
 spending £{crowd['price'].sum():.1f}m.</p>
 {c_tbl}
 
-<h3 style='font-size:16px;margin:16px 0 4px'>The fill squad — you pick the
-cheap slots, the model spends the rest</h3>
-<p class='note'>Most managers fill the two dead places themselves — a
-bench keeper and a bench forward at the floor price — and want the model to
-spend what is left. Here that is
-{", ".join(f"a <b>{p} at £{pr:.1f}m</b>" for p, pr in FILL_SLOTS)},
-reserving £{sum(pr for _, pr in FILL_SLOTS):.1f}m and leaving
-<b>£{100.0 - sum(pr for _, pr in FILL_SLOTS):.1f}m</b> for the other
-{len(fill_mine)}. Chosen on <b>projected points</b>, not stars, and solved
-as the whole fifteen rather than as a detached thirteen — the budget, the
-2/5/5/3 shape, the three-per-club cap and the eleven/bench split are all
-properties of the full squad. Your two slots enter as scoreless
-placeholders, so they take a position and a price and are never started.
-Formation {shape(fill)}, captain {esc(fill_capt['name'])}, projected
-<b>{fill_xi['xpts_season'].sum() + fill_capt['xpts_season']:.0f}</b> points
-with the captain doubled.</p>
-{fill_table(fill)}
-{durability_table_html(fill, fill_holders)}
-
-<h3 style='font-size:16px;margin:16px 0 4px'>The second fill squad — the
-best remaining thirteen, sharing nobody with the first</h3>
-<p class='note'>Same slots, same budget, but <b>every player above is
-barred</b>. So this is not a variation on the first squad, it is the best
-answer left once the first has taken its picks — which is what makes
-comparing the two worth anything. Formation {shape(fill2)}, captain
-{esc(fill2_capt['name'])}, spending £{fill2_mine['price'].sum():.1f}m of
-the £{100.0 - sum(pr for _, pr in FILL_SLOTS):.1f}m, projected
-<b>{fill2_xi['xpts_season'].sum() + fill2_capt['xpts_season']:.0f}</b>
-points with the captain doubled — {fill_xi['xpts_season'].sum()
-+ fill_capt['xpts_season'] - fill2_xi['xpts_season'].sum()
-- fill2_capt['xpts_season']:.0f} behind the first, which is the cost of
-going second.</p>
-{fill_table(fill2)}
-{durability_table_html(fill2, fill2_holders)}
-
-<h3 style='font-size:16px;margin:16px 0 4px'>The durable fill squad — the
-same objective, but only players who finish matches may start</h3>
-<p class='note'>The first squad's weakness is not its stars, it is two of
-them: the eleven averages 86% completion, but carries two starters who
-finish barely half the matches they begin. This squad applies a
-<b>{FILL_MIN_FULL90:.0%} floor</b> — anyone who completed less than that
-share of his starts last season may not be picked <i>for the eleven</i>,
-though he can still be bought as cover, which is the useful shape of the
-constraint. Everything else is unchanged.</p>
-<p class='note'>It costs <b>{fill_xi['xpts_season'].sum()
-+ fill_capt['xpts_season'] - fill3_xi['xpts_season'].sum()
-- fill3_capt['xpts_season']:.1f}</b> projected points
-({fill_xi['xpts_season'].sum() + fill_capt['xpts_season']:.0f} →
-<b>{fill3_xi['xpts_season'].sum() + fill3_capt['xpts_season']:.0f}</b>) and
-lifts the eleven's mean completion from <b>86% to 94%</b>. The sweep is
-flat between a 70% and an 80% floor, all costing the same seven points, so
-{FILL_MIN_FULL90:.0%} is the cheapest point that buys the whole gain; at
-90% too few players qualify and the squad collapses. Formation
-{shape(fill3)}, captain {esc(fill3_capt['name'])}, spending
-£{fill3_mine['price'].sum():.1f}m.</p>
-{fill_table(fill3)}
-{durability_table_html(fill3, fill3_holders)}
-<p class='note'>Note what it did <b>not</b> do: re-pick the squad. Pooling
-the two squads above and taking the best thirteen on the combined score
-costs <b>27</b> points for four points of completion, and doing the same
-over the whole board costs 26 for eight — both worse than this, because
-the floor targets the two players who are the problem instead of starting
-again. Reproduce with
-<code>python squad.py --fill "{','.join(f'{p}:{pr:.1f}' for p, pr in FILL_SLOTS)}" --min-full90 {FILL_MIN_FULL90}</code>.</p>
+{fill_html}
 
 <p class='note'><b>Reading the minutes tables.</b> <b>Avg mins</b> is the
 mean over matches he <i>appeared</i> in, so a late cameo drags it down —
@@ -395,9 +399,7 @@ sides of the trade-off and reward the same thing twice. Ranks are
 percentiles <b>within each squad</b>; <b>combined</b> is the mean of the
 minutes rank and the points rank, so a player has to be both worth picking
 and reliably on the pitch to finish high.</p>
-<p class='note'>Reproduce with
-<code>python squad.py --fill "{','.join(f'{p}:{pr:.1f}' for p, pr in FILL_SLOTS)}" --two-teams</code>,
-or pass your own slots.</p>
+
 
 <p class='note'><b>They share {len(overlap)} of 15 players</b>
 ({', '.join(esc(n) for n in overlap)}). That is the point of the exercise:
