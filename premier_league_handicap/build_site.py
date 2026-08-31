@@ -14,7 +14,8 @@ import math
 import sys
 from pathlib import Path
 
-from analysis import GAMES_PER_SEASON, SEASONS, has_results, load_all
+from analysis import (GAMES_PER_SEASON, SEASONS, has_results, load_all,
+                      load_handicaps, market_view, season_dir)
 
 HERE = Path(__file__).parent
 TEMPLATE = HERE / "template.html"
@@ -35,6 +36,54 @@ SHORT_NAMES = {
 
 DATA_START = "/*__DATA__*/"
 DATA_END = "/*__END_DATA__*/"
+
+
+def market_payload(handicaps) -> dict:
+    """Odds market on winning the handicap league, if this season has odds."""
+    if "odds" not in handicaps.columns:
+        return {}
+    mv = market_view(handicaps)
+    return {
+        "overround": round(mv.attrs["overround"], 4),
+        "book": round(mv.attrs["book"], 4),
+        "rows": [
+            {
+                "name": r["team"],
+                "short": SHORT_NAMES.get(r["team"], r["team"]),
+                "handicap": int(r["handicap"]),
+                "odds": float(r["odds"]),
+                "implied": round(float(r["implied"]), 5),
+                "fairProb": round(float(r["fair_prob"]), 5),
+                "fairOdds": round(float(r["fair_odds"]), 2),
+            }
+            for _, r in mv.iterrows()
+        ],
+    }
+
+
+def preseason_payload(season: str) -> dict:
+    """Payload for a season that has handicaps (and maybe odds) but no results."""
+    handicaps = load_handicaps(season)
+    teams = []
+    for _, row in handicaps.sort_values(["handicap", "team"]).iterrows():
+        entry = {
+            "name": row["team"],
+            "short": SHORT_NAMES.get(row["team"], row["team"]),
+            "handicap": int(row["handicap"]),
+            "perGame": round(float(row["handicap"]) / GAMES_PER_SEASON, 4),
+        }
+        if "odds" in handicaps.columns:
+            entry["odds"] = float(row["odds"])
+        teams.append(entry)
+    return {
+        "season": SEASONS[season]["label"],
+        "hasResults": False,
+        "complete": False,
+        "maxPlayed": 0,
+        "gamesPerSeason": GAMES_PER_SEASON,
+        "teams": teams,
+        "market": market_payload(handicaps),
+    }
 
 
 def build_payload(season: str) -> dict:
@@ -93,18 +142,31 @@ def build_payload(season: str) -> dict:
 
     return {
         "season": SEASONS[season]["label"],
+        "hasResults": True,
         "complete": complete,
         "maxPlayed": max_played,
         "gamesPerSeason": GAMES_PER_SEASON,
         "meanAdjusted": round(sum(t["adjustedToDate"] for t in teams) / n, 2),
         "handicapActualCorr": round(corr, 3),
         "teams": teams,
+        "market": market_payload(handicaps),
     }
 
 
 def copy_for(payload: dict) -> dict:
     label = payload["season"]
     played = payload["maxPlayed"]
+    if not payload["hasResults"]:
+        return {
+            "SEASON_LABEL": label,
+            "STATUS": "before a ball is kicked",
+            "INTRO": (
+                f"The {label} handicaps are set and the market has priced them. No "
+                "games have been played yet, so this page covers the handicaps "
+                "themselves and what the odds say about them; the adjusted table and "
+                "the game-by-game race appear as results come in."
+            ),
+        }
     if payload["complete"]:
         status = "final"
         intro = (
@@ -139,27 +201,28 @@ def render(season: str, payload: dict, others: list) -> str:
 
 
 def main() -> None:
-    wanted = [s for s in (sys.argv[1:] or list(SEASONS)) if has_results(s)]
-    for season in SEASONS:
-        if season not in wanted:
-            print(f"{season}: no results.csv yet, skipping")
+    # A season is buildable once it has handicaps; results just add sections.
+    wanted = [
+        s for s in (sys.argv[1:] or list(SEASONS))
+        if (season_dir(s) / "season_handicap.csv").exists()
+    ]
     if not wanted:
-        raise SystemExit("No season had a results.csv to build from.")
+        raise SystemExit("No season had a season_handicap.csv to build from.")
 
-    latest = max(s for s in SEASONS if has_results(s))
+    latest = max(wanted)
     for season in wanted:
-        payload = build_payload(season)
+        payload = build_payload(season) if has_results(season) else preseason_payload(season)
         # links to the other seasons, relative to <season>/index.html
         others = [
             (s, ("../" if s == latest else f"../{s}/"))
-            for s in sorted(SEASONS, reverse=True)
-            if s != season and has_results(s)
+            for s in sorted(wanted, reverse=True) if s != season
         ]
         html = render(season, payload, others)
         archive = HERE / season / "index.html"
         archive.parent.mkdir(parents=True, exist_ok=True)
         archive.write_text(html, encoding="utf-8")
-        state = "complete" if payload["complete"] else "in progress"
+        state = ("complete" if payload["complete"]
+                 else "in progress" if payload["hasResults"] else "pre-season")
         print(
             f"{season}: {len(payload['teams'])} teams, up to {payload['maxPlayed']} "
             f"games ({state}) -> {season}/index.html"
@@ -168,8 +231,7 @@ def main() -> None:
         if season == latest:
             # same page at the canonical URL; links need root-relative paths
             root_others = [
-                (s, f"{s}/") for s in sorted(SEASONS, reverse=True)
-                if s != season and has_results(s)
+                (s, f"{s}/") for s in sorted(wanted, reverse=True) if s != season
             ]
             (HERE / "index.html").write_text(
                 render(season, payload, root_others), encoding="utf-8"

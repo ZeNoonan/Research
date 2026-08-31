@@ -201,6 +201,26 @@ def build_standings(games: pd.DataFrame, handicaps: pd.DataFrame) -> pd.DataFram
     return agg
 
 
+def market_view(handicaps: pd.DataFrame) -> pd.DataFrame:
+    """Implied probabilities from decimal odds on winning the handicap league.
+
+    ``implied`` is the raw book percentage (1 / odds). Those sum to more than
+    1 by the bookmaker's margin, so ``fair_prob`` renormalises them to sum to
+    1 and ``fair_odds`` is the corresponding margin-free price.
+    """
+    if "odds" not in handicaps.columns:
+        raise ValueError("This season's handicap file has no odds column.")
+
+    df = handicaps[["team", "handicap", "odds"]].copy()
+    df["implied"] = 1.0 / df["odds"]
+    book = df["implied"].sum()
+    df["fair_prob"] = df["implied"] / book
+    df["fair_odds"] = 1.0 / df["fair_prob"]
+    df.attrs["book"] = float(book)
+    df.attrs["overround"] = float(book - 1.0)
+    return df.sort_values(["odds", "team"]).reset_index(drop=True)
+
+
 def load_all(season: str = "2025_2026"):
     handicaps = load_handicaps(season)
     results = load_results(season)

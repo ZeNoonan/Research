@@ -22,7 +22,7 @@ Most projects generate a **self-contained, phone-friendly web page**
 | [`security_trading_game/`](security_trading_game/) | Brown's "Rouge et Noir" (Wilmott 2013): a security-pricing dice game | [open](https://zenoonan.github.io/Research/security_trading_game/) |
 | [`VAR/`](VAR/) | Value-at-Risk backtesting on the NASDAQ Composite, from Brown's *"Forced by the Sternest Circumstances"* (Wilmott 2009) | — |
 | [`kelly_sim/`](kelly_sim/) | Kelly Criterion coin-flip game: optimal bet sizing, in web and Python CLI versions | [open](https://zenoonan.github.io/Research/kelly_sim/) |
-| [`premier_league_handicap/`](premier_league_handicap/) | Per-team handicap (bonus points) applied to the 2025/26 Premier League: adjusted table, game-by-game race, who beat their handicap (web + Streamlit) | [open](https://zenoonan.github.io/Research/premier_league_handicap/) |
+| [`premier_league_handicap/`](premier_league_handicap/) | Per-team handicap (bonus points) applied to the Premier League: adjusted table, game-by-game race, who beat their handicap. 2025/26 complete; 2026/27 handicaps and odds market live (web + Streamlit) | [26/27](https://zenoonan.github.io/Research/premier_league_handicap/) · [25/26](https://zenoonan.github.io/Research/premier_league_handicap/2025_2026/) |
 | [`baseball_var/`](baseball_var/) | Little League WAR/WAA explorer, from the GameChanger spreadsheet | [open](https://zenoonan.github.io/Research/baseball_var/) |
 | [`golf/`](golf/) | Golf form and course-fit research | [open](https://zenoonan.github.io/Research/golf/) |
 | [`hurling/`](hurling/) | GAA.ie Hurling Team of the Week, 2026 championship | [open](https://zenoonan.github.io/Research/hurling/) |
