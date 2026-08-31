@@ -1,24 +1,38 @@
-"""Streamlit app: Premier League 2025-2026 handicap-adjusted analysis."""
+"""Streamlit app: Premier League handicap-adjusted analysis."""
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from analysis import GAMES_PER_SEASON, load_all
+from analysis import GAMES_PER_SEASON, SEASONS, has_results, load_all
 
 st.set_page_config(
-    page_title="Premier League 2025-2026 Handicap Analysis",
+    page_title="Premier League Handicap Analysis",
     page_icon="⚽",
     layout="wide",
 )
 
-handicaps, results, games, standings = load_all()
+available = [s for s in sorted(SEASONS, reverse=True) if has_results(s)]
+if not available:
+    st.error("No season has a results.csv yet — add one under data/<season>/.")
+    st.stop()
 
-st.title("Premier League 2025-2026 — Handicap Analysis")
+season = st.sidebar.selectbox(
+    "Season", available, format_func=lambda s: SEASONS[s]["label"]
+)
+handicaps, results, games, standings = load_all(season)
+label = SEASONS[season]["label"]
+played = int(standings["played"].max())
+complete = bool((standings["played"] == GAMES_PER_SEASON).all())
+
+st.title(f"Premier League {label} — Handicap Analysis")
 st.caption(
     "Each team's handicap is added to their actual points to give an adjusted total. "
-    f"For the game-by-game view the handicap is spread evenly across all "
-    f"{GAMES_PER_SEASON} games (handicap ÷ {GAMES_PER_SEASON} per game)."
+    f"The handicap is spread evenly across the {GAMES_PER_SEASON} games of a season "
+    f"(handicap ÷ {GAMES_PER_SEASON} per game)."
+    + ("" if complete else
+       f" This season is in progress — {played} game(s) played, so the adjusted "
+       "total counts only the share of the handicap earned so far.")
 )
 
 tab_table, tab_games, tab_progress = st.tabs(
@@ -43,6 +57,7 @@ with tab_table:
             "actual_points",
             "handicap",
             "adjusted_points",
+            *([] if complete else ["adjusted_full"]),
             "actual_rank",
             "rank_change",
         ]
@@ -60,6 +75,7 @@ with tab_table:
             "actual_points": "Actual Pts",
             "handicap": "Handicap",
             "adjusted_points": "Adjusted Pts",
+            "adjusted_full": "With Full Handicap",
             "actual_rank": "Actual Pos",
             "rank_change": "Pos Δ",
         }
@@ -71,7 +87,9 @@ with tab_table:
         use_container_width=True,
         height=740,
         column_config={
-            "Adjusted Pts": st.column_config.NumberColumn(format="%d"),
+            "Adjusted Pts": st.column_config.NumberColumn(
+                format="%d" if complete else "%.2f"
+            ),
             "Actual Pts": st.column_config.NumberColumn(format="%d"),
             "Handicap": st.column_config.NumberColumn(format="%d"),
             "Pos Δ": st.column_config.NumberColumn(
@@ -129,7 +147,8 @@ with tab_games:
         c1.metric("Actual points", int(row["actual_points"]))
         c2.metric("Handicap", int(row["handicap"]))
         c3.metric("Handicap / game", f"{per_game:.4f}")
-        c4.metric("Adjusted points", int(row["adjusted_points"]))
+        c4.metric("Adjusted points",
+                  f'{row["adjusted_points"]:.0f}' if complete else f'{row["adjusted_points"]:.2f}')
 
     display = team_games[
         [
@@ -243,7 +262,7 @@ with tab_progress:
             x=alt.X(
                 "match_no:Q",
                 title="Game number",
-                scale=alt.Scale(domain=[1, GAMES_PER_SEASON]),
+                scale=alt.Scale(domain=[1, played]),
             ),
             y=alt.Y("cum_adjusted_points:Q", title="Cumulative adjusted points"),
             color=alt.Color("team:N", title="Team", sort=team_order),

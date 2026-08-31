@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premier League {{SEASON_LABEL}} Handicap Analysis</title>
+<meta name="description" content="Handicap-adjusted standings, game-by-game results and season progression for the {{SEASON_LABEL}} Premier League.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
+<style>
+  :root {
+    color-scheme: light;
+    --page:      #f9f9f7;
+    --surface:   #fcfcfb;
+    --ink:       #0b0b0b;
+    --ink-2:     #52514e;
+    --muted:     #898781;
+    --grid:      #e1e0d9;
+    --baseline:  #c3c2b7;
+    --border:    rgba(11,11,11,0.10);
+    --good-text: #006300;
+    --bad-text:  #d03b3b;
+    --s1: #2a78d6; --s2: #008300; --s3: #e87ba4; --s4: #eda100;
+    --s5: #1baf7a; --s6: #eb6834; --s7: #4a3aa7; --s8: #e34948;
+    --status-good:     #0ca30c;
+    --status-critical: #d03b3b;
+    --div-pos: #2a78d6;
+    --div-neg: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:      #0d0d0d;
+      --surface:   #1a1a19;
+      --ink:       #ffffff;
+      --ink-2:     #c3c2b7;
+      --muted:     #898781;
+      --grid:      #2c2c2a;
+      --baseline:  #383835;
+      --border:    rgba(255,255,255,0.10);
+      --good-text: #0ca30c;
+      --bad-text:  #e66767;
+      --s1: #3987e5; --s2: #008300; --s3: #d55181; --s4: #c98500;
+      --s5: #199e70; --s6: #d95926; --s7: #9085e9; --s8: #e66767;
+      --div-pos: #3987e5;
+      --div-neg: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:      #0d0d0d;
+    --surface:   #1a1a19;
+    --ink:       #ffffff;
+    --ink-2:     #c3c2b7;
+    --muted:     #898781;
+    --grid:      #2c2c2a;
+    --baseline:  #383835;
+    --border:    rgba(255,255,255,0.10);
+    --good-text: #0ca30c;
+    --bad-text:  #e66767;
+    --s1: #3987e5; --s2: #008300; --s3: #d55181; --s4: #c98500;
+    --s5: #199e70; --s6: #d95926; --s7: #9085e9; --s8: #e66767;
+    --div-pos: #3987e5;
+    --div-neg: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  header.hero { margin-bottom: 28px; }
+  .hero h1 { font-size: 30px; line-height: 1.2; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .hero .sub { color: var(--ink-2); max-width: 780px; margin: 0; }
+  .seasons { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+  .seasons a {
+    font-size: 12.5px; color: var(--ink-2); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px;
+  }
+  .seasons a:hover { border-color: var(--baseline); color: var(--ink); }
+  .seasons:empty { display: none; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin: 22px 0;
+  }
+  .card h2 { font-size: 19px; margin: 0 0 4px; }
+  .card .desc { color: var(--ink-2); font-size: 13.5px; margin: 0 0 16px; max-width: 820px; }
+  .card .desc strong { color: var(--ink); }
+
+  .howto { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .howto { grid-template-columns: 1fr; } }
+  .howto .rule { border-left: 3px solid var(--s1); padding-left: 14px; }
+  .howto .rule h3 { font-size: 14px; margin: 0 0 4px; }
+  .howto .rule p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .tile .lbl { font-size: 12.5px; color: var(--ink-2); margin-bottom: 4px; }
+  .tile .val { font-size: 26px; font-weight: 600; line-height: 1.15; }
+  .tile .delta { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+  .tile .delta.up   { color: var(--good-text); }
+  .tile .delta.down { color: var(--bad-text); }
+
+  .tbl-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { padding: 7px 10px; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { padding-left: 4px; }
+  td.txt, th.txt { text-align: left; }
+  thead th {
+    color: var(--muted); font-weight: 600; font-size: 12px;
+    border-bottom: 1px solid var(--baseline);
+    cursor: pointer; user-select: none; position: relative;
+  }
+  thead th.nosort { cursor: default; }
+  tbody td { border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.champ td { font-weight: 600; }
+  td.dim { color: var(--muted); }
+  td.emph { font-weight: 600; }
+  .delta-up   { color: var(--good-text); }
+  .delta-down { color: var(--bad-text); }
+  .delta-flat { color: var(--muted); }
+  th .arr { font-size: 9px; margin-left: 3px; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .chip {
+    font: inherit; font-size: 12.5px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--ink-2);
+    border-radius: 999px; padding: 4px 12px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip:hover { border-color: var(--baseline); color: var(--ink); }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--baseline); flex: none; }
+  .chip[aria-pressed="true"] { color: var(--ink); font-weight: 600; border-color: var(--baseline); }
+  .chip-actions { margin-left: auto; display: inline-flex; gap: 8px; }
+  .chip.ghost { border-style: dashed; }
+
+  .chart-scroll { overflow-x: auto; }
+  .chart-scroll svg { display: block; }
+  figure { margin: 0; }
+  figcaption { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  .legend { display: flex; gap: 18px; align-items: center; font-size: 12.5px; color: var(--ink-2); margin-bottom: 12px; flex-wrap: wrap; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw  { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  .legend .ln  { width: 16px; height: 2px; border-radius: 1px; flex: none; }
+
+  .heat-scroll { overflow-x: auto; }
+  .heat { border-collapse: collapse; font-size: 10.5px; }
+  .heat th { font-size: 10px; color: var(--muted); font-weight: 600; padding: 3px 2px; text-align: center; cursor: default; border-bottom: none; }
+  .heat td { padding: 0; border: none; }
+  .heat .cell {
+    width: 27px; min-width: 27px; height: 21px;
+    display: flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+    border-radius: 2px;
+  }
+  .heat td { padding: 1px; }
+  .heat .team-cell {
+    position: sticky; left: 0; background: var(--surface);
+    text-align: left; font-size: 12px; padding: 0 10px 0 2px; white-space: nowrap;
+    font-variant-numeric: normal;
+  }
+  .heat-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .heat-legend .bar { height: 8px; width: 140px; border-radius: 4px; }
+
+  select {
+    font: inherit; font-size: 14px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--baseline); border-radius: 8px;
+    padding: 6px 10px;
+  }
+  .gbg-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .gbg-sum { font-size: 13px; color: var(--ink-2); }
+  .gbg-sum strong { color: var(--ink); }
+  .pill {
+    display: inline-block; min-width: 22px; text-align: center;
+    border-radius: 6px; padding: 1px 6px; font-weight: 600; font-size: 12px;
+    color: var(--ink);
+  }
+  .pill.W { background: color-mix(in srgb, var(--status-good) 18%, transparent); }
+  .pill.D { background: color-mix(in srgb, var(--muted) 18%, transparent); }
+  .pill.L { background: color-mix(in srgb, var(--status-critical) 18%, transparent); }
+
+  .viz-tip {
+    position: fixed; z-index: 30; pointer-events: none;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+    padding: 8px 11px; font-size: 12.5px; max-width: 260px;
+    display: none;
+  }
+  .viz-tip .tt-title { color: var(--muted); font-size: 11.5px; margin-bottom: 3px; }
+  .viz-tip .tt-row { display: flex; align-items: center; gap: 7px; padding: 1px 0; }
+  .viz-tip .tt-key { width: 12px; height: 2px; border-radius: 1px; flex: none; }
+  .viz-tip .tt-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .viz-tip .tt-name { color: var(--ink-2); }
+
+  footer { color: var(--muted); font-size: 12.5px; margin-top: 40px; }
+  footer a { color: var(--ink-2); }
+  noscript .card { border-color: var(--bad-text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="kicker">Premier League &middot; {{SEASON_LABEL}} &middot; {{STATUS}}</div>
+    <h1>The Handicap Season</h1>
+    <nav class="seasons" aria-label="Other seasons">{{SEASON_NAV}}</nav>
+    <p class="sub">
+      Before the season, every club was assigned a <strong>handicap</strong> &mdash; bonus points
+      added to its season total, biggest for the sides expected to struggle. {{INTRO}}
+    </p>
+  </header>
+
+  <noscript><div class="card"><h2>JavaScript required</h2>
+    <p class="desc">This page renders its tables and charts with JavaScript. The underlying data
+    lives in <a href="data/">the data folder</a> of the repository.</p></div></noscript>
+
+  <section class="kpis" id="kpis" aria-label="Season headlines"></section>
+
+  <section class="card">
+    <h2>How the handicap works</h2>
+    <div class="howto" style="margin-top:12px">
+      <div class="rule">
+        <h3>Season totals</h3>
+        <p id="rule-season"></p>
+      </div>
+      <div class="rule">
+        <h3>Game by game</h3>
+        <p id="rule-game"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Adjusted league table</h2>
+    <p class="desc">Sorted by adjusted points; actual points and handicap stay visible.
+      <span style="color:var(--muted)">&Delta; is places gained or lost against the actual table. Click a column heading to re-sort.</span></p>
+    <div class="tbl-scroll"><table id="league-table" aria-label="Adjusted league table"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Where the points came from</h2>
+    <p class="desc">Every team&rsquo;s adjusted total, split into points earned on the pitch and
+      points granted by the handicap.</p>
+    <figure>
+      <div class="legend" id="stack-legend"></div>
+      <div class="chart-scroll" id="stack-chart"></div>
+    </figure>
+  </section>
+
+  <section class="card">
+    <h2>The race, game by game</h2>
+    <p class="desc">Cumulative adjusted points across the season. Click teams below to
+      highlight them &mdash; everyone else stays as grey context. Hover the chart for values at any game.</p>
+    <div class="chip-row" id="race-chips" role="group" aria-label="Highlight teams"></div>
+    <figure>
+      <div class="chart-scroll" id="race-chart"></div>
+      <figcaption>Values for every team at every game are in the grid below.</figcaption>
+    </figure>
+  </section>
+
+  <section class="card">
+    <h2>Cumulative adjusted points &mdash; full grid</h2>
+    <p class="desc">Rows are teams in current adjusted order; columns are each team&rsquo;s games. Each cell is
+      the running adjusted total after that game (rounded to whole points). Darker means more points.
+      Hover a cell for the game behind it.</p>
+    <div class="heat-scroll" id="heatmap"></div>
+    <div class="heat-legend" id="heat-legend"></div>
+  </section>
+
+  <section class="card">
+    <h2>Season-to-date position &mdash; full grid</h2>
+    <p class="desc">The same grid, but showing each team&rsquo;s <strong>position in the adjusted
+      standings</strong> after every game: 1 means top of the adjusted table once every side had
+      played that many games. Ties are split by goal difference to date, then goals scored, so the
+      final column matches the adjusted league table above. Hover a cell for the points behind it.</p>
+    <div class="heat-scroll" id="rankgrid"></div>
+    <div class="heat-legend" id="rank-legend"></div>
+  </section>
+
+  <section class="card">
+    <h2>Game-by-game detail</h2>
+    <p class="desc">Every game so far for one team, with the handicap share added to each result.</p>
+    <div class="gbg-head">
+      <label for="gbg-select" style="font-size:13px;color:var(--ink-2)">Team</label>
+      <select id="gbg-select"></select>
+      <span class="gbg-sum" id="gbg-summary"></span>
+    </div>
+    <div class="tbl-scroll"><table id="gbg-table" aria-label="Game-by-game results"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Who beat their handicap?</h2>
+    <p class="desc">If the handicaps had been set perfectly, every team would have finished on the
+      same adjusted total &mdash; the league average of <strong id="mean-adj"></strong> points.
+      Bars show each team&rsquo;s distance from that mark: right of the line means the team
+      outperformed its handicap, left means it fell short.</p>
+    <figure>
+      <div class="legend" id="div-legend"></div>
+      <div class="chart-scroll" id="div-chart"></div>
+    </figure>
+  </section>
+
+  <section class="card">
+    <h2>Did the handicaps track real strength?</h2>
+    <p class="desc" id="scatter-desc"></p>
+    <figure>
+      <div class="chart-scroll" id="scatter-chart"></div>
+      <figcaption>Teams above the line beat their handicap expectation; teams below fell short.</figcaption>
+    </figure>
+  </section>
+
+  <footer>
+    Data: supplied season handicaps + {{SEASON_LABEL}} match results (football-data.co.uk format),
+    processed by build_site.py in the
+    <a href="https://github.com/ZeNoonan/Research">Research repository</a>
+    (premier_league_handicap folder). A Streamlit version of this analysis lives in the same folder.
+  </footer>
+</div>
+
+<div class="viz-tip" id="tip" role="status"></div>
+
+<script>
+window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
+</script>
+<script>
+"use strict";
+(function () {
+  const D = window.PLH_DATA;
+  if (!D) return;
+  const TEAMS = D.teams;                       // sorted by adjusted rank
+  const N38 = D.gamesPerSeason;                // 38 — the handicap divisor, always
+  const MAXP = D.maxPlayed;                    // games actually played so far
+  const MEAN = D.meanAdjusted;
+  // Cumulative adjusted points after game g (1-based); teams that have played
+  // fewer games hold their last value, so a ragged fixture list still lines up.
+  const cumAt = (t, g) => t.cum[Math.min(g, t.cum.length) - 1];
+  const lastCum = (t) => t.cum[t.cum.length - 1];
+  // The adjusted total the page ranks on: full handicap once the season is done,
+  // the share earned so far while it is in progress.
+  const adjOf = (t) => (D.complete ? t.adjusted : t.adjustedToDate);
+  const hcapOf = (t) => (D.complete ? t.handicap : t.handicapToDate);
+
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const SLOT_VARS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+  const fmt = (v, dp = 0) => v.toLocaleString("en-GB", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const ordinal = (n) => n + (["st","nd","rd"][((n + 90) % 100 - 10) % 10 - 1] || "th");
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const isSvg = ["svg","g","rect","path","line","circle","text","title"].includes(tag);
+    const node = isSvg ? document.createElementNS(SVG_NS, tag) : document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (k === "text") node.textContent = v;
+      else if (k === "cls") node.setAttribute("class", v);
+      else node.setAttribute(k, v);
+    }
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  /* ---------- shared tooltip ---------- */
+  const tip = document.getElementById("tip");
+  function tipShow(x, y, build) {
+    tip.textContent = "";
+    build(tip);
+    tip.style.display = "block";
+    const r = tip.getBoundingClientRect();
+    let px = x + 14, py = y + 14;
+    if (px + r.width > window.innerWidth - 8) px = x - r.width - 14;
+    if (py + r.height > window.innerHeight - 8) py = y - r.height - 14;
+    tip.style.left = px + "px";
+    tip.style.top = py + "px";
+  }
+  function tipHide() { tip.style.display = "none"; }
+  function tipTitle(parent, text) { el("div", { cls: "tt-title", text }, parent); }
+  function tipRow(parent, color, value, name) {
+    const row = el("div", { cls: "tt-row" }, parent);
+    const key = el("span", { cls: "tt-key" }, row);
+    key.style.background = color;
+    el("span", { cls: "tt-val", text: value }, row);
+    el("span", { cls: "tt-name", text: name }, row);
+  }
+
+  /* ---------- how-the-handicap-works copy ---------- */
+  (function rules() {
+    const lead = TEAMS[0];
+    const pg = (lead.handicap / N38);
+    const seasonEl = document.getElementById("rule-season");
+    const gameEl = document.getElementById("rule-game");
+    const b = (txt) => { const s = document.createElement("strong"); s.textContent = txt; return s; };
+
+    if (D.complete) {
+      seasonEl.append("Adjusted points = actual points + handicap. ",
+        b(lead.short), ` finished on ${fmt(lead.actual)} actual points with a `,
+        `${fmt(lead.handicap)}-point handicap, for `, b(`${fmt(lead.adjusted)} adjusted points`), ".");
+    } else {
+      seasonEl.append("Adjusted points = actual points + the share of the handicap earned so far ",
+        `(handicap × games played ÷ ${N38}), so nobody banks a full-season handicap after `,
+        `${D.maxPlayed === 1 ? "one game" : `${D.maxPlayed} games`}. `,
+        "The table also shows each team's full-handicap total for the season.");
+    }
+    gameEl.append(`The handicap is spread evenly across the ${N38} games of a season `,
+      `(handicap ÷ ${N38}). With a ${N38}-point handicap that is +1 per game: a win is worth `,
+      "3 + 1 = 4, a draw 1 + 1 = 2. ",
+      `${lead.short}'s handicap is ${fmt(lead.handicap)}, or +${pg.toFixed(3)} a game.`);
+  })();
+
+  /* ---------- KPI tiles ---------- */
+  (function kpis() {
+    const host = document.getElementById("kpis");
+    const byAdj = TEAMS[0];
+    const byActual = TEAMS.find((t) => t.actualRank === 1);
+    let climber = TEAMS[0], faller = TEAMS[0];
+    for (const t of TEAMS) {
+      if ((t.actualRank - t.adjRank) > (climber.actualRank - climber.adjRank)) climber = t;
+      if ((t.actualRank - t.adjRank) < (faller.actualRank - faller.adjRank)) faller = t;
+    }
+    const ord = ordinal;
+    const tiles = [
+      { l: D.complete ? "Adjusted champions" : "Adjusted leaders", v: byAdj.short,
+        d: D.complete
+          ? `${byAdj.adjusted} pts · ${byAdj.actual} actual + ${byAdj.handicap} handicap`
+          : `${fmt(byAdj.adjustedToDate, 2)} pts · ${byAdj.actual} actual + ${fmt(byAdj.handicapToDate, 2)} handicap so far`,
+        c: "" },
+      { l: D.complete ? "Actual champions" : "Actual leaders", v: byActual.short,
+        d: `${byActual.actual} pts · ${ord(byActual.adjRank)} after handicap`, c: "" },
+      { l: "Biggest climber", v: climber.short,
+        d: `▲ ${climber.actualRank - climber.adjRank} places (${ord(climber.actualRank)} → ${ord(climber.adjRank)})`, c: "up" },
+      { l: "Biggest faller", v: faller.short,
+        d: `▼ ${faller.adjRank - faller.actualRank} places (${ord(faller.actualRank)} → ${ord(faller.adjRank)})`, c: "down" },
+    ];
+    for (const t of tiles) {
+      const tile = el("div", { cls: "tile" }, host);
+      el("div", { cls: "lbl", text: t.l }, tile);
+      el("div", { cls: "val", text: t.v }, tile);
+      el("div", { cls: "delta " + t.c, text: t.d }, tile);
+    }
+  })();
+
+  /* ---------- adjusted league table ---------- */
+  (function leagueTable() {
+    const table = document.getElementById("league-table");
+    const cols = [
+      { k: "adjRank",  h: "Pos" },
+      { k: "name",     h: "Team", txt: true },
+      { k: "played",   h: "P", dim: true },
+      { k: "w",  h: "W", dim: true }, { k: "dr", h: "D", dim: true }, { k: "l", h: "L", dim: true },
+      { k: "gd", h: "GD", get: (t) => t.gf - t.ga, dim: true },
+      { k: "actual",   h: "Actual pts" },
+      { k: "handicap", h: "Handicap" },
+      ...(D.complete
+        ? [{ k: "adjusted", h: "Adjusted", emph: true }]
+        : [{ k: "handicapToDate", h: "Handicap so far", dp: 2, dim: true },
+           { k: "adjustedToDate", h: "Adjusted", dp: 2, emph: true },
+           { k: "adjustedFull", h: "With full handicap", dim: true }]),
+      { k: "actualRank", h: "Actual pos", dim: true },
+      { k: "moved", h: "Δ", get: (t) => t.actualRank - t.adjRank },
+    ];
+    let sortKey = D.complete ? "adjusted" : "adjustedToDate", sortDir = -1;
+    const val = (t, c) => (c.get ? c.get(t) : t[c.k]);
+
+    function render() {
+      table.textContent = "";
+      const thead = el("thead", {}, table);
+      const hr = el("tr", {}, thead);
+      for (const c of cols) {
+        const th = el("th", { text: c.h, cls: (c.txt ? "txt" : "") + (c.nosort ? " nosort" : "") }, hr);
+        if (c.nosort) continue;
+        if ((c.k) === sortKey) {
+          el("span", { cls: "arr", text: sortDir === -1 ? "▼" : "▲" }, th);
+          th.setAttribute("aria-sort", sortDir === -1 ? "descending" : "ascending");
+        }
+        th.addEventListener("click", () => {
+          if (sortKey === c.k) sortDir = -sortDir;
+          else { sortKey = c.k; sortDir = c.txt ? 1 : -1; }
+          render();
+        });
+      }
+      const rows = [...TEAMS].sort((a, b) => {
+        const c = cols.find((x) => x.k === sortKey);
+        const av = val(a, c), bv = val(b, c);
+        const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+        return cmp !== 0 ? cmp * sortDir : a.adjRank - b.adjRank;
+      });
+      const tbody = el("tbody", {}, table);
+      for (const t of rows) {
+        const tr = el("tr", { cls: t.adjRank === 1 ? "champ" : "" }, tbody);
+        for (const c of cols) {
+          const v = val(t, c);
+          const td = el("td", { cls: (c.txt ? "txt " : "") + (c.dim ? "dim " : "") + (c.emph ? "emph" : "") }, tr);
+          if (c.k === "moved") {
+            td.textContent = v > 0 ? `▲ ${v}` : v < 0 ? `▼ ${-v}` : "–";
+            td.className += v > 0 ? " delta-up" : v < 0 ? " delta-down" : " delta-flat";
+          } else if (c.k === "gd") {
+            td.textContent = (v > 0 ? "+" : "") + v;
+          } else if (c.dp) {
+            td.textContent = fmt(v, c.dp);
+          } else td.textContent = v;
+        }
+      }
+    }
+    render();
+  })();
+
+  /* ---------- stacked bar: actual + handicap ---------- */
+  function renderStack() {
+    const host = document.getElementById("stack-chart");
+    host.textContent = "";
+    const legend = document.getElementById("stack-legend");
+    legend.textContent = "";
+    for (const [cvar, label] of [["--s1", "Actual points"], ["--s2", "Handicap"]]) {
+      const key = el("span", { cls: "key" }, legend);
+      const sw = el("span", { cls: "sw" }, key);
+      sw.style.background = css(cvar);
+      key.appendChild(document.createTextNode(label));
+    }
+    const W = Math.max(560, Math.min(host.clientWidth || 800, 1052));
+    const rowH = 27, barH = 16, mL = 96, mR = 46, mT = 6, mB = 26;
+    const H = mT + TEAMS.length * rowH + mB;
+    const maxV = Math.max(...TEAMS.map(adjOf));
+    const xMax = Math.ceil(maxV / 20) * 20;
+    const x = (v) => mL + (v / xMax) * (W - mL - mR);
+    const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Stacked bar chart of actual points plus handicap per team" }, host);
+
+    for (let g = 0; g <= xMax; g += 20) {
+      el("line", { x1: x(g), x2: x(g), y1: mT, y2: H - mB, stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: x(g), y: H - 8, "text-anchor": "middle", "font-size": 11,
+        fill: css("--muted"), text: fmt(g) }, svg);
+    }
+    const c1 = css("--s1"), c2 = css("--s2");
+    TEAMS.forEach((t, i) => {
+      const y = mT + i * rowH + (rowH - barH) / 2;
+      el("text", { x: mL - 8, y: y + barH / 2 + 4, "text-anchor": "end", "font-size": 12,
+        fill: css("--ink-2"), text: t.short }, svg);
+      const wA = x(t.actual) - x(0);
+      const wH = x(hcapOf(t)) - x(0);
+      el("rect", { x: x(0), y, width: Math.max(wA - 1, 0), height: barH, fill: c1, rx: 0 }, svg);
+      if (hcapOf(t) > 0)
+        el("rect", { x: x(0) + wA + 1, y, width: Math.max(wH - 1, 1), height: barH, fill: c2, rx: 2 }, svg);
+      el("text", { x: x(adjOf(t)) + 6, y: y + barH / 2 + 4, "font-size": 11.5, "font-weight": 600,
+        fill: css("--ink"), text: fmt(adjOf(t), D.complete ? 0 : 2) }, svg);
+      const hit = el("rect", { x: 0, y: mT + i * rowH, width: W, height: rowH, fill: "transparent" }, svg);
+      hit.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+        tipTitle(p, t.name);
+        tipRow(p, c1, fmt(t.actual), "actual points");
+        tipRow(p, c2, fmt(hcapOf(t), D.complete ? 0 : 3), D.complete ? "handicap" : "handicap so far");
+        tipRow(p, "transparent", fmt(adjOf(t), D.complete ? 0 : 2), "adjusted total");
+      }));
+      hit.addEventListener("pointerleave", tipHide);
+    });
+    el("line", { x1: x(0), x2: x(0), y1: mT, y2: H - mB, stroke: css("--baseline"), "stroke-width": 1 }, svg);
+  }
+
+  /* ---------- the race: emphasis line chart ---------- */
+  const race = {
+    sel: new Map(),          // team name -> slot index
+    order: [],               // selection order (team names)
+  };
+  function raceDefaults() {
+    const adjChamp = TEAMS[0].name;
+    const actChamp = TEAMS.find((t) => t.actualRank === 1).name;
+    for (const name of [adjChamp, actChamp]) raceToggle(name, true);
+  }
+  function raceFreeSlot() {
+    for (let s = 0; s < SLOT_VARS.length; s++)
+      if (![...race.sel.values()].includes(s)) return s;
+    return -1;
+  }
+  function raceToggle(name, silent) {
+    if (race.sel.has(name)) {
+      race.sel.delete(name);
+      race.order = race.order.filter((n) => n !== name);
+    } else {
+      let slot = raceFreeSlot();
+      if (slot === -1) {                     // cap reached: drop the oldest
+        const oldest = race.order.shift();
+        slot = race.sel.get(oldest);
+        race.sel.delete(oldest);
+      }
+      race.sel.set(name, slot);
+      race.order.push(name);
+    }
+    if (!silent) { renderChips(); renderRace(); }
+  }
+  function renderChips() {
+    const host = document.getElementById("race-chips");
+    host.textContent = "";
+    for (const t of TEAMS) {
+      const on = race.sel.has(t.name);
+      const chip = el("button", { cls: "chip", "aria-pressed": on ? "true" : "false", type: "button" }, host);
+      const dot = el("span", { cls: "dot" }, chip);
+      if (on) dot.style.background = css(SLOT_VARS[race.sel.get(t.name)]);
+      chip.appendChild(document.createTextNode(t.short));
+      chip.addEventListener("click", () => raceToggle(t.name));
+    }
+    const actions = el("span", { cls: "chip-actions" }, host);
+    const clear = el("button", { cls: "chip ghost", type: "button", text: "Clear" }, actions);
+    clear.addEventListener("click", () => {
+      race.sel.clear(); race.order = [];
+      renderChips(); renderRace();
+    });
+  }
+
+  function renderRace() {
+    const host = document.getElementById("race-chart");
+    host.textContent = "";
+    const W = Math.max(640, Math.min(host.clientWidth || 900, 1052));
+    const H = 430, mL = 40, mR = 134, mT = 10, mB = 34;
+    const yMax = Math.max(10, Math.ceil(Math.max(...TEAMS.map(lastCum)) / 10) * 10);
+    const x = (g) => (MAXP < 2 ? mL : mL + ((g - 1) / (MAXP - 1)) * (W - mL - mR));
+    const y = (v) => mT + (1 - v / yMax) * (H - mT - mB);
+    const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Cumulative adjusted points per game for all 20 teams" }, host);
+
+    for (let v = 0; v <= yMax; v += 20) {
+      el("line", { x1: mL, x2: W - mR, y1: y(v), y2: y(v), stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: mL - 7, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: css("--muted"), text: fmt(v) }, svg);
+    }
+    const ticks = MAXP <= 12 ? Array.from({length: MAXP}, (_, i) => i + 1)
+      : [1, 5, 10, 15, 20, 25, 30, 35, 38].filter((g) => g <= MAXP);
+    for (const g of ticks) {
+      el("text", { x: x(g), y: H - 12, "text-anchor": "middle", "font-size": 11, fill: css("--muted"), text: g }, svg);
+    }
+    el("text", { x: (mL + W - mR) / 2, y: H - 0.5, "text-anchor": "middle", "font-size": 11, fill: css("--muted"), text: "Game" }, svg);
+    el("line", { x1: mL, x2: W - mR, y1: y(0), y2: y(0), stroke: css("--baseline"), "stroke-width": 1 }, svg);
+
+    const path = (t) => t.cum.map((v, i) => `${i ? "L" : "M"}${x(i + 1).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    const gCtx = el("g", {}, svg);
+    const gHl = el("g", {}, svg);
+    const linesByName = new Map();
+    for (const t of TEAMS) {
+      if (race.sel.has(t.name)) continue;
+      // one game in, a path has nothing to join — show the point itself
+      const p = MAXP < 2
+        ? el("circle", { cx: x(1), cy: y(lastCum(t)), r: 3.5, fill: css("--grid") }, gCtx)
+        : el("path", { d: path(t), fill: "none", stroke: css("--grid"),
+            "stroke-width": 1.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, gCtx);
+      linesByName.set(t.name, p);
+    }
+    const labels = [];
+    for (const name of race.order) {
+      const t = TEAMS.find((q) => q.name === name);
+      const color = css(SLOT_VARS[race.sel.get(name)]);
+      el("path", { d: path(t), fill: "none", stroke: css("--surface"),
+        "stroke-width": 5, "stroke-linejoin": "round", "stroke-linecap": "round" }, gHl);
+      el("path", { d: path(t), fill: "none", stroke: color,
+        "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, gHl);
+      const ex = x(MAXP), ey = y(lastCum(t));
+      el("circle", { cx: ex, cy: ey, r: 4.5, fill: color, stroke: css("--surface"), "stroke-width": 2 }, gHl);
+      labels.push({ t, color, ey });
+    }
+    labels.sort((a, b) => a.ey - b.ey);
+    for (let i = 1; i < labels.length; i++)
+      if (labels[i].ey - labels[i - 1].ey < 15) labels[i].ey = labels[i - 1].ey + 15;
+    for (const lb of labels) {
+      const lineY = y(lastCum(lb.t));
+      if (Math.abs(lb.ey - lineY) > 2)
+        el("line", { x1: x(MAXP) + 6, y1: lineY, x2: x(MAXP) + 12, y2: lb.ey, stroke: css("--baseline"), "stroke-width": 1 }, svg);
+      const g = el("g", {}, svg);
+      el("circle", { cx: x(MAXP) + 18, cy: lb.ey, r: 3.5, fill: lb.color }, g);
+      el("text", { x: x(MAXP) + 26, y: lb.ey + 4, "font-size": 11.5, fill: css("--ink"),
+        text: `${lb.t.short} ${fmt(lastCum(lb.t), D.complete ? 0 : 2)}` }, g);
+    }
+
+    const cross = el("line", { y1: mT, y2: H - mB, stroke: css("--baseline"), "stroke-width": 1, visibility: "hidden" }, svg);
+    const overlay = el("rect", { x: mL, y: mT, width: W - mL - mR, height: H - mT - mB, fill: "transparent" }, svg);
+    overlay.addEventListener("pointermove", (e) => {
+      const r = svg.getBoundingClientRect();
+      const px = e.clientX - r.left, py = e.clientY - r.top;
+      const g = MAXP < 2 ? 1 : Math.max(1, Math.min(MAXP, Math.round((px - mL) / (W - mL - mR) * (MAXP - 1)) + 1));
+      cross.setAttribute("x1", x(g)); cross.setAttribute("x2", x(g));
+      cross.setAttribute("visibility", "visible");
+
+      let hoverTeam = null, hoverDist = 11;
+      for (const t of TEAMS) {
+        if (race.sel.has(t.name)) continue;
+        const d = Math.abs(y(cumAt(t, g)) - py);
+        if (d < hoverDist) { hoverDist = d; hoverTeam = t; }
+      }
+      for (const [name, p] of linesByName) {
+        const isHover = hoverTeam && name === hoverTeam.name;
+        if (p.tagName === "circle") {
+          p.setAttribute("fill", isHover ? css("--muted") : css("--grid"));
+        } else {
+          p.setAttribute("stroke", isHover ? css("--muted") : css("--grid"));
+          p.setAttribute("stroke-width", isHover ? 2.5 : 1.5);
+        }
+      }
+      tipShow(e.clientX, e.clientY, (p) => {
+        tipTitle(p, `Game ${g}`);
+        const entries = race.order
+          .map((n) => TEAMS.find((q) => q.name === n))
+          .sort((a, b) => cumAt(b, g) - cumAt(a, g));
+        for (const t of entries)
+          tipRow(p, css(SLOT_VARS[race.sel.get(t.name)]), fmt(cumAt(t, g), 1), t.short);
+        if (hoverTeam) tipRow(p, css("--muted"), fmt(cumAt(hoverTeam, g), 1), hoverTeam.short);
+        if (!entries.length && !hoverTeam) tipRow(p, "transparent", "", "Click a team above to highlight it");
+      });
+    });
+    overlay.addEventListener("pointerleave", () => {
+      cross.setAttribute("visibility", "hidden");
+      for (const p of linesByName.values()) {
+        if (p.tagName === "circle") p.setAttribute("fill", css("--grid"));
+        else {
+          p.setAttribute("stroke", css("--grid"));
+          p.setAttribute("stroke-width", 1.5);
+        }
+      }
+      tipHide();
+    });
+  }
+
+  /* ---------- heatmap grids ---------- */
+  function heatColorT(t01) {
+    const ramp = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5",
+                  "#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches
+      && document.documentElement.dataset.theme !== "light";
+    const steps = (document.documentElement.dataset.theme === "dark" || dark) ? [...ramp].reverse() : ramp;
+    const t = Math.max(0, Math.min(1, t01)) * (steps.length - 1);
+    const i = Math.min(Math.floor(t), steps.length - 2);
+    const f = t - i;
+    const hex = (s) => [1, 3, 5].map((j) => parseInt(s.slice(j, j + 2), 16));
+    const [a, b] = [hex(steps[i]), hex(steps[i + 1])];
+    const rgb = a.map((av, j) => Math.round(av + (b[j] - av) * f));
+    const lum = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+    return { bg: `rgb(${rgb.join(",")})`, ink: lum > 0.55 ? "#0b0b0b" : "#ffffff" };
+  }
+  function heatColor(v, maxV) { return heatColorT(v / maxV); }
+  function renderHeat() {
+    const host = document.getElementById("heatmap");
+    host.textContent = "";
+    const maxV = Math.max(...TEAMS.map(lastCum));
+    const table = el("table", { cls: "heat", "aria-label": "Cumulative adjusted points per team per game" }, host);
+    const thead = el("thead", {}, table);
+    const hr = el("tr", {}, thead);
+    el("th", { cls: "team-cell", text: "" }, hr);
+    for (let g = 1; g <= N38; g++) el("th", { text: g }, hr);
+    const tbody = el("tbody", {}, table);
+    for (const t of TEAMS) {
+      const tr = el("tr", {}, tbody);
+      el("td", { cls: "team-cell", text: t.short }, tr);
+      t.cum.forEach((v, gi) => {
+        const td = el("td", {}, tr);
+        const c = heatColor(v, maxV);
+        const cell = el("div", { cls: "cell", text: fmt(Math.round(v)) }, td);
+        cell.style.background = c.bg;
+        cell.style.color = c.ink;
+        td.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+          const gm = t.games[gi];
+          const res = gm.p === 3 ? "W" : gm.p === 1 ? "D" : "L";
+          tipTitle(p, `${t.name} · game ${gi + 1}`);
+          tipRow(p, c.bg, fmt(v, 1), "cumulative adjusted");
+          tipRow(p, "transparent", `${res} ${gm.gf}–${gm.ga}`, `${gm.v === "H" ? "vs" : "at"} ${gm.o}`);
+        }));
+        td.addEventListener("pointerleave", tipHide);
+      });
+    }
+    const legend = document.getElementById("heat-legend");
+    legend.textContent = "";
+    legend.appendChild(document.createTextNode("0"));
+    const bar = el("span", { cls: "bar" }, legend);
+    const lo = heatColor(0, maxV).bg, mid = heatColor(maxV / 2, maxV).bg, hi = heatColor(maxV, maxV).bg;
+    bar.style.background = `linear-gradient(to right, ${lo}, ${mid}, ${hi})`;
+    legend.appendChild(document.createTextNode(`${fmt(maxV)} adjusted points`));
+  }
+
+  /* ---------- season-to-date position grid ---------- */
+  function computeRanks() {
+    // cumulative GD / GF per team per game, for tie-breaking
+    const cum = TEAMS.map((t) => {
+      let gd = 0, gf = 0;
+      return t.games.map((g) => ({ gd: (gd += g.gf - g.ga), gf: (gf += g.gf) }));
+    });
+    const ranks = TEAMS.map(() => new Array(MAXP));
+    for (let g = 0; g < MAXP; g++) {
+      const order = TEAMS.map((t, i) => ({ i, pts: t.cum[g], gd: cum[i][g].gd, gf: cum[i][g].gf, name: t.name }))
+        .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.name.localeCompare(b.name));
+      order.forEach((e, pos) => { ranks[e.i][g] = pos + 1; });
+    }
+    return ranks;
+  }
+  function renderRankGrid() {
+    const host = document.getElementById("rankgrid");
+    host.textContent = "";
+    const ranks = computeRanks();
+    const nT = TEAMS.length;
+    const rankT = (r) => (nT - r) / (nT - 1);       // 1st -> 1 (strong), 20th -> 0 (recessive)
+    const table = el("table", { cls: "heat", "aria-label": "Adjusted-table position per team per game" }, host);
+    const thead = el("thead", {}, table);
+    const hr = el("tr", {}, thead);
+    el("th", { cls: "team-cell", text: "" }, hr);
+    for (let g = 1; g <= N38; g++) el("th", { text: g }, hr);
+    const tbody = el("tbody", {}, table);
+    TEAMS.forEach((t, ti) => {
+      const tr = el("tr", {}, tbody);
+      el("td", { cls: "team-cell", text: t.short }, tr);
+      ranks[ti].forEach((r, gi) => {
+        const td = el("td", {}, tr);
+        const c = heatColorT(rankT(r));
+        const cell = el("div", { cls: "cell", text: r }, td);
+        cell.style.background = c.bg;
+        cell.style.color = c.ink;
+        td.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+          const gm = t.games[gi];
+          const res = gm.p === 3 ? "W" : gm.p === 1 ? "D" : "L";
+          tipTitle(p, `${t.name} · game ${gi + 1}`);
+          tipRow(p, c.bg, ordinal(r), `of ${nT} in the adjusted table`);
+          tipRow(p, "transparent", fmt(t.cum[gi], 1), "cumulative adjusted");
+          tipRow(p, "transparent", `${res} ${gm.gf}–${gm.ga}`, `${gm.v === "H" ? "vs" : "at"} ${gm.o}`);
+        }));
+        td.addEventListener("pointerleave", tipHide);
+      });
+    });
+    const legend = document.getElementById("rank-legend");
+    legend.textContent = "";
+    legend.appendChild(document.createTextNode("1st"));
+    const bar = el("span", { cls: "bar" }, legend);
+    bar.style.background = `linear-gradient(to right, ${heatColorT(1).bg}, ${heatColorT(0.5).bg}, ${heatColorT(0).bg})`;
+    legend.appendChild(document.createTextNode(`${ordinal(nT)} in the adjusted standings`));
+  }
+
+  /* ---------- game-by-game explorer ---------- */
+  (function gbg() {
+    const sel = document.getElementById("gbg-select");
+    for (const t of TEAMS) el("option", { value: t.name, text: t.name }, sel);
+    sel.value = TEAMS[0].name;
+    sel.addEventListener("change", render);
+    render();
+
+    function render() {
+      const t = TEAMS.find((q) => q.name === sel.value);
+      const perGame = t.handicap / N38;
+      const sum = document.getElementById("gbg-summary");
+      sum.textContent = "";
+      const b = (txt) => { const s = document.createElement("strong"); s.textContent = txt; return s; };
+      sum.append(b(`${t.w}W ${t.dr}D ${t.l}L`),
+        ` · ${t.actual} actual + ${fmt(hcapOf(t), D.complete ? 0 : 3)} handicap = `,
+        b(`${fmt(adjOf(t), D.complete ? 0 : 3)} adjusted`), ` · +${perGame.toFixed(3)} per game`);
+
+      const table = document.getElementById("gbg-table");
+      table.textContent = "";
+      const thead = el("thead", {}, table);
+      const hr = el("tr", {}, thead);
+      for (const h of ["#", "Date", "Opponent", "Score", "Result", "Base pts", "+ Handicap", "Game total", "Running actual", "Running adjusted"])
+        el("th", { text: h, cls: (h === "Date" || h === "Opponent" ? "txt " : "") + "nosort" }, hr);
+      const tbody = el("tbody", {}, table);
+      let cumB = 0;
+      t.games.forEach((gm, i) => {
+        cumB += gm.p;
+        const res = gm.p === 3 ? "W" : gm.p === 1 ? "D" : "L";
+        const tr = el("tr", {}, tbody);
+        el("td", { cls: "dim", text: i + 1 }, tr);
+        el("td", { cls: "txt", text: gm.d }, tr);
+        el("td", { cls: "txt", text: `${gm.v === "H" ? "vs" : "at"} ${gm.o}` }, tr);
+        el("td", { text: `${gm.gf}–${gm.ga}` }, tr);
+        const tdR = el("td", {}, tr);
+        el("span", { cls: `pill ${res}`, text: res }, tdR);
+        el("td", { text: gm.p }, tr);
+        el("td", { cls: "dim", text: "+" + perGame.toFixed(3) }, tr);
+        el("td", { cls: "emph", text: (gm.p + perGame).toFixed(3) }, tr);
+        el("td", { cls: "dim", text: cumB }, tr);
+        el("td", { cls: "emph", text: fmt(t.cum[i], 1) }, tr);
+      });
+    }
+  })();
+
+  /* ---------- diverging bar: vs handicap expectation ---------- */
+  function renderDiv() {
+    document.getElementById("mean-adj").textContent = fmt(MEAN, 1);
+    const legend = document.getElementById("div-legend");
+    legend.textContent = "";
+    for (const [cvar, label] of [["--div-pos", "Beat the handicap"], ["--div-neg", "Fell short"]]) {
+      const key = el("span", { cls: "key" }, legend);
+      const sw = el("span", { cls: "sw" }, key);
+      sw.style.background = css(cvar);
+      key.appendChild(document.createTextNode(label));
+    }
+    const host = document.getElementById("div-chart");
+    host.textContent = "";
+    const data = [...TEAMS].map((t) => ({ t, d: adjOf(t) - MEAN })).sort((a, b) => b.d - a.d);
+    const W = Math.max(560, Math.min(host.clientWidth || 800, 1052));
+    const rowH = 27, barH = 16, mL = 96, mR = 56, mT = 6, mB = 26;
+    const H = mT + data.length * rowH + mB;
+    const ext = Math.ceil(Math.max(...data.map((e) => Math.abs(e.d))) / 5) * 5;
+    const x = (v) => mL + ((v + ext) / (2 * ext)) * (W - mL - mR);
+    const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Adjusted points versus league average per team" }, host);
+    for (let v = -ext; v <= ext; v += 10) {
+      el("line", { x1: x(v), x2: x(v), y1: mT, y2: H - mB, stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: x(v), y: H - 8, "text-anchor": "middle", "font-size": 11, fill: css("--muted"),
+        text: (v > 0 ? "+" : "") + v }, svg);
+    }
+    const cp = css("--div-pos"), cn = css("--div-neg");
+    data.forEach((e, i) => {
+      const yy = mT + i * rowH + (rowH - barH) / 2;
+      el("text", { x: mL - 8, y: yy + barH / 2 + 4, "text-anchor": "end", "font-size": 12,
+        fill: css("--ink-2"), text: e.t.short }, svg);
+      const w = Math.abs(x(e.d) - x(0));
+      el("rect", { x: e.d >= 0 ? x(0) + 1 : x(e.d), y: yy, width: Math.max(w - 1, 0.5), height: barH,
+        fill: e.d >= 0 ? cp : cn, rx: 2 }, svg);
+      el("text", { x: e.d >= 0 ? x(e.d) + 6 : x(e.d) - 6, y: yy + barH / 2 + 4,
+        "text-anchor": e.d >= 0 ? "start" : "end", "font-size": 11.5, "font-weight": 600,
+        fill: css("--ink"), text: (e.d > 0 ? "+" : "") + fmt(e.d, 1) }, svg);
+      const hit = el("rect", { x: 0, y: mT + i * rowH, width: W, height: rowH, fill: "transparent" }, svg);
+      hit.addEventListener("pointermove", (ev) => tipShow(ev.clientX, ev.clientY, (p) => {
+        tipTitle(p, e.t.name);
+        tipRow(p, e.d >= 0 ? cp : cn, (e.d > 0 ? "+" : "") + fmt(e.d, 1), "vs league average adjusted");
+        tipRow(p, "transparent", fmt(adjOf(e.t), D.complete ? 0 : 2), `adjusted (avg ${fmt(MEAN, 1)})`);
+      }));
+      hit.addEventListener("pointerleave", tipHide);
+    });
+    el("line", { x1: x(0), x2: x(0), y1: mT, y2: H - mB, stroke: css("--baseline"), "stroke-width": 1.5 }, svg);
+  }
+
+  /* ---------- scatter: handicap vs actual points ---------- */
+  function renderScatter() {
+    const desc = document.getElementById("scatter-desc");
+    desc.textContent = "Each dot is a team: its pre-season handicap against the points it actually won. " +
+      `The correlation is ${fmt(D.handicapActualCorr, 2)} — ` +
+      (Math.abs(D.handicapActualCorr) > 0.8 ? "the handicap-setters read the league well." :
+       "the handicap-setters got the broad order right, with some big misses.") +
+      " The grey line marks a perfectly-set handicap (actual = average adjusted − handicap).";
+    const host = document.getElementById("scatter-chart");
+    host.textContent = "";
+    const W = Math.max(560, Math.min(host.clientWidth || 800, 1052));
+    const H = 400, mL = 44, mR = 24, mT = 12, mB = 40;
+    const xMax = Math.ceil(Math.max(...TEAMS.map((t) => t.handicap)) / 10) * 10 + 5;
+    const yMax = Math.ceil(Math.max(...TEAMS.map((t) => t.actual)) / 10) * 10;
+    const x = (v) => mL + (v / xMax) * (W - mL - mR);
+    const y = (v) => mT + (1 - v / yMax) * (H - mT - mB);
+    const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Scatter plot of handicap versus actual points" }, host);
+    for (let v = 0; v <= yMax; v += 20) {
+      el("line", { x1: mL, x2: W - mR, y1: y(v), y2: y(v), stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: mL - 7, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: css("--muted"), text: fmt(v) }, svg);
+    }
+    for (let v = 0; v <= xMax; v += 10) {
+      el("text", { x: x(v), y: H - 20, "text-anchor": "middle", "font-size": 11, fill: css("--muted"), text: fmt(v) }, svg);
+    }
+    el("text", { x: (mL + W - mR) / 2, y: H - 4, "text-anchor": "middle", "font-size": 11.5, fill: css("--muted"), text: "Handicap (points)" }, svg);
+    el("text", { x: 12, y: mT + 2, "font-size": 11.5, fill: css("--muted"), text: "Actual pts" }, svg);
+
+    const yAt0 = MEAN - 0;
+    const yAtMax = MEAN - xMax;
+    el("line", { x1: x(0), y1: y(Math.min(yAt0, yMax)), x2: x(xMax), y2: y(Math.max(yAtMax, 0)),
+      stroke: css("--baseline"), "stroke-width": 1 }, svg);
+
+    const dot = css("--s1");
+    const labelled = new Set([TEAMS[0].name,
+      TEAMS.find((t) => t.actualRank === 1).name,
+      TEAMS.find((t) => t.handicap === 0)?.name,
+      TEAMS.find((t) => t.actualRank === TEAMS.length).name].filter(Boolean));
+    for (const t of TEAMS) {
+      const cx = x(t.handicap), cy = y(t.actual);
+      el("circle", { cx, cy, r: 5, fill: dot, stroke: css("--surface"), "stroke-width": 2 }, svg);
+      if (labelled.has(t.name)) {
+        const flip = cx > W - mR - 80;
+        el("text", { x: flip ? cx - 10 : cx + 10, y: cy + 4, "font-size": 11.5, fill: css("--ink"),
+          "text-anchor": flip ? "end" : "start", text: t.short }, svg);
+      }
+      const hit = el("circle", { cx, cy, r: 13, fill: "transparent" }, svg);
+      hit.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+        tipTitle(p, t.name);
+        tipRow(p, dot, fmt(t.actual), "actual points");
+        tipRow(p, "transparent", fmt(t.handicap), "handicap");
+        tipRow(p, "transparent", (adjOf(t) - MEAN > 0 ? "+" : "") + fmt(adjOf(t) - MEAN, 1), "vs expectation");
+      }));
+      hit.addEventListener("pointerleave", tipHide);
+    }
+  }
+
+  /* ---------- boot + responsive re-render ---------- */
+  function renderAll() { renderStack(); renderRace(); renderDiv(); renderScatter(); }
+  raceDefaults();
+  renderChips();
+  renderHeat();
+  renderRankGrid();
+  renderAll();
+  let rT;
+  window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(renderAll, 150); });
+  if (window.matchMedia) {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderHeat(); renderRankGrid(); renderAll(); });
+  }
+})();
+</script>
+</body>
+</html>
