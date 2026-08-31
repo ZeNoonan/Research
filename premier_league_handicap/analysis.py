@@ -27,17 +27,70 @@ SEASONS = {
 }
 CURRENT_SEASON = "2026_2027"
 
-# Handicap-file team name -> results-file (football-data) team name.
-# Only names that actually differ need an entry.
-NAME_TO_RESULTS = {
-    "Manchester City": "Man City",
-    "Manchester Utd": "Man United",
-    "Newcastle Utd": "Newcastle",
-    "Nott'ham Forest": "Nott'm Forest",
-    "Leeds United": "Leeds",
-    "Sheffield Utd": "Sheffield United",
-    "West Bromwich": "West Brom",
+# Results files come from different sources (football-data.co.uk, FBref, hand
+# typed) which each spell clubs differently, so both the handicap file and the
+# results are resolved to a canonical club key before being joined. Add a
+# spelling here rather than renaming anything in the source data.
+CLUB_ALIASES = {
+    "arsenal": ["arsenal"],
+    "aston villa": ["aston villa", "villa"],
+    "bournemouth": ["bournemouth", "afc bournemouth"],
+    "brentford": ["brentford"],
+    "brighton": ["brighton", "brighton and hove albion", "brighton & hove albion"],
+    "burnley": ["burnley"],
+    "chelsea": ["chelsea"],
+    "coventry city": ["coventry", "coventry city"],
+    "crystal palace": ["crystal palace", "palace"],
+    "everton": ["everton"],
+    "fulham": ["fulham"],
+    "hull city": ["hull", "hull city"],
+    "ipswich town": ["ipswich", "ipswich town"],
+    "leeds united": ["leeds", "leeds united", "leeds utd"],
+    "leicester city": ["leicester", "leicester city"],
+    "liverpool": ["liverpool"],
+    "luton town": ["luton", "luton town"],
+    "manchester city": ["man city", "manchester city"],
+    "manchester united": ["man united", "man utd", "manchester utd", "manchester united"],
+    "newcastle united": ["newcastle", "newcastle utd", "newcastle united"],
+    "nottingham forest": [
+        "nottingham", "nottingham forest", "nott'm forest", "nott'ham forest",
+        "nottm forest", "forest",
+    ],
+    "sheffield united": ["sheffield united", "sheffield utd"],
+    "southampton": ["southampton"],
+    "sunderland": ["sunderland"],
+    "tottenham": ["tottenham", "tottenham hotspur", "spurs"],
+    "west bromwich albion": ["west brom", "west bromwich", "west bromwich albion"],
+    "west ham united": ["west ham", "west ham united", "west ham utd"],
+    "wolverhampton": ["wolves", "wolverhampton", "wolverhampton wanderers"],
 }
+
+def _normalise(name: str) -> str:
+    """Lower-case, drop punctuation and any 'FC'/'AFC', squeeze whitespace."""
+    cleaned = "".join(
+        c.lower() if (c.isalnum() or c.isspace()) else " " for c in str(name)
+    )
+    parts = [p for p in cleaned.split() if p not in {"fc", "afc"}]
+    return " ".join(parts)
+
+
+# Aliases are normalised on the way in, so "Nott'ham Forest" and "Nott'm
+# Forest" both reduce to the same lookup key as the canonical spelling.
+_ALIAS_LOOKUP = {}
+for _canonical, _spellings in CLUB_ALIASES.items():
+    for _s in {_canonical, *_spellings}:
+        _ALIAS_LOOKUP[_normalise(_s)] = _canonical
+
+
+def canonical_team(name: str) -> str:
+    """Map any spelling of a club onto its canonical key."""
+    key = _normalise(name)
+    if key in _ALIAS_LOOKUP:
+        return _ALIAS_LOOKUP[key]
+    raise KeyError(
+        f"Unrecognised club name {name!r} (normalised {key!r}). "
+        f"Add the spelling to CLUB_ALIASES in analysis.py."
+    )
 
 # Columns we accept for a minimal, hand-written results file, mapped onto the
 # football-data.co.uk names used internally.
@@ -68,7 +121,10 @@ def has_results(season: str) -> bool:
 
 def load_handicaps(season: str) -> pd.DataFrame:
     df = pd.read_csv(season_dir(season) / "season_handicap.csv")
-    df["results_name"] = df["team"].map(lambda t: NAME_TO_RESULTS.get(t, t))
+    df["club"] = df["team"].map(canonical_team)
+    if df["club"].duplicated().any():
+        dupes = sorted(df.loc[df["club"].duplicated(), "team"])
+        raise ValueError(f"Two handicap rows resolve to the same club: {dupes}")
     if df["team"].duplicated().any():
         dupes = sorted(df.loc[df["team"].duplicated(), "team"])
         raise ValueError(f"Duplicate teams in {season} handicap file: {dupes}")
@@ -82,6 +138,17 @@ def load_results(season: str) -> pd.DataFrame:
     or a minimal hand-written CSV with date, home, away and goal columns.
     """
     df = pd.read_csv(season_dir(season) / "results.csv", encoding="utf-8-sig")
+
+    # FBref-style export: Home / Away / "3-0" (any dash) in one Score column.
+    if {"Home", "Away", "Score"}.issubset(df.columns):
+        df = df.rename(columns={"Home": "HomeTeam", "Away": "AwayTeam"})
+        goals = (
+            df["Score"].astype("string")
+            .str.replace(r"[\u2010-\u2015\u2212]", "-", regex=True)
+            .str.extract(r"^\s*(\d+)\s*-\s*(\d+)\s*$")
+        )
+        df["FTHG"], df["FTAG"] = goals[0], goals[1]
+
     if not {"HomeTeam", "AwayTeam", "FTHG", "FTAG"}.issubset(df.columns):
         renames = {
             c: MINIMAL_COLUMNS[c.strip().lower().replace(" ", "").replace("_", "")]
@@ -98,11 +165,15 @@ def load_results(season: str) -> pd.DataFrame:
         )
 
     df = df[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].copy()
-    # Drop unplayed fixtures (blank scores) so a part-season file is usable.
-    df = df.dropna(subset=["FTHG", "FTAG"])
+    # Blank separator rows and unplayed fixtures both drop out here, so a
+    # part-season export with future fixtures still listed works as-is.
+    df = df.dropna(subset=["HomeTeam", "AwayTeam", "FTHG", "FTAG"])
+    df = df[df["HomeTeam"].astype(str).str.strip() != ""]
     df["FTHG"] = df["FTHG"].astype(int)
     df["FTAG"] = df["FTAG"].astype(int)
     df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, format="mixed")
+    for col in ("HomeTeam", "AwayTeam"):
+        df[col] = df[col].map(canonical_team)
     return df.sort_values("Date").reset_index(drop=True)
 
 
@@ -116,10 +187,8 @@ def _points_for(scored: int, conceded: int) -> int:
 
 def build_team_games(results: pd.DataFrame, handicaps: pd.DataFrame) -> pd.DataFrame:
     """One row per team per game, with base and handicap-adjusted points."""
-    per_game = dict(
-        zip(handicaps["results_name"], handicaps["handicap"] / GAMES_PER_SEASON)
-    )
-    display_name = dict(zip(handicaps["results_name"], handicaps["team"]))
+    per_game = dict(zip(handicaps["club"], handicaps["handicap"] / GAMES_PER_SEASON))
+    display_name = dict(zip(handicaps["club"], handicaps["team"]))
 
     played_names = set(results["HomeTeam"]) | set(results["AwayTeam"])
     unknown = sorted(played_names - set(per_game))
