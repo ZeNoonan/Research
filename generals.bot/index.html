@@ -1,0 +1,1262 @@
+<title>Generals in Ten Minutes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=Source+Serif+4:opsz,wght@8..60,400..600&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ground:#e7eaef;
+  --panel:#f8f9fb;
+  --panel-2:#dde2ea;
+  --ink:#141a22;
+  --ink-2:#4e5765;
+  --ink-3:#7b8593;
+  --rule:#c7cdd6;
+  --red:#bd332a;
+  --blue:#2a6bb0;
+  --gold:#9c7016;
+  --shadow:0 1px 0 rgba(20,26,34,.06);
+
+  /* Board chrome — deliberately fixed across themes: a game screen is its own
+     visual world, framed by the themed page around it. */
+  --b-frame:#1b2027;
+  --b-grid:#2b323b;
+  --b-mountain:#4c545f;
+  --b-fog:#232931;
+  --b-fogstruct:#171c22;
+  --b-neutral:#c9cfd8;
+  --b-castle:#8f96a1;
+  --b-you:#c8352c;
+  --b-bot:#2a6bb0;
+  --b-sel:#e8b14a;
+  --b-text-dark:#1b2027;
+  --b-text-light:#f4f6f9;
+
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0f1319;
+    --panel:#171d26;
+    --panel-2:#1f2731;
+    --ink:#e4e8ee;
+    --ink-2:#9aa5b3;
+    --ink-3:#78838f;
+    --rule:#2b333e;
+    --red:#e0574c;
+    --blue:#5b9ade;
+    --gold:#d0a33f;
+    --shadow:0 1px 0 rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0f1319;
+  --panel:#171d26;
+  --panel-2:#1f2731;
+  --ink:#e4e8ee;
+  --ink-2:#9aa5b3;
+  --ink-3:#78838f;
+  --rule:#2b333e;
+  --red:#e0574c;
+  --blue:#5b9ade;
+  --gold:#d0a33f;
+  --shadow:0 1px 0 rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:17px;
+  line-height:1.62;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:940px;margin:0 auto;padding:0 20px 96px}
+.prose{max-width:64ch}
+p{margin:0 0 1.1em}
+a{color:var(--red);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,button:focus-visible,select:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--gold);outline-offset:2px}
+strong{font-weight:600}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);
+  padding:.1em .35em;border-radius:2px}
+
+/* ---------- masthead ---------- */
+.mast{border-bottom:1px solid var(--rule);padding:34px 0 22px;margin-bottom:34px}
+.eyebrow{
+  font-family:var(--display);font-variation-settings:"wdth" 112;
+  font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 10px}
+h1{
+  font-family:var(--display);font-variation-settings:"wdth" 118;
+  font-weight:800;font-size:clamp(34px,7.2vw,58px);line-height:1.02;
+  letter-spacing:-.015em;margin:0 0 14px;text-wrap:balance}
+.standfirst{font-size:19px;color:var(--ink-2);max-width:56ch;margin:0}
+.mast-meta{
+  font-family:var(--mono);font-size:12px;color:var(--ink-3);
+  margin-top:18px;display:flex;flex-wrap:wrap;gap:6px 18px}
+
+/* ---------- sections ---------- */
+section{margin:0 0 52px}
+h2{
+  font-family:var(--display);font-variation-settings:"wdth" 115;
+  font-weight:700;font-size:26px;letter-spacing:-.01em;line-height:1.15;
+  margin:0 0 6px;text-wrap:balance}
+h3{
+  font-family:var(--display);font-variation-settings:"wdth" 110;
+  font-weight:600;font-size:17px;margin:26px 0 6px;letter-spacing:.005em}
+.kicker{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 4px}
+.sec-head{border-top:2px solid var(--ink);padding-top:12px;margin-bottom:20px}
+
+/* ---------- legend ---------- */
+.legend{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);margin:22px 0}
+.legend div{background:var(--panel);padding:11px 13px;display:flex;gap:11px;align-items:flex-start}
+.chip{
+  width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:13px;font-weight:700;color:var(--b-text-light)}
+.legend b{
+  display:block;font-family:var(--display);font-variation-settings:"wdth" 110;
+  font-weight:600;font-size:13.5px;letter-spacing:.01em}
+.legend span{font-size:13.5px;color:var(--ink-2);line-height:1.4}
+
+/* ---------- game ---------- */
+.game{
+  background:var(--b-frame);border:1px solid var(--b-grid);
+  padding:14px;margin:26px 0 20px;
+  display:grid;gap:12px;grid-template-columns:minmax(0,1fr) 224px}
+@media (max-width:760px){.game{grid-template-columns:minmax(0,1fr);padding:10px}}
+
+.board{
+  display:grid;gap:2px;background:var(--b-grid);border:2px solid var(--b-grid);
+  touch-action:manipulation;user-select:none}
+.cell{
+  aspect-ratio:1;display:grid;place-items:center;position:relative;
+  font-family:var(--mono);font-weight:700;
+  font-size:clamp(9px,2.1vw,14px);line-height:1;
+  background:var(--b-neutral);color:var(--b-text-dark);
+  cursor:pointer;transition:background .09s linear}
+.cell.fog{background:var(--b-fog);color:transparent;cursor:default}
+.cell.fogstruct{background:var(--b-fogstruct);color:transparent;cursor:default}
+.cell.fogstruct::after{content:"";position:absolute;inset:26%;background:var(--b-mountain);
+  clip-path:polygon(50% 0,100% 100%,0 100%)}
+.cell.mountain{background:var(--b-mountain);color:transparent;cursor:default}
+.cell.mountain::after{content:"";position:absolute;inset:24%;background:#2b323b;
+  clip-path:polygon(50% 0,100% 100%,0 100%)}
+.cell.castle{background:var(--b-castle);color:var(--b-text-dark)}
+.cell.you{background:var(--b-you);color:var(--b-text-light)}
+.cell.bot{background:var(--b-bot);color:var(--b-text-light)}
+.cell.gen::before,.cell.castle::before{
+  content:"";position:absolute;inset:0;border:2px solid rgba(255,255,255,.55);
+  pointer-events:none}
+.cell.gen::before{border-color:var(--b-sel);border-width:2px}
+.cell.castle.you::before,.cell.castle.bot::before{border-color:rgba(255,255,255,.5)}
+.cell.sel{box-shadow:inset 0 0 0 3px var(--b-sel);z-index:2}
+.cell.q{box-shadow:inset 0 0 0 2px rgba(232,177,74,.75);z-index:1}
+.cell.flash{background:var(--b-sel) !important;color:var(--b-text-dark) !important}
+
+/* ---------- side panel ---------- */
+.panel{display:flex;flex-direction:column;gap:10px;min-width:0}
+.score{display:grid;grid-template-columns:1fr auto auto;gap:2px 10px;
+  font-family:var(--mono);font-size:12px;color:#c3cad3;align-items:baseline}
+.score .hd{color:#79838f;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.score .n{font-variant-numeric:tabular-nums;text-align:right;font-weight:700;font-size:14px}
+.score .you{color:#f08a80}
+.score .bot{color:#8bb8e8}
+.turn{font-family:var(--mono);font-size:11px;color:#79838f;letter-spacing:.08em;
+  text-transform:uppercase;display:flex;justify-content:space-between;gap:8px}
+.turn b{color:#c3cad3;font-variant-numeric:tabular-nums}
+
+.controls{display:flex;flex-wrap:wrap;gap:6px}
+button,select{
+  font-family:var(--display);font-variation-settings:"wdth" 108;
+  font-weight:600;font-size:12px;letter-spacing:.03em;
+  background:#2b323b;color:#dfe4ea;border:1px solid #3b434e;
+  padding:7px 11px;cursor:pointer;border-radius:2px}
+button:hover,select:hover{background:#38414c}
+button[aria-pressed="true"]{background:var(--b-sel);color:#1b2027;border-color:var(--b-sel)}
+button.primary{background:#c8352c;border-color:#c8352c;color:#fff}
+button.primary:hover{background:#d9433a}
+button:disabled{opacity:.4;cursor:not-allowed}
+select{padding:6px 8px}
+
+.log{
+  background:#12171d;border:1px solid #2b323b;padding:8px 10px;
+  font-family:var(--mono);font-size:11px;line-height:1.55;color:#9aa5b3;
+  height:132px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.log i{font-style:normal;color:#5f6a76;margin-right:6px}
+.log .ev-you{color:#f08a80}
+.log .ev-bot{color:#8bb8e8}
+.log .ev-big{color:#e8b14a}
+
+.hint{font-family:var(--mono);font-size:11px;color:#79838f;line-height:1.6;margin:0}
+.hint kbd{background:#2b323b;border:1px solid #3b434e;border-bottom-width:2px;
+  border-radius:3px;padding:1px 4px;color:#dfe4ea;font-family:var(--mono);font-size:10px}
+
+.banner{
+  font-family:var(--display);font-variation-settings:"wdth" 112;font-weight:700;
+  font-size:14px;padding:8px 11px;border-radius:2px;text-align:center}
+.banner.win{background:#c8352c;color:#fff}
+.banner.lose{background:#2a6bb0;color:#fff}
+.banner.draw{background:#4c545f;color:#fff}
+
+/* ---------- rules ---------- */
+.rules{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);margin:22px 0}
+.rule{background:var(--panel);padding:15px 17px}
+.rule h4{
+  font-family:var(--display);font-variation-settings:"wdth" 112;font-weight:700;
+  font-size:15px;margin:0 0 4px;letter-spacing:.005em}
+.rule p{margin:0 0 .5em;font-size:15.5px;color:var(--ink-2)}
+.rule p:last-child{margin-bottom:0}
+.rule .fig{
+  font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--panel-2);
+  padding:8px 10px;margin:9px 0 0;overflow-x:auto;white-space:pre;line-height:1.65}
+
+ol.ticks{counter-reset:t;list-style:none;padding:0;margin:20px 0;
+  display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+ol.ticks li{background:var(--panel);padding:11px 15px 11px 46px;position:relative;
+  counter-increment:t;font-size:15.5px;color:var(--ink-2)}
+ol.ticks li::before{
+  content:counter(t);position:absolute;left:0;top:0;bottom:0;width:34px;
+  display:grid;place-items:center;background:var(--panel-2);
+  font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink-3)}
+ol.ticks b{color:var(--ink);font-weight:600}
+
+table{border-collapse:collapse;width:100%;font-size:14px;margin:18px 0}
+.tw{overflow-x:auto;border:1px solid var(--rule);margin:18px 0}
+.tw table{margin:0;min-width:520px}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--display);font-variation-settings:"wdth" 110;font-weight:600;
+  font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+  background:var(--panel)}
+tr:last-child td{border-bottom:0}
+td code{background:none;padding:0;color:var(--red);font-weight:700}
+td:first-child{white-space:nowrap}
+
+pre{
+  font-family:var(--mono);font-size:12.5px;line-height:1.62;background:var(--panel);
+  border:1px solid var(--rule);border-left:3px solid var(--red);
+  padding:14px 16px;overflow-x:auto;margin:18px 0}
+pre .c{color:var(--ink-3)}
+pre .k{color:var(--red);font-weight:700}
+pre .s{color:var(--gold)}
+
+.note{
+  border-left:3px solid var(--gold);background:var(--panel);padding:12px 16px;
+  margin:20px 0;font-size:15.5px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+
+.links{list-style:none;padding:0;margin:18px 0;display:grid;gap:1px;
+  background:var(--rule);border:1px solid var(--rule)}
+.links li{background:var(--panel);padding:12px 16px}
+.links a{font-family:var(--display);font-variation-settings:"wdth" 110;
+  font-weight:600;font-size:15px;text-decoration:none}
+.links a:hover{text-decoration:underline}
+.links span{display:block;font-size:14px;color:var(--ink-2);line-height:1.45}
+
+footer{border-top:1px solid var(--rule);padding-top:18px;margin-top:10px;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink-3);line-height:1.7}
+footer a{color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">A ten-minute guide to generals.io &amp; the Generals bot competition</p>
+  <h1>Generals in Ten Minutes</h1>
+  <p class="standfirst">Two crowns on a foggy grid. Numbers tick upward. Whoever
+  walks onto the other crown first takes everything. Read the rules, then play a
+  full game against the reference bot — right here on this page.</p>
+  <p class="mast-meta">
+    <span>Engine: strakam/generals-bots</span>
+    <span>Rules verified against the JAX source</span>
+    <span>Sept 2026</span>
+  </p>
+</header>
+
+<section class="prose">
+  <div class="sec-head"><p class="kicker">The whole game</p><h2>One sentence, then the details</h2></div>
+  <p><strong>You own tiles; tiles grow armies; you push armies into neighbouring
+  tiles to take them; you win by stepping onto the enemy general.</strong></p>
+  <p>That's it. Everything else — fog, castles, the arithmetic of a clash — is
+  detail on top of those four clauses. The whole game is a single 5-integer
+  decision, repeated a few hundred times, under fog.</p>
+  <p><a href="https://generals.io">Generals.io</a> is the original browser game.
+  <a href="https://github.com/strakam/generals-bots">generals-bots</a> is a JAX
+  reimplementation of it built to train bots — it runs 10&nbsp;million game steps
+  a second, and it powers the <a href="https://generals.bot">Generals
+  Competition</a>, where the players are programs rather than people. The rules
+  below are read straight out of that engine.</p>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">The board</p><h2>Five kinds of tile</h2></div>
+  <div class="legend">
+    <div><span class="chip" style="background:var(--b-you)">48</span>
+      <div><b>Your general</b><span>Your crown and your spawn. Loses the game if it's ever taken.</span></div></div>
+    <div><span class="chip" style="background:var(--b-bot)">31</span>
+      <div><b>Enemy general</b><span>The only win condition. Step onto it and the game ends.</span></div></div>
+    <div><span class="chip" style="background:var(--b-neutral);color:var(--b-text-dark)">&nbsp;</span>
+      <div><b>Plain land</b><span>Neutral and empty. Costs one army to claim.</span></div></div>
+    <div><span class="chip" style="background:var(--b-castle);color:var(--b-text-dark)">44</span>
+      <div><b>Castle</b><span>Grows armies like a general. Guarded by 40–50 neutral defenders.</span></div></div>
+    <div><span class="chip" style="background:var(--b-mountain)">&nbsp;</span>
+      <div><b>Mountain</b><span>Impassable. Blocks movement and shapes every route on the map.</span></div></div>
+    <div><span class="chip" style="background:var(--b-fog)">&nbsp;</span>
+      <div><b>Fog</b><span>Unseen. You only see tiles adjacent to ones you own.</span></div></div>
+  </div>
+  <p class="prose">The number on a tile is its <strong>army</strong> — how many
+  units are standing there. It's the only quantity in the game.</p>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">Play it</p><h2>You are red. The bot is blue.</h2></div>
+  <p class="prose">Tap one of your tiles, then tap a neighbour to send armies
+  there. On a keyboard use the arrow keys — they queue a whole path, one step
+  per turn, exactly like the real game. Your first move starts the clock.</p>
+
+  <div class="game">
+    <div>
+      <div id="board" class="board" role="grid" aria-label="Generals game board"></div>
+    </div>
+    <div class="panel">
+      <div class="turn"><span>Turn <b id="turn">0</b></span><span id="phase">Ready</span></div>
+      <div class="score">
+        <span class="hd">&nbsp;</span><span class="hd">Army</span><span class="hd">Land</span>
+        <span class="you">You</span><span class="n you" id="a0">1</span><span class="n you" id="l0">1</span>
+        <span class="bot">Bot</span><span class="n bot" id="a1">1</span><span class="n bot" id="l1">1</span>
+      </div>
+      <div id="banner"></div>
+      <div class="controls">
+        <button id="playpause" class="primary">Start</button>
+        <button id="step">Step</button>
+        <button id="newgame">New game</button>
+      </div>
+      <div class="controls">
+        <button id="split" aria-pressed="false" title="Send half instead of all-but-one">Half</button>
+        <button id="build" hidden title="Build a castle on the selected tile">Build</button>
+        <select id="speed" aria-label="Game speed">
+          <option value="700">Slow</option>
+          <option value="420" selected>Normal</option>
+          <option value="200">Fast</option>
+        </select>
+      </div>
+      <div class="controls">
+        <select id="mode" aria-label="Ruleset">
+          <option value="classic" selected>Classic rules</option>
+          <option value="competition">Competition rules</option>
+        </select>
+        <select id="bot" aria-label="Opponent">
+          <option value="expander" selected>Expander bot</option>
+          <option value="hunter">Hunter bot</option>
+        </select>
+      </div>
+      <div class="controls">
+        <button id="fog" aria-pressed="true">Fog on</button>
+      </div>
+      <div class="log" id="log"></div>
+      <p class="hint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> queue moves ·
+      <kbd>Z</kbd> half · <kbd>B</kbd> build · <kbd>Esc</kbd> clear queue ·
+      <kbd>Space</kbd> pause</p>
+    </div>
+  </div>
+  <p class="prose"><strong>The opening everyone plays:</strong> for the first
+  fifty turns nothing much grows, so spend them walking your general's army
+  outward in a long line and grabbing empty land. Land is what compounds. Then
+  come back for a castle.</p>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">Rule one</p><h2>Where armies come from</h2></div>
+  <div class="rules prose">
+    <div class="rule">
+      <h4>Generals and castles: +1 every other turn</h4>
+      <p>Every general and every castle you own gains one army on each even turn
+      — so roughly one army every two turns, forever. A castle is a second
+      general that can't lose you the game.</p>
+      <p class="fig">turn 100  general 51   turn 102  general 52   turn 104  general 53</p>
+    </div>
+    <div class="rule">
+      <h4>Every tile you own: +1 every fifty turns</h4>
+      <p>On turns 50, 100, 150 … <em>every</em> tile you own gains one army. This
+      is the whole economy: at turn 200 a player holding 60 tiles banks 60
+      armies at once, and a player holding 20 banks 20.</p>
+      <p class="fig">land 60  →  +60 army at turn 250
+land 20  →  +20 army at turn 250</p>
+    </div>
+    <div class="rule">
+      <h4>Nothing else generates armies</h4>
+      <p>No production, no upgrades, no resources. Land and structures, that's
+      the entire income statement — which is why the early game is a land grab
+      and the late game is arithmetic.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">Rule two</p><h2>How a move works</h2></div>
+  <div class="prose">
+  <p>One move per turn, into an orthogonally adjacent tile. You always leave one
+  army behind — a tile you own never empties itself completely.</p>
+  </div>
+  <div class="rules prose">
+    <div class="rule">
+      <h4>Send all, or send half</h4>
+      <p>Default sends everything but one. A <em>split</em> sends half, rounded
+      down, and is how you keep a tile defended while still advancing.</p>
+      <p class="fig">tile has 9   send all  → 8 leave, 1 stays
+tile has 9   send half → 4 leave, 5 stay</p>
+    </div>
+    <div class="rule">
+      <h4>Into your own tile: the armies stack</h4>
+      <p>Moving onto a tile you already own just adds the numbers. This is how
+      you build one big fist out of a hundred scattered ones.</p>
+      <p class="fig">8 →  [ 3 ]      becomes     1    [ 11 ]</p>
+    </div>
+    <div class="rule">
+      <h4>Into anyone else's tile: subtract</h4>
+      <p>The two numbers cancel. <b>Strictly more</b> attackers than defenders
+      and you take the tile with the difference standing on it. Equal or fewer
+      and the defender holds, with the difference left behind.</p>
+      <p class="fig">8 attacks 3  →  you take it, 5 army
+3 attacks 8  →  they hold it, 5 army
+5 attacks 5  →  they hold it, 0 army</p>
+    </div>
+    <div class="rule">
+      <h4>Onto a general: you win</h4>
+      <p>Take the enemy general and the game ends immediately — and every tile
+      they owned becomes yours. A player who was ahead on land loses all of it in
+      one move.</p>
+    </div>
+  </div>
+  <div class="note prose"><b>The consequence people miss:</b> attacking costs you
+  the defender's number, every time. Walking a 50-stack through five tiles of
+  1 army each arrives as a 45-stack. Territory is not free to cross.</div>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">Rule three</p><h2>Fog of war</h2></div>
+  <div class="prose">
+  <p>You see a tile only if you own it or it touches a tile you own — the eight
+  neighbours of every tile you hold. Everything else is dark. Mountains and
+  castles you've already walked past stay drawn as dim shapes, so the terrain is
+  remembered even when the armies on it are not.</p>
+  <p>Note what the remembered shapes <em>don't</em> tell you. The engine hands a
+  bot a single <code>structures_in_fog</code> grid — mountains and castles share
+  it. A dark shape you walked past once could be either, and you find out by
+  walking into it.</p>
+  <p>Two numbers are never hidden, though: the scoreboard always shows the
+  opponent's <strong>total army and total land</strong>. You can't see where
+  they are, but you always know how big they are. A bot that watches that number
+  jump by 40 knows a castle just fell somewhere.</p>
+  <p>Fog is also why a long thin line of tiles is worth more than its army
+  suggests — it's a searchlight. Turn fog off with the button on the board to
+  see what the bot has been doing behind it.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">The turn</p><h2>What happens each tick, in order</h2></div>
+  <ol class="ticks prose">
+    <li>Both players submit one action. <b>Nobody sees the other's</b> before submitting.</li>
+    <li>Move order is decided: a move <b>chasing</b> the opponent's source tile goes first; then a move that only <b>reinforces</b> your own tile; then the <b>smaller army</b> moves first.</li>
+    <li>The first player's move resolves. Then the second player's — against the board the first one just left behind.</li>
+    <li>An illegal action (no army, a mountain, a tile you don't own) is silently treated as a <b>pass</b>. It costs you the turn, not the game.</li>
+    <li>The turn counter advances, then <b>growth</b> is applied: structures on even turns, all land every fiftieth.</li>
+  </ol>
+  <p class="prose">Move order matters more than it looks. Two armies walking into
+  each other resolve one at a time, so the order decides who is attacking and who
+  is defending — and defending is cheaper.</p>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">The bot's view</p><h2>What a program actually receives</h2></div>
+  <p class="prose">A bot doesn't see the picture above. Each turn it is handed
+  the board as a stack of grids — one number per tile — plus four scalars. This
+  is the whole interface.</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Field</th><th>Shape</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><code>armies</code></td><td>H × W</td><td>Army count on each visible tile, 0 in fog</td></tr>
+      <tr><td><code>generals</code></td><td>H × W</td><td>Crowns you can currently see — including your own</td></tr>
+      <tr><td><code>castles</code></td><td>H × W</td><td>Visible castles</td></tr>
+      <tr><td><code>mountains</code></td><td>H × W</td><td>Visible impassable tiles</td></tr>
+      <tr><td><code>owned_cells</code></td><td>H × W</td><td>Tiles you own</td></tr>
+      <tr><td><code>opponent_cells</code></td><td>H × W</td><td>Enemy tiles you can see</td></tr>
+      <tr><td><code>neutral_cells</code></td><td>H × W</td><td>Unclaimed tiles you can see</td></tr>
+      <tr><td><code>fog_cells</code></td><td>H × W</td><td>Tiles you cannot see at all</td></tr>
+      <tr><td><code>structures_in_fog</code></td><td>H × W</td><td>Mountains and castles remembered in the dark</td></tr>
+      <tr><td><code>owned_land_count</code><br><code>owned_army_count</code></td><td>scalar</td><td>Your totals</td></tr>
+      <tr><td><code>opponent_land_count</code><br><code>opponent_army_count</code></td><td>scalar</td><td>Theirs — never fogged</td></tr>
+      <tr><td><code>timestep</code></td><td>scalar</td><td>Current turn</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 class="prose">And what it sends back</h3>
+  <p class="prose">Five integers. That is the entire action space of the game.</p>
+  <pre>[ <span class="k">pass</span>, <span class="k">row</span>, <span class="k">col</span>, <span class="k">direction</span>, <span class="k">split</span> ]
+
+  <span class="k">pass</span>       0 = move   1 = skip the turn   2 = build a castle
+  <span class="k">row, col</span>   the tile the armies leave from
+  <span class="k">direction</span>  0 = up   1 = down   2 = left   3 = right
+  <span class="k">split</span>      0 = send all but one   1 = send half
+
+<span class="c">[0, 4, 7, 3, 0]  →  from row 4 col 7, march right, send everything.
+[1, 0, 0, 0, 0]  →  pass.</span></pre>
+  <p class="prose">A game is 500–1200 of these. Everything a bot knows how to do
+  has to be expressible as picking one, under fog, in a few milliseconds.</p>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">A real bot</p><h2>The Expander, in about twenty lines</h2></div>
+  <p class="prose">This is the reference agent that ships with the engine — the
+  same one you just played against. It has no memory, no plan, and no idea where
+  the enemy general is. Every turn it scores every legal move and takes the best:</p>
+  <pre><span class="c"># score every move out of every tile we own</span>
+<span class="k">for</span> r, c <span class="k">in</span> my_tiles:
+    src = army[r][c]
+    <span class="k">if</span> src &lt;= 1: <span class="k">continue</span>            <span class="c"># one army always stays behind</span>
+
+    <span class="k">for</span> d, (dr, dc) <span class="k">in</span> enumerate(UP_DOWN_LEFT_RIGHT):
+        nr, nc = r + dr, c + dc
+        <span class="k">if</span> off_board(nr, nc) <span class="k">or</span> is_mountain(nr, nc): <span class="k">continue</span>
+        <span class="k">if</span> src &lt;= army[nr][nc] + <span class="s">1</span>: <span class="k">continue</span>   <span class="c"># can't win the clash</span>
+
+        score = float(src)
+        <span class="k">if</span> not_mine(nr, nc):   score *= <span class="s">10.0</span>   <span class="c"># new land beats stacking</span>
+        <span class="k">if</span> theirs(nr, nc):     score *= <span class="s">2.0</span>    <span class="c"># enemy land beats neutral</span>
+
+        best = max(best, (score, (<span class="s">0</span>, r, c, d, <span class="s">0</span>)))
+
+<span class="k">return</span> best_move <span class="k">or</span> any_legal_move <span class="k">or</span> PASS</pre>
+  <p class="prose">Three constants — <code>10</code>, <code>2</code>, and "biggest
+  stack first" — and it will beat a person who hasn't played before. It also has
+  an obvious hole: it never defends its general and never goes looking for yours,
+  so it can be ahead on every number and still lose to one line drawn at its
+  crown. The <em>Hunter</em> option on the board is the engine's answer to that —
+  it keeps a garrison at home, sends only its surplus out as one advancing stack,
+  and walks that stack at your general the moment it sees it.</p>
+  <p class="prose">That gap is the whole competition. Beyond it lies searching
+  under fog, guessing where the general is from the scoreboard, and reinforcement
+  learning on millions of self-play games.</p>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">Competition rules</p><h2>How the bot competition differs</h2></div>
+  <p class="prose">The competition preset changes three things about the game
+  above. Switch the board to <strong>Competition rules</strong> to play it.</p>
+  <div class="rules prose">
+    <div class="rule">
+      <h4>You build castles instead of finding them</h4>
+      <p>No neutral castles are placed on the map. Instead a third action kind,
+      <code>[2, row, col, 0, 0]</code>, converts one of your own plain tiles into
+      a castle — paid for out of the army standing on that tile.</p>
+      <p class="fig">cost = 35 + Σ max(0, 14 − 2 × distance) over your own structures
+
+open ground, nothing near     35
+next to your own general      47</p>
+      <p>Crowding your own structures is expensive; anything seven tiles away is
+      free of surcharge. Enemy structures never change your price. And building
+      can leave the tile on zero army — a brand-new castle can be sniped by a
+      single unit on the very next turn.</p>
+    </div>
+    <div class="rule">
+      <h4>Deathtouch: from turn 800, armies stop mattering at the crown</h4>
+      <p>Any legal move that lands on the enemy general wins instantly, however
+      small. A 1-army straggler beats a 900-army garrison. Both players touching
+      on the same turn is a draw.</p>
+      <p>The only defence is to capture the attacker's <em>source</em> tile
+      before the move resolves — a counter-move onto it counts as a chase, so it
+      goes first. Which is exactly why move order is a rule and not a detail.</p>
+    </div>
+    <div class="rule">
+      <h4>Bigger maps, longer games, full fog</h4>
+      <p>Rectangular boards drawn independently in 18–21 per side, about a
+      quarter of it mountains, generals at least 17 steps apart walking around
+      them, and a 1200-turn cap. Bots speak a line-based stdin/stdout protocol,
+      so they can be written in any language.</p>
+      <p class="fig">board   18–21 × 18–21     mountains  24–26%
+cap     1200 turns        deathtouch 800</p>
+    </div>
+  </div>
+  <div class="note prose"><b>Scaled for this page:</b> the board here is 12 × 12
+  with a 500-turn cap, and deathtouch lands on turn 330 instead of 800 — the same
+  proportion of the game, short enough to finish on a phone.</div>
+</section>
+
+<section>
+  <div class="sec-head prose"><p class="kicker">Next</p><h2>Where to go from here</h2></div>
+  <ul class="links prose">
+    <li><a href="https://generals.io">generals.io</a>
+      <span>The original game, against humans. Half an hour here teaches more than any guide.</span></li>
+    <li><a href="https://github.com/strakam/generals-bots">strakam/generals-bots</a>
+      <span>The engine: <code>pip install -e .</code>, then <code>GeneralsEnv(mode="competition")</code> and a twenty-line agent.</span></li>
+    <li><a href="https://generals.bot">generals.bot</a>
+      <span>The competition itself — rules, environment spec and submissions.</span></li>
+    <li><a href="https://arxiv.org/abs/2507.06825">Artificial Generals Intelligence (arXiv:2507.06825)</a>
+      <span>Straka &amp; Schmid on mastering generals.io with reinforcement learning.</span></li>
+  </ul>
+</section>
+
+<footer class="prose">
+  <p>Built as a learning aid in the
+  <a href="https://github.com/ZeNoonan/Research">Research</a> repo. Every rule,
+  constant and formula on this page was read out of the generals-bots JAX source
+  — growth phase, combat arithmetic, move order, build pricing and deathtouch —
+  and the board below the fold runs them. Not affiliated with generals.io or the
+  Generals Competition.</p>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+/* ------------------------------------------------------------------
+   A faithful port of the generals-bots JAX engine, small enough to read.
+   Sources: generals/core/game.py, generals/core/grid.py,
+            generals/modifiers/build_castles.py, generals/modifiers/deathtouch.py
+   Scaled down: 12x12 board, 500-turn cap, deathtouch at turn 330.
+------------------------------------------------------------------ */
+
+const N = 12;                    // engine: 18-21 per side
+const CAP = 500;                 // engine: 1200
+const DEATHTOUCH_TURN = 330;     // engine: 800
+const MOUNTAIN_DENSITY = 0.245;  // engine: 0.24 - 0.26
+const NUM_CASTLES = 4;
+const CASTLE_ARMY = [40, 50];    // engine: 40 - 50
+const MIN_GEN_DIST = 11;         // engine: 17 BFS steps on an 18-21 board
+const GARRISON = 4;              // Hunter keeps this at home
+
+const DR = [-1, 1, 0, 0], DC = [0, 0, -1, 1];   // up, down, left, right
+const PASS = { pass: 1, r: 0, c: 0, dir: 0, split: 0 };
+const ix = (r, c) => r * N + c;
+const inB = (r, c) => r >= 0 && r < N && c >= 0 && c < N;
+const clampR = r => Math.max(0, Math.min(N - 1, r));
+const rnd = n => Math.floor(Math.random() * n);
+
+/* ---------------- map generation ---------------- */
+
+function bfs(passable, starts) {
+  const d = new Int32Array(N * N).fill(-1);
+  let frontier = [];
+  for (const s of starts) { d[s] = 0; frontier.push(s); }
+  while (frontier.length) {
+    const next = [];
+    for (const i of frontier) {
+      const r = (i / N) | 0, c = i % N;
+      for (let k = 0; k < 4; k++) {
+        const nr = r + DR[k], nc = c + DC[k];
+        if (!inB(nr, nc)) continue;
+        const j = ix(nr, nc);
+        if (!passable[j] || d[j] !== -1) continue;
+        d[j] = d[i] + 1; next.push(j);
+      }
+    }
+    frontier = next;
+  }
+  return d;
+}
+
+function generateMap(competition) {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const mountain = new Uint8Array(N * N);
+    const target = Math.floor(MOUNTAIN_DENSITY * N * N);
+    for (let placed = 0; placed < target;) {
+      const i = rnd(N * N);
+      if (!mountain[i]) { mountain[i] = 1; placed++; }
+    }
+    const passable = mountain.map(m => m ? 0 : 1);
+
+    const open = [];
+    for (let i = 0; i < N * N; i++) if (passable[i]) open.push(i);
+    if (open.length < N * N * 0.5) continue;
+
+    const a = open[rnd(open.length)];
+    const dist = bfs(passable, [a]);
+    const far = open.filter(i => dist[i] >= MIN_GEN_DIST);
+    if (!far.length) continue;
+    const b = far[rnd(far.length)];
+
+    // castles: not on a general, and a few steps clear of both crowns
+    const dA = bfs(passable, [a]), dB = bfs(passable, [b]);
+    const castle = new Uint8Array(N * N);
+    const armies = new Int32Array(N * N);
+    if (!competition) {
+      const spots = open.filter(i => i !== a && i !== b && dA[i] >= 3 && dB[i] >= 3);
+      for (let k = 0; k < NUM_CASTLES && spots.length; k++) {
+        const pick = spots.splice(rnd(spots.length), 1)[0];
+        castle[pick] = 1;
+        armies[pick] = CASTLE_ARMY[0] + rnd(CASTLE_ARMY[1] - CASTLE_ARMY[0] + 1);
+      }
+    }
+
+    const general = new Uint8Array(N * N);
+    general[a] = 1; general[b] = 1;
+    armies[a] = 1; armies[b] = 1;
+    const owner = new Int8Array(N * N).fill(-1);
+    owner[a] = 0; owner[b] = 1;
+
+    return {
+      armies, owner, general, castle, mountain,
+      genPos: [a, b], time: 0, winner: -1, draw: false, done: false, competition
+    };
+  }
+  return generateMap(false);
+}
+
+/* ---------------- rules ---------------- */
+
+const armyToMove = (a, split) =>
+  Math.max(0, Math.min(split ? Math.floor(a / 2) : a - 1, a - 1));
+
+function moveIsValid(S, p, act) {
+  if (act.pass !== 0) return false;
+  const { r, c, dir, split } = act;
+  if (!inB(r, c)) return false;
+  const nr = r + DR[dir], nc = c + DC[dir];
+  if (!inB(nr, nc)) return false;
+  if (S.owner[ix(r, c)] !== p) return false;
+  if (armyToMove(S.armies[ix(r, c)], split) <= 0) return false;
+  return !S.mountain[ix(nr, nc)];
+}
+
+// game._apply_move
+function applyMove(S, p, act) {
+  const src = ix(act.r, act.c);
+  const dst = ix(act.r + DR[act.dir], act.c + DC[act.dir]);
+  const n = armyToMove(S.armies[src], act.split);
+  S.armies[src] -= n;
+
+  if (S.owner[dst] === p) {            // reinforce: the numbers stack
+    S.armies[dst] += n;
+    return null;
+  }
+  const defenders = S.armies[dst];
+  const attackerWins = n > defenders;   // strictly more
+  S.armies[dst] = Math.abs(defenders - n);
+  if (!attackerWins) return { taken: false };
+
+  const wasGeneral = S.general[dst] === 1;
+  const wasCastle = S.castle[dst] === 1;
+  const prevOwner = S.owner[dst];
+  S.owner[dst] = p;
+  if (wasGeneral) S.winner = p;
+  return { taken: true, wasGeneral, wasCastle, prevOwner, dst };
+}
+
+// game._determine_move_order — chasing > reinforcing > smaller army
+function moveOrder(S, acts) {
+  const dest = a => {
+    const r = clampR(a.r + DR[a.dir]), c = clampR(a.c + DC[a.dir]);
+    return ix(r, c);
+  };
+  const src = a => ix(clampR(a.r), clampR(a.c));
+  const s0 = src(acts[0]), s1 = src(acts[1]);
+  const d0 = dest(acts[0]), d1 = dest(acts[1]);
+
+  const chase0 = d0 === s1, chase1 = d1 === s0;
+  const reinf0 = S.owner[d0] === 0, reinf1 = S.owner[d1] === 1;
+  const army0 = S.armies[s0], army1 = S.armies[s1];
+
+  const onlyP0Passes = acts[0].pass === 1 && acts[1].pass !== 1;
+  const p1First =
+    (chase1 && !chase0) ||
+    (chase0 === chase1 && reinf1 && !reinf0) ||
+    (chase0 === chase1 && reinf0 === reinf1 && army1 < army0) ||
+    onlyP0Passes;
+  return p1First ? 1 : 0;
+}
+
+// build_castles.build_cost_grid — 35 + sum of max(0, 14 - 2d) over own structures
+function buildCost(S, p, r, c) {
+  let cost = 35;
+  for (let i = 0; i < N * N; i++) {
+    if (S.owner[i] !== p || (!S.castle[i] && !S.general[i])) continue;
+    const d = Math.abs(((i / N) | 0) - r) + Math.abs((i % N) - c);
+    const surcharge = 14 - 2 * d;
+    if (surcharge > 0) cost += surcharge;
+  }
+  return cost;
+}
+
+function applyBuild(S, p, act) {
+  if (act.pass !== 2 || !inB(act.r, act.c) || S.winner >= 0) return false;
+  const i = ix(act.r, act.c);
+  if (S.owner[i] !== p || S.general[i] || S.castle[i]) return false;
+  const cost = buildCost(S, p, act.r, act.c);
+  if (S.armies[i] < cost) return false;
+  S.armies[i] -= cost;
+  S.castle[i] = 1;
+  return true;
+}
+
+function transferSpoils(S) {
+  const loser = 1 - S.winner;
+  for (let i = 0; i < N * N; i++) if (S.owner[i] === loser) S.owner[i] = S.winner;
+}
+
+function growth(S) {                    // game.global_update, after time++
+  if (S.time % 50 === 0)
+    for (let i = 0; i < N * N; i++) if (S.owner[i] >= 0) S.armies[i]++;
+  if (S.time % 2 === 0)
+    for (let i = 0; i < N * N; i++)
+      if (S.owner[i] >= 0 && (S.general[i] || S.castle[i])) S.armies[i]++;
+}
+
+const touchesGeneral = (S, p, act) =>
+  moveIsValid(S, p, act) &&
+  ix(act.r + DR[act.dir], act.c + DC[act.dir]) === S.genPos[1 - p];
+
+// game.step, with the build-castles and deathtouch modifiers wrapped around it
+function step(S, acts) {
+  const events = [];
+  if (S.done) return events;
+
+  if (S.competition) {
+    for (let p = 0; p < 2; p++) {
+      if (acts[p].pass === 2) {
+        if (applyBuild(S, p, acts[p]))
+          events.push([p, (p === 0 ? "You" : "Bot") + " built a castle", "ev-big"]);
+        acts[p] = PASS;                 // builds are consumed as passes
+      }
+    }
+  }
+
+  const deathActive = S.competition && S.winner < 0 && S.time >= DEATHTOUCH_TURN;
+  const first = moveOrder(S, acts), second = 1 - first;
+  const touch = [false, false];
+
+  if (deathActive) touch[first] = touchesGeneral(S, first, acts[first]);
+  if (moveIsValid(S, first, acts[first])) {
+    const r = applyMove(S, first, acts[first]);
+    if (r && r.taken) events.push(captureEvent(first, r));
+  }
+  const winnerAfterFirst = S.winner;
+
+  if (deathActive) touch[second] = touchesGeneral(S, second, acts[second]);
+  if (moveIsValid(S, second, acts[second])) {
+    const r = applyMove(S, second, acts[second]);
+    if (r && r.taken) events.push(captureEvent(second, r));
+  }
+
+  // mutual decapitation is a draw at every turn, not just past the threshold
+  const bothCaptured = winnerAfterFirst >= 0 && S.winner !== winnerAfterFirst;
+  const both = (touch[0] && touch[1]) || bothCaptured;
+  const one = (touch[0] !== touch[1]) && !bothCaptured;
+
+  S.time++;
+  if (both) { S.winner = -1; S.draw = true; }
+  else if (one) {
+    S.winner = touch[0] ? 0 : 1;
+    events.push([S.winner, (S.winner === 0 ? "You" : "Bot") + " landed a deathtouch", "ev-big"]);
+  }
+
+  if (S.winner >= 0) { transferSpoils(S); S.done = true; }
+  else if (S.draw) S.done = true;
+  else {
+    growth(S);
+    if (S.time >= CAP) { S.draw = true; S.done = true; }
+  }
+  return events;
+}
+
+function captureEvent(p, r) {
+  const who = p === 0 ? "You" : "Bot";
+  const cls = p === 0 ? "ev-you" : "ev-bot";
+  if (r.wasGeneral) return [p, `${who} captured the general`, "ev-big"];
+  if (r.wasCastle) return [p, `${who} took a castle`, "ev-big"];
+  if (r.prevOwner >= 0) return [p, `${who} took enemy land`, cls];
+  return null;
+}
+
+/* ---------------- observations ---------------- */
+
+function visibility(S, p) {
+  const vis = new Uint8Array(N * N);
+  for (let i = 0; i < N * N; i++) {
+    if (S.owner[i] !== p) continue;
+    const r = (i / N) | 0, c = i % N;
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++)
+        if (inB(r + dr, c + dc)) vis[ix(r + dr, c + dc)] = 1;
+  }
+  return vis;
+}
+
+// the wire-protocol frame a competition bot actually receives
+function observe(S, p) {
+  const vis = visibility(S, p);
+  const type = new Int8Array(N * N);   // 0 fog 1 plain 2 mountain 3 castle 4 general 5 struct-in-fog
+  const own = new Int8Array(N * N);    // 0 neutral/unknown 1 me 2 opponent
+  const army = new Int32Array(N * N);
+  let myLand = 0, myArmy = 0, oppLand = 0, oppArmy = 0;
+
+  for (let i = 0; i < N * N; i++) {
+    if (S.owner[i] === p) { myLand++; myArmy += S.armies[i]; }
+    else if (S.owner[i] === 1 - p) { oppLand++; oppArmy += S.armies[i]; }
+
+    if (!vis[i]) {
+      type[i] = (S.mountain[i] || S.castle[i]) ? 5 : 0;
+      continue;
+    }
+    type[i] = S.mountain[i] ? 2 : S.general[i] ? 4 : S.castle[i] ? 3 : 1;
+    own[i] = S.owner[i] === p ? 1 : S.owner[i] === 1 - p ? 2 : 0;
+    army[i] = S.armies[i];
+  }
+  return { type, own, army, myLand, myArmy, oppLand, oppArmy, turn: S.time };
+}
+
+/* ---------------- bots ---------------- */
+
+const passableType = t => t !== 2 && t !== 5;
+
+// generals/agents/expander_agent.py, move for move
+function expander(obs) {
+  let best = -1, bestMove = null, firstValid = null;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    if (obs.own[ix(r, c)] !== 1) continue;
+    const src = obs.army[ix(r, c)];
+    if (src <= 1) continue;              // one army always stays behind
+    for (let d = 0; d < 4; d++) {
+      const nr = r + DR[d], nc = c + DC[d];
+      if (!inB(nr, nc) || !passableType(obs.type[ix(nr, nc)])) continue;
+      const move = { pass: 0, r, c, dir: d, split: 0 };
+      if (!firstValid) firstValid = move;
+      const destArmy = obs.army[ix(nr, nc)], destOwn = obs.own[ix(nr, nc)];
+      if (src <= destArmy + 1) continue;  // can't win the clash
+      const isOpp = destOwn === 2;
+      const isNeutral = destOwn === 0 && passableType(obs.type[ix(nr, nc)]) &&
+                        obs.type[ix(nr, nc)] !== 0;
+      let score = src;
+      if (isOpp || isNeutral) score *= 10;   // new land beats stacking
+      if (isOpp) score *= 2;                 // enemy land beats neutral
+      if (score > best) { best = score; bestMove = move; }
+    }
+  }
+  return bestMove || firstValid || PASS;
+}
+
+// generals/agents/hunter_agent.py in spirit: garrison, conveyor, decapitate
+function hunter(obs, S) {
+  const passable = new Uint8Array(N * N);
+  for (let i = 0; i < N * N; i++) passable[i] = passableType(obs.type[i]) ? 1 : 0;
+
+  let enemyGeneral = -1;
+  for (let i = 0; i < N * N; i++) if (obs.type[i] === 4 && obs.own[i] === 2) enemyGeneral = i;
+
+  // deathtouch: any legal step onto the crown wins, however small
+  if (enemyGeneral >= 0 && S.competition && S.time >= DEATHTOUCH_TURN) {
+    const gr = (enemyGeneral / N) | 0, gc = enemyGeneral % N;
+    for (let d = 0; d < 4; d++) {
+      const r = gr - DR[d], c = gc - DC[d];
+      if (inB(r, c) && obs.own[ix(r, c)] === 1 && obs.army[ix(r, c)] > 1)
+        return { pass: 0, r, c, dir: d, split: 0 };
+    }
+  }
+
+  // targets: the enemy crown if seen, otherwise anything not ours
+  const targets = [];
+  if (enemyGeneral >= 0) targets.push(enemyGeneral);
+  else for (let i = 0; i < N * N; i++)
+    if (passable[i] && obs.own[i] !== 1) targets.push(i);
+  if (!targets.length) return expander(obs);
+  const field = bfs(passable, targets);
+
+  // the marching stack: our biggest non-general pile, plus the general's surplus
+  let stack = -1, stackArmy = 1, myGeneral = -1;
+  for (let i = 0; i < N * N; i++) {
+    if (obs.own[i] !== 1) continue;
+    if (obs.type[i] === 4) { myGeneral = i; continue; }
+    if (obs.army[i] > stackArmy) { stackArmy = obs.army[i]; stack = i; }
+  }
+  const generalSurplus = myGeneral >= 0 && obs.army[myGeneral] > 2 * GARRISON;
+  const from = (stack >= 0 && stackArmy > 2) ? stack
+             : generalSurplus ? myGeneral : -1;
+
+  if (from >= 0) {
+    const r = (from / N) | 0, c = from % N;
+    let bestD = -1, bestVal = Infinity;
+    for (let d = 0; d < 4; d++) {
+      const nr = r + DR[d], nc = c + DC[d];
+      if (!inB(nr, nc) || !passable[ix(nr, nc)]) continue;
+      const v = field[ix(nr, nc)];
+      if (v < 0 || v >= bestVal) continue;
+      // don't walk into a wall we can't break
+      if (obs.own[ix(nr, nc)] !== 1 && obs.army[from] <= obs.army[ix(nr, nc)] + 1) continue;
+      bestVal = v; bestD = d;
+    }
+    if (bestD >= 0) return { pass: 0, r, c, dir: bestD, split: 0 };
+  }
+  return expander(obs);                  // nothing to march: grab land instead
+}
+
+// competition only: turn a fat rear tile into a castle now and then
+function maybeBuild(obs, S) {
+  if (!S.competition || S.time < 60) return null;
+  let castles = 0;
+  for (let i = 0; i < N * N; i++) if (S.owner[i] === 1 && S.castle[i]) castles++;
+  if (castles >= 3) return null;
+  let best = null, bestArmy = 0;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const i = ix(r, c);
+    if (S.owner[i] !== 1 || S.general[i] || S.castle[i]) continue;
+    const cost = buildCost(S, 1, r, c);
+    if (S.armies[i] >= cost + 8 && S.armies[i] > bestArmy) {
+      bestArmy = S.armies[i]; best = { pass: 2, r, c, dir: 0, split: 0 };
+    }
+  }
+  return best;
+}
+
+function botAct(S, kind) {
+  const obs = observe(S, 1);
+  return maybeBuild(obs, S) || (kind === "hunter" ? hunter(obs, S) : expander(obs));
+}
+
+/* ---------------- interface ---------------- */
+
+const boardEl = document.getElementById("board");
+const logEl = document.getElementById("log");
+const bannerEl = document.getElementById("banner");
+const el = id => document.getElementById(id);
+
+let S, cells = [], sel = -1, queue = [], splitNext = false;
+let timer = null, running = false, fogOn = true, flashCell = -1;
+let speed = 420, botKind = "expander", ruleset = "classic";
+let lastLog = { text: "", turn: -99 };
+
+boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+for (let i = 0; i < N * N; i++) {
+  const d = document.createElement("div");
+  d.className = "cell";
+  d.dataset.i = i;
+  d.addEventListener("click", () => onCell(i));
+  boardEl.appendChild(d);
+  cells.push(d);
+}
+
+const dirBetween = (a, b) => {
+  const dr = ((b / N) | 0) - ((a / N) | 0), dc = (b % N) - (a % N);
+  for (let d = 0; d < 4; d++) if (DR[d] === dr && DC[d] === dc) return d;
+  return -1;
+};
+const head = () => {
+  if (!queue.length) return sel;
+  const q = queue[queue.length - 1];
+  return ix(q.r + DR[q.dir], q.c + DC[q.dir]);
+};
+
+function enqueue(dir) {
+  if (S.done) return;
+  const h = head();
+  if (h < 0) return;
+  const r = (h / N) | 0, c = h % N;
+  const nr = r + DR[dir], nc = c + DC[dir];
+  if (!inB(nr, nc) || S.mountain[ix(nr, nc)]) return;
+  queue.push({ pass: 0, r, c, dir, split: splitNext ? 1 : 0 });
+  splitNext = false;
+  if (!running) start();
+  render();
+}
+
+function onCell(i) {
+  if (S.done) return;
+  const h = head();
+  if (h >= 0) {
+    const d = dirBetween(h, i);
+    if (d >= 0) { enqueue(d); return; }
+  }
+  if (S.owner[i] === 0) { sel = i; queue = []; render(); }
+}
+
+function logEvent(text, cls) {
+  if (!text) return;
+  if (text === lastLog.text && S.time - lastLog.turn < 8) return;
+  lastLog = { text, turn: S.time };
+  const line = document.createElement("div");
+  if (cls) line.className = cls;
+  line.innerHTML = `<i>${String(S.time).padStart(3, "0")}</i>`;
+  line.appendChild(document.createTextNode(text));
+  logEl.prepend(line);
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+
+function counts() {
+  const army = [0, 0], land = [0, 0];
+  for (let i = 0; i < N * N; i++) {
+    if (S.owner[i] < 0) continue;
+    army[S.owner[i]] += S.armies[i];
+    land[S.owner[i]]++;
+  }
+  return { army, land };
+}
+
+function render() {
+  const vis = fogOn ? visibility(S, 0) : null;
+  const queued = new Uint8Array(N * N);
+  for (const q of queue) queued[ix(q.r + DR[q.dir], q.c + DC[q.dir])] = 1;
+
+  for (let i = 0; i < N * N; i++) {
+    const c = cells[i], cls = ["cell"];
+    const seen = !fogOn || vis[i];
+    if (!seen) {
+      cls.push(S.mountain[i] || S.castle[i] ? "fogstruct" : "fog");
+      c.textContent = "";
+    } else if (S.mountain[i]) {
+      cls.push("mountain");
+      c.textContent = "";
+    } else {
+      if (S.owner[i] === 0) cls.push("you");
+      else if (S.owner[i] === 1) cls.push("bot");
+      if (S.general[i]) cls.push("gen");
+      else if (S.castle[i]) cls.push("castle");
+      c.textContent = S.armies[i] > 0 ? S.armies[i] : "";
+    }
+    if (i === sel) cls.push("sel");
+    if (queued[i]) cls.push("q");
+    if (i === flashCell) cls.push("flash");
+    c.className = cls.join(" ");
+  }
+
+  const { army, land } = counts();
+  el("a0").textContent = army[0]; el("l0").textContent = land[0];
+  el("a1").textContent = army[1]; el("l1").textContent = land[1];
+  el("turn").textContent = S.time;
+  el("phase").textContent = S.done ? "Over"
+    : running ? (queue.length ? `${queue.length} queued` : "Playing") : "Paused";
+
+  const b = el("build");
+  b.hidden = !S.competition;
+  if (S.competition && sel >= 0 && !S.general[sel] && !S.castle[sel] && S.owner[sel] === 0) {
+    const cost = buildCost(S, 0, (sel / N) | 0, sel % N);
+    b.textContent = `Build (${cost})`;
+    b.disabled = S.armies[sel] < cost;
+  } else {
+    b.textContent = "Build";
+    b.disabled = true;
+  }
+  el("split").setAttribute("aria-pressed", splitNext ? "true" : "false");
+}
+
+function tick() {
+  if (S.done) { stop(); return; }
+  const mine = queue.length ? queue.shift() : PASS;
+  const theirs = botAct(S, botKind);
+  const before = S.time;
+  for (const e of step(S, [mine, theirs])) if (e) logEvent(e[1], e[2]);
+
+  if (S.time !== before && S.time % 50 === 0 && !S.done) {
+    const { land } = counts();
+    logEvent(`Land bonus: you +${land[0]}, bot +${land[1]}`, "ev-big");
+  }
+  if (S.competition && S.time === DEATHTOUCH_TURN)
+    logEvent("Deathtouch active — any move onto a general wins", "ev-big");
+
+  if (S.done) finish();
+  render();
+}
+
+function finish() {
+  stop();
+  flashCell = S.winner >= 0 ? S.genPos[1 - S.winner] : -1;
+  if (S.draw) {
+    banner("draw", S.time >= CAP ? `Draw — turn limit at ${CAP}` : "Draw — both generals fell");
+    logEvent("Draw", "ev-big");
+  } else if (S.winner === 0) {
+    banner("win", "You win — general captured");
+    logEvent("You win", "ev-big");
+  } else {
+    banner("lose", "Bot wins — your general fell");
+    logEvent("Bot wins", "ev-big");
+  }
+}
+
+const banner = (kind, text) => {
+  bannerEl.innerHTML = "";
+  const d = document.createElement("div");
+  d.className = "banner " + kind;
+  d.textContent = text;
+  bannerEl.appendChild(d);
+};
+
+function start() {
+  if (S.done || running) return;
+  running = true;
+  timer = setInterval(tick, speed);
+  el("playpause").textContent = "Pause";
+  render();
+}
+function stop() {
+  running = false;
+  clearInterval(timer);
+  timer = null;
+  if (!S) return;
+  el("playpause").textContent = S.done || !S.time ? "Start" : "Resume";
+  el("playpause").disabled = S.done;
+  render();
+}
+
+function newGame() {
+  stop();
+  S = generateMap(ruleset === "competition");
+  sel = S.genPos[0];
+  queue = []; splitNext = false; flashCell = -1;
+  lastLog = { text: "", turn: -99 };
+  logEl.innerHTML = "";
+  bannerEl.innerHTML = "";
+  el("playpause").disabled = false;
+  el("playpause").textContent = "Start";
+  logEvent(S.competition
+    ? `Competition rules · ${N}x${N} · deathtouch at ${DEATHTOUCH_TURN}`
+    : `Classic rules · ${N}x${N} · ${NUM_CASTLES} castles`, "ev-big");
+  render();
+}
+
+/* ---------------- controls ---------------- */
+
+el("playpause").addEventListener("click", () => running ? stop() : start());
+el("step").addEventListener("click", () => { stop(); tick(); });
+el("newgame").addEventListener("click", newGame);
+el("split").addEventListener("click", () => { splitNext = !splitNext; render(); });
+el("build").addEventListener("click", () => {
+  if (sel < 0) return;
+  queue.push({ pass: 2, r: (sel / N) | 0, c: sel % N, dir: 0, split: 0 });
+  if (!running) start();
+  render();
+});
+el("fog").addEventListener("click", e => {
+  fogOn = !fogOn;
+  e.currentTarget.textContent = fogOn ? "Fog on" : "Fog off";
+  e.currentTarget.setAttribute("aria-pressed", fogOn ? "true" : "false");
+  render();
+});
+el("speed").addEventListener("change", e => {
+  speed = +e.target.value;
+  if (running) { clearInterval(timer); timer = setInterval(tick, speed); }
+});
+el("mode").addEventListener("change", e => { ruleset = e.target.value; newGame(); });
+el("bot").addEventListener("change", e => { botKind = e.target.value; });
+
+const KEYS = {
+  ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3,
+  w: 0, s: 1, a: 2, d: 3, W: 0, S: 1, A: 2, D: 3
+};
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "SELECT" || e.target.tagName === "BUTTON") return;
+  if (e.key in KEYS) { e.preventDefault(); enqueue(KEYS[e.key]); return; }
+  if (e.key === "z" || e.key === "Z") { splitNext = !splitNext; render(); }
+  else if (e.key === "b" || e.key === "B") { if (!el("build").disabled) el("build").click(); }
+  else if (e.key === "Escape") { queue = []; render(); }
+  else if (e.key === " ") { e.preventDefault(); running ? stop() : start(); }
+});
+
+newGame();
+</script>
