@@ -26,6 +26,7 @@ Most projects generate a **self-contained, phone-friendly web page**
 | [`baseball_var/`](baseball_var/) | Little League WAR/WAA explorer, from the GameChanger spreadsheet | [open](https://zenoonan.github.io/Research/baseball_var/) |
 | [`golf/`](golf/) | Golf form and course-fit research | [open](https://zenoonan.github.io/Research/golf/) |
 | [`hurling/`](hurling/) | GAA.ie Hurling Team of the Week, 2026 championship | [open](https://zenoonan.github.io/Research/hurling/) |
+| [`generals.bot/`](generals.bot/) | Guide to [generals.io](https://generals.io) and the [Generals bot competition](https://generals.bot), with a playable 12x12 game porting the real engine's rules | [open](https://zenoonan.github.io/Research/generals.bot/) |
 
 Each project folder has its own README with the model details, data notes,
 validation results and how to run it. The web-view links are GitHub Pages,
