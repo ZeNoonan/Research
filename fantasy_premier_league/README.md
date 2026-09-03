@@ -1114,11 +1114,18 @@ objective_check.py  independent re-solve of the points objective, for
                     checking squad.py against a second implementation
 preseason.py        new-season price list x last season's record
 build_preseason.py  -> preseason.html, the draft board
+scraper_fpl.py      official FPL API -> data/2026-27/all_gws.csv + gw<N>.csv
+shots.py            fbref shots x FPL xG/xA, weekly, ranked
+build_shots.py      -> shots.html, the shots/xG/xA board
 data/2025-26/       the full 2025/26 season, gw1.csv .. gw38.csv
 data/2026-27/       player_listing.csv — 2026/27 prices + ownership
                     unavailable.csv    — injured/suspended, barred from squads
+                    fbref_shots.xlsx   — fbref shooting, one sheet per GW
+                    all_gws.csv        — scraper_fpl.py dump, every GW
+                    gw1.csv, gw2.csv   — the same, split by gameweek
 index.html          generated web view of the current picks
 preseason.html      generated pre-season draft board
+shots.html          generated shots / xG / xA board
 ```
 
 Run: `pip install -r requirements.txt`, then any of the commands above —
@@ -1308,6 +1315,106 @@ head of the ranking fills with small-sample flukes.
 pts/week. Kept because the pick sheet and the leaderboards *are* top-of-list
 objects, which is where the gain lands; `PRIOR_MINUTES = 450` in `model.py`
 is one line to revert.
+
+## Shots, xG and xA by gameweek — `shots.py`
+
+`shots.html` is a separate board from the rating model: no stars, no
+projections, just what every player did, week by week, and where that put
+him. Build it with `python build_shots.py`.
+
+### Two sources, because neither has all three
+
+| | shots | penalties attempted | xG | xA | minutes |
+|---|---|---|---|---|---|
+| **fbref** `data/2026-27/fbref_shots.xlsx` | ✅ | ✅ | — | — | as `90s` |
+| **FPL API** `data/2026-27/all_gws.csv` | — | — | ✅ | ✅ | ✅ |
+
+The fbref workbook has one sheet per gameweek — `GW1`, `GW2`, … — and each
+sheet is **cumulative to the end of that gameweek**. A single gameweek is
+therefore the sheet minus its predecessor; GW1 is itself. Adding `GW3` next
+week needs no code change: the sheet names *are* the gameweek numbers. (The
+workbook's own `Week` column is a row rank, not a gameweek, and is ignored.)
+
+A gameweek only one source covers is **dropped and named** rather than
+ranked. Half a gameweek's evidence would show either nobody shooting or
+nobody creating, which is worse than showing nothing.
+
+### Penalties cost 0.75 xG
+
+A penalty is worth about 0.79 xG in the models, and it says who takes
+penalties rather than who is getting shots away. Left in, one spot kick
+outranks four good chances in the same week. So every attempt fbref records
+costs its taker **`PENALTY_XG = 0.75`** in that gameweek, subtracted from
+the *weekly* count so a penalty is charged once, in its own week. Through
+GW2 that is four kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
+the check that the constant is the right size.
+
+### Ranking
+
+Within a gameweek, over the players who **actually played**, each of shots,
+adjusted xG and xA is ranked with 1 best, ties sharing the mean rank. The
+three ranks are summed and the sum re-ranked from 1 — that integer is the
+cell. About a quarter of the field each week takes no shot, makes no chance
+and is credited with no xG at all; they are genuinely tied, share a rank,
+and no ordering among them means anything.
+
+A player who did not play is **blank**, not zero and not last. But blanks
+cannot be summed honestly, because missing a gameweek would then *improve* a
+total, so:
+
+* **Total** — ranks summed, a missed gameweek charged that week's last
+  place. Who has been most useful so far. The default sort.
+* **Avg** — the mean over the gameweeks he played. Who is best when he
+  plays.
+* **GWs** and **Mins** sit beside them, because the two answers diverge and
+  you need to see which you are reading.
+
+The ranking is on totals, not rates: a ten-minute substitute is ranked
+against a man who played ninety, on the same raw numbers.
+
+### The join is the load-bearing part
+
+fbref writes display names (`Bruno Fernandes`), FPL writes `first_second`
+lowercased (`bruno_borges fernandes`). Names are normalised and assigned
+**one-to-one**, best match first — exact, then one name inside the other,
+then surname. A club agreeing scores but is not required: FPL reports a
+player's *current* club, so a deadline-day move disagrees with the club he
+actually played for. Five players are in that position through GW2.
+
+Leftovers are settled on **minutes**: same club, and accepted only when
+exactly one unclaimed candidate is within `MINUTES_TOL = 10`. That is what
+catches the nicknames no string match will — fbref's *Beto* is FPL's
+*norberto bercique gomes betuncal*, its *Costinha* is *joão pedro loureiro
+da costa*. Both check out on minutes to within five.
+
+Minutes then **audit** every pair, and this is what makes the join
+believable rather than plausible:
+
+```
+verdict: clean (0 rows to check)
+fbref players: 364
+matched: exact 308, partial 43, surname 8, token 3, minutes 2
+minutes agree within 10: 364 of 364
+played but absent from fbref: 0
+```
+
+Two sources that counted the same minutes independently agreeing on **all
+364** players is the evidence. The residual disagreement is fbref quoting
+`90s` to one decimal — 9-minute steps — plus the two disagreeing on
+stoppage time. And 364 is not a coincidence either: FPL says 310 played GW1
+and 312 played GW2, fbref's cumulative GW1 sheet has exactly 310 rows, and
+the union is exactly the 364 rows of its GW2 sheet. The two sources agree
+on *who has played*, not just on how long.
+
+The audit prints on every build and is reproduced on the page, with the
+verdict line first. It is not fatal — a half-updated workbook looks exactly
+like a broken join — but it never passes unnoticed.
+
+### Keeping it current
+
+1. Add the new `GW<n>` sheet to `data/2026-27/fbref_shots.xlsx`.
+2. `python scraper_fpl.py` for the FPL side.
+3. `python build_shots.py`.
 
 ## Roadmap
 
