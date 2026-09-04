@@ -383,7 +383,10 @@ def board(ranked: pd.DataFrame) -> pd.DataFrame:
     """Pivot to the table the page shows: a player a row, a gameweek a column.
 
     ``gw<n>`` holds the aggregate rank, or NA for a gameweek he did not
-    play. Beside them:
+    play. Each category also gets its raw value and **its own rank** that
+    week — ``shots_gw<n>`` and ``shots_rank_gw<n>`` — so the shots table can
+    show where a shots count placed without borrowing the aggregate, which
+    is two thirds about something else. Beside them:
 
     * ``played`` — gameweeks he played, out of those covered;
     * ``total``  — the ranks summed, a **missed gameweek charged that
@@ -422,10 +425,16 @@ def board(ranked: pd.DataFrame) -> pd.DataFrame:
         totals = ranked.pivot_table(index="element", columns="round",
                                     values=cat, aggfunc="first")
         totals = totals.reindex(index=who["element"], columns=gameweeks)
+        # The category's own rank that gameweek — the one that belongs beside
+        # a shots number, as against the aggregate over all three.
+        cat_ranks = ranked.pivot_table(index="element", columns="round",
+                                       values=f"rank_{cat}", aggfunc="first")
+        cat_ranks = cat_ranks.reindex(index=who["element"], columns=gameweeks)
         for gw in gameweeks:
             # A rank exists exactly when he played, so it doubles as the mask
             # that keeps a blank week blank rather than showing it as zero.
             out[f"{cat}_gw{gw}"] = totals[gw].where(ranks[gw].notna())
+            out[f"{cat}_rank_gw{gw}"] = cat_ranks[gw]
         out[f"{cat}_total"] = totals.sum(axis=1)
 
     return out.sort_values(["total", "average"]).reset_index()
