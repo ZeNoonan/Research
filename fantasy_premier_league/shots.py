@@ -89,7 +89,19 @@ SQUAD_ALIASES = {
 }
 
 CATEGORIES = ("shots", "xg", "xa")
-CATEGORY_NAMES = {"shots": "Shots", "xg": "xG (pen-adj)", "xa": "xA"}
+# The defcon board's four: the same attacking three, plus the defensive
+# work, over defenders and midfielders only.
+DEFCON_CATEGORIES = ("shots", "xg", "xa", "dc")
+DEFCON_POSITIONS = ("DF", "MD")
+CATEGORY_NAMES = {"shots": "Shots", "xg": "xG (pen-adj)", "xa": "xA",
+                  "dc": "Defensive contributions"}
+
+# Qualifying defensive actions needed for FPL's 2-point defensive
+# contribution award. A defender's tally is clearances + blocks +
+# interceptions + tackles; a midfielder's adds recoveries and needs two
+# more of them. Verified against the dump: every DF row equals CBI +
+# tackles, every MD and FW row equals that plus recoveries, every GK is 0.
+DC_THRESHOLD = {"DF": 10, "MD": 12, "FW": 12}
 
 
 # --- loading -----------------------------------------------------------------
@@ -169,7 +181,7 @@ def load_fpl(path: str | Path) -> pd.DataFrame:
     """
     d = pd.read_csv(path)
     need = {"element", "full_name", "team", "Position", "round", "minutes",
-            "expected_goals", "expected_assists"}
+            "expected_goals", "expected_assists", "defensive_contribution"}
     missing = need - set(d.columns)
     if missing:
         raise ValueError(f"{path} is missing columns: {sorted(missing)}")
@@ -334,8 +346,17 @@ def weekly(data_dir: str | Path = HERE / "data" / "2026-27") -> pd.DataFrame:
     out["xa"] = out["expected_assists"]
     out = out.rename(columns={"Position": "position"})
 
+    # FPL already counts the position-appropriate defensive actions, so the
+    # column is used as it stands. What it does not say is whether the
+    # count was enough for the 2 points, since the bar differs by position.
+    out["dc"] = out["defensive_contribution"]
+    bar = out["position"].map(DC_THRESHOLD)
+    out["dc_hit"] = out["dc"] >= bar          # NaN bar (a keeper) is False
+    out["dc_bar"] = bar
+
     out = out[["element", "name", "team", "position", "round", "minutes",
-               "played", "shots", "pkatt", "xg_raw", "xg", "xa"]]
+               "played", "shots", "pkatt", "xg_raw", "xg", "xa",
+               "dc", "dc_hit", "dc_bar"]]
     out = out.sort_values(["element", "round"]).reset_index(drop=True)
     out.attrs["join"] = join
     out.attrs["gameweeks"] = gameweeks
@@ -344,42 +365,63 @@ def weekly(data_dir: str | Path = HERE / "data" / "2026-27") -> pd.DataFrame:
     return out
 
 
-def rank_gameweeks(week: pd.DataFrame) -> pd.DataFrame:
+def restrict(week: pd.DataFrame, positions=None) -> pd.DataFrame:
+    """Cut the frame down to a set of positions, keeping the ``attrs``.
+
+    Ranking happens **after** this, so a board of defenders and midfielders
+    ranks its players against each other rather than against forwards. A
+    defender's three shots mean something next to other defenders and
+    midfielders; next to Haaland they mean very little.
+    """
+    if positions is None:
+        return week
+    out = week[week["position"].isin(positions)].copy()
+    out.attrs = dict(week.attrs)
+    out.attrs["positions"] = tuple(positions)
+    return out
+
+
+def rank_gameweeks(week: pd.DataFrame, categories=CATEGORIES) -> pd.DataFrame:
     """Rank each gameweek's players on each category, and on the aggregate.
 
-    Only players who played are ranked. Within a category the rank is 1 for
-    the best and ties share the mean rank, so nobody gains by sitting in a
-    crowd of zeros. The aggregate is the sum of the three, re-ranked from 1
-    with ties sharing the best available place — an ordinary joint 12th.
+    Only players who played are ranked, and only against the players in the
+    frame — so pass it through ``restrict`` first if the board is a subset.
+    Within a category the rank is 1 for the best and ties share the mean
+    rank, so nobody gains by sitting in a crowd of zeros. The aggregate is
+    the sum of the category ranks, re-ranked from 1 with ties sharing the
+    best available place — an ordinary joint 12th.
 
-    Adds ``rank_shots``, ``rank_xg``, ``rank_xa``, ``rank_sum``, ``rank``
-    and ``field`` (how many played that gameweek). Rows for players who did
-    not play keep NA ranks.
+    Adds ``rank_<cat>`` for each category, plus ``rank_sum``, ``rank`` and
+    ``field`` (how many played that gameweek). Rows for players who did not
+    play keep NA ranks. ``attrs["categories"]`` records which were used.
     """
+    cols = [f"rank_{c}" for c in categories] + ["rank_sum", "rank"]
     out = week.copy()
-    for col in ("rank_shots", "rank_xg", "rank_xa", "rank_sum", "rank"):
+    for col in cols:
         out[col] = pd.NA
     out["field"] = out.groupby("round")["played"].transform("sum")
 
     played = out["played"]
-    for cat in CATEGORIES:
+    for cat in categories:
         out.loc[played, f"rank_{cat}"] = (
             out.loc[played].groupby("round")[cat]
             .rank(ascending=False, method="average"))
 
     out.loc[played, "rank_sum"] = sum(
-        out.loc[played, f"rank_{cat}"] for cat in CATEGORIES)
+        out.loc[played, f"rank_{cat}"] for cat in categories)
     out.loc[played, "rank"] = (
         out.loc[played].groupby("round")["rank_sum"]
         .rank(ascending=True, method="min").astype(int))
     # The columns were seeded with NA to be object-typed while partially
     # filled; make them numeric again so the pivots downstream are numbers.
-    for col in ("rank_shots", "rank_xg", "rank_xa", "rank_sum", "rank"):
+    for col in cols:
         out[col] = pd.to_numeric(out[col])
+    out.attrs = dict(week.attrs)
+    out.attrs["categories"] = tuple(categories)
     return out
 
 
-def board(ranked: pd.DataFrame) -> pd.DataFrame:
+def board(ranked: pd.DataFrame, categories=None) -> pd.DataFrame:
     """Pivot to the table the page shows: a player a row, a gameweek a column.
 
     ``gw<n>`` holds the aggregate rank, or NA for a gameweek he did not
@@ -391,18 +433,22 @@ def board(ranked: pd.DataFrame) -> pd.DataFrame:
     * ``played`` — gameweeks he played, out of those covered;
     * ``total``  — the ranks summed, a **missed gameweek charged that
       week's last place**, so that missing one cannot flatter the total;
-    * ``average``— the mean rank over the gameweeks he played.
+    * ``average``— the mean rank over the gameweeks he played;
+    * ``dc_weeks``— gameweeks he cleared FPL's defensive-contribution bar,
+      with ``dc_hit_gw<n>`` saying which.
 
     Both are ascending: 1 is the best. Players who have not played at all
     are dropped — a row of blanks says nothing.
     """
+    categories = categories or ranked.attrs.get("categories", CATEGORIES)
     gameweeks = sorted(ranked["round"].unique())
     field = ranked.groupby("round")["field"].first()
 
     who = (ranked.groupby("element", as_index=False)
            .agg(name=("name", "first"), team=("team", "first"),
                 position=("position", "first"),
-                minutes=("minutes", "sum"), played=("played", "sum")))
+                minutes=("minutes", "sum"), played=("played", "sum"),
+                dc_weeks=("dc_hit", "sum")))
     who = who[who["played"] > 0]
 
     ranks = ranked.pivot_table(index="element", columns="round", values="rank",
@@ -421,12 +467,12 @@ def board(ranked: pd.DataFrame) -> pd.DataFrame:
     out["total"] = charged.sum(axis=1)
     out["average"] = ranks.mean(axis=1)
 
-    for cat in CATEGORIES:
+    for cat in categories:
         totals = ranked.pivot_table(index="element", columns="round",
                                     values=cat, aggfunc="first")
         totals = totals.reindex(index=who["element"], columns=gameweeks)
         # The category's own rank that gameweek — the one that belongs beside
-        # a shots number, as against the aggregate over all three.
+        # a shots number, as against the aggregate over all of them.
         cat_ranks = ranked.pivot_table(index="element", columns="round",
                                        values=f"rank_{cat}", aggfunc="first")
         cat_ranks = cat_ranks.reindex(index=who["element"], columns=gameweeks)
@@ -437,6 +483,16 @@ def board(ranked: pd.DataFrame) -> pd.DataFrame:
             out[f"{cat}_rank_gw{gw}"] = cat_ranks[gw]
         out[f"{cat}_total"] = totals.sum(axis=1)
 
+    # Which weeks cleared the 2-point defensive bar, for the marker on the
+    # defcon board's cells. Kept whatever the categories, since it costs one
+    # pivot and the column is meaningless where it is not shown.
+    hits = ranked.pivot_table(index="element", columns="round",
+                              values="dc_hit", aggfunc="first")
+    hits = hits.reindex(index=who["element"], columns=gameweeks).fillna(False)
+    for gw in gameweeks:
+        out[f"dc_hit_gw{gw}"] = hits[gw].astype(bool)
+
+    out.attrs["categories"] = tuple(categories)
     return out.sort_values(["total", "average"]).reset_index()
 
 
@@ -510,13 +566,20 @@ def report_join(week: pd.DataFrame) -> str:
 def main() -> None:
     week = weekly()
     print(report_join(week), "\n")
-    ranked = rank_gameweeks(week)
-    table = board(ranked)
     gws = week.attrs["gameweeks"]
-    cols = ["name", "team", "position"] + [f"gw{g}" for g in gws] + \
-        ["played", "total", "average"]
-    print(f"gameweeks: {gws}   players ranked: {len(table)}")
-    print(table[cols].head(30).to_string(index=False))
+
+    for label, positions, cats in (
+            ("all players, 3 categories", None, CATEGORIES),
+            ("defcon (DF/MD), 4 categories", DEFCON_POSITIONS,
+             DEFCON_CATEGORIES)):
+        ranked = rank_gameweeks(restrict(week, positions), cats)
+        table = board(ranked)
+        cols = ["name", "team", "position"] + [f"gw{g}" for g in gws] + \
+            ["played", "total", "average"]
+        if "dc" in cats:
+            cols.append("dc_weeks")
+        print(f"\n=== {label}: gameweeks {gws}, {len(table)} players")
+        print(table[cols].head(20).to_string(index=False))
 
 
 if __name__ == "__main__":
