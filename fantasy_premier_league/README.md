@@ -1358,9 +1358,18 @@ the check that the constant is the right size.
 Within a gameweek, over the players who **actually played**, each of shots,
 adjusted xG and xA is ranked with 1 best, ties sharing the mean rank. The
 three ranks are summed and the sum re-ranked from 1 — that integer is the
-cell. About a quarter of the field each week takes no shot, makes no chance
-and is credited with no xG at all; they are genuinely tied, share a rank,
-and no ordering among them means anything.
+cell on the **Aggregate ranking** tab. About a quarter of the field each
+week takes no shot, makes no chance and is credited with no xG at all; they
+are genuinely tied, share a rank, and no ordering among them means anything.
+
+The **Shots**, **xG** and **xA** tabs show the raw number with **its own
+rank in that category** in brackets — `5 (3.5)` is five shots, tied third
+and fourth that gameweek. Deliberately not the aggregate: the aggregate is
+two thirds about the other two categories, so putting it beside a shots
+count would say something the count does not. It has its own tab, and every
+tooltip carries both. The shading follows the same category rank, and the
+columns sort on the value, since within a gameweek the two orderings are
+the same and the value is what "most shots" means.
 
 A player who did not play is **blank**, not zero and not last. But blanks
 cannot be summed honestly, because missing a gameweek would then *improve* a

@@ -54,6 +54,7 @@ table.board th[data-dir]::after { content: " \\2193"; }
 table.board th[data-dir="asc"]::after { content: " \\2191"; }
 table.board tbody tr:hover td { background: rgba(56, 0, 60, .06); }
 td.gw { text-align: right; font-variant-numeric: tabular-nums; }
+.rk { color: var(--muted); font-size: 11px; font-weight: 400; }
 td.gw.r1 { background: rgba(0, 160, 90, .18); font-weight: 700; }
 td.gw.r2 { background: rgba(0, 160, 90, .08); }
 td.dnp { color: var(--border); text-align: right; }
@@ -160,14 +161,33 @@ def rank_cell(row, gw: int, note: str) -> str:
             f'{v}</td>')
 
 
+def _rank(v: float) -> str:
+    """'12' for a clean rank, '82.5' for a tie sharing the mean of two."""
+    return f"{v:.0f}" if float(v).is_integer() else f"{v:.1f}"
+
+
 def value_cell(row, cat: str, gw: int, fmt: str, note: str) -> str:
+    """The category's value that gameweek, with its rank in that category.
+
+    The rank beside a shots count is the **shots** rank, not the aggregate:
+    the aggregate is two thirds about xG and xA, and pairing it with a shots
+    number would say something the number does not. The aggregate has its
+    own tab, and the tooltip carries both either way.
+    """
     v = row.get(f"{cat}_gw{gw}")
     if pd.isna(v):
         return ('<td class="dnp" data-v="" title="No minutes played in '
                 f'GW{gw}">&mdash;</td>')
+    rk = row.get(f"{cat}_rank_gw{gw}")
     pen = " pen" if cat == "xg" and row.get(f"pen_gw{gw}") else ""
-    return (f'<td class="gw{pen}" data-v="{v:.4f}" title="{esc(note)}">'
-            f'{fmt.format(v)}</td>')
+    tier = "" if pd.isna(rk) else (" r1" if rk <= 10 else
+                                   (" r2" if rk <= 30 else ""))
+    place = ("" if pd.isna(rk)
+             else f' <span class="rk">({_rank(rk)})</span>')
+    # Sorted on the value, not the rank: within a gameweek they are the same
+    # ordering, and the value is the one the reader means by "most shots".
+    return (f'<td class="gw{tier}{pen}" data-v="{v:.4f}" title="{esc(note)}">'
+            f'{fmt.format(v)}{place}</td>')
 
 
 def table_html(table: pd.DataFrame, view: str, gameweeks: list[int],
@@ -421,8 +441,12 @@ the tables.</p>
 players who actually played, each of shots, adjusted xG and xA is ranked
 with <b>1 the best</b>; ties share the mean rank, so nobody gains by sitting
 in a crowd of zeros. The three ranks are added and the sum re-ranked from 1
-&mdash; that number is the cell. Hover any cell for the three ranks and the
-raw numbers behind it.</p>
+&mdash; that number is the cell on the <b>Aggregate ranking</b> tab. The
+other three tabs show the raw number with <b>its own rank in that
+category</b> in brackets beside it, which is the rank that belongs with a
+shots count &mdash; the aggregate is two thirds about the other two, and has
+its own tab. Hover any cell for all of it: the three category ranks, the raw
+numbers, and what they summed to.</p>
 
 <p class="note"><b>A player who did not play is blank</b> (&mdash;), not
 zero and not last: he was injured, rested, suspended or an unused
@@ -470,6 +494,13 @@ ignored.</p>
 <span class="key" style="background:rgba(0,160,90,.08)"></span>top 30 &nbsp;
 &mdash; no minutes &nbsp; <b style="color:#b3372f">p</b> penalty charged that
 week</p>
+<p class="legend">On the <b>Shots</b>, <b>xG</b> and <b>xA</b> tabs a cell
+reads <b>value <span class="rk">(rank)</span></b> &mdash; the rank is that
+player's place <i>in that category</i> that gameweek, not the aggregate,
+because the aggregate is two thirds about the other two. It shares the mean
+where players tie, so <span class="rk">(82.5)</span> is a tie spanning 82nd
+and 83rd. The shading follows that same rank, and the columns still sort on
+the value.</p>
 </section>
 
 <section><h2>The penalties charged</h2>
