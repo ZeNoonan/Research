@@ -521,7 +521,9 @@ gate; 6★ and 7★ picks below (top {PER_POSITION} per position).{thin}
 <br><a href="preseason.html" style="color:var(--accent2)">2026/27 pre-season
 draft board — new prices, rated on this season's evidence →</a>
 <br><a href="shots.html" style="color:var(--accent2)">2026/27 shots, xG and xA
-by gameweek →</a></div>
+by gameweek →</a>
+<br><a href="defcon.html" style="color:var(--accent2)">2026/27 defcon board —
+defenders and midfielders, with defensive contributions →</a></div>
 <section><h2>The seven factors</h2>
 <div class="tablewrap"><table>{factor_rows}</table></div>
 <p class="note"><b>Eligibility gate:</b> 45+ minutes averaged over the last

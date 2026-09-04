@@ -605,7 +605,8 @@ because it is the term season points vary most with. Crowd is computed and
 shown as a diagnostic but no longer scored.
 <a href="index.html" style="color:var(--accent2)">In-season app →</a>
 <a href="shots.html" style="color:var(--accent2)">Shots, xG and xA by
-gameweek →</a></div>
+gameweek →</a>
+<a href="defcon.html" style="color:var(--accent2)">Defcon board →</a></div>
 
 <section><h2>Read this first</h2>
 <p class="note">Every number here comes from <b>{esc(history_season)}</b>.

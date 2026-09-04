@@ -84,9 +84,12 @@ td.gw { text-align: right; font-variant-numeric: tabular-nums; }
 td.gw.r1 { background: rgba(0, 160, 90, .18); font-weight: 700; }
 td.gw.r2 { background: rgba(0, 160, 90, .08); }
 td.dnp { color: var(--border); text-align: right; }
-td.pen { position: relative; }
 td.pen::after { content: "p"; font-size: 9px; vertical-align: super;
   color: #b3372f; margin-left: 2px; font-weight: 700; }
+/* The week's defensive count cleared FPL's 2-point bar. */
+td.hit::after { content: "\2713"; font-size: 10px; vertical-align: super;
+  color: #1e7d46; margin-left: 2px; font-weight: 700; }
+td.hitcount { color: #1e7d46; font-weight: 700; }
 td.rowno { color: var(--muted); font-size: 12px; text-align: right; }
 th.tot, td.tot { border-left: 1px solid var(--border); }
 pre.audit { overflow: auto; max-height: 340px; font-size: 13px;
@@ -101,29 +104,29 @@ pre.audit { overflow: auto; max-height: 340px; font-size: 13px;
   td.gw.r1 { background: rgba(76, 195, 138, .22); }
   td.gw.r2 { background: rgba(76, 195, 138, .10); }
   td.pen::after { color: #ef7a72; }
+  td.hit::after, td.hitcount { color: #4cc38a; }
 }
 </style></head><body><div class="wrap">
 <header><h1>Shots, xG and xA &mdash; by gameweek</h1>
-<p class="sub">Every player who has been on the pitch, ranked each gameweek
-on shots, penalty-adjusted expected goals and expected assists, and on the
-three together.</p></header>
+<p class="sub">Every player who has been on the pitch, ranked each gameweek on shots, penalty-adjusted expected goals and expected assists, and on the three together.</p></header>
 
 <div class="banner">Covering <b>GW1, GW2</b> &middot;
-<b>364</b> players who have played &middot; shots and penalties from
-<b>fbref</b>, expected goals and assists from the <b>FPL API</b>. Every
+<b>364</b> every player who has been on the pitch &middot; shots and penalties from
+<b>fbref</b>, everything else from the <b>FPL API</b>. Every
 penalty attempt costs its taker <b>0.75 xG</b> in the week he
-took it. <a href="preseason.html" style="color:var(--accent2)">Pre-season
+took it. <a href="defcon.html" style="color:var(--accent2)">Defcon board &rarr;</a>
+<a href="preseason.html" style="color:var(--accent2)">Pre-season
 board &rarr;</a> <a href="index.html" style="color:var(--accent2)">In-season
 app &rarr;</a></div>
 
 <section><h2>Read this first</h2>
 <p class="note"><b>Where the numbers come from.</b> No single source has all
-three. fbref publishes <b>shots</b> and <b>penalties attempted</b>, one
+of them. fbref publishes <b>shots</b> and <b>penalties attempted</b>, one
 sheet per gameweek, each one cumulative to the end of that gameweek &mdash;
 so a single gameweek is the sheet minus its predecessor. The FPL API
-publishes <b>expected goals</b>, <b>expected assists</b> and <b>minutes</b>,
-already week by week. The two are joined player by player; the join is
-audited at the foot of the page.</p>
+publishes <b>expected goals</b>, <b>expected assists</b>, <b>defensive
+contributions</b> and <b>minutes</b>, already week by week. The two are
+joined player by player; the join is audited at the foot of the page.</p>
 
 <p class="note"><b>Penalties.</b> A penalty is worth about 0.79 xG in the
 models, and it tells you who takes penalties rather than who is getting
@@ -134,15 +137,15 @@ listed below, and marked with a small red <b style="color:#b3372f">p</b> in
 the tables.</p>
 
 <p class="note"><b>How the ranking works.</b> Within a gameweek, over the
-players who actually played, each of shots, adjusted xG and xA is ranked
+every player who has been on the pitch who actually played, each of shots, penalty-adjusted xG and xA is ranked
 with <b>1 the best</b>; ties share the mean rank, so nobody gains by sitting
-in a crowd of zeros. The three ranks are added and the sum re-ranked from 1
-&mdash; that number is the cell on the <b>Aggregate ranking</b> tab. The
+in a crowd of zeros. The three ranks are added and the sum re-ranked from
+1 &mdash; that number is the cell on the <b>Aggregate ranking</b> tab. The
 other three tabs show the raw number with <b>its own rank in that
 category</b> in brackets beside it, which is the rank that belongs with a
-shots count &mdash; the aggregate is two thirds about the other two, and has
-its own tab. Hover any cell for all of it: the three category ranks, the raw
-numbers, and what they summed to.</p>
+shots count &mdash; the aggregate is mostly about the other categories, and
+has its own tab. Hover any cell for all of it: the three category ranks,
+the raw numbers, and what they summed to.</p>
 
 <p class="note"><b>A player who did not play is blank</b> (&mdash;), not
 zero and not last: he was injured, rested, suspended or an unused
@@ -163,10 +166,10 @@ quiet full ninety. <b>Mins</b> is on every row so you can see which you are
 looking at.</p>
 
 <p class="note"><b>What the bottom of the table means.</b>
-GW1 76 (25%); GW2 75 (24%) of the players who played took no shot, made no chance and
-were credited with no expected goals at all. They are genuinely tied, they
-all share the same rank, and no ordering among them means anything. The
-field each week: GW1 310; GW2 312.</p>
+GW1 76 (25%); GW2 75 (24%) of the players who played registered <b>nothing at all</b>
+in any of the three categories. They are genuinely tied, they all share
+the same rank, and no ordering among them means anything. The field each
+week: GW1 310; GW2 312.</p>
 
 <p class="note"><b>Adding a gameweek.</b> Drop a new <code>GW&lt;n&gt;</code>
 sheet into <code>data/2026-27/fbref_shots.xlsx</code> — cumulative, like the
@@ -190,14 +193,15 @@ ignored.</p>
 <span class="key" style="background:rgba(0,160,90,.08)"></span>top 30 &nbsp;
 &mdash; no minutes &nbsp; <b style="color:#b3372f">p</b> penalty charged that
 week</p>
-<p class="legend">On the <b>Shots</b>, <b>xG</b> and <b>xA</b> tabs a cell
-reads <b>value <span class="rk">(rank)</span></b> &mdash; the rank is that
+<p class="legend">On the <b>Shots</b>, <b>xG (pen-adjusted)</b> and <b>xA</b> tabs a cell reads
+<b>value <span class="rk">(rank)</span></b> &mdash; the rank is that
 player's place <i>in that category</i> that gameweek, not the aggregate,
-because the aggregate is two thirds about the other two. It shares the mean
-where players tie, so <span class="rk">(82.5)</span> is a tie spanning 82nd
-and 83rd. The shading follows that same rank, and the columns still sort on
-the value.</p>
+because the aggregate is mostly about the other categories. It shares the
+mean where players tie, so <span class="rk">(82.5)</span> is a tie spanning
+82nd and 83rd. The shading follows that same rank, and the columns still
+sort on the value.</p>
 </section>
+
 
 <section><h2>The penalties charged</h2>
 <p class="note">Every attempt fbref recorded, and what it cost the taker's
@@ -244,7 +248,8 @@ last gameweek shown, and the shots still belong to the man, not the shirt.</p>
 </section>
 
 <footer>Built 2026-09-04 &middot; shots and penalties: fbref
-&middot; expected goals, expected assists, minutes: the FPL API</footer>
+&middot; expected goals, expected assists, defensive contributions, minutes:
+the FPL API</footer>
 </div><script>
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
