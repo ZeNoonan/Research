@@ -1130,7 +1130,7 @@ data/2026-27/       player_listing.csv — 2026/27 prices + ownership
                     unavailable.csv    — injured/suspended, barred from squads
                     fbref_shots.xlsx   — fbref shooting, one sheet per GW
                     all_gws.csv        — scraper_fpl.py dump, every GW
-                    gw1.csv, gw2.csv   — the same, split by gameweek
+                    gw<N>.csv          — the same, split by gameweek
 index.html          generated web view of the current picks
 preseason.html      generated pre-season draft board
 shots.html          generated shots / xG / xA board (all players)
@@ -1331,7 +1331,7 @@ is one line to revert.
 projections, just what every player did, week by week, and where that put
 him. Build it with `python build_shots.py`.
 
-### Two sources, because neither has all three
+### Two sources, because neither has all of it
 
 | | shots | penalties attempted | xG | xA | minutes |
 |---|---|---|---|---|---|
@@ -1355,7 +1355,7 @@ penalties rather than who is getting shots away. Left in, one spot kick
 outranks four good chances in the same week. So every attempt fbref records
 costs its taker **`PENALTY_XG = 0.75`** in that gameweek, subtracted from
 the *weekly* count so a penalty is charged once, in its own week. Through
-GW2 that is four kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
+GW3 that is five kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
 the check that the constant is the right size.
 
 ### Ranking
@@ -1396,12 +1396,21 @@ fbref writes display names (`Bruno Fernandes`), FPL writes `first_second`
 lowercased (`bruno_borges fernandes`). Names are normalised and assigned
 **one-to-one**, best match first — exact, then one name inside the other,
 then surname. A club agreeing scores but is not required: FPL reports a
-player's *current* club, so a deadline-day move disagrees with the club he
-actually played for. Five players are in that position through GW2.
+player's *current* club, so a move after the last gameweek disagrees with
+the club he actually played for.
 
-Leftovers are settled on **minutes**: same club, and accepted only when
-exactly one unclaimed candidate is within `MINUTES_TOL = 10`. That is what
-catches the nicknames no string match will — fbref's *Beto* is FPL's
+**A player who moves is one player.** fbref splits a mover's season into
+**one row per club**, so neither the name nor (name, club) is the right key:
+the first would keep only one spell, the second would split him into two
+people. The key is **name + nationality + birth year**, and his spells are
+summed *before* the sheets are differenced — his club totals are each
+cumulative, so their sum is the cumulative total for the man, and
+differencing that gives his week. Four players have two fbref rows through
+GW3; the page lists them, oldest club first.
+
+Leftovers are settled on **minutes**: a club he has played for, and accepted
+only when exactly one unclaimed candidate is within `MINUTES_TOL = 10`. That
+is what catches the nicknames no string match will — fbref's *Beto* is FPL's
 *norberto bercique gomes betuncal*, its *Costinha* is *joão pedro loureiro
 da costa*. Both check out on minutes to within five.
 
@@ -1410,19 +1419,26 @@ believable rather than plausible:
 
 ```
 verdict: clean (0 rows to check)
-fbref players: 364
-matched: exact 308, partial 43, surname 8, token 3, minutes 2
-minutes agree within 10: 364 of 364
+gameweeks ranked: GW1, GW2, GW3
+fbref players: 387
+matched: exact 330, partial 44, surname 8, token 3, minutes 2
+minutes agree within 10: 387 of 387
 played but absent from fbref: 0
 ```
 
 Two sources that counted the same minutes independently agreeing on **all
-364** players is the evidence. The residual disagreement is fbref quoting
+387** players is the evidence. The residual disagreement is fbref quoting
 `90s` to one decimal — 9-minute steps — plus the two disagreeing on
-stoppage time. And 364 is not a coincidence either: FPL says 310 played GW1
-and 312 played GW2, fbref's cumulative GW1 sheet has exactly 310 rows, and
-the union is exactly the 364 rows of its GW2 sheet. The two sources agree
-on *who has played*, not just on how long.
+stoppage time. And 387 is not a coincidence either: FPL says 310 played GW1,
+312 GW2 and 307 GW3; fbref's cumulative GW1 sheet has exactly 310 rows, and
+its GW3 sheet's 391 rows are those 387 people plus the four movers counted
+twice. The two sources agree on *who has played*, not just on how long.
+
+The audit earned its place on the GW3 update: fbref's per-club split was new
+that week, and the verdict went straight to **NEEDS A LOOK (6 rows)** —
+four minute disagreements, two unmatched, and one silently wrong match
+(Enzo Fernández's Chelsea spell claimed by Mateo Joseph Fernández-Regatillo,
+a Leeds forward). Fixing the key cleared all six.
 
 The audit prints on every build and is reproduced on the page, with the
 verdict line first. It is not fatal — a half-updated workbook looks exactly
@@ -1452,16 +1468,16 @@ midfielder** — so the raw count and the reward do not line up: a midfielder's
 count includes recoveries and needs two more of them. Rather than distort
 the ranking to patch that, the threshold is displayed: a cell that cleared
 it carries a green ✓, and a **DC pts** column counts the gameweeks a player
-has done it. Through GW2 that is defenders 38 of 220 player-gameweeks (17%),
-midfielders 22 of 294 (7%).
+has done it. Through GW3 that is defenders 65 of 330 player-gameweeks (20%),
+midfielders 30 of 434 (7%).
 
 **Three of the four categories are attacking**, so the aggregate leans that
-way — 43 of the top 50 are midfielders, and the first defender is 22nd.
+way — 45 of the top 50 are midfielders, and the first defender is 23rd.
 That is the honest consequence of the categories asked for, not a bug, and
 there are two ways round it on the page: the position filter reads it as a
 defenders' board, and the **Defensive contributions** tab opens on the
 season total, which reads it as a purely defensive one. John Egan tops that
-tab on 34 actions with both weeks over the bar while sitting 321st on the
+tab on 41 actions with two weeks over the bar while sitting 183rd on the
 aggregate — a good illustration of how far apart the two questions are.
 
 ### Keeping it current
