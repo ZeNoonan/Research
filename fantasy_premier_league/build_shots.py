@@ -420,22 +420,39 @@ def join_table(join: pd.DataFrame) -> str:
             f"<tbody>{rows}</tbody></table></div>")
 
 
-def moved_table(join: pd.DataFrame) -> str:
-    """The players the two sources put at different clubs.
+def moved(join: pd.DataFrame) -> pd.DataFrame:
+    """Players who have changed club — in either of the two ways it shows.
 
-    Not an error: fbref records the club a player turned out for, FPL the
-    club he is at now. Every row here is a transfer that happened after the
-    last gameweek shown.
+    Either fbref has him at **two** clubs, because he moved during the
+    gameweeks covered and fbref splits a season into a row per spell, or
+    fbref's club is not the one FPL has him at, because he moved after the
+    last gameweek shown and only FPL knows yet.
     """
-    moved = join[join["element"].notna() & (join["Squad"] != join["fpl_team"])]
-    if not len(moved):
+    elsewhere = pd.Series(
+        [t not in s for t, s in zip(join["fpl_team"], join["squads"])],
+        index=join.index)
+    return join[join["element"].notna()
+                & (join["squads"].map(len).gt(1) | elsewhere)]
+
+
+def moved_table(join: pd.DataFrame) -> str:
+    """The players the two sources put at different clubs. Not an error."""
+    rows_df = moved(join).sort_values("Player")
+    if not len(rows_df):
         return "<p class='note'>The two sources agree on every player's club.</p>"
     rows = "".join(
-        f"<tr><td>{esc(r.Player)}</td><td>{esc(r.Squad)}</td>"
-        f"<td>{esc(r.fpl_team)}</td></tr>"
-        for r in moved.sort_values("Player").itertuples())
+        f"<tr><td>{esc(r.Player)}</td>"
+        # Escape each club, then join with the entity — escaping the joined
+        # string would turn the arrow into literal '&rarr;'.
+        f"<td>{' &rarr; '.join(esc(s) for s in r.squads)}</td>"
+        f"<td>{esc(r.fpl_team)}</td>"
+        f"<td class='num'>{r.fb_minutes:.0f}</td>"
+        f"<td class='num'>{r.fpl_minutes:.0f}</td></tr>"
+        for r in rows_df.itertuples())
     return ("<div class='tablewrap'><table><thead><tr><th>Player</th>"
-            "<th>Played for (fbref)</th><th>Now at (FPL)</th></tr></thead>"
+            "<th>Played for (fbref)</th><th>Now at (FPL)</th>"
+            "<th class='num'>fbref mins</th><th class='num'>FPL mins</th>"
+            "</tr></thead>"
             f"<tbody>{rows}</tbody></table></div>")
 
 
@@ -705,12 +722,15 @@ counted them.</p>
 {HOW_LEGEND}
 {join_table(join)}</details>
 
-<details><summary>Players the two sources put at different clubs
-({int((join["element"].notna() & (join["Squad"] != join["fpl_team"])).sum())})
-</summary>
-<p class="note">Not an error. fbref records the club a player turned out
-for; FPL records the club he is at now. Each row is a transfer since the
-last gameweek shown, and the shots still belong to the man, not the shirt.</p>
+<details><summary>Players who have changed club ({len(moved(join))})</summary>
+<p class="note">Not an error, and it shows up in two ways. A player who
+moved <b>during</b> the gameweeks covered has <b>two fbref rows</b>, one per
+spell &mdash; the season is split by club &mdash; and they are summed back
+together before anything else happens, because the shots belong to the man,
+not the shirt. A player who moved <b>after</b> the last gameweek shown is
+still at his old club in fbref and already at his new one in FPL. The two
+minute counts are the check on both: they are of the whole man either way,
+and they agree.</p>
 {moved_table(join)}</details>
 </section>
 

@@ -123,25 +123,45 @@ def gameweek_sheets(path: str | Path) -> list[tuple[int, str]]:
     return sorted(out)
 
 
+# Columns that identify a person rather than a spell. fbref splits a player
+# who moves club into **one row per club**, so the name alone is the wrong
+# key — it would keep only one of his spells — and (name, club) is wrong
+# too, since it would split him into two players. Name, nationality and
+# birth year together are a person: two men would have to share all three
+# to be confused, and the minutes audit would catch it if they did.
+FBREF_ID = ["Player", "Nation", "Born"]
+FBREF_SUMS = ["90s", "Sh", "PKatt", "Gls"]
+
+
 def load_fbref(path: str | Path) -> pd.DataFrame:
     """Read the cumulative sheets and difference them into weekly rows.
 
     Returns one row per (player, gameweek) with ``shots``, ``pkatt``,
-    ``goals`` and ``fb_minutes`` for **that gameweek alone**. Players are
-    keyed on (Player, Squad); the sheet's own ``Week`` column is ignored —
-    it holds a row rank, not a gameweek.
+    ``goals`` and ``fb_minutes`` for **that gameweek alone**, plus
+    ``squads`` — every club he has turned out for, oldest first, since a
+    mid-season transfer puts him at two. The sheet's own ``Week`` column is
+    ignored: it holds a row rank, not a gameweek.
+
+    A mover's spells are summed **before** the sheets are differenced, which
+    is the right order: his club totals are each cumulative, so their sum is
+    the cumulative total for the man, and differencing that gives his week.
     """
-    frames = {}
+    frames, clubs = {}, {}
     for gw, sheet in gameweek_sheets(path):
         d = pd.read_excel(path, sheet_name=sheet)
-        d = d[["Player", "Squad", "90s", "Sh", "PKatt", "Gls"]].copy()
+        d = d[FBREF_ID + ["Squad"] + FBREF_SUMS].copy()
         d["Squad"] = d["Squad"].map(lambda s: SQUAD_ALIASES.get(s, s))
-        dup = d.duplicated(["Player", "Squad"])
+        dup = d.duplicated(FBREF_ID + ["Squad"])
         if dup.any():
             raise ValueError(
-                f"{sheet} names the same player twice: "
+                f"{sheet} names the same player at the same club twice: "
                 + ", ".join(d.loc[dup, "Player"]))
-        frames[gw] = d.set_index(["Player", "Squad"])
+        for r in d.itertuples(index=False):
+            # First sheet a spell shows up in orders the clubs chronologically,
+            # so a mover's clubs read old to new rather than alphabetically.
+            clubs.setdefault((r.Player, r.Nation, r.Born), {}).setdefault(
+                r.Squad, gw)
+        frames[gw] = (d.groupby(FBREF_ID, dropna=False)[FBREF_SUMS].sum())
 
     rows = []
     prev = None
@@ -152,13 +172,13 @@ def load_fbref(path: str | Path) -> pd.DataFrame:
         else:
             # Everyone in either sheet; absent from the earlier one means he
             # had not played yet, which is a zero, not a gap.
-            weekly = cur.reindex(cur.index.union(prev.index)).fillna(0.0) \
-                - prev.reindex(cur.index.union(prev.index)).fillna(0.0)
+            both = cur.index.union(prev.index)
+            weekly = cur.reindex(both).fillna(0.0) - prev.reindex(both).fillna(0.0)
             shrank = weekly[weekly["Sh"] < 0]
             if len(shrank):
                 raise ValueError(
                     f"GW{gw} has fewer cumulative shots than GW{gw - 1} for: "
-                    + ", ".join(n for n, _ in shrank.index[:5])
+                    + ", ".join(k[0] for k in shrank.index[:5])
                     + " — the sheets are not cumulative")
         weekly = weekly.reset_index()
         weekly["round"] = gw
@@ -168,8 +188,11 @@ def load_fbref(path: str | Path) -> pd.DataFrame:
     out = pd.concat(rows, ignore_index=True)
     out = out.rename(columns={"Sh": "shots", "PKatt": "pkatt", "Gls": "goals"})
     out["fb_minutes"] = out["90s"] * 90
-    return out[["Player", "Squad", "round", "shots", "pkatt", "goals",
-                "fb_minutes"]]
+    out["squads"] = [tuple(sorted(clubs[k], key=lambda s: (clubs[k][s], s)))
+                     for k in zip(out["Player"], out["Nation"], out["Born"])]
+    out["Squad"] = out["squads"].map(" / ".join)
+    return out[FBREF_ID + ["Squad", "squads", "round", "shots", "pkatt",
+                           "goals", "fb_minutes"]]
 
 
 def load_fpl(path: str | Path) -> pd.DataFrame:
@@ -200,9 +223,10 @@ def _tokens(name: str) -> set[str]:
 def _name_pairs(fb: pd.DataFrame, fpl: pd.DataFrame):
     """Yield (score, fbref position, element, how) for every plausible pair.
 
-    Scored by how much of the name agrees, with a bonus for the club. The
-    club is only a bonus: a player who moved on deadline day is at his new
-    club in FPL and his old one in fbref, and he is still the same player.
+    Scored by how much of the name agrees, with a bonus if FPL's club is one
+    of the clubs he has played for. The club is only a bonus: a player who
+    moved after the last gameweek is at his new club in FPL and only his old
+    one in fbref, and he is still the same player.
     """
     for i, f in enumerate(fb.itertuples()):
         ft = _tokens(f.Player)
@@ -223,7 +247,7 @@ def _name_pairs(fb: pd.DataFrame, fpl: pd.DataFrame):
                 how, score = "surname", 5
             else:
                 how, score = "token", 3
-            yield score + 4 * (p.team == f.Squad), i, p.element, how
+            yield score + 4 * (p.team in f.squads), i, p.element, how
 
 
 def _minutes_pairs(fb: pd.DataFrame, fpl: pd.DataFrame,
@@ -240,7 +264,7 @@ def _minutes_pairs(fb: pd.DataFrame, fpl: pd.DataFrame,
     for i in sorted(left):
         f = fb.iloc[i]
         cand = [e for e in free
-                if by_element.at[e, "team"] == f["Squad"]
+                if by_element.at[e, "team"] in f["squads"]
                 and abs(by_element.at[e, "minutes"] - f["fb_minutes"])
                 <= MINUTES_TOL]
         if len(cand) == 1:
@@ -322,17 +346,18 @@ def weekly(data_dir: str | Path = HERE / "data" / "2026-27") -> pd.DataFrame:
     fb_weekly = fb_weekly[fb_weekly["round"].isin(gameweeks)]
     fpl_weekly = fpl_weekly[fpl_weekly["round"].isin(gameweeks)]
 
-    fb_totals = (fb_weekly.groupby(["Player", "Squad"], as_index=False)
-                 .agg({"fb_minutes": "sum"}))
+    fb_totals = (fb_weekly.groupby(FBREF_ID, as_index=False)
+                 .agg(Squad=("Squad", "first"), squads=("squads", "first"),
+                      fb_minutes=("fb_minutes", "sum")))
     fpl_totals = (fpl_weekly.groupby("element", as_index=False)
                   .agg(name=("name", "first"), team=("team", "first"),
                        position=("Position", "first"), minutes=("minutes", "sum")))
     join = match_rows(fb_totals, fpl_totals)
 
-    key = join.set_index(["Player", "Squad"])["element"]
+    key = join.set_index(FBREF_ID)["element"]
     fb_weekly = fb_weekly.copy()
     fb_weekly["element"] = pd.MultiIndex.from_frame(
-        fb_weekly[["Player", "Squad"]]).map(key)
+        fb_weekly[FBREF_ID]).map(key)
 
     out = fpl_weekly.merge(
         fb_weekly.loc[fb_weekly["element"].notna(),
