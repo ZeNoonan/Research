@@ -120,15 +120,29 @@ def pick(system_num: int) -> str | None:
 
 # --- grading against the spread ----------------------------------------------
 
+def _known(*values) -> bool:
+    """True when every value is present (not NaN/NA)."""
+    return not any(pd.isna(v) for v in values)
+
+
 def cover(home_score: int, away_score: int, line: float) -> int:
-    """+1 home covered, -1 away covered, 0 push (margin lands exactly on line)."""
+    """+1 home covered, -1 away covered, 0 push (margin lands exactly on line).
+
+    Returns 0 — no cover information, so it moves nothing — when the game has
+    not been played yet or carries no line.
+    """
+    if not _known(home_score, away_score, line):
+        return 0
     return _sign((home_score - away_score) + line)
 
 
 def grade(system_num: int, home_score: int, away_score: int, line: float) -> str | None:
-    """'W' / 'L' for the recommended bet, or None for no bet or a push."""
+    """'W' / 'L' for the recommended bet, or None for no bet, a push, or a game
+    that has not been played yet (the pick stands, ungraded)."""
     side = pick(system_num)
     if side is None:
+        return None
+    if not _known(home_score, away_score, line):
         return None
     c = cover(home_score, away_score, line)
     if c == 0:

@@ -81,36 +81,49 @@ def available_years() -> list[int]:
 
 # --- loading a single season -------------------------------------------------
 
-def assign_weeks(week_col: pd.Series) -> pd.Series:
-    """Numeric regular weeks unchanged; playoff rounds become max_regular + 1..4."""
+def assign_weeks(week_col: pd.Series) -> tuple[pd.Series, pd.Series]:
+    """Numeric regular weeks unchanged; playoff rounds become max_regular + 1..4.
+
+    Returns (week number, is_playoff). A season still in progress has no playoff
+    rows at all, so playoff status is read from the label rather than assumed to
+    be the last four weeks.
+    """
     reg = pd.to_numeric(week_col, errors="coerce")
     max_reg = int(reg.max())
-    wk = reg.copy()
+    wk, playoff = reg.copy(), pd.Series(False, index=week_col.index)
     for offset, label in enumerate(PLAYOFF_ORDER, start=1):
-        wk = wk.mask(week_col == label, max_reg + offset)
-    return wk.astype(int)
+        is_round = week_col == label
+        wk = wk.mask(is_round, max_reg + offset)
+        playoff |= is_round
+    return wk.astype(int), playoff
 
 
 def load_results(year: int) -> pd.DataFrame:
+    """One row per game. A season in progress keeps its scheduled games, with
+    scores and turnovers left missing until they are played."""
     df = pd.read_csv(DATA_DIR / f"results_{year}.csv")
-    df = df.dropna(subset=["Pts"])  # header/divider rows (e.g. 'Playoffs')
+    df = df.dropna(subset=["Winner/tie", "Loser/tie"])  # header/divider rows
     df["Date"] = pd.to_datetime(df["Date"])
-    df["Week"] = assign_weeks(df["Week"])
+    df["Week"], df["playoff"] = assign_weeks(df["Week"])
+    df["played"] = df["Pts"].notna() & df["Pts.1"].notna()
 
-    away_won = df["venue_marker"] == "@"       # '@' = winner was the away team
+    # '@' = the away team is listed first (and, for a played game, won).
+    away_won = df["venue_marker"] == "@"
     df["home"] = np.where(away_won, df["Loser/tie"], df["Winner/tie"])
     df["away"] = np.where(away_won, df["Winner/tie"], df["Loser/tie"])
-    df["home_score"] = np.where(away_won, df["Pts.1"], df["Pts"]).astype(int)
-    df["away_score"] = np.where(away_won, df["Pts"], df["Pts.1"]).astype(int)
-    df["home_giveaways"] = np.where(away_won, df["TOL"], df["TOW"]).astype(int)
-    df["away_giveaways"] = np.where(away_won, df["TOW"], df["TOL"]).astype(int)
+    for col, (when_away, when_home) in {
+        "home_score": ("Pts.1", "Pts"), "away_score": ("Pts", "Pts.1"),
+        "home_giveaways": ("TOL", "TOW"), "away_giveaways": ("TOW", "TOL"),
+    }.items():
+        df[col] = np.where(away_won, df[when_away], df[when_home])
+        df[col] = pd.array(df[col], dtype="Int64")  # <NA> until played
     df["neutral"] = df["venue_marker"] == "N"  # neutral venue (e.g. Super Bowl)
     for col in ("home", "away"):
         df[col] = df[col].map(nickname)
 
     df["season"] = year
     cols = ["season", "Week", "Date", "home", "away", "home_score", "away_score",
-            "home_giveaways", "away_giveaways", "neutral"]
+            "home_giveaways", "away_giveaways", "neutral", "played", "playoff"]
     return df[cols].rename(columns={"Week": "week"})
 
 
@@ -153,20 +166,26 @@ def merge_season(year: int, warn: list | None = None) -> pd.DataFrame:
 
         row = {k: getattr(r, k) for k in
                ("season", "week", "Date", "home", "away", "home_score", "away_score",
-                "home_giveaways", "away_giveaways", "neutral")}
+                "home_giveaways", "away_giveaways", "neutral", "played", "playoff")}
         if best["swap"]:
             row["home"], row["away"] = r.away, r.home
             row["home_score"], row["away_score"] = r.away_score, r.home_score
             row["home_giveaways"], row["away_giveaways"] = r.away_giveaways, r.home_giveaways
         row["line"] = best["line"]
         row["neutral"] = bool(r.neutral or best["neutral_odds"])
-        if warn is not None and not pd.isna(best["Home Score"]) and (
-                row["home_score"] != best["Home Score"] or row["away_score"] != best["Away Score"]):
+        if (warn is not None and row["played"] and not pd.isna(best["Home Score"]) and (
+                row["home_score"] != best["Home Score"]
+                or row["away_score"] != best["Away Score"])):
             warn.append(f"{year} {r.Date.date()} {row['home']} v {row['away']}: "
                         f"results {row['home_score']}-{row['away_score']} vs "
                         f"odds {int(best['Home Score'])}-{int(best['Away Score'])}")
         rows.append(row)
-    return pd.DataFrame(rows).rename(columns={"Date": "date"})
+    out = pd.DataFrame(rows).rename(columns={"Date": "date"})
+    # Row-wise assembly loses the nullable dtype; restore it so unplayed games
+    # carry <NA> counts rather than object-typed NA.
+    for col in ("home_score", "away_score", "home_giveaways", "away_giveaways"):
+        out[col] = pd.array(pd.to_numeric(out[col], errors="coerce"), dtype="Int64")
+    return out
 
 
 # --- cross-season factors on the combined log --------------------------------
@@ -180,7 +199,9 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     of seasons has LGT 0.
     """
     g = combined.copy()
-    g["home_net_to"] = g["home_giveaways"] - g["away_giveaways"]
+    # float (NaN) rather than Int64 (<NA>): an unplayed game contributes no
+    # turnover margin, and the next game's LGT falls back to 0 (neutral).
+    g["home_net_to"] = (g["home_giveaways"] - g["away_giveaways"]).astype(float)
     long = pd.concat([
         g[["order", "block", "home", "home_net_to"]]
          .rename(columns={"home": "team", "home_net_to": "net_to"}),
@@ -193,7 +214,8 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     for side in ("home", "away"):
         key = long.rename(columns={"team": side, "lgt": f"{side}_lgt"})
         g = g.merge(key[["order", side, f"{side}_lgt"]], on=["order", side], how="left")
-    g[["home_lgt", "away_lgt"]] = g[["home_lgt", "away_lgt"]].fillna(0.0)
+    # `+ 0.0` folds the -0.0 that negating a zero turnover margin produces.
+    g[["home_lgt", "away_lgt"]] = g[["home_lgt", "away_lgt"]].fillna(0.0) + 0.0
     return g.drop(columns=["home_net_to"])
 
 
@@ -222,8 +244,8 @@ def add_powers(combined: pd.DataFrame) -> pd.DataFrame:
     tix = {t: i for i, t in enumerate(teams)}
 
     season_weeks = {s: sorted(d["week"].unique()) for s, d in g.groupby("season")}
-    regular_weeks = {
-        s: sorted(w for w in season_weeks[s] if w <= d["week"].max() - len(PLAYOFF_ORDER))
+    regular_weeks = {  # from the playoff labels, so a season still in progress
+        s: sorted(d.loc[~d["playoff"], "week"].unique())  # is not assumed to have any
         for s, d in g.groupby("season")
     }
     seasons = sorted(season_weeks)
@@ -290,6 +312,11 @@ def build_reports(warn: list | None = None) -> dict[int, pd.DataFrame]:
     reports: dict[int, pd.DataFrame] = {}
     for year in years:
         season = combined[combined["season"] == year].copy()
+        # A season in progress carries its whole remaining schedule, which the
+        # factors need but the report should not list: keep the games that are
+        # actionable — already played, or priced so the system can pick them.
+        # (A completed season is all played, so nothing is dropped.)
+        season = season[season["played"] | season["line"].notna()].copy()
         # STDC resets each season: compute on this season's games only.
         stdc = model.season_to_date_covers(season)
         season["home_stdc"] = stdc["home_stdc_calc"].fillna(0.0).values
