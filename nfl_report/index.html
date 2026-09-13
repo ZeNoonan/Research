@@ -54,6 +54,8 @@ td.l, th.l { text-align: left; }
 tr.bet { background: var(--bet-row); font-weight: 600; }
 .chip { display: inline-block; min-width: 20px; padding: 1px 7px; border-radius: 10px; color: #fff; font-size: 12px; text-align: center; }
 .chip.W { background: var(--win); } .chip.L { background: var(--loss); } .chip.P { background: var(--push); }
+.chip.N { background: transparent; color: var(--muted); border: 1px dashed var(--border); }
+.pending { color: var(--muted); font-style: italic; }
 body.betsonly tr.nobet { display: none; }
 .factors { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px 14px; margin-top: 12px; font-size: 14px; }
 .factors li { margin: 8px 0; }
@@ -86,11 +88,12 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
     328&ndash;262 (55.6%), +39.8 units
     at full juice. System # matches 1846/1869 games; the rest are rounding ties in the
     published one-decimal power column. The factor diagnostics below reproduce Brown&rsquo;s
-    published Table&nbsp;3 exactly for all seven years. 7 further seasons (2019–20 to 2025–26) are generated from raw data by the same engine: 553 bets, 267&ndash;269 (49.8%), -28.9 units.
+    published Table&nbsp;3 exactly for all seven years. 8 further seasons (2019–20 to 2026–27) are generated from raw data by the same engine: 558 bets, 267&ndash;269 (49.8%), -28.9 units.
   </div>
 
   <div class="tabs">
-<button data-year="2025" class="active" onclick="showSeason(2025)">2025–26</button>
+<button data-year="2026" class="active" onclick="showSeason(2026)">2026–27</button>
+<button data-year="2025" onclick="showSeason(2025)">2025–26</button>
 <button data-year="2024" onclick="showSeason(2024)">2024–25</button>
 <button data-year="2023" onclick="showSeason(2023)">2023–24</button>
 <button data-year="2022" onclick="showSeason(2022)">2022–23</button>
@@ -106,14 +109,79 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
 <button data-year="2010" onclick="showSeason(2010)">2010–11</button>
   </div>
 
-  <section class="panel active" id="season-2025">
+  <section class="panel active" id="season-2026">
+    
+    <div class="cards">
+      <div class="card"><div class="num">16</div><div class="lbl">Games</div></div>
+      <div class="card"><div class="num">5</div><div class="lbl">Bets</div></div>
+      <div class="card"><div class="num">0&ndash;0</div>
+        <div class="lbl">Record (5 pending)</div></div>
+      <div class="card"><div class="num">&mdash;</div>
+        <div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num pos">+0.0u</div>
+        <div class="lbl">Profit at full juice</div></div>
+    </div>
+    <p class="seasonnote">Generated from raw odds + results data by <code>season_report.py</code>, not a published sheet. <b>Season in progress.</b> Week 1 is seeded from 2025–26; only week&nbsp;1 has been priced so far, so the table stops there. Picks on games not yet played are shown with a &middot; result and are excluded from the record.</p>
+    <div class="chart-card">
+      <p class="pending" style="margin:0;text-align:center">No settled bets yet &mdash; the chart starts once results land.</p>
+      <div class="cap">Cumulative units over the season&rsquo;s 0 graded bets
+      (win +1, loss &minus;1.1). Dashed line is break-even.</div>
+    </div>
+    <h2>Game by game &mdash; 2026–27</h2>
+    <label class="toggle"><input type="checkbox" checked onchange="toggleBets(this)">
+      Show only games the system bet</label>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th class="l">Date</th><th class="l">Home</th><th class="l">Away</th>
+          <th>Line</th><th>Score</th>
+          <th>H&nbsp;LGT</th><th>H&nbsp;STDC</th><th>H&nbsp;Pwr</th>
+          <th>A&nbsp;LGT</th><th>A&nbsp;STDC</th><th>A&nbsp;Pwr</th>
+          <th>#</th><th class="l">Bet</th><th>Res</th>
+        </tr></thead>
+        <tbody>
+<tr class="nobet"><td class="l">Sep 09</td><td class="l">Seahawks</td><td class="l">Patriots</td><td>-3.5</td><td>13&ndash;10</td><td>-3</td><td>0</td><td>+7.7</td><td>+3</td><td>0</td><td>+3.9</td><td>-1</td><td class="l"></td><td></td></tr>
+<tr class="nobet"><td class="l">Sep 10</td><td class="l">Rams</td><td class="l">49ers</td><td>-3.5</td><td>7&ndash;27</td><td>+1</td><td>0</td><td>+7.0</td><td>+3</td><td>0</td><td>+2.7</td><td>+1</td><td class="l"></td><td></td></tr>
+<tr class="nobet"><td class="l">Sep 13</td><td class="l">Steelers</td><td class="l">Falcons</td><td>-6.5</td><td><span class="pending">vs</span></td><td>-1</td><td>0</td><td>-2.3</td><td>-1</td><td>0</td><td>-2.8</td><td>-1</td><td class="l"></td><td></td></tr>
+<tr class="nobet"><td class="l">Sep 13</td><td class="l">Texans</td><td class="l">Bills</td><td>+1.5</td><td><span class="pending">vs</span></td><td>+2</td><td>0</td><td>+2.3</td><td>+4</td><td>0</td><td>+0.4</td><td>+1</td><td class="l"></td><td></td></tr>
+<tr class="nobet"><td class="l">Sep 13</td><td class="l">Panthers</td><td class="l">Bears</td><td>+2.5</td><td><span class="pending">vs</span></td><td>+1</td><td>0</td><td>-0.8</td><td>+3</td><td>0</td><td>+4.0</td><td>-1</td><td class="l"></td><td></td></tr>
+<tr class="bet"><td class="l">Sep 13</td><td class="l">Jaguars</td><td class="l">Browns</td><td>-8.5</td><td><span class="pending">vs</span></td><td>+1</td><td>0</td><td>+2.6</td><td>-1</td><td>0</td><td>-8.1</td><td>+3</td><td class="l">Jaguars</td><td><span class="chip N">&middot;</span></td></tr>
+<tr class="nobet"><td class="l">Sep 13</td><td class="l">Lions</td><td class="l">Saints</td><td>-6.5</td><td><span class="pending">vs</span></td><td>0</td><td>0</td><td>+6.6</td><td>+1</td><td>0</td><td>-3.7</td><td>+0</td><td class="l"></td><td></td></tr>
+<tr class="nobet"><td class="l">Sep 13</td><td class="l">Titans</td><td class="l">Jets</td><td>-1.5</td><td><span class="pending">vs</span></td><td>+1</td><td>0</td><td>-7.6</td><td>0</td><td>0</td><td>-8.9</td><td>+0</td><td class="l"></td><td></td></tr>
+<tr class="nobet"><td class="l">Sep 13</td><td class="l">Colts</td><td class="l">Ravens</td><td>+2.5</td><td><span class="pending">vs</span></td><td>+3</td><td>0</td><td>-4.7</td><td>+1</td><td>0</td><td>+4.5</td><td>-1</td><td class="l"></td><td></td></tr>
+<tr class="nobet"><td class="l">Sep 13</td><td class="l">Bengals</td><td class="l">Buccaneers</td><td>-3.5</td><td><span class="pending">vs</span></td><td>+1</td><td>0</td><td>-3.0</td><td>-2</td><td>0</td><td>-0.0</td><td>+1</td><td class="l"></td><td></td></tr>
+<tr class="bet"><td class="l">Sep 13</td><td class="l">Chargers</td><td class="l">Cardinals</td><td>-8.5</td><td><span class="pending">vs</span></td><td>-1</td><td>0</td><td>+0.5</td><td>+2</td><td>0</td><td>-5.6</td><td>-3</td><td class="l">Cardinals</td><td><span class="chip N">&middot;</span></td></tr>
+<tr class="bet"><td class="l">Sep 13</td><td class="l">Vikings</td><td class="l">Packers</td><td>-2.5</td><td><span class="pending">vs</span></td><td>+1</td><td>0</td><td>+4.7</td><td>-2</td><td>0</td><td>+0.5</td><td>+3</td><td class="l">Vikings</td><td><span class="chip N">&middot;</span></td></tr>
+<tr class="nobet"><td class="l">Sep 13</td><td class="l">Raiders</td><td class="l">Dolphins</td><td>-3.5</td><td><span class="pending">vs</span></td><td>0</td><td>0</td><td>-9.4</td><td>+2</td><td>0</td><td>-6.9</td><td>-2</td><td class="l"></td><td></td></tr>
+<tr class="bet"><td class="l">Sep 13</td><td class="l">Eagles</td><td class="l">Commanders</td><td>-5.5</td><td><span class="pending">vs</span></td><td>-2</td><td>0</td><td>+2.9</td><td>+1</td><td>0</td><td>-0.4</td><td>-3</td><td class="l">Commanders</td><td><span class="chip N">&middot;</span></td></tr>
+<tr class="bet"><td class="l">Sep 13</td><td class="l">Giants</td><td class="l">Cowboys</td><td>+3.5</td><td><span class="pending">vs</span></td><td>-1</td><td>0</td><td>-1.6</td><td>+1</td><td>0</td><td>+8.2</td><td>-3</td><td class="l">Cowboys</td><td><span class="chip N">&middot;</span></td></tr>
+<tr class="nobet"><td class="l">Sep 14</td><td class="l">Chiefs</td><td class="l">Broncos</td><td>-2.5</td><td><span class="pending">vs</span></td><td>0</td><td>0</td><td>-2.4</td><td>+2</td><td>0</td><td>+10.0</td><td>-2</td><td class="l"></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <h2>Season-to-date cover by team &amp; week</h2>
+    <p class="diagnote">Each team&rsquo;s net covers entering that week &mdash;
+    <span style="color:#1a9850;font-weight:600">green</span> teams have been beating the
+    spread (&ldquo;fat&rdquo;), <span style="color:#d73027;font-weight:600">red</span> teams
+    failing to (&ldquo;hungry&rdquo;). The hunger factor backs the red ones. Sorted by season mean.</p>
+    <div class="tablewrap"><table class="heat"><thead><tr><th class="l">Team</th><th>1</th></tr></thead><tbody><tr><td class="l">49ers</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Bears</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Bengals</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Bills</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Broncos</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Browns</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Buccaneers</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Cardinals</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Chargers</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Chiefs</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Colts</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Commanders</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Cowboys</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Dolphins</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Eagles</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Falcons</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Giants</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Jaguars</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Jets</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Lions</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Packers</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Panthers</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Patriots</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Raiders</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Rams</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Ravens</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Saints</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Seahawks</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Steelers</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Texans</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Titans</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Vikings</td><td class="hm" style="background:#ffffbf">0</td></tr></tbody></table></div>
+    <h2>Power rating by team &amp; week</h2>
+    <p class="diagnote">Each team&rsquo;s fitted power rating (points above/below average) each
+    week. <span style="color:#1a9850;font-weight:600">Green</span> = strong,
+    <span style="color:#d73027;font-weight:600">red</span> = weak. Sorted by season mean.</p>
+    <div class="tablewrap"><table class="heat"><thead><tr><th class="l">Team</th><th>1</th></tr></thead><tbody><tr><td class="l">Broncos</td><td class="hm" style="background:#1a9850">10</td></tr><tr><td class="l">Cowboys</td><td class="hm" style="background:#43ab64">8</td></tr><tr><td class="l">Seahawks</td><td class="hm" style="background:#4fb06a">8</td></tr><tr><td class="l">Rams</td><td class="hm" style="background:#5fb771">7</td></tr><tr><td class="l">Lions</td><td class="hm" style="background:#68bb76">7</td></tr><tr><td class="l">Vikings</td><td class="hm" style="background:#93cf8b">5</td></tr><tr><td class="l">Ravens</td><td class="hm" style="background:#98d18d">4</td></tr><tr><td class="l">Bears</td><td class="hm" style="background:#a3d693">4</td></tr><tr><td class="l">Patriots</td><td class="hm" style="background:#a6d794">4</td></tr><tr><td class="l">Eagles</td><td class="hm" style="background:#bde19f">3</td></tr><tr><td class="l">49ers</td><td class="hm" style="background:#c1e3a1">3</td></tr><tr><td class="l">Jaguars</td><td class="hm" style="background:#c3e4a2">3</td></tr><tr><td class="l">Texans</td><td class="hm" style="background:#cae7a5">2</td></tr><tr><td class="l">Chargers</td><td class="hm" style="background:#f4fab9">0</td></tr><tr><td class="l">Packers</td><td class="hm" style="background:#f4fab9">0</td></tr><tr><td class="l">Bills</td><td class="hm" style="background:#f6fbbb">0</td></tr><tr><td class="l">Buccaneers</td><td class="hm" style="background:#ffffbf">0</td></tr><tr><td class="l">Commanders</td><td class="hm" style="background:#fdf7b9">0</td></tr><tr><td class="l">Panthers</td><td class="hm" style="background:#fceeb3">-1</td></tr><tr><td class="l">Giants</td><td class="hm" style="background:#f9dea7">-2</td></tr><tr><td class="l">Steelers</td><td class="hm" style="background:#f6cf9c">-2</td></tr><tr><td class="l">Chiefs</td><td class="hm" style="background:#f5cd9b">-2</td></tr><tr><td class="l">Falcons</td><td class="hm" style="background:#f4c594">-3</td></tr><tr><td class="l">Bengals</td><td class="hm" style="background:#f3c191">-3</td></tr><tr><td class="l">Saints</td><td class="hm" style="background:#f0b287">-4</td></tr><tr><td class="l">Colts</td><td class="hm" style="background:#ec9e78">-5</td></tr><tr><td class="l">Cardinals</td><td class="hm" style="background:#e98b6a">-6</td></tr><tr><td class="l">Dolphins</td><td class="hm" style="background:#e37056">-7</td></tr><tr><td class="l">Titans</td><td class="hm" style="background:#e1624b">-8</td></tr><tr><td class="l">Browns</td><td class="hm" style="background:#df5744">-8</td></tr><tr><td class="l">Jets</td><td class="hm" style="background:#db4738">-9</td></tr><tr><td class="l">Raiders</td><td class="hm" style="background:#d93c30">-9</td></tr></tbody></table></div>
+  </section>
+
+  <section class="panel" id="season-2025">
     
     <div class="cards">
       <div class="card"><div class="num">285</div><div class="lbl">Games</div></div>
       <div class="card"><div class="num">78</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">41&ndash;37</div>
         <div class="lbl">Record (0 pushes)</div></div>
-      <div class="card"><div class="num">52.6%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">52.6%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+0.3u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -445,7 +513,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">79</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">31&ndash;48</div>
         <div class="lbl">Record (0 pushes)</div></div>
-      <div class="card"><div class="num">39.2%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">39.2%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num neg">-21.8u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -777,7 +846,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">81</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">35&ndash;42</div>
         <div class="lbl">Record (4 pushes)</div></div>
-      <div class="card"><div class="num">45.5%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">45.5%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num neg">-11.2u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -1109,7 +1179,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">77</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">36&ndash;38</div>
         <div class="lbl">Record (3 pushes)</div></div>
-      <div class="card"><div class="num">48.6%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">48.6%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num neg">-5.8u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -1440,7 +1511,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">87</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">48&ndash;35</div>
         <div class="lbl">Record (4 pushes)</div></div>
-      <div class="card"><div class="num">57.8%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">57.8%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+9.5u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -1772,7 +1844,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">79</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">43&ndash;33</div>
         <div class="lbl">Record (3 pushes)</div></div>
-      <div class="card"><div class="num">56.6%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">56.6%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+6.7u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -2088,7 +2161,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">72</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">33&ndash;36</div>
         <div class="lbl">Record (3 pushes)</div></div>
-      <div class="card"><div class="num">47.8%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">47.8%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num neg">-6.6u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -2402,7 +2476,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">85</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">43&ndash;39</div>
         <div class="lbl">Record (3 pushes)</div></div>
-      <div class="card"><div class="num">52.4%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">52.4%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+0.1u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -2716,7 +2791,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">90</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">49&ndash;40</div>
         <div class="lbl">Record (1 push)</div></div>
-      <div class="card"><div class="num">55.1%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">55.1%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+5.0u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -3030,7 +3106,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">82</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">50&ndash;31</div>
         <div class="lbl">Record (1 push)</div></div>
-      <div class="card"><div class="num">61.7%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">61.7%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+15.9u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -3344,7 +3421,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">78</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">43&ndash;34</div>
         <div class="lbl">Record (1 push)</div></div>
-      <div class="card"><div class="num">55.8%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">55.8%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+5.6u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -3658,7 +3736,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">94</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">49&ndash;43</div>
         <div class="lbl">Record (2 pushes)</div></div>
-      <div class="card"><div class="num">53.3%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">53.3%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+1.7u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -3972,7 +4051,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">90</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">49&ndash;40</div>
         <div class="lbl">Record (1 push)</div></div>
-      <div class="card"><div class="num">55.1%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">55.1%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+5.0u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -4286,7 +4366,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
       <div class="card"><div class="num">80</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">45&ndash;35</div>
         <div class="lbl">Record (0 pushes)</div></div>
-      <div class="card"><div class="num">56.2%</div><div class="lbl">Win rate</div></div>
+      <div class="card"><div class="num">56.2%</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num pos">+6.5u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>
@@ -4602,14 +4683,14 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
   2015 and 2016 exactly.</p>
   <div class="tablewrap">
     <table class="diag">
-      <thead><tr><th class="l">Net wins charged</th><th>2010–11</th><th>2011–12</th><th>2012–13</th><th>2013–14</th><th>2014–15</th><th>2015–16</th><th>2016–17</th><th>2019–20</th><th>2020–21</th><th>2021–22</th><th>2022–23</th><th>2023–24</th><th>2024–25</th><th>2025–26</th></tr></thead>
+      <thead><tr><th class="l">Net wins charged</th><th>2010–11</th><th>2011–12</th><th>2012–13</th><th>2013–14</th><th>2014–15</th><th>2015–16</th><th>2016–17</th><th>2019–20</th><th>2020–21</th><th>2021–22</th><th>2022–23</th><th>2023–24</th><th>2024–25</th><th>2025–26</th><th>2026–27</th></tr></thead>
       <tbody>
-<tr><td class="l">Power</td><td class="pos">+8</td><td class="pos">+13</td><td class="neg">-5</td><td class="pos">+5</td><td class="pos">+9</td><td class="pos">+3</td><td class="pos">+13</td><td class="pos">+7</td><td class="pos">+4</td><td class="neg">-1</td><td class="neg">-4</td><td>+0</td><td class="neg">-7</td><td class="pos">+8</td></tr>
-<tr><td class="l">Turnover — home</td><td class="pos">+6</td><td class="pos">+3</td><td class="neg">-4</td><td class="pos">+5</td><td class="pos">+5</td><td class="neg">-5</td><td class="neg">-2</td><td>+0</td><td class="neg">-1</td><td class="pos">+7</td><td class="neg">-7</td><td class="pos">+1</td><td class="neg">-5</td><td class="pos">+2</td></tr>
-<tr><td class="l">Turnover — away</td><td class="pos">+2</td><td class="pos">+8</td><td class="neg">-8</td><td class="neg">-2</td><td class="neg">-1</td><td class="neg">-4</td><td class="pos">+5</td><td class="neg">-10</td><td class="pos">+7</td><td class="neg">-1</td><td class="neg">-4</td><td class="neg">-1</td><td class="neg">-7</td><td class="pos">+12</td></tr>
-<tr><td class="l">Hunger — home</td><td class="pos">+1</td><td class="pos">+10</td><td class="neg">-5</td><td class="neg">-1</td><td class="pos">+4</td><td>+0</td><td class="pos">+9</td><td>+0</td><td class="pos">+7</td><td class="neg">-4</td><td class="pos">+3</td><td class="pos">+1</td><td class="neg">-11</td><td class="pos">+3</td></tr>
-<tr><td class="l">Hunger — away</td><td class="neg">-4</td><td class="pos">+6</td><td class="neg">-1</td><td>+0</td><td class="pos">+14</td><td class="pos">+2</td><td class="pos">+10</td><td class="neg">-1</td><td>+0</td><td class="neg">-1</td><td class="neg">-2</td><td class="neg">-1</td><td class="neg">-3</td><td class="pos">+2</td></tr>
-<tr><td class="l"><b>Total</b></td><td class="pos">+13</td><td class="pos">+40</td><td class="neg">-23</td><td class="pos">+7</td><td class="pos">+31</td><td class="neg">-4</td><td class="pos">+35</td><td class="neg">-4</td><td class="pos">+17</td><td>+0</td><td class="neg">-14</td><td>+0</td><td class="neg">-33</td><td class="pos">+27</td></tr>
+<tr><td class="l">Power</td><td class="pos">+8</td><td class="pos">+13</td><td class="neg">-5</td><td class="pos">+5</td><td class="pos">+9</td><td class="pos">+3</td><td class="pos">+13</td><td class="pos">+7</td><td class="pos">+4</td><td class="neg">-1</td><td class="neg">-4</td><td>+0</td><td class="neg">-7</td><td class="pos">+8</td><td>+0</td></tr>
+<tr><td class="l">Turnover — home</td><td class="pos">+6</td><td class="pos">+3</td><td class="neg">-4</td><td class="pos">+5</td><td class="pos">+5</td><td class="neg">-5</td><td class="neg">-2</td><td>+0</td><td class="neg">-1</td><td class="pos">+7</td><td class="neg">-7</td><td class="pos">+1</td><td class="neg">-5</td><td class="pos">+2</td><td>+0</td></tr>
+<tr><td class="l">Turnover — away</td><td class="pos">+2</td><td class="pos">+8</td><td class="neg">-8</td><td class="neg">-2</td><td class="neg">-1</td><td class="neg">-4</td><td class="pos">+5</td><td class="neg">-10</td><td class="pos">+7</td><td class="neg">-1</td><td class="neg">-4</td><td class="neg">-1</td><td class="neg">-7</td><td class="pos">+12</td><td>+0</td></tr>
+<tr><td class="l">Hunger — home</td><td class="pos">+1</td><td class="pos">+10</td><td class="neg">-5</td><td class="neg">-1</td><td class="pos">+4</td><td>+0</td><td class="pos">+9</td><td>+0</td><td class="pos">+7</td><td class="neg">-4</td><td class="pos">+3</td><td class="pos">+1</td><td class="neg">-11</td><td class="pos">+3</td><td>+0</td></tr>
+<tr><td class="l">Hunger — away</td><td class="neg">-4</td><td class="pos">+6</td><td class="neg">-1</td><td>+0</td><td class="pos">+14</td><td class="pos">+2</td><td class="pos">+10</td><td class="neg">-1</td><td>+0</td><td class="neg">-1</td><td class="neg">-2</td><td class="neg">-1</td><td class="neg">-3</td><td class="pos">+2</td><td>+0</td></tr>
+<tr><td class="l"><b>Total</b></td><td class="pos">+13</td><td class="pos">+40</td><td class="neg">-23</td><td class="pos">+7</td><td class="pos">+31</td><td class="neg">-4</td><td class="pos">+35</td><td class="neg">-4</td><td class="pos">+17</td><td>+0</td><td class="neg">-14</td><td>+0</td><td class="neg">-33</td><td class="pos">+27</td><td>+0</td></tr>
       </tbody>
     </table>
   </div>
@@ -4618,13 +4699,13 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
   Brown&rsquo;s bar for a useful factor was 52% (green); below 48% is red.</p>
   <div class="tablewrap">
     <table class="diag">
-      <thead><tr><th class="l">% of votes that cover</th><th>2010–11</th><th>2011–12</th><th>2012–13</th><th>2013–14</th><th>2014–15</th><th>2015–16</th><th>2016–17</th><th>2019–20</th><th>2020–21</th><th>2021–22</th><th>2022–23</th><th>2023–24</th><th>2024–25</th><th>2025–26</th></tr></thead>
+      <thead><tr><th class="l">% of votes that cover</th><th>2010–11</th><th>2011–12</th><th>2012–13</th><th>2013–14</th><th>2014–15</th><th>2015–16</th><th>2016–17</th><th>2019–20</th><th>2020–21</th><th>2021–22</th><th>2022–23</th><th>2023–24</th><th>2024–25</th><th>2025–26</th><th>2026–27</th></tr></thead>
       <tbody>
-<tr><td class="l">Power</td><td class="pos">56</td><td class="pos">55</td><td class="pos">54</td><td class="pos">57</td><td class="pos">57</td><td class="pos">57</td><td>52</td><td>51</td><td>52</td><td>50</td><td class="neg">47</td><td>48</td><td>50</td><td>49</td></tr>
-<tr><td class="l">Turnover — home</td><td class="neg">47</td><td class="neg">43</td><td class="pos">58</td><td class="pos">54</td><td>50</td><td>49</td><td class="neg">46</td><td>48</td><td>51</td><td class="pos">54</td><td>50</td><td class="neg">46</td><td class="neg">43</td><td>49</td></tr>
-<tr><td class="l">Turnover — away</td><td class="pos">54</td><td>51</td><td class="neg">47</td><td>49</td><td>51</td><td>48</td><td>49</td><td class="neg">46</td><td class="pos">56</td><td class="pos">53</td><td>49</td><td class="neg">47</td><td class="neg">47</td><td class="pos">54</td></tr>
-<tr><td class="l">Hunger — home</td><td class="pos">54</td><td class="pos">53</td><td class="pos">54</td><td class="neg">48</td><td>50</td><td class="pos">54</td><td>51</td><td>51</td><td>52</td><td class="pos">54</td><td class="pos">52</td><td>51</td><td class="neg">43</td><td>51</td></tr>
-<tr><td class="l">Hunger — away</td><td>48</td><td>51</td><td>50</td><td>50</td><td class="pos">61</td><td>51</td><td>51</td><td>49</td><td>51</td><td class="pos">54</td><td class="pos">53</td><td>49</td><td>49</td><td>51</td></tr>
+<tr><td class="l">Power</td><td class="pos">56</td><td class="pos">55</td><td class="pos">54</td><td class="pos">57</td><td class="pos">57</td><td class="pos">57</td><td>52</td><td>51</td><td>52</td><td>50</td><td class="neg">47</td><td>48</td><td>50</td><td>49</td><td class="pending">&mdash;</td></tr>
+<tr><td class="l">Turnover — home</td><td class="neg">47</td><td class="neg">43</td><td class="pos">58</td><td class="pos">54</td><td>50</td><td>49</td><td class="neg">46</td><td>48</td><td>51</td><td class="pos">54</td><td>50</td><td class="neg">46</td><td class="neg">43</td><td>49</td><td class="pending">&mdash;</td></tr>
+<tr><td class="l">Turnover — away</td><td class="pos">54</td><td>51</td><td class="neg">47</td><td>49</td><td>51</td><td>48</td><td>49</td><td class="neg">46</td><td class="pos">56</td><td class="pos">53</td><td>49</td><td class="neg">47</td><td class="neg">47</td><td class="pos">54</td><td class="pending">&mdash;</td></tr>
+<tr><td class="l">Hunger — home</td><td class="pos">54</td><td class="pos">53</td><td class="pos">54</td><td class="neg">48</td><td>50</td><td class="pos">54</td><td>51</td><td>51</td><td>52</td><td class="pos">54</td><td class="pos">52</td><td>51</td><td class="neg">43</td><td>51</td><td class="pending">&mdash;</td></tr>
+<tr><td class="l">Hunger — away</td><td>48</td><td>51</td><td>50</td><td>50</td><td class="pos">61</td><td>51</td><td>51</td><td>49</td><td>51</td><td class="pos">54</td><td class="pos">53</td><td>49</td><td>49</td><td>51</td><td class="pending">&mdash;</td></tr>
 
       </tbody>
     </table>

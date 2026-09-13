@@ -22,7 +22,7 @@ import heatmaps
 
 HERE = Path(__file__).parent
 # Display order, most recent first. 2010-2016 are Brown's published reports.
-SEASONS = (2025, 2024, 2023, 2022, 2021, 2020, 2019,
+SEASONS = (2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019,
            2016, 2015, 2014, 2013, 2012, 2011, 2010)
 PUBLISHED = {2010, 2011, 2012, 2013, 2014, 2015, 2016}
 JUICE = 1.1  # units lost per losing bet at full 10% juice
@@ -46,6 +46,11 @@ def season_note(year: int) -> str | None:
         return base + (" Week 1 is seeded from the prior season (last-game turnovers "
                        "and power), but 14 week-5 games have no line in the odds "
                        "export (shown but not bettable).")
+    if year == 2026:
+        return base + (" <b>Season in progress.</b> Week 1 is seeded from 2025–26; "
+                       "only week&nbsp;1 has been priced so far, so the table stops "
+                       "there. Picks on games not yet played are shown with a "
+                       "&middot; result and are excluded from the record.")
     return base + " Week 1 is seeded from the prior season (last-game turnovers and power)."
 
 CSS = """
@@ -98,6 +103,8 @@ td.l, th.l { text-align: left; }
 tr.bet { background: var(--bet-row); font-weight: 600; }
 .chip { display: inline-block; min-width: 20px; padding: 1px 7px; border-radius: 10px; color: #fff; font-size: 12px; text-align: center; }
 .chip.W { background: var(--win); } .chip.L { background: var(--loss); } .chip.P { background: var(--push); }
+.chip.N { background: transparent; color: var(--muted); border: 1px dashed var(--border); }
+.pending { color: var(--muted); font-style: italic; }
 body.betsonly tr.nobet { display: none; }
 .factors { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px 14px; margin-top: 12px; font-size: 14px; }
 .factors li { margin: 8px 0; }
@@ -150,17 +157,25 @@ def team(name) -> str:
     return html.escape(name) if isinstance(name, str) else "—"
 
 
+def played(df: pd.DataFrame) -> pd.Series:
+    """Games with a final score. False for a live season's upcoming fixtures."""
+    return df.home_score.notna() & df.away_score.notna()
+
+
 def season_stats(df: pd.DataFrame) -> dict:
     bets = df[df.system_bet.notna()]
     w = int((bets.result == "W").sum())
     l = int((bets.result == "L").sum())
+    # An unplayed bet is pending, not a push.
+    pending = int((bets.result.isna() & ~played(bets)).sum())
     return {
         "games": len(df),
         "bets": len(bets),
         "wins": w,
         "losses": l,
-        "pushes": int(bets.result.isna().sum()),
-        "winrate": w / (w + l),
+        "pushes": int(bets.result.isna().sum()) - pending,
+        "pending": pending,
+        "winrate": w / (w + l) if (w + l) else float("nan"),
         "profit": w - JUICE * l,
     }
 
@@ -170,6 +185,9 @@ def profit_chart(df: pd.DataFrame) -> str:
     series = [0.0]
     for r in df[df.result.notna()].itertuples():
         series.append(series[-1] + (1.0 if r.result == "W" else -JUICE))
+    if len(series) < 2:  # a live season with no graded bets yet
+        return ('<p class="pending" style="margin:0;text-align:center">'
+                'No settled bets yet &mdash; the chart starts once results land.</p>')
 
     width, height, pad = 600, 150, 10
     lo, hi = min(min(series), 0), max(max(series), 0)
@@ -197,21 +215,26 @@ def profit_chart(df: pd.DataFrame) -> str:
 
 def game_row(r) -> str:
     is_bet = isinstance(r.system_bet, str)
+    is_played = not (pd.isna(r.home_score) or pd.isna(r.away_score))
     if not is_bet:
         result = ""
     elif r.result == "W":
         result = '<span class="chip W">W</span>'
     elif r.result == "L":
         result = '<span class="chip L">L</span>'
+    elif not is_played:
+        result = '<span class="chip N">&middot;</span>'  # pick stands, not yet played
     else:
         result = '<span class="chip P">P</span>'
+    score = (f"{int(r.home_score)}&ndash;{int(r.away_score)}" if is_played
+             else '<span class="pending">vs</span>')
     return (
         f'<tr class="{"bet" if is_bet else "nobet"}">'
         f'<td class="l">{fmt_date(r.date)}</td>'
         f'<td class="l">{team(r.home)}</td>'
         f'<td class="l">{team(r.away)}</td>'
         f"<td>{fmt_pts(r.line)}</td>"
-        f"<td>{r.home_score}&ndash;{r.away_score}</td>"
+        f"<td>{score}</td>"
         f"<td>{fmt_signed(r.home_lgt)}</td>"
         f"<td>{fmt_signed(r.home_stdc)}</td>"
         f"<td>{fmt_pts(r.home_power)}</td>"
@@ -228,13 +251,17 @@ def game_row(r) -> str:
 def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
     s = season_stats(df)
     profit_cls = "pos" if s["profit"] >= 0 else "neg"
+    graded = s["wins"] + s["losses"]
+    sub = (f'{s["pending"]} pending' if s["pending"]
+           else f'{s["pushes"]} push{"es" if s["pushes"] != 1 else ""}')
     cards = f"""
     <div class="cards">
       <div class="card"><div class="num">{s["games"]}</div><div class="lbl">Games</div></div>
       <div class="card"><div class="num">{s["bets"]}</div><div class="lbl">Bets</div></div>
       <div class="card"><div class="num">{s["wins"]}&ndash;{s["losses"]}</div>
-        <div class="lbl">Record ({s["pushes"]} push{"es" if s["pushes"] != 1 else ""})</div></div>
-      <div class="card"><div class="num">{s["winrate"]:.1%}</div><div class="lbl">Win rate</div></div>
+        <div class="lbl">Record ({sub})</div></div>
+      <div class="card"><div class="num">{f'{s["winrate"]:.1%}' if graded else "&mdash;"}</div>
+        <div class="lbl">Win rate</div></div>
       <div class="card"><div class="num {profit_cls}">{s["profit"]:+.1f}u</div>
         <div class="lbl">Profit at full juice</div></div>
     </div>"""
@@ -308,6 +335,8 @@ def diagnostics_section() -> str:
     head = "".join(f"<th>{season_label(y)}</th>" for y in years)
 
     def cell(value: float, fmt: str, pos: bool, neg: bool) -> str:
+        if pd.isna(value):  # e.g. a factor with no votes yet in a live season
+            return '<td class="pending">&mdash;</td>'
         cls = ' class="pos"' if pos else ' class="neg"' if neg else ""
         return f"<td{cls}>{fmt.format(value)}</td>"
 

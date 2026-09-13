@@ -107,13 +107,21 @@ def marginal_contributions(df: pd.DataFrame) -> pd.Series:
     return pd.Series(net)
 
 
+MIN_VOTES = 25  # below this a rate is noise, not signal (a season in progress)
+
+
 def standalone_rates(df: pd.DataFrame) -> pd.Series:
-    """Each factor as a binary indicator: share of its votes that cover."""
+    """Each factor as a binary indicator: share of its votes that cover.
+
+    A season still being played can have only a handful of settled games, where
+    a rate of 0% or 100% says nothing; those are left as NaN (shown as a dash)
+    until ``MIN_VOTES`` games have settled. A full season has several hundred.
+    """
     rates = {}
     for f in FACTORS:
         votes = df[(df[f] != 0) & (df["cover"] != 0)]
         wins = (votes[f] == votes["cover"]).sum()
-        rates[f] = wins / len(votes) if len(votes) else float("nan")
+        rates[f] = wins / len(votes) if len(votes) >= MIN_VOTES else float("nan")
     return pd.Series(rates)
 
 
