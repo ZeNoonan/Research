@@ -213,12 +213,19 @@ dropped and every earlier report is byte-for-byte unchanged.
 
 **Turnovers gate the picks.** Two of the five factors read the previous game's
 turnovers, and the nflverse export does not carry them — only pro-football-
-reference does. So a week is priced but *not picked* until the previous week's
-turnovers are loaded: if a team's last game was played and its turnovers are
-missing, `lgt_unknown` is set and the system declines rather than treating the
-factor as neutral. This is not hypothetical — pricing week 2 of 2026 from the
-nflverse export alone produces four games at `|System #| ≥ 3` that would
-otherwise have been bet on two dead factors.
+reference does. So a game is priced but *not picked* while that input is
+missing: if a team has a previous game on the schedule but no turnover margin
+for it — whether because the turnovers have not been loaded, or because the game
+has not been played yet — `lgt_unknown` is set and the system declines rather
+than treating the factor as neutral. Having no previous game at all is
+different, and stays 0 as in the published reports.
+
+Neither case is hypothetical. Pricing week 2 of 2026 from the nflverse export
+before the turnovers arrived produced four games at `|System #| ≥ 3` that would
+have been bet on two dead factors. And with week 2 priced while the week-1
+Monday night game was still to come, the Jaguars–Broncos pick was held back
+because Denver's last-game turnovers did not exist yet; it is released once that
+game is in.
 
 Two quirks in the 2026–27 source files are corrected when the raw exports are
 slimmed into `data/`, and are worth knowing if you refresh them:

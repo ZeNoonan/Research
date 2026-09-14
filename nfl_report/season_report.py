@@ -198,11 +198,13 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     seasons: the carry does not jump a missing year, so the first week of a block
     of seasons has LGT 0.
 
-    Also flags ``lgt_unknown``: the previous game *was played* but its turnovers
-    are missing from the results file. That is different from having no previous
-    game (legitimately 0, as in the published reports) — the value exists and we
-    simply do not have it — so the system declines to pick rather than treating
-    the factor as neutral.
+    Also flags ``lgt_unknown``: the team has a previous game on the schedule but
+    no turnover margin for it — either it has not been played yet (pricing a week
+    before the previous one finishes) or its turnovers are missing from the
+    results file. That is different from having no previous game at all, which is
+    legitimately 0 as in the published reports. The value exists and we simply do
+    not have it, so the system declines to pick rather than treating the factor
+    as neutral.
     """
     g = combined.copy()
     # float (NaN) rather than Int64 (<NA>): an unplayed game contributes no
@@ -217,8 +219,7 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     ]).sort_values(["team", "order"])
     by_team = long.groupby(["team", "block"])
     long["lgt"] = by_team["net_to"].shift()
-    long["lgt_unknown"] = by_team["played"].shift().fillna(False).astype(bool) \
-        & long["lgt"].isna()
+    long["lgt_unknown"] = (by_team.cumcount() > 0) & long["lgt"].isna()
 
     for side in ("home", "away"):
         key = long.rename(columns={"team": side, "lgt": f"{side}_lgt",
