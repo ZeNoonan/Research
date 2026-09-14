@@ -51,9 +51,17 @@ ODDS_COLUMNS = ["Date", "Home Team", "Away Team", "Home Score", "Away Score",
                 "Home Line Open", "Home Line Close", "Neutral Venue?", "Playoff Game?"]
 
 
+def parse_dates(col: pd.Series) -> pd.Series:
+    """nflverse exports date as ISO (2026-09-13) or day-first (13/09/2026)."""
+    iso = pd.to_datetime(col, format="%Y-%m-%d", errors="coerce")
+    if iso.notna().all():
+        return iso
+    return pd.to_datetime(col, format="%d/%m/%Y")
+
+
 def load_schedule() -> pd.DataFrame:
     s = pd.read_csv(SCHEDULE)
-    s["date"] = pd.to_datetime(s["gameday"], format="%d/%m/%Y")
+    s["date"] = parse_dates(s["gameday"])
     s["home"] = s["home_team"].map(NICKNAME)
     s["away"] = s["away_team"].map(NICKNAME)
     s["line"] = -s["spread_line"]  # nflverse is positive-home-favoured

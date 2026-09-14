@@ -47,10 +47,11 @@ def season_note(year: int) -> str | None:
                        "and power), but 14 week-5 games have no line in the odds "
                        "export (shown but not bettable).")
     if year == 2026:
-        return base + (" <b>Season in progress.</b> Week 1 is seeded from 2025–26; "
-                       "only week&nbsp;1 has been priced so far, so the table stops "
-                       "there. Picks on games not yet played are shown with a "
-                       "&middot; result and are excluded from the record.")
+        return base + (" <b>Season in progress.</b> Week 1 is seeded from 2025–26. "
+                       "The table covers the weeks priced so far; a pick on a game "
+                       "not yet played shows a &middot; and stays out of the record. "
+                       "A week is only picked once the previous week&rsquo;s turnovers "
+                       "are in, since two of the five factors depend on them.")
     return base + " Week 1 is seeded from the prior season (last-game turnovers and power)."
 
 CSS = """

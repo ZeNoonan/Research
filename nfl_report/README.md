@@ -211,6 +211,15 @@ Unplayed picks are shown with a `·` result and excluded from the win/loss
 record until they settle. A completed season is entirely played, so nothing is
 dropped and every earlier report is byte-for-byte unchanged.
 
+**Turnovers gate the picks.** Two of the five factors read the previous game's
+turnovers, and the nflverse export does not carry them — only pro-football-
+reference does. So a week is priced but *not picked* until the previous week's
+turnovers are loaded: if a team's last game was played and its turnovers are
+missing, `lgt_unknown` is set and the system declines rather than treating the
+factor as neutral. This is not hypothetical — pricing week 2 of 2026 from the
+nflverse export alone produces four games at `|System #| ≥ 3` that would
+otherwise have been bet on two dead factors.
+
 Two quirks in the 2026–27 source files are corrected when the raw exports are
 slimmed into `data/`, and are worth knowing if you refresh them:
 
