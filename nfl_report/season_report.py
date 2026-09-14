@@ -197,26 +197,40 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     is its last game of the prior season), but only within a contiguous run of
     seasons: the carry does not jump a missing year, so the first week of a block
     of seasons has LGT 0.
+
+    Also flags ``lgt_unknown``: the team has a previous game on the schedule but
+    no turnover margin for it — either it has not been played yet (pricing a week
+    before the previous one finishes) or its turnovers are missing from the
+    results file. That is different from having no previous game at all, which is
+    legitimately 0 as in the published reports. The value exists and we simply do
+    not have it, so the system declines to pick rather than treating the factor
+    as neutral.
     """
     g = combined.copy()
     # float (NaN) rather than Int64 (<NA>): an unplayed game contributes no
     # turnover margin, and the next game's LGT falls back to 0 (neutral).
     g["home_net_to"] = (g["home_giveaways"] - g["away_giveaways"]).astype(float)
     long = pd.concat([
-        g[["order", "block", "home", "home_net_to"]]
+        g[["order", "block", "home", "home_net_to", "played"]]
          .rename(columns={"home": "team", "home_net_to": "net_to"}),
-        g[["order", "block", "away", "home_net_to"]]
+        g[["order", "block", "away", "home_net_to", "played"]]
          .rename(columns={"away": "team", "home_net_to": "net_to"})
          .assign(net_to=lambda d: -d["net_to"]),
     ]).sort_values(["team", "order"])
-    long["lgt"] = long.groupby(["team", "block"])["net_to"].shift()
+    by_team = long.groupby(["team", "block"])
+    long["lgt"] = by_team["net_to"].shift()
+    long["lgt_unknown"] = (by_team.cumcount() > 0) & long["lgt"].isna()
 
     for side in ("home", "away"):
-        key = long.rename(columns={"team": side, "lgt": f"{side}_lgt"})
-        g = g.merge(key[["order", side, f"{side}_lgt"]], on=["order", side], how="left")
+        key = long.rename(columns={"team": side, "lgt": f"{side}_lgt",
+                                   "lgt_unknown": f"{side}_lgt_unknown"})
+        g = g.merge(key[["order", side, f"{side}_lgt", f"{side}_lgt_unknown"]],
+                    on=["order", side], how="left")
     # `+ 0.0` folds the -0.0 that negating a zero turnover margin produces.
     g[["home_lgt", "away_lgt"]] = g[["home_lgt", "away_lgt"]].fillna(0.0) + 0.0
-    return g.drop(columns=["home_net_to"])
+    g["lgt_unknown"] = (g["home_lgt_unknown"].fillna(False)
+                        | g["away_lgt_unknown"].fillna(False))
+    return g.drop(columns=["home_net_to", "home_lgt_unknown", "away_lgt_unknown"])
 
 
 def _source_weeks(season: int, week: int, season_weeks: dict[int, list[int]],
@@ -329,6 +343,9 @@ def build_reports(warn: list | None = None) -> dict[int, pd.DataFrame]:
         ]
         picks = season["system_num"].map(model.pick)
         picks[season["line"].isna()] = None  # nothing to bet against without a spread
+        # A previous game was played but its turnovers are missing, so the
+        # turnover factor is unknown rather than neutral: decline to pick.
+        picks[season["lgt_unknown"]] = None
         season["system_bet"] = [
             r.home if p == "home" else r.away if p == "away" else None
             for r, p in zip(season.itertuples(), picks)
