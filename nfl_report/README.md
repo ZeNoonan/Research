@@ -220,12 +220,20 @@ has not been played yet — `lgt_unknown` is set and the system declines rather
 than treating the factor as neutral. Having no previous game at all is
 different, and stays 0 as in the published reports.
 
-Neither case is hypothetical. Pricing week 2 of 2026 from the nflverse export
-before the turnovers arrived produced four games at `|System #| ≥ 3` that would
-have been bet on two dead factors. And with week 2 priced while the week-1
-Monday night game was still to come, the Jaguars–Broncos pick was held back
-because Denver's last-game turnovers did not exist yet; it is released once that
-game is in.
+Neither case is hypothetical, and both were caught live. Pricing week 2 of 2026
+from the nflverse export before the turnovers arrived produced four games at
+`|System #| ≥ 3` that would have been bet on two dead factors. Then, with week 2
+priced while the week-1 Monday night game was still to come, Jaguars–Broncos was
+held back because Denver's last-game turnovers did not exist yet — and when that
+result landed the pick came back at **+5**, not the +3 it would have shown, since
+Denver's turnover margin *and* their week-1 cover had both been missing. The
+provisional number would have been wrong in both size and composition.
+
+A matching rule governs *importing* lines. `pricing_horizon()` only pulls a line
+for a week the model could actually pick — the next one after the last completed
+week — because a line imported further ahead just locks in an early number when a
+closer-to-closing one will exist by the time the game matters. A finished season
+has no horizon, so every line is imported, playoffs included.
 
 Two quirks in the 2026–27 source files are corrected when the raw exports are
 slimmed into `data/`, and are worth knowing if you refresh them:

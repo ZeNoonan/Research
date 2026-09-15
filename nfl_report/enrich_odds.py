@@ -33,6 +33,7 @@ import pandas as pd
 
 DATA_DIR = Path(__file__).parent / "data"
 SCHEDULE = DATA_DIR / "schedule_lines.csv"
+NO_LIMIT = 10_000  # pricing horizon for a season that has finished
 
 # nflverse team codes -> the nicknames used throughout this project.
 NICKNAME = {
@@ -65,7 +66,7 @@ def load_schedule() -> pd.DataFrame:
     s["home"] = s["home_team"].map(NICKNAME)
     s["away"] = s["away_team"].map(NICKNAME)
     s["line"] = -s["spread_line"]  # nflverse is positive-home-favoured
-    return s[["season", "date", "home", "away", "line", "location"]]
+    return s[["season", "week", "date", "home", "away", "line", "location"]]
 
 
 def nickname_of(full_name: str) -> str:
@@ -73,15 +74,38 @@ def nickname_of(full_name: str) -> str:
         else full_name.split()[-1]
 
 
-def enrich_year(year: int, schedule: pd.DataFrame) -> tuple[pd.DataFrame, int, int]:
-    """Return (updated odds frame, lines filled, neutral flags added)."""
+def pricing_horizon(year: int) -> int:
+    """The furthest week worth importing a line for.
+
+    A week can only be picked once the previous one has finished (the turnover
+    factors need its results), so importing a line further ahead than that just
+    locks in an early number when a closer-to-closing one will be available by
+    the time the game matters. Returns the first week that is not yet complete,
+    which for a finished season is past the last week, so nothing is held back.
+    """
+    results = pd.read_csv(DATA_DIR / f"results_{year}.csv")
+    results = results.dropna(subset=["Winner/tie", "Loser/tie"])
+    played = results["Pts"].notna() & results["Pts.1"].notna()
+    if played.all():
+        return NO_LIMIT  # season finished: import every line, playoffs included
+    weeks = pd.to_numeric(results["Week"], errors="coerce")
+    complete = {w for w in weeks.dropna().unique() if played[weeks == w].all()}
+    horizon = 1
+    while horizon in complete:
+        horizon += 1
+    return horizon
+
+
+def enrich_year(year: int, schedule: pd.DataFrame,
+                horizon: int) -> tuple[pd.DataFrame, int, int, int]:
+    """Return (updated odds frame, lines filled, neutral flags added, held back)."""
     odds = pd.read_csv(DATA_DIR / f"odds_{year}.csv", parse_dates=["Date"])
     # An all-empty flag column reads as float64, which will not take "Y".
     for flag in ("Neutral Venue?", "Playoff Game?"):
         odds[flag] = odds[flag].astype(object)
     season = schedule[schedule["season"] == year]
 
-    filled = flagged = 0
+    filled = flagged = held = 0
     for i, row in odds.iterrows():
         home, away = nickname_of(row["Home Team"]), nickname_of(row["Away Team"])
         cand = season[(season["home"] == home) & (season["away"] == away)]
@@ -92,25 +116,30 @@ def enrich_year(year: int, schedule: pd.DataFrame) -> tuple[pd.DataFrame, int, i
 
         no_line = pd.isna(row["Home Line Close"]) and pd.isna(row["Home Line Open"])
         if no_line and not pd.isna(match["line"]):
-            odds.at[i, "Home Line Close"] = match["line"]
-            filled += 1
+            if match["week"] <= horizon:
+                odds.at[i, "Home Line Close"] = match["line"]
+                filled += 1
+            else:
+                held += 1  # priced further ahead than we can pick
         if match["location"] == "Neutral" and row.get("Neutral Venue?") != "Y":
             odds.at[i, "Neutral Venue?"] = "Y"
             flagged += 1
 
-    return odds, filled, flagged
+    return odds, filled, flagged, held
 
 
 def main() -> None:
     schedule = load_schedule()
     years = sorted(int(p.stem.split("_")[1]) for p in DATA_DIR.glob("odds_*.csv"))
     for year in years:
-        odds, filled, flagged = enrich_year(year, schedule)
+        horizon = pricing_horizon(year)
+        odds, filled, flagged, held = enrich_year(year, schedule, horizon)
         if filled or flagged:
             odds[ODDS_COLUMNS].to_csv(DATA_DIR / f"odds_{year}.csv", index=False)
         note = ", ".join(
             p for p in (f"{filled} line(s) filled" if filled else "",
-                        f"{flagged} neutral venue(s) flagged" if flagged else "")
+                        f"{flagged} neutral venue(s) flagged" if flagged else "",
+                        f"{held} priced beyond week {horizon}, held back" if held else "")
             if p) or "nothing to repair"
         print(f"{year}: {note}")
 
