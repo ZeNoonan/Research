@@ -164,17 +164,57 @@ def load_results(season: str) -> pd.DataFrame:
             "FTHG, FTAG) or date/home/away/home_goals/away_goals."
         )
 
+    day_names = df["Day"] if "Day" in df.columns else None
     df = df[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]].copy()
+    if day_names is not None:
+        day_names = day_names.loc[df.index]
     # Blank separator rows and unplayed fixtures both drop out here, so a
     # part-season export with future fixtures still listed works as-is.
     df = df.dropna(subset=["HomeTeam", "AwayTeam", "FTHG", "FTAG"])
     df = df[df["HomeTeam"].astype(str).str.strip() != ""]
+    if day_names is not None:
+        day_names = day_names.loc[df.index]
     df["FTHG"] = df["FTHG"].astype(int)
     df["FTAG"] = df["FTAG"].astype(int)
-    df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, format="mixed")
+    df["Date"] = _parse_dates(df["Date"], day_names)
     for col in ("HomeTeam", "AwayTeam"):
         df[col] = df[col].map(canonical_team)
     return df.sort_values("Date").reset_index(drop=True)
+
+
+def _parse_dates(dates: pd.Series, day_names: "pd.Series | None" = None) -> pd.Series:
+    """Parse a results file's Date column without guessing the wrong way round.
+
+    Sources disagree: football-data.co.uk writes dd/mm/yyyy, FBref writes ISO
+    yyyy-mm-dd. Feeding ISO dates to a day-first parser silently transposes day
+    and month whenever both are <= 12 (2026-09-05 becomes 9 May), which
+    reorders fixtures without any error, so ISO rows are parsed strictly as
+    ISO and only the remaining rows are treated as day-first.
+
+    When the file carries a weekday column (FBref's ``Day``), the parsed dates
+    are checked against it — a transposition almost always lands on the wrong
+    weekday, so this catches the failure at load time rather than in the output.
+    """
+    text = dates.astype(str).str.strip()
+    is_iso = text.str.match(r"^\d{4}-\d{1,2}-\d{1,2}")
+    out = pd.Series(pd.NaT, index=text.index, dtype="datetime64[ns]")
+    if is_iso.any():
+        out.loc[is_iso] = pd.to_datetime(text[is_iso], format="ISO8601")
+    if (~is_iso).any():
+        out.loc[~is_iso] = pd.to_datetime(text[~is_iso], dayfirst=True, format="mixed")
+
+    if day_names is not None:
+        want = day_names.astype(str).str.strip().str[:3].str.lower()
+        got = out.dt.strftime("%a").str.lower()
+        bad = want.notna() & (want != "") & (want != got)
+        if bad.any():
+            i = bad.idxmax()
+            raise ValueError(
+                f"Date {dates.loc[i]!r} parses to {out.loc[i]:%Y-%m-%d}, a "
+                f"{got.loc[i].title()}, but the file says {day_names.loc[i]}. "
+                "The Date column is being read in the wrong order."
+            )
+    return out
 
 
 def _points_for(scored: int, conceded: int) -> int:
