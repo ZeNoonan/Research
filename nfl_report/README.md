@@ -1,5 +1,45 @@
 # NFL Report — replicating Aaron Brown's demonstration system
 
+## 📋 What I need from you
+
+*Anything I'm waiting on lives here, newest first. Nothing is urgent unless marked.*
+
+### Every week, to keep 2026–27 running
+
+1. **Results** — the pro-football-reference rows for the games just played,
+   including the `TOW`/`TOL` turnover columns. **Turnovers are the blocker:** two
+   of the five factors read them, and without them the next week cannot be picked
+   at all (the system deliberately declines rather than guessing).
+2. **Odds** — the nflverse `games` export (what you have been sending). Ideally
+   **as late as practical before the Thursday kick-off**: lines are imported once
+   and never overwritten, so a later export means a number closer to closing.
+   Week 2's Lions–Bills came in at −3.5 on the Tuesday and had moved to −5.5 by
+   kick-off. It did not change that result, but one day it will.
+
+### One decision, whenever you feel like it
+
+3. **2025's 64 opening lines.** Those games use an *opening* price because the
+   close was missing. They match the second source far worse than real closes do
+   (11% exact vs 37%), and one — Raiders **+15.5** as a home underdog — is almost
+   certainly corrupt. Replacing them with closing lines would make the season's
+   basis consistent. I have not done it because it rewrites 64 existing prices
+   **and it happens to improve the record** (44–43 → 50–40), which is a reason for
+   caution rather than a reason to do it. Your call: leave, or replace.
+
+### Optional, only if it is easy
+
+4. **2018 results with turnovers** (PFR format). It is the one thing that would
+   finish 2019: with no 2018 file, that season's week 1 has no last-game
+   turnovers and no power ratings. Lines for 2018 are already on hand — only the
+   turnovers are missing.
+
+### Nothing needed for these
+
+- 2025's 14 unpriced games — **fixed**, all now have lines.
+- Missing neutral-venue flags — **fixed** for 2020, 2022, 2025 and 2026.
+- The 2026 opener's transposed team labels and misplaced spread column — **fixed**.
+
+
 A project to **replicate Aaron Brown's published `NFL Report`** sheets
 (2010–2016): a weekly NFL against-the-spread betting system built as a public
 demonstration that a simple, additive, binary-factor model can beat the spread,
