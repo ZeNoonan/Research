@@ -16,18 +16,10 @@
    Week 2's Lions–Bills came in at −3.5 on the Tuesday and had moved to −5.5 by
    kick-off. It did not change that result, but one day it will.
 
-### One decision, whenever you feel like it
-
-3. **2025's 64 opening lines.** Those games use an *opening* price because the
-   close was missing. They match the second source far worse than real closes do
-   (11% exact vs 37%), and one — Raiders **+15.5** as a home underdog — is almost
-   certainly corrupt. Replacing them with closing lines would make the season's
-   basis consistent. I have not done it because it rewrites 64 existing prices
-   **and it happens to improve the record** (44–43 → 50–40), which is a reason for
-   caution rather than a reason to do it. Your call: leave, or replace.
-
 ### Nothing needed for these
 
+- **2025's 64 opening lines** — **decided and applied**: replaced with closing
+  lines. See below for what the evidence did and did not support.
 - **2018 results** — **received**, and 2019's week 1 is now seeded from it.
 - 2025's 14 unpriced games — **fixed**, all now have lines.
 - Missing neutral-venue flags — **fixed** for 2020, 2022, 2025 and 2026.
@@ -226,14 +218,35 @@ through the season-boundary power seed to give 2021 one extra winning bet
 (48–35 → **49–35**). 2020 and 2022 keep their records; every published-report
 season is untouched.
 
-One judgement call is deliberately **not** taken: 64 games of 2025 use an
-*opening* line because the close was missing, and those agree with the second
-source far worse than real closes do (11% exact, mean 2.3 points off, versus 37%
-and 0.9). One of them — Raiders +15.5 as a home underdog — is almost certainly
-corrupt. Replacing all 64 with the second source's closing lines would make the
-season's line basis consistent, but it would also rewrite 64 existing prices,
-and it happens to improve the record (to 50–40, +6.0u). That is a reason for
-caution, not for adoption, so it is left to an explicit decision.
+### The 2025 opening lines (decided)
+
+2025 was the only season where some games carried an *opening* price instead of a
+close — 64 of them. They have been replaced with the second source's closing
+lines, so every season now runs on closing numbers throughout. 2025 moves from
+78 bets / 41–37 / +0.3u (with 14 games unbettable) to **90 bets / 50–40 / +6.0u**;
+221 rows and 39 picks change, and no other season moves.
+
+The evidence, stated in full because part of it cuts the other way:
+
+- **For.** An opening line is a different quantity, not a noisier version of the
+  same one. The 64 agreed with the second source only 8/64 exactly (mean gap 2.3
+  points) against 92/221 and 0.88 points for our genuine closes. One — Raiders
+  **+15.5** as a *home* underdog, against a true 3.5 — is impossible, and a wrong
+  line does not just mis-grade its own game: it feeds the rolling power-rating fit
+  and the season-to-date cover record for weeks afterwards. 2025 was also the sole
+  season affected, so the change makes the corpus uniform rather than mixed.
+- **Against, and worth recording.** A direct test of which number better predicts
+  the actual margin on those 64 games is *inconclusive*: mean absolute error 8.95
+  for ours against 8.90 for theirs, closer in 26 games against 30. At n=63 that is
+  noise. The case rests on provenance and consistency, not on a demonstrated gain
+  in accuracy.
+- **The second source is sound.** Across the 2,163 games where both hold a close,
+  96% agree within a point (mean gap 0.32, max 7.0), with no wild values and a
+  comparable count of extreme lines.
+
+The record improving (44–43 → 50–40 against the like-for-like alternative) is
+noted as a *consequence*, never the justification — choosing the data variant
+that scores better is how a backtest gets flattered.
 
 ### A season in progress (2026–27)
 

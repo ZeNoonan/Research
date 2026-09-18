@@ -8,12 +8,19 @@ two specific gaps in ``data/odds_<year>.csv``:
 * **Missing lines** — where a game has neither a closing nor an opening line,
   the nflverse spread is written into ``Home Line Close``. Without it the game
   can never be bet; 14 games of 2025 were in this state.
+* **Opening lines standing in for closes** — the model is defined on the closing
+  line, so where our export has only an *opening* number, the nflverse closing
+  spread replaces it. An opening line is a different quantity, not a noisier
+  version of the same one: 2025's 64 such games agreed with the second source
+  only 8/64 exactly (mean gap 2.3 points) against 92/221 and 0.88 points for our
+  genuine closes, and one — Raiders +15.5 as a *home* underdog — is impossible.
+  2025 was the only season affected; every other is closing lines throughout.
 * **Neutral venues** — international games have no home-field advantage, and
   the power fit zeroes its 3-point term for them. The odds export flags only
   some of them; nflverse flags all.
 
-Existing lines are **never** overwritten: a line we already have always wins,
-so seasons keep the book they were built on.
+A genuine closing line we already hold is **never** overwritten, so seasons keep
+the book they were built on. Only the two gaps above are repaired.
 
 Sign convention: nflverse ``spread_line`` is positive when the home team is
 favoured, the opposite of this project's ``line``, so it is negated.
@@ -98,14 +105,14 @@ def pricing_horizon(year: int) -> int:
 
 def enrich_year(year: int, schedule: pd.DataFrame,
                 horizon: int) -> tuple[pd.DataFrame, int, int, int]:
-    """Return (updated odds frame, lines filled, neutral flags added, held back)."""
+    """Return (odds frame, lines filled, neutral flags, held back, opens replaced)."""
     odds = pd.read_csv(DATA_DIR / f"odds_{year}.csv", parse_dates=["Date"])
     # An all-empty flag column reads as float64, which will not take "Y".
     for flag in ("Neutral Venue?", "Playoff Game?"):
         odds[flag] = odds[flag].astype(object)
     season = schedule[schedule["season"] == year]
 
-    filled = flagged = held = 0
+    filled = flagged = held = replaced = 0
     for i, row in odds.iterrows():
         home, away = nickname_of(row["Home Team"]), nickname_of(row["Away Team"])
         cand = season[(season["home"] == home) & (season["away"] == away)]
@@ -114,18 +121,24 @@ def enrich_year(year: int, schedule: pd.DataFrame,
             continue
         match = cand.iloc[0]
 
-        no_line = pd.isna(row["Home Line Close"]) and pd.isna(row["Home Line Open"])
-        if no_line and not pd.isna(match["line"]):
+        # No close of our own: either nothing at all, or only an opening number
+        # standing in for one. Both are repaired from the second source; a close
+        # we already hold is left alone.
+        needs_close = pd.isna(row["Home Line Close"])
+        if needs_close and not pd.isna(match["line"]):
             if match["week"] <= horizon:
                 odds.at[i, "Home Line Close"] = match["line"]
-                filled += 1
+                if pd.isna(row["Home Line Open"]):
+                    filled += 1
+                else:
+                    replaced += 1
             else:
                 held += 1  # priced further ahead than we can pick
         if match["location"] == "Neutral" and row.get("Neutral Venue?") != "Y":
             odds.at[i, "Neutral Venue?"] = "Y"
             flagged += 1
 
-    return odds, filled, flagged, held
+    return odds, filled, flagged, held, replaced
 
 
 def main() -> None:
@@ -133,11 +146,12 @@ def main() -> None:
     years = sorted(int(p.stem.split("_")[1]) for p in DATA_DIR.glob("odds_*.csv"))
     for year in years:
         horizon = pricing_horizon(year)
-        odds, filled, flagged, held = enrich_year(year, schedule, horizon)
-        if filled or flagged:
+        odds, filled, flagged, held, replaced = enrich_year(year, schedule, horizon)
+        if filled or flagged or replaced:
             odds[ODDS_COLUMNS].to_csv(DATA_DIR / f"odds_{year}.csv", index=False)
         note = ", ".join(
             p for p in (f"{filled} line(s) filled" if filled else "",
+                        f"{replaced} opening line(s) replaced with closes" if replaced else "",
                         f"{flagged} neutral venue(s) flagged" if flagged else "",
                         f"{held} priced beyond week {horizon}, held back" if held else "")
             if p) or "nothing to repair"
