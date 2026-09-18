@@ -22,7 +22,7 @@ import heatmaps
 
 HERE = Path(__file__).parent
 # Display order, most recent first. 2010-2016 are Brown's published reports.
-SEASONS = (2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019,
+SEASONS = (2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018,
            2016, 2015, 2014, 2013, 2012, 2011, 2010)
 PUBLISHED = {2010, 2011, 2012, 2013, 2014, 2015, 2016}
 JUICE = 1.1  # units lost per losing bet at full 10% juice
@@ -39,9 +39,9 @@ def season_note(year: int) -> str | None:
                 "target. Every bet and result here is reproduced by the model.")
     base = ("Generated from raw odds + results data by <code>season_report.py</code>, "
             "not a published sheet.")
-    if year == 2019:
-        return base + (" No prior-season file, so week 1 has no last-game turnovers "
-                       "or power ratings.")
+    if year == 2018:
+        return base + (" The earliest season on file, so week 1 has no last-game "
+                       "turnovers or power ratings to carry over.")
     if year == 2025:
         return base + (" Week 1 is seeded from the prior season (last-game turnovers "
                        "and power), but 14 week-5 games have no line in the odds "
