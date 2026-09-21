@@ -14,7 +14,8 @@ depends on hold:
 5. System #, pick and grade agree with a hand computation;
 6. ``calibrate.py`` recovers the home-advantage terms used to build the data;
 7. a **split round** - one whose matches are months apart, as 2026-27's round 8
-   is - is ordered by date, so no factor reads a match that had not been played.
+   is - is ordered by date, so no factor reads a match that had not been played;
+8. the odds-to-handicap conversion round-trips, and recovers a known sigma.
 
 Run: ``python test_pipeline.py``
 """
@@ -29,6 +30,7 @@ import pandas as pd
 
 import calibrate
 import model
+import spread_from_odds as sfo
 import season_report
 import teams
 
@@ -260,6 +262,61 @@ def main() -> int:
                         not r2_early["home_power"].reset_index(drop=True).equals(
                             r2_late["home_power"].reset_index(drop=True))
                         or r2_late["home_power"].notna().all())
+
+    print("\n10. inferring a handicap from 1X2 odds")
+    from statistics import NormalDist
+    nd = NormalDist()
+    sigma = 16.0
+
+    # Fair odds (no overround) must map back to the line that generated them.
+    worst = 0.0
+    for target in (-30, -18, -9.5, -3, 0, 4.5, 12, 21):
+        z = -target / sigma
+        p_home = nd.cdf(z)
+        p_draw = 0.02
+        # Split the draw back out of the two-way probability, the inverse of
+        # what line_from_odds does when it folds it in.
+        fair = (p_home - p_draw / 2, p_draw, 1 - p_home - p_draw / 2)
+        odds = tuple(1 / x for x in fair)
+        worst = max(worst, abs(sfo.line_from_odds(*odds, sigma) - target))
+    passed &= check("fair odds round-trip to the line that made them",
+                    worst < 1e-6, f"worst error {worst:.2e} pts")
+
+    quote = (1.20, 25.73, 4.66)
+    shin = sfo.shin_probabilities(*quote)
+    passed &= check("de-vigged probabilities sum to 1",
+                    abs(sum(shin) - 1) < 1e-9, f"sum {sum(shin):.12f}")
+    pi = [1 / o for o in quote]
+    prop = [x / sum(pi) for x in pi]
+    passed &= check("Shin takes more margin out of the longshot than proportional",
+                    shin[0] > prop[0] and shin[2] < prop[2],
+                    f"favourite {prop[0]:.4f}->{shin[0]:.4f}, "
+                    f"longshot {prop[2]:.4f}->{shin[2]:.4f}")
+
+    shorter = sfo.line_from_odds(1.10, 29.0, 7.08, sigma)
+    longer = sfo.line_from_odds(1.80, 21.0, 2.05, sigma)
+    passed &= check("a shorter home price means a bigger home handicap",
+                    shorter < longer, f"{shorter:.1f} vs {longer:.1f}")
+    passed &= check("a heavy favourite's quote is flagged as too coarse",
+                    sfo.is_coarse(1.01, 25.0, 20.0) and not sfo.is_coarse(1.80, 21.0, 2.05))
+
+    # fit_sigma must recover the sigma that generated the margins.
+    rng = np.random.default_rng(11)
+    true_sigma, quotes, margins = 14.5, [], []
+    for _ in range(4000):
+        z = rng.normal(0, 1)
+        p_home, p_draw = nd.cdf(z), 0.02
+        quotes.append((1 / (p_home - p_draw / 2), 1 / p_draw,
+                       1 / (1 - p_home - p_draw / 2)))
+        margins.append(rng.normal(true_sigma * z, true_sigma))
+    fit = sfo.fit_sigma(quotes, margins)
+    passed &= check("fit_sigma recovers the generating sigma",
+                    abs(fit["sigma"] - true_sigma) < 0.5,
+                    f"{fit['sigma']:.2f} vs {true_sigma}")
+    passed &= check("its two independent estimates agree",
+                    abs(fit["slope_estimate"] - fit["residual_sd"]) < 1.0,
+                    f"slope {fit['slope_estimate']:.2f} vs "
+                    f"resid {fit['residual_sd']:.2f}")
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1
