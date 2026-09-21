@@ -39,21 +39,31 @@ and turnovers have to be typed in.*
   and all seven playoffs — more than the four weeks the power seed needs. Round
   1 of 2026-27 now **has power ratings**.
 
-### 1. A handful of real handicaps, to check the inferred ones
+### 1. Real handicaps for the eight heavy favourites — if you can get them
 
-`python line_check.py export --season 2025` writes
-`entry/urc_2025_line_check.csv` — 14 matches spread across the range, with the
-inferred line beside a blank `actual_line`. Fill what you can find and run
-`python line_check.py check --season 2025`.
+The line check settled `sigma` for the readable range (below). What it also
+showed is that the **far tail cannot be inferred at all**: both checked matches
+quoted at 1.01 came back with real lines of −30.5 and −33.5, three points
+apart, from *identical* odds.
 
-This is worth more than it looks. `sigma` is currently fitted from 50 *results*,
-and a result is a noisy draw around the line. A quoted line **is** the quantity
-being estimated, observed directly — so ten of them pin `sigma` harder than
-fifty results do. The sample is weighted towards mid-range matches for exactly
-that reason: near a pick'em the estimate divides by ~0, and at a heavy
-favourite the odds are too coarse to say much.
+Eight matches in `data/season_2025.csv` sit in that zone. Eight real numbers
+would remove the guesswork entirely, and the importer now protects them — a
+handicap quoted as a handicap is never overwritten by an inferred one. They
+are the rows with `pts_per_tick > 1` in
+`entry/urc_2025_line_check.csv`, plus the rest flagged by
+`import_oddsportal.py`.
 
-### 2. Monitoring home advantage
+Not urgent: the round-1 picks do not move either way (see below).
+
+### 2. One turnover count to fix
+
+`data/season_2025.csv`, Cardiff v Stormers, 2026-05-15: the source sheet has
+`home_turnovers_lost = -1`, which cannot be right. It does **not** affect round
+1 — Cardiff's last 2025-26 match is the quarter-final, not that one — so
+nothing is blocked. `import_turnovers.py` now refuses counts like this rather
+than loading them.
+
+### 3. Monitoring home advantage
 
 `HOME_ADVANTAGE` is a **provisional 5.0**. The NFL system uses a well-established
 3-point home field; the URC has no settled equivalent and its handicaps are
@@ -107,8 +117,9 @@ The intuitions, unchanged from the source:
 
 - **`line`** — the home handicap. **Negative = home favoured** (−7.5 means home
   must win by 8 to cover); positive = home receiving points.
-- **`lgt`** — net turnovers **conceded** in the side's previous match
-  (own conceded − opponent's conceded). Positive = gave up more ball than it won.
+- **`lgt`** — the side's own net turnover margin in its previous match
+  (**own conceded − own won**). Positive = leaked more ball than it won back.
+  Not a differential between the two sides; see *A turnover is not a giveaway*.
 - **`stdc`** — covers − non-covers this season. Negative = hungry.
 - **`power`** — rating in points; the power-implied handicap is
   `away_power − home_power`.
@@ -196,19 +207,42 @@ overstates short prices. Shin's method, which models the book as protecting
 itself against better-informed traders, takes proportionally more out of the
 longshots. The test is whether the resulting lines behave like lines:
 
-| de-vig | home cover rate vs its own inferred line | fitted `sigma` |
-|---|---|---|
-| proportional | 54.0% | 16.5 |
-| additive | 48.0% | 15.8 |
-| **Shin** | **48.0%** | **16.0** |
+| de-vig | home cover rate vs its own inferred line |
+|---|---|
+| proportional | 54.0% |
+| additive | 48.0% |
+| **Shin** | **48.0%** |
 
 A fair line must produce ~50%, so proportional is measurably biased and Shin is
 used.
 
-**The value of `sigma`.** Fitted by maximum likelihood at **16.0 points** over
-the 50 matches, and — the check that matters — its two independent estimates
-agree: the regression slope gives 15.9, the residual spread 16.0. A gap there
-would mean the normal shape is wrong, not that the number needs nudging.
+**The value of `sigma`.** **13.75**, measured against 12 real quoted handicaps.
+
+It was 16.0, fitted from results, and the reasoning that produced it was wrong.
+That is recorded here rather than quietly corrected, because the mistake is
+instructive: the model `M ~ Normal(sigma * z, sigma)` makes **one** number do
+**two** jobs — set where the line sits, and set how far results scatter around
+it. Those are different quantities. The scatter term carries n observations'
+worth of information while the mean term is noisy, so the likelihood was
+dominated by the scatter. The "two independent estimates agreeing" (slope 15.9,
+residual spread 16.0) was not confirmation: it was both estimates measuring the
+same thing, margin spread, and neither measuring the line.
+
+Checked against real lines, the two separate cleanly:
+
+| source | line scale | precision |
+|---|---|---|
+| 50 results (`fit_from_results`) | 15.94 | ±2.27 → 95% interval **11.4–20.5** |
+| 12 quoted lines (`fit_from_lines`) | **13.74** | essentially exact |
+
+No contradiction — 13.74 sits comfortably inside that interval. Just precision:
+a result is a noisy draw around the line, a quoted line *is* the line. Realised
+margins do scatter by about 16; that is `margin_sigma`, and it is now returned
+as a separate number.
+
+The fit is flat across the readable range — per-match estimates run 13.2 to
+14.6 from |z| = 0.13 to 1.26, with no drift — so one `sigma` genuinely serves
+the whole middle.
 
 ### Where it fails, and why no model can fix it
 
@@ -224,9 +258,20 @@ lot of handicap:
 
 So a line inferred from a 1.01 shot is uncertain by a couple of points *before*
 any modelling error, and the three de-vig methods duly disagree by up to 3.8
-points on exactly those matches (against a median of 0.85 across all 50). This
-is not a modelling failure that a better model would cure: the information is
-not in the input. `tick_sensitivity` reports it per match, `is_coarse` flags it,
+points on exactly those matches (against a median of 0.85 across all 50).
+
+**The line check proved this, rather than leaving it as an argument.** Both
+checked matches quoted at **1.01** came back with real handicaps of **−30.5**
+and **−33.5** — three points apart, from identical odds. No model can separate
+those, because the input does not. The same rows want `sigma` ≈ 17.3 where the
+readable range wants 13.75, which is not a fitting problem to be tuned away: it
+is the tail of the quote losing resolution.
+
+Note what this did to the headline error. Overall bias across the 14 checked
+matches was **−0.04 points**, which looks like near-perfect calibration and is
+nothing of the sort — it is a −0.46 bias on the readable quotes cancelling a
++2.50 bias on the coarse ones. `line_check.py` therefore reports the two
+groups separately and never quotes the combined figure on its own. `tick_sensitivity` reports it per match, `is_coarse` flags it,
 and `import_oddsportal.py --skip-coarse` will leave those rows unpriced rather
 than fill them with a number that cannot bear the weight.
 
@@ -321,7 +366,8 @@ power ratings and turnover counts and asserts the pipeline recovers them:
 | A split round is ordered by date, so no factor reads a future match | pass |
 | The early home-advantage read is exact on a balanced season | **exact** |
 | Fair odds round-trip to the handicap that generated them | **exact** |
-| `fit_sigma` recovers a known sigma, both estimates agreeing | 14.53 vs 14.5 |
+| `fit_from_results` recovers line scale and margin spread *separately* | 13.72 / 16.56 vs 13.75 / 16.5 |
+| `fit_from_lines` recovers the line scale from quoted lines | **exact** |
 
 That is a test of the plumbing, not evidence the system works on rugby.
 
@@ -383,7 +429,8 @@ default branch. For that window only, the branch renders through
 8. ~~Enter the 2025-26 turnovers so round 1 is pickable.~~ ✅ 15 matches, all 16 clubs
 9. ~~Revisit the turnover definition against real match-centre data.~~ ✅ switched to
    own conceded − own won
-10. **Check the inferred handicaps** against a sample of real ones and re-fit `sigma`.
+10. ~~Check the inferred handicaps against real ones and re-fit `sigma`.~~ ✅
+    13.75, from 12 quoted lines; the tail shown to be un-inferable
 11. **Calibrate `HOME_ADVANTAGE`** once ~40 handicaps exist (about round 5);
     watch the early read until then.
 11. Revisit the turnover definition (conceded differential vs won/conceded

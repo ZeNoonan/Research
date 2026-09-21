@@ -85,15 +85,54 @@ def load_source(path: Path, sheet: str | None) -> pd.DataFrame:
     return out.dropna(subset=["home", "away"])
 
 
+# A side concedes and wins turnovers in the low tens. Outside this band the
+# number is a typo or a mis-read column, not a remarkable match.
+PLAUSIBLE_MAX = 40
+
+
+def implausible(df: pd.DataFrame) -> list[str]:
+    """Counts that cannot be right: negative, or far outside the normal range.
+
+    Reported rather than silently loaded. A negative turnover count is not a
+    small error - it flips the sign of the margin, and the sign is the entire
+    input to the turnover factor.
+    """
+    problems = []
+    for r in df.itertuples():
+        for col in WANTED:
+            value = getattr(r, col)
+            if pd.isna(value):
+                continue
+            if value < 0:
+                problems.append(f"{r.home} v {r.away}: {col} = {value:g} "
+                                f"(negative - a turnover count cannot be)")
+            elif value > PLAUSIBLE_MAX:
+                problems.append(f"{r.home} v {r.away}: {col} = {value:g} "
+                                f"(over {PLAUSIBLE_MAX} - check the column)")
+    return problems
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("source", type=Path)
     ap.add_argument("--season", type=int, required=True)
     ap.add_argument("--sheet", help="worksheet name, for a multi-sheet workbook")
+    ap.add_argument("--allow-implausible", action="store_true",
+                    help="load counts that are negative or out of range anyway")
     args = ap.parse_args()
 
     incoming = load_source(args.source, args.sheet)
+    if bad := implausible(incoming):
+        print(f"{len(bad)} turnover count(s) that cannot be right:")
+        for b in bad:
+            print(f"  {b}")
+        if not args.allow_implausible:
+            raise SystemExit(
+                "\nrefusing to load these. Fix them at source, or pass "
+                "--allow-implausible\nto load anyway (the sign of the margin is "
+                "the factor's entire input).")
+        print("  loading anyway (--allow-implausible)\n")
     season_path = DATA_DIR / f"season_{args.season}.csv"
     season = pd.read_csv(season_path, dtype=str).fillna("")
     for col in SEASON_COLUMNS:

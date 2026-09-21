@@ -102,32 +102,45 @@ def check(season: int) -> None:
         raise SystemExit(f"no actual_line values filled in {path.name} yet")
     df["actual_line"] = pd.to_numeric(df["actual_line"])
 
+    # z straight from the odds, not back-derived from the rounded inferred line.
+    df["z"] = [sfo.NORMAL.inv_cdf(
+        sfo.two_way_home(*sfo.shin_probabilities(r.odds_home, r.odds_draw,
+                                                 r.odds_away)[:2]))
+        for r in df.itertuples()]
     df["error"] = df["inferred_line"] - df["actual_line"]
-    df["z"] = -df["inferred_line"] / sfo.DEFAULT_SIGMA
-    usable = df[df["z"].abs() > 0.15]          # dividing by ~0 says nothing
-    df["sigma_implied"] = -df["actual_line"] / df["z"]
+    df["coarse"] = df["pts_per_tick"] > sfo.COARSE_POINTS_PER_TICK
 
     print(f"{len(df)} checked matches\n")
     print(df[["date", "home", "away", "inferred_line", "actual_line", "error",
               "pts_per_tick"]].to_string(index=False))
-    print(f"\nbias (inferred - actual): {df['error'].mean():+.2f} pts")
-    print(f"mean absolute error     : {df['error'].abs().mean():.2f} pts")
-    print(f"worst                   : {df['error'].abs().max():.2f} pts")
 
-    fine = df[df["pts_per_tick"] <= sfo.COARSE_POINTS_PER_TICK]
-    if len(fine) and len(fine) < len(df):
-        print(f"\nexcluding the {len(df) - len(fine)} coarse quote(s): "
-              f"bias {fine['error'].mean():+.2f}, "
-              f"MAE {fine['error'].abs().mean():.2f} pts")
+    def sigma_of(block: pd.DataFrame) -> float:
+        """Least-squares sigma: minimises sum (actual + sigma*z)^2.
 
-    good = usable[usable["pts_per_tick"] <= sfo.COARSE_POINTS_PER_TICK]
-    if len(good) >= 3:
-        s = good["sigma_implied"]
-        print(f"\nsigma implied by these quoted lines: median {s.median():.2f}, "
-              f"mean {s.mean():.2f}, range {s.min():.1f}-{s.max():.1f} "
-              f"(n={len(s)}, currently {sfo.DEFAULT_SIGMA})")
-        print("Set DEFAULT_SIGMA in spread_from_odds.py from this and re-run "
-              "import_oddsportal.py.")
+        Weighting by z falls out of the algebra, so a near-pick'em - where
+        dividing one line by one z would explode - contributes almost nothing
+        instead of having to be thrown away by hand.
+        """
+        zz = (block["z"] ** 2).sum()
+        return float("nan") if zz == 0 else -(block["z"] * block["actual_line"]).sum() / zz
+
+    fine, coarse = df[~df["coarse"]], df[df["coarse"]]
+    print(f"\noverall bias (inferred - actual): {df['error'].mean():+.2f} pts, "
+          f"MAE {df['error'].abs().mean():.2f}")
+    print("\nBut that overall bias is two opposite errors cancelling, so split them:\n")
+    for label, block in (("quotes fine enough to read", fine),
+                         ("quotes too coarse (1.01-ish)", coarse)):
+        if block.empty:
+            continue
+        print(f"  {label:<30} n={len(block):<3} bias {block['error'].mean():+5.2f}  "
+              f"MAE {block['error'].abs().mean():4.2f}  sigma {sigma_of(block):5.2f}")
+
+    print(f"\nsigma currently set to {sfo.DEFAULT_SIGMA}; "
+          f"fitted on the readable quotes: {sigma_of(fine):.2f}")
+    if not coarse.empty:
+        print(f"The coarse rows want {sigma_of(coarse):.2f} instead - the two cannot "
+              f"both be right\nwith one normal, which is a finding, not a fitting "
+              f"problem. See the README.")
 
 
 def main() -> None:

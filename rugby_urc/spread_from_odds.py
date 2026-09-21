@@ -31,10 +31,25 @@ was fitted against, Shin gave a 48% home cover rate against its own inferred
 lines, against 54% for proportional de-vigging - 50% being what a fair line
 must produce.
 
-**The value of sigma.** Fitted by maximum likelihood on those 50 matches at
-**16.0 points**, with the two independent estimates agreeing closely (the
-regression slope gave 15.9, the residual spread 16.0), which is the check that
-the normal model is self-consistent rather than merely fitted.
+**The value of sigma.** ``13.75`` points, measured against 12 real quoted
+handicaps.
+
+An earlier version of this module fitted 16.0 from *results* and took the
+agreement of its two estimates - regression slope 15.9, residual spread 16.0 -
+as evidence the model was self-consistent. That reasoning was wrong, and it is
+recorded rather than quietly deleted. The single-parameter model
+``M ~ Normal(sigma * z, sigma)`` forces one number to do two jobs: set where
+the line sits, and set how far results scatter around it. **Those are different
+quantities.** The scatter term carries n observations' worth of information
+while the mean term is noisy, so the likelihood was dominated by the scatter,
+and the "agreement" was just both estimates measuring the same thing - margin
+spread - rather than either measuring the line.
+
+Checked against 12 real handicaps, the line mapping is **13.75**, flat across
+the whole readable range (per-match estimates run 13.2 to 14.6 from |z| = 0.13
+to 1.26, with no drift). Realised margins do scatter by about 16. Both are
+true; they are simply not the same parameter, and ``fit_from_results`` now
+returns them separately.
 
 Where it fails
 --------------
@@ -56,10 +71,12 @@ from statistics import NormalDist
 
 NORMAL = NormalDist()
 
-# Standard deviation of URC match margins, in points. Fitted by maximum
-# likelihood on 50 matches of 2025-26 (see module docstring). Re-fit with
-# ``fit_sigma`` as more seasons arrive.
-DEFAULT_SIGMA = 16.0
+# Points of handicap per standard deviation of win probability - the scale of
+# the probability-to-line mapping, NOT the spread of match results around it
+# (that is about 16). Measured against 12 real quoted handicaps from 2025-26;
+# see the module docstring for why the two must not be conflated. Re-check with
+# ``line_check.py`` as more quoted lines arrive.
+DEFAULT_SIGMA = 13.75
 
 # Above this many points of line per 0.01 odds tick, the quote is too coarse to
 # pin a handicap and the row is flagged rather than trusted.
@@ -124,27 +141,43 @@ def is_coarse(home: float, draw: float, away: float,
     return tick_sensitivity(home, draw, away, sigma) > COARSE_POINTS_PER_TICK
 
 
-def fit_sigma(quotes: list[tuple[float, float, float]], margins: list[float],
-              lo: float = 6.0, hi: float = 30.0, steps: int = 4801) -> dict:
-    """Maximum-likelihood ``sigma`` from quoted odds and the margins that followed.
+def fit_from_results(quotes: list[tuple[float, float, float]],
+                     margins: list[float]) -> dict:
+    """Estimate the line scale and the margin spread **separately**, from results.
 
-    Under ``M ~ Normal(sigma * z, sigma)`` the same parameter sets both the
-    expected margin and its spread, so the fit is only credible when the two
-    agree - which is why both are returned. A large gap means the normal model
-    is the wrong shape, not that sigma needs nudging.
+    ``margin = line_sigma * z + noise``, where the noise has standard deviation
+    ``margin_sigma``. The first is what converts a probability into a handicap;
+    the second is how far results land from it. Fitting them as one parameter
+    collapses the two and lands on the second, because the scatter carries far
+    more information than the mean - which is exactly the error this module
+    previously made.
+
+    Even done properly this is the *imprecise* route to ``line_sigma``: a
+    result is a noisy draw around the line, so its standard error is roughly
+    ``margin_sigma / sqrt(sum of z^2)`` - about 2 points over 50 matches.
+    A quoted handicap has no such noise, so ``line_check.py`` measures the same
+    quantity an order of magnitude tighter. Use this only when no real lines
+    are available.
     """
     zs = [NORMAL.inv_cdf(two_way_home(*shin_probabilities(*q)[:2])) for q in quotes]
-    best, best_ll = lo, -math.inf
-    for i in range(steps):
-        s = lo + (hi - lo) * i / (steps - 1)
-        ll = sum(-math.log(s) - (m - s * z) ** 2 / (2 * s * s)
-                 for z, m in zip(zs, margins))
-        if ll > best_ll:
-            best, best_ll = s, ll
     zz = sum(z * z for z in zs)
-    slope = sum(z * m for z, m in zip(zs, margins)) / zz if zz else float("nan")
-    resid = [m - best * z for z, m in zip(zs, margins)]
+    line_sigma = sum(z * m for z, m in zip(zs, margins)) / zz if zz else float("nan")
+    resid = [m - line_sigma * z for z, m in zip(zs, margins)]
     mean_r = sum(resid) / len(resid)
-    resid_sd = math.sqrt(sum((r - mean_r) ** 2 for r in resid) / (len(resid) - 1))
-    return {"sigma": best, "slope_estimate": slope, "residual_sd": resid_sd,
-            "n": len(margins), "log_likelihood": best_ll}
+    margin_sigma = math.sqrt(sum((r - mean_r) ** 2 for r in resid) / (len(resid) - 1))
+    return {"line_sigma": line_sigma, "margin_sigma": margin_sigma,
+            "line_sigma_stderr": margin_sigma / math.sqrt(zz) if zz else float("nan"),
+            "n": len(margins)}
+
+
+def fit_from_lines(quotes: list[tuple[float, float, float]],
+                   lines: list[float]) -> float:
+    """``line_sigma`` from real quoted handicaps - the precise route.
+
+    Least squares on ``line = -sigma * z``. The weighting by ``z`` falls out of
+    the algebra, so a near-pick'em, where dividing one line by one ``z`` would
+    explode, contributes almost nothing rather than needing to be excluded.
+    """
+    zs = [NORMAL.inv_cdf(two_way_home(*shin_probabilities(*q)[:2])) for q in quotes]
+    zz = sum(z * z for z in zs)
+    return -sum(z * l for z, l in zip(zs, lines)) / zz if zz else float("nan")

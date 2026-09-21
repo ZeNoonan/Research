@@ -306,23 +306,40 @@ def main() -> int:
     passed &= check("a heavy favourite's quote is flagged as too coarse",
                     sfo.is_coarse(1.01, 25.0, 20.0) and not sfo.is_coarse(1.80, 21.0, 2.05))
 
-    # fit_sigma must recover the sigma that generated the margins.
+    # The line scale and the margin spread are DIFFERENT parameters. An earlier
+    # version fitted one number for both and landed on the margin spread, so
+    # these are generated deliberately far apart and must come back apart.
     rng = np.random.default_rng(11)
-    true_sigma, quotes, margins = 14.5, [], []
-    for _ in range(4000):
-        z = rng.normal(0, 1)
+    true_line, true_margin = 13.75, 16.5
+    quotes, margins, lines = [], [], []
+    for _ in range(6000):
+        # Bounded to the range real matches are priced in: past |z| ~ 2.3 a 2%
+        # draw leaves no room for the away side and the quote is not constructible.
+        z = rng.uniform(-2.0, 2.0)
         p_home, p_draw = nd.cdf(z), 0.02
         quotes.append((1 / (p_home - p_draw / 2), 1 / p_draw,
                        1 / (1 - p_home - p_draw / 2)))
-        margins.append(rng.normal(true_sigma * z, true_sigma))
-    fit = sfo.fit_sigma(quotes, margins)
-    passed &= check("fit_sigma recovers the generating sigma",
-                    abs(fit["sigma"] - true_sigma) < 0.5,
-                    f"{fit['sigma']:.2f} vs {true_sigma}")
-    passed &= check("its two independent estimates agree",
-                    abs(fit["slope_estimate"] - fit["residual_sd"]) < 1.0,
-                    f"slope {fit['slope_estimate']:.2f} vs "
-                    f"resid {fit['residual_sd']:.2f}")
+        lines.append(-true_line * z)
+        margins.append(rng.normal(true_line * z, true_margin))
+    fit = sfo.fit_from_results(quotes, margins)
+    passed &= check("fit_from_results recovers the line scale",
+                    abs(fit["line_sigma"] - true_line) < 0.6,
+                    f"{fit['line_sigma']:.2f} vs {true_line}")
+    passed &= check("fit_from_results recovers the margin spread separately",
+                    abs(fit["margin_sigma"] - true_margin) < 0.6,
+                    f"{fit['margin_sigma']:.2f} vs {true_margin}")
+    passed &= check("it does not collapse the two into one number",
+                    abs(fit["line_sigma"] - fit["margin_sigma"]) > 1.5,
+                    f"line {fit['line_sigma']:.2f} vs margin "
+                    f"{fit['margin_sigma']:.2f}")
+    from_lines = sfo.fit_from_lines(quotes, lines)
+    passed &= check("fit_from_lines recovers the line scale exactly",
+                    abs(from_lines - true_line) < 1e-6,
+                    f"{from_lines:.6f} vs {true_line}")
+    passed &= check("real lines pin it tighter than results do",
+                    abs(from_lines - true_line) < abs(fit["line_sigma"] - true_line),
+                    f"{abs(from_lines - true_line):.2e} vs "
+                    f"{abs(fit['line_sigma'] - true_line):.3f}")
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1
