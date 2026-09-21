@@ -15,7 +15,9 @@ depends on hold:
 6. ``calibrate.py`` recovers the home-advantage terms used to build the data;
 7. a **split round** - one whose matches are months apart, as 2026-27's round 8
    is - is ordered by date, so no factor reads a match that had not been played;
-8. the odds-to-handicap conversion round-trips, and recovers a known sigma.
+8. the odds-to-handicap conversion round-trips, and recovers a known sigma;
+9. merging new odds into a season file never erases what is already there, and
+   never overwrites a handicap that was quoted rather than inferred.
 
 Run: ``python test_pipeline.py``
 """
@@ -29,6 +31,7 @@ import numpy as np
 import pandas as pd
 
 import calibrate
+import import_oddsportal
 import model
 import spread_from_odds as sfo
 import season_report
@@ -306,23 +309,89 @@ def main() -> int:
     passed &= check("a heavy favourite's quote is flagged as too coarse",
                     sfo.is_coarse(1.01, 25.0, 20.0) and not sfo.is_coarse(1.80, 21.0, 2.05))
 
-    # fit_sigma must recover the sigma that generated the margins.
+    # The line scale and the margin spread are DIFFERENT parameters. An earlier
+    # version fitted one number for both and landed on the margin spread, so
+    # these are generated deliberately far apart and must come back apart.
     rng = np.random.default_rng(11)
-    true_sigma, quotes, margins = 14.5, [], []
-    for _ in range(4000):
-        z = rng.normal(0, 1)
+    true_line, true_margin = 13.75, 16.5
+    quotes, margins, lines = [], [], []
+    for _ in range(6000):
+        # Bounded to the range real matches are priced in: past |z| ~ 2.3 a 2%
+        # draw leaves no room for the away side and the quote is not constructible.
+        z = rng.uniform(-2.0, 2.0)
         p_home, p_draw = nd.cdf(z), 0.02
         quotes.append((1 / (p_home - p_draw / 2), 1 / p_draw,
                        1 / (1 - p_home - p_draw / 2)))
-        margins.append(rng.normal(true_sigma * z, true_sigma))
-    fit = sfo.fit_sigma(quotes, margins)
-    passed &= check("fit_sigma recovers the generating sigma",
-                    abs(fit["sigma"] - true_sigma) < 0.5,
-                    f"{fit['sigma']:.2f} vs {true_sigma}")
-    passed &= check("its two independent estimates agree",
-                    abs(fit["slope_estimate"] - fit["residual_sd"]) < 1.0,
-                    f"slope {fit['slope_estimate']:.2f} vs "
-                    f"resid {fit['residual_sd']:.2f}")
+        lines.append(-true_line * z)
+        margins.append(rng.normal(true_line * z, true_margin))
+    fit = sfo.fit_from_results(quotes, margins)
+    passed &= check("fit_from_results recovers the line scale",
+                    abs(fit["line_sigma"] - true_line) < 0.6,
+                    f"{fit['line_sigma']:.2f} vs {true_line}")
+    passed &= check("fit_from_results recovers the margin spread separately",
+                    abs(fit["margin_sigma"] - true_margin) < 0.6,
+                    f"{fit['margin_sigma']:.2f} vs {true_margin}")
+    passed &= check("it does not collapse the two into one number",
+                    abs(fit["line_sigma"] - fit["margin_sigma"]) > 1.5,
+                    f"line {fit['line_sigma']:.2f} vs margin "
+                    f"{fit['margin_sigma']:.2f}")
+    from_lines = sfo.fit_from_lines(quotes, lines)
+    passed &= check("fit_from_lines recovers the line scale exactly",
+                    abs(from_lines - true_line) < 1e-6,
+                    f"{from_lines:.6f} vs {true_line}")
+    passed &= check("real lines pin it tighter than results do",
+                    abs(from_lines - true_line) < abs(fit["line_sigma"] - true_line),
+                    f"{abs(from_lines - true_line):.2e} vs "
+                    f"{abs(fit['line_sigma'] - true_line):.3f}")
+
+    print("\n11. merging odds must not erase data already in the season file")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        import_oddsportal.DATA_DIR = data
+        existing = pd.DataFrame([
+            # a quoted handicap, plus turnovers the merge must leave alone
+            {"round": 18, "date": "2026-05-16", "home": "Bulls", "away": "Benetton",
+             "neutral": "", "line": "-27.5", "line_source": "",
+             "home_score": "45", "away_score": "19",
+             "home_turnovers_conceded": "10", "away_turnovers_conceded": "10",
+             "home_turnovers_won": "7", "away_turnovers_won": "6"},
+            {"round": 18, "date": "2026-05-16", "home": "Sharks", "away": "Zebre",
+             "neutral": "", "line": "-20.0", "line_source": "inferred-1x2",
+             "home_score": "54", "away_score": "19",
+             "home_turnovers_conceded": "13", "away_turnovers_conceded": "2",
+             "home_turnovers_won": "9", "away_turnovers_won": "11"},
+        ], columns=season_report.SEASON_COLUMNS)
+        existing.to_csv(data / "season_2025.csv", index=False)
+
+        incoming = pd.DataFrame([
+            {"round": 18, "date": "2026-05-16", "home": "Bulls", "away": "Benetton",
+             "neutral": "", "line": -25.5, "line_source": "inferred-1x2",
+             "home_score": 45, "away_score": 19, "home_turnovers_conceded": "",
+             "away_turnovers_conceded": "", "home_turnovers_won": "",
+             "away_turnovers_won": ""},
+            {"round": 18, "date": "2026-05-16", "home": "Sharks", "away": "Zebre",
+             "neutral": "", "line": -23.5, "line_source": "inferred-1x2",
+             "home_score": 54, "away_score": 19, "home_turnovers_conceded": "",
+             "away_turnovers_conceded": "", "home_turnovers_won": "",
+             "away_turnovers_won": ""},
+        ], columns=season_report.SEASON_COLUMNS)
+        _, kept = import_oddsportal.merge_into_season(incoming, 2025)
+        after = pd.read_csv(data / "season_2025.csv", dtype=str).fillna("")
+
+        bulls = after[after["home"] == "Bulls"].iloc[0]
+        sharks = after[after["home"] == "Sharks"].iloc[0]
+        passed &= check("turnovers survive a merge that does not carry them",
+                        bulls["home_turnovers_won"] == "7"
+                        and sharks["away_turnovers_won"] == "11",
+                        f"bulls won {bulls['home_turnovers_won']!r}, "
+                        f"sharks away won {sharks['away_turnovers_won']!r}")
+        passed &= check("a quoted handicap is not overwritten by an inferred one",
+                        bulls["line"] == "-27.5" and bulls["line_source"] == "",
+                        f"line {bulls['line']!r} source {bulls['line_source']!r}")
+        passed &= check("an inferred handicap is refreshed",
+                        sharks["line"] == "-23.5",
+                        f"line {sharks['line']!r}")
+        passed &= check("the guard reports what it protected", kept == 1, f"kept={kept}")
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1

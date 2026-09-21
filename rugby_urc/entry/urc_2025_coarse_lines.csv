@@ -1,0 +1,8 @@
+date,round,home,away,odds_home,odds_draw,odds_away,inferred_line,pts_per_tick,actual_line
+2026-03-22,13,Stormers,Dragons,1.01,47.31,25.65,-26.0,2.0,-30.5
+2026-05-16,18,Bulls,Benetton,1.01,48.0,24.23,-25.5,1.94,
+2026-05-09,17,Bulls,Zebre,1.01,51.46,20.12,-25.0,1.73,-33.5
+2026-03-27,14,Leinster,Scarlets,1.01,43.59,20.23,-25.0,1.72,
+2026-05-16,18,Sharks,Zebre,1.02,44.38,17.21,-23.5,1.41,
+2026-04-25,16,Munster,Ulster,1.02,46.37,16.75,-23.5,1.39,
+2026-05-16,18,Leinster,Ospreys,1.03,37.0,13.03,-21.5,1.09,

@@ -139,29 +139,56 @@ def to_season_rows(df: pd.DataFrame, sigma: float, skip_coarse: bool) -> pd.Data
             "line_source": season_report.LINE_INFERRED if priced else "",
             "home_score": r.home_score, "away_score": r.away_score,
             "home_turnovers_conceded": "", "away_turnovers_conceded": "",
+            "home_turnovers_won": "", "away_turnovers_won": "",
         })
     return pd.DataFrame(rows, columns=SEASON_COLUMNS)
 
 
-def merge_into_season(new: pd.DataFrame, season: int) -> Path:
-    """Write these matches into the season file, keeping anything already there."""
+def filled(value) -> bool:
+    """True when a cell holds something, treating NaN/NA/"nan" as empty."""
+    if value is None or pd.isna(value):
+        return False
+    return str(value).strip().lower() not in ("", "nan", "nat", "none")
+
+
+def merge_into_season(new: pd.DataFrame, season: int) -> tuple[Path, int]:
+    """Write these matches into the season file, keeping anything already there.
+
+    A **quoted** handicap is never overwritten by an inferred one. A line whose
+    ``line_source`` is blank was read off a real spread market, which is the
+    better number by definition, so re-running this import leaves it alone -
+    the same rule ``nfl_report`` applies to lines it already holds.
+    """
     out = DATA_DIR / f"season_{season}.csv"
+    kept = 0
     if out.exists():
         existing = pd.read_csv(out, dtype=str).fillna("")
         for col in SEASON_COLUMNS:
             if col not in existing.columns:
                 existing[col] = ""
-        combined = pd.concat([existing[SEASON_COLUMNS], new.astype(str)],
-                             ignore_index=True)
+        quoted = {(r.date, r.home, r.away)
+                  for r in existing.itertuples()
+                  if filled(r.line) and not filled(r.line_source)}
+        # Stringify before blanking: `line` is numeric here, and pandas will not
+        # take "" into a float column.
+        new = new.astype(str)
+        if quoted:
+            drop = new.apply(lambda r: (r["date"], r["home"], r["away"]) in quoted,
+                             axis=1)
+            kept = int(drop.sum())
+            new.loc[drop, ["line", "line_source"]] = ""
+        combined = pd.concat([existing[SEASON_COLUMNS], new], ignore_index=True)
         # A later read of the same match wins, but only for the fields it fills.
-        combined = combined.replace("nan", "")
+        # ``filled`` must test for missing explicitly: ``str(float("nan"))`` is
+        # "nan", which is truthy, so a blank would otherwise win the merge and
+        # erase a value that was already there.
         combined = combined.groupby(["date", "home", "away"], as_index=False).agg(
-            lambda col: next((v for v in reversed(list(col)) if str(v).strip()), ""))
+            lambda col: next((v for v in reversed(list(col)) if filled(v)), ""))
     else:
         combined = new.astype(str)
     combined = combined[SEASON_COLUMNS].sort_values(["date", "round", "home"])
     combined.to_csv(out, index=False)
-    return out
+    return out, kept
 
 
 def main() -> None:
@@ -197,7 +224,7 @@ def main() -> None:
 
     coarse = [r for r in dated.itertuples()
               if sfo.is_coarse(r.odds_home, r.odds_draw, r.odds_away, args.sigma)]
-    path = merge_into_season(rows, args.season)
+    path, kept = merge_into_season(rows, args.season)
 
     weeks = dated.groupby("round")["date"].agg(["min", "max", "count"])
     print(f"read {len(raw)} matches, {raw['date'].min()} to {raw['date'].max()}")
@@ -209,6 +236,9 @@ def main() -> None:
         span = row["min"] if row["min"] == row["max"] else f"{row['min']} .. {row['max']}"
         print(f"  {int(rnd):>5}    {span:<26} {int(row['count'])}{label}")
 
+    if kept:
+        print(f"\n{kept} match(es) already carry a handicap quoted as a handicap; "
+              f"those are\nleft untouched - a real line beats an inferred one.")
     if coarse:
         verb = "left unpriced" if args.skip_coarse else "priced, but flagged"
         print(f"\n{len(coarse)} match(es) {verb}: the quote moves more than a point "
