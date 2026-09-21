@@ -28,6 +28,10 @@ and turnovers have to be typed in.*
   Imported from your paste with `import_fixtures.py`; the shape checks pass
   clean. Re-run that command if the URC moves a fixture.
 - **Round 1's eight handicaps** — **received and loaded**.
+- **The 2025-26 turnovers** — **received and loaded**: round 18 and the seven
+  playoff matches, 15 rows, giving all 16 clubs a last-match margin. **Round 1
+  of 2026-27 is now pickable** — see below. The sheet also changed the turnover
+  definition; that is written up under *A turnover is not a giveaway*.
 - **The 2025-26 handicaps** — **derived, not needed by hand**. The oddsportal
   export carries 1X2 win odds rather than a spread, and
   [`spread_from_odds.py`](spread_from_odds.py) converts one into the other
@@ -35,22 +39,7 @@ and turnovers have to be typed in.*
   and all seven playoffs — more than the four weeks the power seed needs. Round
   1 of 2026-27 now **has power ratings**.
 
-### 1. Turnovers for each club's last 2025-26 match — the only blocker left
-
-The handicap half of the seed is done. What remains is the turnover half:
-**turnovers conceded, by both sides, in round 18 and the seven playoff
-matches** — enough to give all 16 clubs a last-match turnover margin. From the
-URC match centre.
-
-Until they arrive the model declines every round-1 pick, and says so: the
-previous match now *exists* in the log but carries no turnover count, which
-sets `lgt_unknown`. That is the deliberate difference between "no previous
-match" (legitimately 0) and "a previous match we have no number for".
-
-**Scores and fixtures are already in** from the odds import, so this is only
-the two turnover columns on those 15 rows of `data/season_2025.csv`.
-
-### 2. A handful of real handicaps, to check the inferred ones
+### 1. A handful of real handicaps, to check the inferred ones
 
 `python line_check.py export --season 2025` writes
 `entry/urc_2025_line_check.csv` — 14 matches spread across the range, with the
@@ -64,7 +53,7 @@ fifty results do. The sample is weighted towards mid-range matches for exactly
 that reason: near a pick'em the estimate divides by ~0, and at a heavy
 favourite the odds are too coarse to say much.
 
-### 3. Monitoring home advantage
+### 2. Monitoring home advantage
 
 `HOME_ADVANTAGE` is a **provisional 5.0**. The NFL system uses a well-established
 3-point home field; the URC has no settled equivalent and its handicaps are
@@ -158,6 +147,32 @@ previous season's last weeks are just the previous weeks, with no special case.
 `test_pipeline.py` check 9 pins this down: it builds a season with a deliberately
 displaced round and asserts every club's LGT is its previous match **by date**.
 
+## A turnover is not a giveaway
+
+The NFL system's turnover factor reads `giveaways − takeaways`: how much ball a
+team lost, net of how much it won back. The NFL implementation computes that as
+a **differential between the two sides** — `home_giveaways − away_giveaways` —
+which is exact there, because a giveaway by one team is by definition a
+takeaway by the other.
+
+This project copied the differential, on the assumption that it carried the
+same meaning. **The first real match-centre data disproved that.** Across the
+15 URC matches loaded, `home_turnovers_conceded` never once equalled
+`away_turnovers_won` — not in a single match — and the two differed by as much
+as 8. In rugby they are independently recorded events: a knock-on into touch is
+a turnover conceded that nobody won.
+
+So the differential is not a shortcut to the same number here, it is a
+different quantity. And it matters: the two definitions **disagree on the sign
+in 8 of 30 club-matches**, and the sign is the entire input to the factor.
+
+The definition that carried over is therefore the original one read literally —
+**a club's own turnovers conceded minus its own turnovers won** — and both
+columns are required rather than one inferred from the other. A side effect
+worth noting: the margin is no longer zero-sum between the two teams in a
+match, so both sides can have leaked ball badly. That is a fact about rugby,
+not a modelling liberty.
+
 ## Inferring a handicap from win odds
 
 oddsportal publishes 1X2 decimal odds, not a spread. The two describe the same
@@ -223,7 +238,7 @@ mistaken later for a handicap that was actually quoted.
 | | `nfl_report` | here |
 |---|---|---|
 | **Raw inputs** | two machine-generated exports (pro-football-reference, nflverse), joined on team pair ± 1 day | **one hand-keyed file per season** |
-| **Turnovers** | giveaways − takeaways | **turnovers conceded**, home minus away |
+| **Turnovers** | giveaways − takeaways (equivalently, a differential) | **own conceded − own won**, which is not a differential |
 | **Home edge** | 3.0 points, well established | **5.0, provisional**, plus an optional long-haul term |
 | **Heatmap scale** | red-yellow-green | **blue ↔ grey ↔ red** |
 | **Validation** | 7 published seasons | none — generated-data tests only |
@@ -234,12 +249,9 @@ match. `data/season_<year>.csv` carries the fixture, the handicap, the score
 and the turnover counts in one row, and `entry_sheet.py` keeps the typing in a
 spreadsheet rather than in the CSV.
 
-**Turnovers conceded, home minus away.** The URC match centre publishes both
-"turnovers won" and "turnovers conceded" per side. Using the *conceded*
-differential mirrors the NFL's giveaway differential exactly, is zero-sum
-between the two sides, and halves the typing. Recording won/conceded separately
-per side would be a defensible alternative — it is a modelling choice, so it is
-written down here rather than buried.
+**Turnovers: own conceded minus own won.** See *A turnover is not a giveaway*
+below — this started as the conceded differential, on an assumption the data
+then disproved.
 
 **Blue ↔ red heatmaps.** A red-yellow-green ramp puts a hue at the midpoint,
 where it reads as a third category rather than as zero, and red/green is the
@@ -368,9 +380,11 @@ default branch. For that window only, the branch renders through
    rating windows
 6. ~~Enter round 1's eight handicaps.~~ ✅
 7. ~~Derive the 2025-26 handicaps from 1X2 odds.~~ ✅ 50 matches, Shin + sigma 16
-8. **Enter the 2025-26 turnovers** so round 1 is pickable. ← the remaining blocker
-9. **Check the inferred handicaps** against a sample of real ones and re-fit `sigma`.
-10. **Calibrate `HOME_ADVANTAGE`** once ~40 handicaps exist (about round 5);
+8. ~~Enter the 2025-26 turnovers so round 1 is pickable.~~ ✅ 15 matches, all 16 clubs
+9. ~~Revisit the turnover definition against real match-centre data.~~ ✅ switched to
+   own conceded − own won
+10. **Check the inferred handicaps** against a sample of real ones and re-fit `sigma`.
+11. **Calibrate `HOME_ADVANTAGE`** once ~40 handicaps exist (about round 5);
     watch the early read until then.
 11. Revisit the turnover definition (conceded differential vs won/conceded
    separately) once a season of match-centre data is in.

@@ -58,6 +58,10 @@ GUIDE = [
     ("home_turnovers_conceded", "Turnovers the HOME side conceded, from the URC "
                                 "match centre. Leave blank until played."),
     ("away_turnovers_conceded", "Turnovers the AWAY side conceded."),
+    ("home_turnovers_won", "Turnovers the HOME side won. Needed as well as "
+                           "conceded: a club's margin is its own conceded minus "
+                           "its own won, and in rugby those are separate counts."),
+    ("away_turnovers_won", "Turnovers the AWAY side won."),
 ]
 
 # The shape of a URC season, used to lay out a blank skeleton.
@@ -113,7 +117,8 @@ def export(year: int, skeleton: bool) -> tuple[Path, Path]:
         last = max(len(df) + 1, 2)
         # Highlight the columns that are actually typed in.
         for col in ("line", "home_score", "away_score",
-                    "home_turnovers_conceded", "away_turnovers_conceded"):
+                    "home_turnovers_conceded", "away_turnovers_conceded",
+                    "home_turnovers_won", "away_turnovers_won"):
             letter = get_column_letter(SEASON_COLUMNS.index(col) + 1)
             for row in range(2, last + 1):
                 sheet[f"{letter}{row}"].fill = FILLME_FILL

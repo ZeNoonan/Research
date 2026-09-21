@@ -152,6 +152,8 @@ def parse_text(raw: str, season: int) -> tuple[pd.DataFrame, list[str]]:
             "away_score": m.group("as") or "",
             "home_turnovers_conceded": "",
             "away_turnovers_conceded": "",
+            "home_turnovers_won": "",
+            "away_turnovers_won": "",
         })
 
     return pd.DataFrame(rows, columns=SEASON_COLUMNS), skipped
@@ -159,7 +161,8 @@ def parse_text(raw: str, season: int) -> tuple[pd.DataFrame, list[str]]:
 
 SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line", "line_source",
                   "home_score", "away_score",
-                  "home_turnovers_conceded", "away_turnovers_conceded"]
+                  "home_turnovers_conceded", "away_turnovers_conceded",
+                  "home_turnovers_won", "away_turnovers_won"]
 
 
 def check(df: pd.DataFrame) -> list[str]:
@@ -226,7 +229,8 @@ def main() -> None:
 
     out = DATA_DIR / f"season_{season}.csv"
     TYPED = ["line", "home_score", "away_score",
-             "home_turnovers_conceded", "away_turnovers_conceded"]
+             "home_turnovers_conceded", "away_turnovers_conceded",
+             "home_turnovers_won", "away_turnovers_won"]
     if out.exists() and not args.append and not args.force:
         current = pd.read_csv(out, dtype=str).fillna("")
         filled = sum(int((current[c].str.strip() != "").sum())

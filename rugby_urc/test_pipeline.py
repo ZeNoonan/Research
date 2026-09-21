@@ -90,6 +90,8 @@ def make_season(year: int, rounds: range, *, start: str,
                 "away_score": int(rng.integers(10, 40)) if played else "",
                 "home_turnovers_conceded": int(rng.integers(5, 18)) if turnovers else "",
                 "away_turnovers_conceded": int(rng.integers(5, 18)) if turnovers else "",
+                "home_turnovers_won": int(rng.integers(3, 15)) if turnovers else "",
+                "away_turnovers_won": int(rng.integers(3, 15)) if turnovers else "",
             })
     return pd.DataFrame(rows, columns=season_report.SEASON_COLUMNS)
 
@@ -188,7 +190,8 @@ def main() -> int:
                              "line": TRUE_POWER[away] - TRUE_POWER[home] - edge,
                              "home_score": "", "away_score": "",
                              "home_turnovers_conceded": "",
-                             "away_turnovers_conceded": ""})
+                             "away_turnovers_conceded": "",
+                             "home_turnovers_won": "", "away_turnovers_won": ""})
         pd.DataFrame(rows, columns=season_report.SEASON_COLUMNS).to_csv(
             data / "season_2026.csv", index=False)
         calibrate.season_report.DATA_DIR = data
@@ -226,7 +229,9 @@ def main() -> int:
                             - season_report.HOME_ADVANTAGE,
                     "home_score": 20 + i, "away_score": 18,
                     "home_turnovers_conceded": 6 + i,
-                    "away_turnovers_conceded": 11})
+                    "away_turnovers_conceded": 11,
+                    "home_turnovers_won": 4 + (i % 5),
+                    "away_turnovers_won": 9 - (i % 4)})
         split = pd.DataFrame(rows, columns=season_report.SEASON_COLUMNS)
         late = split.index[split["round"] == 2][-2:]          # push them past round 5
         split.loc[late, "date"] = (base + pd.Timedelta(days=7 * 7)).date()
@@ -235,7 +240,8 @@ def main() -> int:
         report = season_report.build_reports()[2026]
         report["date"] = pd.to_datetime(report["date"])
         net = {(r.date, r.home, r.away):
-               r.home_turnovers_conceded - r.away_turnovers_conceded
+               (r.home_turnovers_conceded - r.home_turnovers_won,
+                r.away_turnovers_conceded - r.away_turnovers_won)
                for r in split.assign(date=pd.to_datetime(split["date"])).itertuples()}
 
         wrong = []
@@ -247,8 +253,8 @@ def main() -> int:
                 if side_lgt != expected:
                     wrong.append(f"{club} on {r.date.date()}: "
                                  f"lgt {side_lgt:+.0f}, expected {expected:+.0f}")
-                margin = net[(r.date, r.home, r.away)]
-                expected = float(margin if r.home == club else -margin)
+                home_net, away_net = net[(r.date, r.home, r.away)]
+                expected = float(home_net if r.home == club else away_net)
         passed &= check("every club's LGT is its previous match by date",
                         not wrong, "; ".join(wrong[:3]))
 

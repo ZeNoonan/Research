@@ -55,7 +55,8 @@ LONG_HAUL_PENALTY = 0.0
 
 SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line", "line_source",
                   "home_score", "away_score",
-                  "home_turnovers_conceded", "away_turnovers_conceded"]
+                  "home_turnovers_conceded", "away_turnovers_conceded",
+                  "home_turnovers_won", "away_turnovers_won"]
 
 # Values for ``line_source``. Blank means a handicap quoted as a handicap; the
 # NFL project's hardest judgement call was about exactly this kind of
@@ -94,7 +95,8 @@ def load_season(year: int) -> pd.DataFrame:
     df["round"] = pd.to_numeric(df["round"], errors="coerce").astype("Int64")
     df["line"] = pd.to_numeric(df["line"], errors="coerce")
     for col in ("home_score", "away_score",
-                "home_turnovers_conceded", "away_turnovers_conceded"):
+                "home_turnovers_conceded", "away_turnovers_conceded",
+                "home_turnovers_won", "away_turnovers_won"):
         df[col] = pd.array(pd.to_numeric(df[col], errors="coerce"), dtype="Int64")
 
     df["neutral"] = (df["neutral"].astype(str).str.strip().str.upper()
@@ -119,7 +121,22 @@ def load_season(year: int) -> pd.DataFrame:
 # --- cross-season factors ----------------------------------------------------
 
 def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
-    """Last Game Turnover: each club's net turnovers conceded last time out.
+    """Last Game Turnover: each club's own net turnover margin last time out.
+
+    A club's margin is **its own turnovers conceded minus its own turnovers
+    won** - how much ball it leaked, net of how much it won back.
+
+    That is the NFL system's definition (``giveaways - takeaways``) read
+    literally. The NFL implementation computes it as a *differential* between
+    the two sides instead, which is equivalent there because a giveaway by one
+    team is by definition a takeaway by the other. **Rugby breaks that
+    identity**: a knock-on into touch is a turnover conceded that nobody won,
+    and across the 15 URC matches first loaded here ``home_conceded`` never
+    once equalled ``away_won``, differing by as much as 8. The differential is
+    therefore not a shortcut to the same number in rugby, it is a different
+    quantity - and the two disagree on the *sign*, which is all this factor
+    reads, in 8 of 30 club-matches. So the definition carries over, not the
+    shortcut, and both columns are required.
 
     Carried across the season boundary, but only within a contiguous run of
     seasons, so the first round of a block starts at 0 (no previous match).
@@ -131,17 +148,17 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     read this, so guessing it would mean betting on dead inputs.
     """
     g = combined.copy()
-    # Net turnovers conceded, zero-sum between the two sides. float (not Int64)
-    # so an unplayed match contributes NaN rather than a typed NA.
-    g["home_net_to"] = (g["home_turnovers_conceded"]
-                        - g["away_turnovers_conceded"]).astype(float)
+    # float (not Int64) so a match with no counts contributes NaN, which flows
+    # through to lgt_unknown rather than to a typed NA.
+    for side in ("home", "away"):
+        g[f"{side}_net_to"] = (g[f"{side}_turnovers_conceded"]
+                               - g[f"{side}_turnovers_won"]).astype(float)
 
     long = pd.concat([
         g[["order", "block", "home", "home_net_to"]]
          .rename(columns={"home": "team", "home_net_to": "net_to"}),
-        g[["order", "block", "away", "home_net_to"]]
-         .rename(columns={"away": "team", "home_net_to": "net_to"})
-         .assign(net_to=lambda d: -d["net_to"]),
+        g[["order", "block", "away", "away_net_to"]]
+         .rename(columns={"away": "team", "away_net_to": "net_to"}),
     ]).sort_values(["team", "order"])
 
     by_team = long.groupby(["team", "block"])
@@ -158,7 +175,8 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     g[["home_lgt", "away_lgt"]] = g[["home_lgt", "away_lgt"]].fillna(0.0) + 0.0
     g["lgt_unknown"] = (g["home_lgt_unknown"].fillna(False)
                         | g["away_lgt_unknown"].fillna(False))
-    return g.drop(columns=["home_net_to", "home_lgt_unknown", "away_lgt_unknown"])
+    return g.drop(columns=["home_net_to", "away_net_to",
+                           "home_lgt_unknown", "away_lgt_unknown"])
 
 
 def _week_key(day: pd.Timestamp) -> int:
