@@ -21,23 +21,18 @@ is the numbers, and it cannot fetch those on its own: this environment's network
 policy blocks Wikipedia, oddsportal.com and stats.unitedrugby.com, so handicaps
 and turnovers have to be typed in.*
 
-### Nothing needed for this
+### Nothing needed for these
 
 - **The 2026-27 fixture list** — **loaded in full**: all 144 matches, 18 rounds,
   every round pairing all 16 clubs exactly once, every club 9 home and 9 away.
   Imported from your paste with `import_fixtures.py`; the shape checks pass
   clean. Re-run that command if the URC moves a fixture.
+- **Round 1's eight handicaps** — **received and loaded**. They price the round,
+  but pricing is not the same as picking: with no prior matches there are no
+  power ratings, so the report shows all eight with a `—` System # and no bet.
+  The seed below is what changes that.
 
-### 1. Round 1 handicaps
-
-Eight numbers. Open `entry/urc_2026_entry.xlsx`, fill the yellow `line` column
-— **negative when the home side is favoured** — and run:
-
-```bash
-python entry_sheet.py import --season 2026 && python season_report.py
-```
-
-### 2. The 2025-26 seed — what makes round 1 pickable at all
+### 1. The 2025-26 seed — the one thing between round 1 and a pick
 
 Two factors reach back across the season boundary, so **without this the model
 declines every round-1 pick**. It needs less than a full season:
@@ -60,14 +55,28 @@ turnovers, then:
 python entry_sheet.py import --season 2025 && python season_report.py
 ```
 
-### 3. Once a season of handicaps exists — calibrate
+### 2. Monitoring home advantage
 
-`HOME_ADVANTAGE` is currently a **provisional 5.0**. The NFL system uses a
-well-established 3-point home field; the URC has no settled equivalent and its
-handicaps are wider. `python calibrate.py` fits it — and the Europe ↔ South
-Africa travel term — from the handicaps themselves, and refuses to report a
-number until there are enough matches to support one. Adopt the fitted value
-rather than leaving my guess in.
+`HOME_ADVANTAGE` is a **provisional 5.0**. The NFL system uses a well-established
+3-point home field; the URC has no settled equivalent and its handicaps are
+wider. `python calibrate.py` reports two things, and the difference between them
+matters:
+
+- **The fitted estimate** — a least-squares fit of the home term and the
+  Europe ↔ South Africa travel term alongside club ratings. This is the number
+  to adopt, and it is **withheld below 40 priced matches**, because with less
+  than that the home term and the club ratings are not separable.
+- **An early read**, printed from the first handicap onwards — the mean of
+  `-line`, split into domestic and long-haul trips. This measures venue *only
+  once club strengths cancel*, which happens when every club has played as often
+  at home as away. It prints how far from that the sample is, so it reads as a
+  direction of travel rather than a measurement.
+
+After round 1 the early read is **+5.5 over the four domestic matches** and
+**−1.2 over the four long-haul ones** — the first encouragingly close to 5.0,
+the second dominated by the fact that Zebre and the Lions hosted the Bulls and
+Leinster. Both are four matches with every club unbalanced, so neither is
+evidence yet. Revisit around round 5, when the fitted estimate unlocks.
 
 ---
 
@@ -226,6 +235,7 @@ power ratings and turnover counts and asserts the pipeline recovers them:
 | System #, pick and grade reproducible from the stored columns | pass |
 | `calibrate.py` recovers the edge terms that built the handicaps | **exact** |
 | A split round is ordered by date, so no factor reads a future match | pass |
+| The early home-advantage read is exact on a balanced season | **exact** |
 
 That is a test of the plumbing, not evidence the system works on rugby.
 
@@ -282,8 +292,9 @@ default branch. For that window only, the branch renders through
 4. ~~Load the 2026-27 fixture list.~~ ✅ all 144 matches, shape checks clean
 5. ~~Handle a round whose matches are months apart.~~ ✅ date ordering + match-week
    rating windows
-6. **Enter the 2025-26 seed** so round 1 is pickable. ← the remaining blocker
-7. **Enter round 1's eight handicaps.**
-8. **Calibrate `HOME_ADVANTAGE`** once a season of handicaps exists.
+6. ~~Enter round 1's eight handicaps.~~ ✅
+7. **Enter the 2025-26 seed** so round 1 is pickable. ← the remaining blocker
+8. **Calibrate `HOME_ADVANTAGE`** once ~40 handicaps exist (about round 5);
+   watch the early read until then.
 9. Revisit the turnover definition (conceded differential vs won/conceded
    separately) once a season of match-centre data is in.

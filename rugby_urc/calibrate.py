@@ -30,7 +30,55 @@ import pandas as pd
 import season_report
 import teams
 
-MIN_MATCHES = 40   # below this the estimate is noise, not a measurement
+MIN_MATCHES = 40   # below this the fit is noise, not a measurement
+
+
+def naive_edge(df: pd.DataFrame) -> float | None:
+    """Mean of ``-line``: the home edge, *if* club strengths cancel out.
+
+    They cancel exactly when every club has played as often at home as away.
+    Early in a season they do not, so this carries club strength as well as
+    home advantage - which is why it is reported beside a balance count rather
+    than on its own.
+    """
+    played = df[~df["neutral"]]
+    return None if played.empty else float(-played["line"].mean())
+
+
+def balance(df: pd.DataFrame) -> tuple[int, int]:
+    """(clubs whose home and away counts differ, the largest such gap)."""
+    counts = pd.concat([
+        df["home"].value_counts().rename("home"),
+        df["away"].value_counts().rename("away"),
+    ], axis=1).fillna(0).astype(int)
+    gap = (counts["home"] - counts["away"]).abs()
+    return int((gap > 0).sum()), int(gap.max())
+
+
+def early_read(df: pd.DataFrame) -> None:
+    """Print the naive home edge, split by trip type, with its health warning."""
+    print("\nEarly read on home advantage - the mean of -line, which measures "
+          "\nhome edge only once club strengths cancel out:\n")
+    groups = [("all non-neutral", df),
+              ("domestic only", df[~df["long_haul"]]),
+              ("long-haul away trip", df[df["long_haul"]])]
+    for label, block in groups:
+        edge = naive_edge(block)
+        if edge is None:
+            print(f"  {label:<22} -       (none priced yet)")
+        else:
+            print(f"  {label:<22} {edge:+.1f} pts over {len(block[~block['neutral']])} matches")
+
+    unbalanced, worst = balance(df)
+    total_clubs = len(set(df["home"]) | set(df["away"]))
+    if unbalanced:
+        print(f"\n  {unbalanced} of {total_clubs} clubs have not played as often "
+              f"at home as away (largest gap {worst}),")
+        print("  so these figures still carry club strength, not just venue. "
+              "Treat them\n  as a direction of travel, not a measurement.")
+    else:
+        print("\n  Every club has played as often at home as away, so club "
+              "strengths cancel\n  and these figures are a fair read on venue alone.")
 
 
 def gather() -> pd.DataFrame:
@@ -91,12 +139,14 @@ def main() -> None:
     print(f"{len(df)} priced matches across "
           f"{df['season'].nunique()} season file(s), {len(home_away)} clubs")
 
+    early_read(df)
+
     if len(df) < MIN_MATCHES:
-        print(f"\nthat is under the {MIN_MATCHES}-match floor, so no estimate is "
-              f"reported: with this little data the home term and the club "
-              f"ratings are not separable.\ncurrent settings stand - "
-              f"HOME_ADVANTAGE = {season_report.HOME_ADVANTAGE}, "
-              f"LONG_HAUL_PENALTY = {season_report.LONG_HAUL_PENALTY}")
+        print(f"\nUnder the {MIN_MATCHES}-match floor, so no *fitted* estimate is "
+              f"reported: with this little\ndata the home term and the club ratings "
+              f"are not separable. Current settings\nstand - HOME_ADVANTAGE = "
+              f"{season_report.HOME_ADVANTAGE}, LONG_HAUL_PENALTY = "
+              f"{season_report.LONG_HAUL_PENALTY}.")
         return
 
     one_sided = home_away[(home_away["home"] == 0) | (home_away["away"] == 0)]

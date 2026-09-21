@@ -49,6 +49,27 @@ def round_robin(clubs: list[str], rnd: int) -> list[tuple[str, str]]:
     return [(a, b) if rnd % 2 == 0 else (b, a) for a, b in pairs]
 
 
+def balanced_pairings(clubs: list[str], half: int = 9) -> dict[int, list[tuple[str, str]]]:
+    """A schedule where every club plays as often at home as away.
+
+    ``round_robin`` pairs every club once per round but alternates orientation
+    by round parity, which leaves some clubs with more home matches than away.
+    A real URC season is exactly balanced - nine each - and that balance is the
+    condition under which ``calibrate.naive_edge`` is unbiased, so testing that
+    needs a schedule with the same property.
+
+    Built the way a league does it: ``half`` rounds of pairings, then the same
+    pairings again with the venues reversed. Balance then holds by
+    construction rather than by a greedy pass that can strand a club or two.
+    """
+    schedule = {}
+    for rnd in range(1, half + 1):
+        fixtures = round_robin(clubs, rnd)
+        schedule[rnd] = fixtures
+        schedule[rnd + half] = [(away, home) for home, away in fixtures]
+    return schedule
+
+
 def make_season(year: int, rounds: range, *, start: str,
                 played: bool = True, turnovers: bool = True,
                 priced: bool = True) -> pd.DataFrame:
@@ -157,8 +178,8 @@ def main() -> int:
         (data / "season_2025.csv").unlink()
         true_hfa, true_lh = 6.25, 2.5
         rows = []
-        for rnd in range(1, 19):
-            for home, away in round_robin(CLUBS, rnd):
+        for rnd, fixtures in sorted(balanced_pairings(CLUBS).items()):
+            for home, away in fixtures:
                 edge = true_hfa + (true_lh if teams.is_long_haul(home, away) else 0.0)
                 rows.append({"round": rnd, "date": f"2026-09-{(rnd % 28) + 1:02d}",
                              "home": home, "away": away, "neutral": "",
@@ -176,6 +197,17 @@ def main() -> int:
         passed &= check("long-haul penalty recovered",
                         abs(fitted["long_haul_penalty"] - true_lh) < 1e-6,
                         f"{fitted['long_haul_penalty']:+.3f} vs {true_lh:+.3f}")
+
+        # The naive early read is only meant to be exact once every club has
+        # played as often at home as away - which a full 18-round season is.
+        full = calibrate.gather()
+        unbalanced, _ = calibrate.balance(full)
+        passed &= check("a full season leaves every club home/away balanced",
+                        unbalanced == 0, f"{unbalanced} clubs unbalanced")
+        domestic = calibrate.naive_edge(full[~full["long_haul"]])
+        passed &= check("naive read recovers home advantage on domestic matches",
+                        abs(domestic - true_hfa) < 1e-6,
+                        f"{domestic:+.3f} vs {true_hfa:+.3f}")
 
         print("\n9. a split round is ordered by date, not by round number")
         # The real 2026-27 list puts six of round 8 on 26-27 December and the
