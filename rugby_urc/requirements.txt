@@ -1,0 +1,4 @@
+pandas>=2.0
+numpy>=1.24
+openpyxl>=3.1    # entry_sheet.py: the .xlsx data-entry workbook
+streamlit>=1.40  # app.py only; the static index.html needs nothing
