@@ -251,10 +251,18 @@ streamlit run app.py                               # browse it
 the cumulative-profit curve, every match, and the club × round heatmaps, in
 light and dark. Regenerate it with `build_site.py` after the data changes.
 
-Until it is merged, view it through
-[raw.githack](https://raw.githack.com/ZeNoonan/Research/claude/beautiful-planck-uh4wot/rugby_urc/index.html);
-once on the default branch the GitHub Pages URL is
-<https://zenoonan.github.io/Research/rugby_urc/>.
+**<https://zenoonan.github.io/Research/rugby_urc/>**
+
+That is the permanent home. GitHub Pages is enabled on this repository and
+serves the repository root from the **default branch** — the same setup that
+puts `kelly_sim/` and `nfl_report/` on the same host — so the page appears
+there as soon as this work is merged, and every later `build_site.py` run
+updates it on the next push. No third-party host is involved and the URL never
+changes.
+
+Before the merge that path returns a 404, because Pages only ever builds the
+default branch. For that window only, the branch renders through
+[raw.githack](https://raw.githack.com/ZeNoonan/Research/claude/beautiful-planck-uh4wot/rugby_urc/index.html).
 
 ## Roadmap
 

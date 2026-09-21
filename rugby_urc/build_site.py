@@ -26,6 +26,8 @@ import teams
 HERE = Path(__file__).parent
 DATA_DIR = HERE / "data"
 JUICE = 1.1  # units lost per losing bet at full 10% juice
+# Permanent home: GitHub Pages serves the repo root from the default branch.
+PAGES_URL = "https://zenoonan.github.io/Research/rugby_urc/"
 
 CSS = """
 :root{color-scheme:light;
@@ -346,7 +348,9 @@ def build() -> Path:
     page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>URC Report</title><style>{CSS}</style></head>
+<title>URC Report</title>
+<link rel="canonical" href="{PAGES_URL}">
+<style>{CSS}</style></head>
 <body><div class="wrap">
 <header><h1>🏉 URC Report</h1>
 <p class="sub">The five-factor against-the-spread system, ported from
@@ -358,7 +362,8 @@ validated on rugby yet — that is what the season is for.</p></header>
 {FACTOR_LEGEND}
 <footer>Built by <code>build_site.py</code> from the CSVs in <code>data/</code>.
 Handicaps are from the home side's point of view: negative means home favoured.
-{len(teams.TEAMS)} clubs, {season_report.REGULAR_ROUNDS} regular rounds.</footer>
+{len(teams.TEAMS)} clubs, {season_report.REGULAR_ROUNDS} regular rounds.<br>
+Permanent link: <a href="{PAGES_URL}">{PAGES_URL}</a></footer>
 </div><script>{JS}</script></body></html>"""
 
     out = HERE / "index.html"
