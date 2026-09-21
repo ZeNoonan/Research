@@ -168,15 +168,16 @@ def merge_into_season(new: pd.DataFrame, season: int) -> tuple[Path, int]:
                 existing[col] = ""
         quoted = {(r.date, r.home, r.away)
                   for r in existing.itertuples()
-                  if str(r.line).strip() and not str(r.line_source).strip()}
+                  if filled(r.line) and not filled(r.line_source)}
+        # Stringify before blanking: `line` is numeric here, and pandas will not
+        # take "" into a float column.
+        new = new.astype(str)
         if quoted:
             drop = new.apply(lambda r: (r["date"], r["home"], r["away"]) in quoted,
                              axis=1)
             kept = int(drop.sum())
-            new = new.copy()
             new.loc[drop, ["line", "line_source"]] = ""
-        combined = pd.concat([existing[SEASON_COLUMNS], new.astype(str)],
-                             ignore_index=True)
+        combined = pd.concat([existing[SEASON_COLUMNS], new], ignore_index=True)
         # A later read of the same match wins, but only for the fields it fills.
         # ``filled`` must test for missing explicitly: ``str(float("nan"))`` is
         # "nan", which is truthy, so a blank would otherwise win the merge and

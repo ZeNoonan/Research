@@ -15,7 +15,9 @@ depends on hold:
 6. ``calibrate.py`` recovers the home-advantage terms used to build the data;
 7. a **split round** - one whose matches are months apart, as 2026-27's round 8
    is - is ordered by date, so no factor reads a match that had not been played;
-8. the odds-to-handicap conversion round-trips, and recovers a known sigma.
+8. the odds-to-handicap conversion round-trips, and recovers a known sigma;
+9. merging new odds into a season file never erases what is already there, and
+   never overwrites a handicap that was quoted rather than inferred.
 
 Run: ``python test_pipeline.py``
 """
@@ -29,6 +31,7 @@ import numpy as np
 import pandas as pd
 
 import calibrate
+import import_oddsportal
 import model
 import spread_from_odds as sfo
 import season_report
@@ -340,6 +343,55 @@ def main() -> int:
                     abs(from_lines - true_line) < abs(fit["line_sigma"] - true_line),
                     f"{abs(from_lines - true_line):.2e} vs "
                     f"{abs(fit['line_sigma'] - true_line):.3f}")
+
+    print("\n11. merging odds must not erase data already in the season file")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        import_oddsportal.DATA_DIR = data
+        existing = pd.DataFrame([
+            # a quoted handicap, plus turnovers the merge must leave alone
+            {"round": 18, "date": "2026-05-16", "home": "Bulls", "away": "Benetton",
+             "neutral": "", "line": "-27.5", "line_source": "",
+             "home_score": "45", "away_score": "19",
+             "home_turnovers_conceded": "10", "away_turnovers_conceded": "10",
+             "home_turnovers_won": "7", "away_turnovers_won": "6"},
+            {"round": 18, "date": "2026-05-16", "home": "Sharks", "away": "Zebre",
+             "neutral": "", "line": "-20.0", "line_source": "inferred-1x2",
+             "home_score": "54", "away_score": "19",
+             "home_turnovers_conceded": "13", "away_turnovers_conceded": "2",
+             "home_turnovers_won": "9", "away_turnovers_won": "11"},
+        ], columns=season_report.SEASON_COLUMNS)
+        existing.to_csv(data / "season_2025.csv", index=False)
+
+        incoming = pd.DataFrame([
+            {"round": 18, "date": "2026-05-16", "home": "Bulls", "away": "Benetton",
+             "neutral": "", "line": -25.5, "line_source": "inferred-1x2",
+             "home_score": 45, "away_score": 19, "home_turnovers_conceded": "",
+             "away_turnovers_conceded": "", "home_turnovers_won": "",
+             "away_turnovers_won": ""},
+            {"round": 18, "date": "2026-05-16", "home": "Sharks", "away": "Zebre",
+             "neutral": "", "line": -23.5, "line_source": "inferred-1x2",
+             "home_score": 54, "away_score": 19, "home_turnovers_conceded": "",
+             "away_turnovers_conceded": "", "home_turnovers_won": "",
+             "away_turnovers_won": ""},
+        ], columns=season_report.SEASON_COLUMNS)
+        _, kept = import_oddsportal.merge_into_season(incoming, 2025)
+        after = pd.read_csv(data / "season_2025.csv", dtype=str).fillna("")
+
+        bulls = after[after["home"] == "Bulls"].iloc[0]
+        sharks = after[after["home"] == "Sharks"].iloc[0]
+        passed &= check("turnovers survive a merge that does not carry them",
+                        bulls["home_turnovers_won"] == "7"
+                        and sharks["away_turnovers_won"] == "11",
+                        f"bulls won {bulls['home_turnovers_won']!r}, "
+                        f"sharks away won {sharks['away_turnovers_won']!r}")
+        passed &= check("a quoted handicap is not overwritten by an inferred one",
+                        bulls["line"] == "-27.5" and bulls["line_source"] == "",
+                        f"line {bulls['line']!r} source {bulls['line_source']!r}")
+        passed &= check("an inferred handicap is refreshed",
+                        sharks["line"] == "-23.5",
+                        f"line {sharks['line']!r}")
+        passed &= check("the guard reports what it protected", kept == 1, f"kept={kept}")
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1

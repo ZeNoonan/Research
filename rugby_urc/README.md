@@ -39,31 +39,41 @@ and turnovers have to be typed in.*
   and all seven playoffs — more than the four weeks the power seed needs. Round
   1 of 2026-27 now **has power ratings**.
 
-### 1. Real handicaps for the eight heavy favourites — if you can get them
+### 1. Five handicaps, from the spread market rather than the win-odds market
 
-The line check settled `sigma` for the readable range (below). What it also
-showed is that the **far tail cannot be inferred at all**: both checked matches
-quoted at 1.01 came back with real lines of −30.5 and −33.5, three points
-apart, from *identical* odds.
+**This is the only outstanding data ask, and it is five numbers.**
 
-Eight matches in `data/season_2025.csv` sit in that zone. Eight real numbers
-would remove the guesswork entirely, and the importer now protects them — a
-handicap quoted as a handicap is never overwritten by an inferred one. They
-are the rows with `pts_per_tick > 1` in
-`entry/urc_2025_line_check.csv`, plus the rest flagged by
-`import_oddsportal.py`.
+The line check settled `sigma` for the readable range (below) and showed that
+the **far tail cannot be inferred at all**: two matches both quoted at 1.01
+came back with real handicaps of −30.5 and −33.5, three points apart from
+*identical* odds. No model separates those.
 
-Not urgent: the round-1 picks do not move either way (see below).
+Seven matches sit in that zone. Two you have already answered, so they are
+pre-filled. The remaining five are in
+**`entry/urc_2025_coarse_lines.xlsx`** — open it and fill `actual_line` for:
 
-### 2. One turnover count to fix
+| date | match | inferred (unreliable) |
+|---|---|---|
+| 2026-05-16 | Bulls v Benetton | −25.5 |
+| 2026-03-27 | Leinster v Scarlets | −25.0 |
+| 2026-05-16 | Sharks v Zebre | −23.5 |
+| 2026-04-25 | Munster v Ulster | −23.5 |
+| 2026-05-16 | Leinster v Ospreys | −21.5 |
 
-`data/season_2025.csv`, Cardiff v Stormers, 2026-05-15: the source sheet has
-`home_turnovers_lost = -1`, which cannot be right. It does **not** affect round
-1 — Cardiff's last 2025-26 match is the quarter-final, not that one — so
-nothing is blocked. `import_turnovers.py` now refuses counts like this rather
-than loading them.
+On oddsportal these are under the **handicap / spread** tab rather than the
+1X2 tab you exported before — the number wanted is the home handicap, negative
+when the home side is favoured. Then:
 
-### 3. Monitoring home advantage
+```bash
+python line_check.py apply --season 2025 && python season_report.py
+```
+
+They land marked as quoted rather than inferred, which is what stops
+`import_oddsportal.py` overwriting them on its next run.
+
+Not urgent — the round-1 picks do not move either way.
+
+### 2. Monitoring home advantage
 
 `HOME_ADVANTAGE` is a **provisional 5.0**. The NFL system uses a well-established
 3-point home field; the URC has no settled equivalent and its handicaps are
@@ -201,6 +211,15 @@ with `p = p_home + p_draw / 2`, a draw being the mass sitting exactly on zero.
 
 Two things have to be right, and both were checked rather than assumed.
 
+**A note on the source's own oddities.** The URC match centre publishes the
+occasional negative turnover count — 2025-26's Cardiff v Stormers carries
+`home_turnovers_lost = -1` on the site itself, confirmed against the source.
+`import_turnovers.py` flags counts like that on every run rather than
+rejecting them (refusing would block real data) or swallowing them (a negative
+count can flip the sign of a club's margin, which is the factor's entire
+input). That particular row does not reach round 1 — Cardiff's last 2025-26
+match is the quarter-final — and its sign is negative either way.
+
 **Removing the bookmaker's margin.** The quotes sum to about 8.3% over
 certainty. Dividing through by that — the obvious fix — systematically
 overstates short prices. Shin's method, which models the book as protecting
@@ -315,6 +334,7 @@ rugby_urc/
 ├── import_oddsportal.py # pasted results+odds -> season file, handicaps inferred
 ├── spread_from_odds.py # 1X2 decimal odds -> a handicap (Shin de-vig + normal)
 ├── line_check.py       # check inferred handicaps against real ones, re-fit sigma
+├── import_turnovers.py # match-centre turnover sheet -> season file
 ├── entry_sheet.py      # export a sheet to type into, and read it back
 ├── season_report.py    # season files -> data/report_<year>.csv
 ├── calibrate.py        # fit HOME_ADVANTAGE from the handicaps

@@ -16,6 +16,7 @@ Run::
 
     python line_check.py export --season 2025     # -> entry/urc_2025_line_check.csv
     python line_check.py check  --season 2025     # after filling actual_line
+    python line_check.py coarse --season 2025     # only the un-inferable matches
 """
 
 from __future__ import annotations
@@ -54,6 +55,116 @@ def select(df: pd.DataFrame, n: int = 14) -> pd.DataFrame:
         picked.append(block.iloc[::step].head(want))
     out = pd.concat(picked).drop_duplicates(subset=["date", "home", "away"])
     return out.sort_values(["date", "home"]).head(n)
+
+
+def coarse(season: int) -> Path:
+    """Export only the matches whose quote is too coarse to infer a line from.
+
+    These are the ones a real handicap would actually improve. Everywhere else
+    the odds already pin the line to within about a point, so a quoted number
+    would only confirm what is there; here the odds carry almost nothing - two
+    matches priced identically at 1.01 had real handicaps three points apart.
+    """
+    rows, quotes = _load(season)
+    merged = rows.merge(quotes, on=["date", "home", "away"], how="inner")
+    merged["pts_per_tick"] = [
+        round(sfo.tick_sensitivity(r.odds_home, r.odds_draw, r.odds_away), 2)
+        for r in merged.itertuples()]
+    merged["inferred_line"] = merged["line"]
+    merged["actual_line"] = ""
+    # Carry over anything already answered in the line check, so the same
+    # number is never looked up twice.
+    known = _checked_lines(season)
+    if known:
+        merged["actual_line"] = [
+            known.get((r.date, r.home, r.away), "") for r in merged.itertuples()]
+    sample = merged[merged["pts_per_tick"] > sfo.COARSE_POINTS_PER_TICK]
+    sample = sample.sort_values("pts_per_tick", ascending=False)[COLUMNS]
+
+    ENTRY_DIR.mkdir(exist_ok=True)
+    out = ENTRY_DIR / f"urc_{season}_coarse_lines.csv"
+    sample.to_csv(out, index=False)
+    with pd.ExcelWriter(out.with_suffix(".xlsx"), engine="openpyxl") as w:
+        sample.to_excel(w, sheet_name="Coarse quotes", index=False)
+        sheet = w.sheets["Coarse quotes"]
+        sheet.freeze_panes = "A2"
+        for i, col in enumerate(COLUMNS, start=1):
+            sheet.column_dimensions[chr(64 + i)].width = max(12, len(col) + 3)
+    print(f"{len(sample)} matches the odds cannot price -> "
+          f"{out.relative_to(HERE)} (+ .xlsx)")
+    print("Fill `actual_line` with the real home handicap "
+          "(negative = home favoured).")
+    print("Once filled, re-run import_oddsportal.py: a quoted line is never "
+          "overwritten by\nan inferred one, so these will stick.")
+    return out
+
+
+def _checked_lines(season: int) -> dict:
+    """Real handicaps already filled in the line-check sheet, by match."""
+    for path in (ENTRY_DIR / f"urc_{season}_line_check.xlsx",
+                 ENTRY_DIR / f"urc_{season}_line_check.csv"):
+        if not path.exists():
+            continue
+        df = (pd.read_excel(path, sheet_name="Line check") if path.suffix == ".xlsx"
+              else pd.read_csv(path))
+        df = df[pd.to_numeric(df["actual_line"], errors="coerce").notna()]
+        return {(str(r.date)[:10], r.home, r.away): float(r.actual_line)
+                for r in df.itertuples()}
+    return {}
+
+
+def apply_real(season: int) -> None:
+    """Write every real handicap found in the entry sheets into the season file.
+
+    They land with a blank ``line_source``, which marks them as quoted rather
+    than inferred - and that is what stops ``import_oddsportal.py`` overwriting
+    them on its next run.
+    """
+    known = dict(_checked_lines(season))
+    coarse_path = ENTRY_DIR / f"urc_{season}_coarse_lines.csv"
+    xlsx = coarse_path.with_suffix(".xlsx")
+    for path, sheet in ((xlsx, "Coarse quotes"), (coarse_path, None)):
+        if path.exists():
+            df = (pd.read_excel(path, sheet_name=sheet) if sheet
+                  else pd.read_csv(path))
+            df = df[pd.to_numeric(df["actual_line"], errors="coerce").notna()]
+            known.update({(str(r.date)[:10], r.home, r.away): float(r.actual_line)
+                          for r in df.itertuples()})
+            break
+
+    if not known:
+        raise SystemExit("no real handicaps filled in yet")
+
+    season_path = season_report.DATA_DIR / f"season_{season}.csv"
+    df = pd.read_csv(season_path, dtype=str).fillna("")
+    applied = []
+    for i, r in df.iterrows():
+        value = known.get((str(r["date"])[:10], r["home"], r["away"]))
+        if value is None:
+            continue
+        was = r["line"]
+        df.at[i, "line"] = f"{value:g}"
+        df.at[i, "line_source"] = season_report.LINE_QUOTED
+        applied.append((r["date"], r["home"], r["away"], was, f"{value:g}"))
+    df.to_csv(season_path, index=False)
+
+    print(f"{len(applied)} real handicap(s) written to {season_path.name}, "
+          f"marked as quoted:\n")
+    print(f"  {'date':<12}{'match':<26}{'was':>8}{'now':>8}")
+    for date, home, away, was, now in applied:
+        print(f"  {date:<12}{home + ' v ' + away:<26}{was:>8}{now:>8}")
+    print("\nRe-run season_report.py to fold them into the power ratings.")
+
+
+def _load(season: int):
+    season_file = season_report.DATA_DIR / f"season_{season}.csv"
+    odds_file = ENTRY_DIR / f"urc_{season}_odds.csv"
+    if not odds_file.exists():
+        raise SystemExit(f"need the quoted odds: expected {odds_file}, "
+                         f"written by import_oddsportal.py")
+    raw = pd.read_csv(odds_file)
+    return (pd.read_csv(season_file),
+            raw[["date", "home", "away", "odds_home", "odds_draw", "odds_away"]])
 
 
 def export(season: int) -> Path:
@@ -146,10 +257,11 @@ def check(season: int) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("action", choices=("export", "check"))
+    ap.add_argument("action", choices=("export", "check", "coarse", "apply"))
     ap.add_argument("--season", type=int, required=True)
     args = ap.parse_args()
-    (export if args.action == "export" else check)(args.season)
+    {"export": export, "check": check, "coarse": coarse,
+     "apply": apply_real}[args.action](args.season)
 
 
 if __name__ == "__main__":
