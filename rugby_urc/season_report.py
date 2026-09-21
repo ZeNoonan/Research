@@ -53,9 +53,15 @@ HOME_ADVANTAGE = 5.0
 # Off by default so the model is a straight port; ``calibrate.py`` estimates it.
 LONG_HAUL_PENALTY = 0.0
 
-SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line",
+SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line", "line_source",
                   "home_score", "away_score",
                   "home_turnovers_conceded", "away_turnovers_conceded"]
+
+# Values for ``line_source``. Blank means a handicap quoted as a handicap; the
+# NFL project's hardest judgement call was about exactly this kind of
+# provenance (opening vs closing lines), so it is recorded rather than implied.
+LINE_QUOTED = ""
+LINE_INFERRED = "inferred-1x2"
 
 
 def available_seasons() -> list[int]:

@@ -147,6 +147,7 @@ def parse_text(raw: str, season: int) -> tuple[pd.DataFrame, list[str]]:
             "away": away,
             "neutral": "",
             "line": "",
+            "line_source": "",
             "home_score": m.group("hs") or "",
             "away_score": m.group("as") or "",
             "home_turnovers_conceded": "",
@@ -156,7 +157,7 @@ def parse_text(raw: str, season: int) -> tuple[pd.DataFrame, list[str]]:
     return pd.DataFrame(rows, columns=SEASON_COLUMNS), skipped
 
 
-SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line",
+SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line", "line_source",
                   "home_score", "away_score",
                   "home_turnovers_conceded", "away_turnovers_conceded"]
 
@@ -214,6 +215,8 @@ def main() -> None:
     ap.add_argument("--season", type=int, help="season start year, e.g. 2026")
     ap.add_argument("--append", action="store_true",
                     help="merge into the existing season file instead of replacing it")
+    ap.add_argument("--force", action="store_true",
+                    help="rebuild the season file even if it holds typed-in values")
     args = ap.parse_args()
 
     raw = args.source.read_text(encoding="utf-8")
@@ -222,6 +225,19 @@ def main() -> None:
     print(f"parsed {len(fixtures)} fixtures for the {season}-{(season + 1) % 100:02d} season")
 
     out = DATA_DIR / f"season_{season}.csv"
+    TYPED = ["line", "home_score", "away_score",
+             "home_turnovers_conceded", "away_turnovers_conceded"]
+    if out.exists() and not args.append and not args.force:
+        current = pd.read_csv(out, dtype=str).fillna("")
+        filled = sum(int((current[c].str.strip() != "").sum())
+                     for c in TYPED if c in current.columns)
+        if filled:
+            raise SystemExit(
+                f"refusing to overwrite {out.name}: it holds {filled} value(s) you "
+                f"typed in (handicaps, scores or turnovers), and a plain import "
+                f"rebuilds the file from the paste alone.\n"
+                f"  --append  merge these fixtures into it, keeping what is there\n"
+                f"  --force   rebuild it anyway, discarding those values")
     if args.append and out.exists():
         existing = pd.read_csv(out, dtype=str).fillna("")
         fixtures = pd.concat([existing, fixtures.astype(str)], ignore_index=True)

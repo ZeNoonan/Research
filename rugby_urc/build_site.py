@@ -233,6 +233,11 @@ def report_table(df: pd.DataFrame) -> str:
             res = "<td></td>"
         score = (f"{int(r.home_score)}–{int(r.away_score)}"
                  if pd.notna(r.home_score) else '<span class="pending">—</span>')
+        # A System # of 0 with no power ratings means "not evaluated", not "the
+        # factors cancelled out": show it as pending rather than as a score.
+        rated = pd.notna(r.home_power) and pd.notna(r.away_power)
+        system = (f"<strong>{int(r.system_num):+d}</strong>" if rated
+                  else '<span class="pending" title="no power ratings yet">—</span>')
         rows.append(
             f"<tr><td class='l'>{esc(r.date)}</td><td>{int(r.round)}</td>"
             f"<td class='l'>{esc(r.home)}</td><td class='l'>{esc(r.away)}</td>"
@@ -240,8 +245,7 @@ def report_table(df: pd.DataFrame) -> str:
             f"<td>{fmt_signed(r.home_lgt, 0)}</td><td>{fmt_signed(r.home_stdc, 0)}</td>"
             f"<td>{fmt_signed(r.home_power)}</td>"
             f"<td>{fmt_signed(r.away_lgt, 0)}</td><td>{fmt_signed(r.away_stdc, 0)}</td>"
-            f"<td>{fmt_signed(r.away_power)}</td>"
-            f"<td><strong>{int(r.system_num):+d}</strong></td>"
+            f"<td>{fmt_signed(r.away_power)}</td><td>{system}</td>"
             f"<td class='l bet'>{esc(r.system_bet)}</td>{res}</tr>")
     head = ("<tr><th class='l'>Date</th><th>Rd</th><th class='l'>Home</th>"
             "<th class='l'>Away</th><th>Line</th><th>Score</th>"

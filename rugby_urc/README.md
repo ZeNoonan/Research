@@ -21,53 +21,71 @@ is the numbers, and it cannot fetch those on its own: this environment's network
 policy blocks Wikipedia, oddsportal.com and stats.unitedrugby.com, so handicaps
 and turnovers have to be typed in.*
 
-### Nothing needed for this
+### Nothing needed for these
 
 - **The 2026-27 fixture list** — **loaded in full**: all 144 matches, 18 rounds,
   every round pairing all 16 clubs exactly once, every club 9 home and 9 away.
   Imported from your paste with `import_fixtures.py`; the shape checks pass
   clean. Re-run that command if the URC moves a fixture.
+- **Round 1's eight handicaps** — **received and loaded**.
+- **The 2025-26 handicaps** — **derived, not needed by hand**. The oddsportal
+  export carries 1X2 win odds rather than a spread, and
+  [`spread_from_odds.py`](spread_from_odds.py) converts one into the other
+  (below). 50 matches are loaded, covering the last five regular match-weeks
+  and all seven playoffs — more than the four weeks the power seed needs. Round
+  1 of 2026-27 now **has power ratings**.
 
-### 1. Round 1 handicaps
+### 1. Turnovers for each club's last 2025-26 match — the only blocker left
 
-Eight numbers. Open `entry/urc_2026_entry.xlsx`, fill the yellow `line` column
-— **negative when the home side is favoured** — and run:
+The handicap half of the seed is done. What remains is the turnover half:
+**turnovers conceded, by both sides, in round 18 and the seven playoff
+matches** — enough to give all 16 clubs a last-match turnover margin. From the
+URC match centre.
 
-```bash
-python entry_sheet.py import --season 2026 && python season_report.py
-```
+Until they arrive the model declines every round-1 pick, and says so: the
+previous match now *exists* in the log but carries no turnover count, which
+sets `lgt_unknown`. That is the deliberate difference between "no previous
+match" (legitimately 0) and "a previous match we have no number for".
 
-### 2. The 2025-26 seed — what makes round 1 pickable at all
+**Scores and fixtures are already in** from the odds import, so this is only
+the two turnover columns on those 15 rows of `data/season_2025.csv`.
 
-Two factors reach back across the season boundary, so **without this the model
-declines every round-1 pick**. It needs less than a full season:
+### 2. A handful of real handicaps, to check the inferred ones
 
-| What | Which matches | Why |
-|---|---|---|
-| **Handicaps** | rounds 15, 16, 17, 18 (32 matches) | fits the opening power ratings — the last four **match-weeks**, weighted 1, ½, ¼, ⅛ |
-| **Turnovers conceded** | round 18 **and** the 7 playoff matches | seeds round 1's LGT from each club's *last* match of the season |
+`python line_check.py export --season 2025` writes
+`entry/urc_2025_line_check.csv` — 14 matches spread across the range, with the
+inferred line beside a blank `actual_line`. Fill what you can find and run
+`python line_check.py check --season 2025`.
 
-**Scores are not needed** for the seed: the power fit reads handicaps only, and
-season-to-date cover resets at the season boundary. Leave them blank.
+This is worth more than it looks. `sigma` is currently fitted from 50 *results*,
+and a result is a noisy draw around the line. A quoted line **is** the quantity
+being estimated, observed directly — so ten of them pin `sigma` harder than
+fifty results do. The sample is weighted towards mid-range matches for exactly
+that reason: near a pick'em the estimate divides by ~0, and at a heavy
+favourite the odds are too coarse to say much.
 
-`entry/urc_2025_entry.xlsx` is already laid out with the right number of blank
-rows and the round numbers pre-filled (15-18, then 19 = quarter-final,
-20 = semi-final, 21 = grand final). The club columns are dropdowns, so a
-misspelling is rejected at the cell. Fill the fixtures, handicaps and
-turnovers, then:
+### 3. Monitoring home advantage
 
-```bash
-python entry_sheet.py import --season 2025 && python season_report.py
-```
+`HOME_ADVANTAGE` is a **provisional 5.0**. The NFL system uses a well-established
+3-point home field; the URC has no settled equivalent and its handicaps are
+wider. `python calibrate.py` reports two things, and the difference between them
+matters:
 
-### 3. Once a season of handicaps exists — calibrate
+- **The fitted estimate** — a least-squares fit of the home term and the
+  Europe ↔ South Africa travel term alongside club ratings. This is the number
+  to adopt, and it is **withheld below 40 priced matches**, because with less
+  than that the home term and the club ratings are not separable.
+- **An early read**, printed from the first handicap onwards — the mean of
+  `-line`, split into domestic and long-haul trips. This measures venue *only
+  once club strengths cancel*, which happens when every club has played as often
+  at home as away. It prints how far from that the sample is, so it reads as a
+  direction of travel rather than a measurement.
 
-`HOME_ADVANTAGE` is currently a **provisional 5.0**. The NFL system uses a
-well-established 3-point home field; the URC has no settled equivalent and its
-handicaps are wider. `python calibrate.py` fits it — and the Europe ↔ South
-Africa travel term — from the handicaps themselves, and refuses to report a
-number until there are enough matches to support one. Adopt the fitted value
-rather than leaving my guess in.
+After round 1 the early read is **+5.5 over the four domestic matches** and
+**−1.2 over the four long-haul ones** — the first encouragingly close to 5.0,
+the second dominated by the fact that Zebre and the Lions hosted the Bulls and
+Leinster. Both are four matches with every club unbalanced, so neither is
+evidence yet. Revisit around round 5, when the fitted estimate unlocks.
 
 ---
 
@@ -140,6 +158,66 @@ previous season's last weeks are just the previous weeks, with no special case.
 `test_pipeline.py` check 9 pins this down: it builds a season with a deliberately
 displaced round and asserts every club's LGT is its previous match **by date**.
 
+## Inferring a handicap from win odds
+
+oddsportal publishes 1X2 decimal odds, not a spread. The two describe the same
+distribution of margins from different angles — the win odds say how often the
+home side finishes ahead, the handicap says by how much it is expected to — so
+either gives the other once you assume a shape for the margin.
+
+Take the margin as normal with standard deviation `sigma`. Then
+
+```
+P(margin > 0) = p        ->        line = -sigma * Phi^-1(p)
+```
+
+with `p = p_home + p_draw / 2`, a draw being the mass sitting exactly on zero.
+
+Two things have to be right, and both were checked rather than assumed.
+
+**Removing the bookmaker's margin.** The quotes sum to about 8.3% over
+certainty. Dividing through by that — the obvious fix — systematically
+overstates short prices. Shin's method, which models the book as protecting
+itself against better-informed traders, takes proportionally more out of the
+longshots. The test is whether the resulting lines behave like lines:
+
+| de-vig | home cover rate vs its own inferred line | fitted `sigma` |
+|---|---|---|
+| proportional | 54.0% | 16.5 |
+| additive | 48.0% | 15.8 |
+| **Shin** | **48.0%** | **16.0** |
+
+A fair line must produce ~50%, so proportional is measurably biased and Shin is
+used.
+
+**The value of `sigma`.** Fitted by maximum likelihood at **16.0 points** over
+the 50 matches, and — the check that matters — its two independent estimates
+agree: the regression slope gives 15.9, the residual spread 16.0. A gap there
+would mean the normal shape is wrong, not that the number needs nudging.
+
+### Where it fails, and why no model can fix it
+
+Decimal odds move in steps of 0.01, and near the short end one step is worth a
+lot of handicap:
+
+| shortest price | matches | points of line per 0.01 tick |
+|---|---|---|
+| 1.01–1.05 | 8 | **1.78** |
+| 1.05–1.15 | 13 | 0.67 |
+| 1.15–1.50 | 14 | 0.33 |
+| 1.50–3.00 | 15 | 0.15 |
+
+So a line inferred from a 1.01 shot is uncertain by a couple of points *before*
+any modelling error, and the three de-vig methods duly disagree by up to 3.8
+points on exactly those matches (against a median of 0.85 across all 50). This
+is not a modelling failure that a better model would cure: the information is
+not in the input. `tick_sensitivity` reports it per match, `is_coarse` flags it,
+and `import_oddsportal.py --skip-coarse` will leave those rows unpriced rather
+than fill them with a number that cannot bear the weight.
+
+Every derived line is written with `line_source = inferred-1x2`, so it is never
+mistaken later for a handicap that was actually quoted.
+
 ## What is different from the NFL project, and why
 
 | | `nfl_report` | here |
@@ -177,6 +255,9 @@ rugby_urc/
 ├── teams.py            # the 16 clubs + every sponsor spelling the sources use
 ├── model.py            # the five-factor engine
 ├── import_fixtures.py  # pasted fixture text -> data/season_<year>.csv
+├── import_oddsportal.py # pasted results+odds -> season file, handicaps inferred
+├── spread_from_odds.py # 1X2 decimal odds -> a handicap (Shin de-vig + normal)
+├── line_check.py       # check inferred handicaps against real ones, re-fit sigma
 ├── entry_sheet.py      # export a sheet to type into, and read it back
 ├── season_report.py    # season files -> data/report_<year>.csv
 ├── calibrate.py        # fit HOME_ADVANTAGE from the handicaps
@@ -226,6 +307,9 @@ power ratings and turnover counts and asserts the pipeline recovers them:
 | System #, pick and grade reproducible from the stored columns | pass |
 | `calibrate.py` recovers the edge terms that built the handicaps | **exact** |
 | A split round is ordered by date, so no factor reads a future match | pass |
+| The early home-advantage read is exact on a balanced season | **exact** |
+| Fair odds round-trip to the handicap that generated them | **exact** |
+| `fit_sigma` recovers a known sigma, both estimates agreeing | 14.53 vs 14.5 |
 
 That is a test of the plumbing, not evidence the system works on rugby.
 
@@ -282,8 +366,11 @@ default branch. For that window only, the branch renders through
 4. ~~Load the 2026-27 fixture list.~~ ✅ all 144 matches, shape checks clean
 5. ~~Handle a round whose matches are months apart.~~ ✅ date ordering + match-week
    rating windows
-6. **Enter the 2025-26 seed** so round 1 is pickable. ← the remaining blocker
-7. **Enter round 1's eight handicaps.**
-8. **Calibrate `HOME_ADVANTAGE`** once a season of handicaps exists.
-9. Revisit the turnover definition (conceded differential vs won/conceded
+6. ~~Enter round 1's eight handicaps.~~ ✅
+7. ~~Derive the 2025-26 handicaps from 1X2 odds.~~ ✅ 50 matches, Shin + sigma 16
+8. **Enter the 2025-26 turnovers** so round 1 is pickable. ← the remaining blocker
+9. **Check the inferred handicaps** against a sample of real ones and re-fit `sigma`.
+10. **Calibrate `HOME_ADVANTAGE`** once ~40 handicaps exist (about round 5);
+    watch the early read until then.
+11. Revisit the turnover definition (conceded differential vs won/conceded
    separately) once a season of match-centre data is in.

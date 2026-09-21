@@ -50,6 +50,9 @@ GUIDE = [
              "NEGATIVE = home favoured (-7.5 means home must win by 8 to cover); "
              "POSITIVE = home receiving points. This is the one number needed to "
              "make a pick."),
+    ("line_source", "Leave blank for a handicap you read off a spread market. "
+                    "\"inferred-1x2\" means it was derived from win odds by "
+                    "spread_from_odds.py and is an estimate, not a quote."),
     ("home_score", "Home points scored. Leave blank until played."),
     ("away_score", "Away points scored."),
     ("home_turnovers_conceded", "Turnovers the HOME side conceded, from the URC "
