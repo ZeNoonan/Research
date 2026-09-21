@@ -178,7 +178,7 @@ def import_sheet(year: int, source: Path | None) -> Path:
     if problems:
         raise ValueError("cannot import:\n  " + "\n  ".join(problems))
 
-    df = df.sort_values(["round", "date", "home"])
+    df = df.sort_values(["date", "round", "home"])
     out = DATA_DIR / f"season_{year}.csv"
     if out.exists():
         shutil.copy(out, out.with_suffix(".csv.bak"))

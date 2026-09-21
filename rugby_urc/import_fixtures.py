@@ -227,7 +227,9 @@ def main() -> None:
         fixtures = pd.concat([existing, fixtures.astype(str)], ignore_index=True)
         fixtures = fixtures.drop_duplicates(subset=["round", "home", "away"], keep="last")
 
-    fixtures = fixtures.sort_values(["round", "date", "home"], na_position="last")
+    # Date order: how the season is actually worked through, and it keeps a
+    # split round (2026-27's round 8) beside the matches it is played among.
+    fixtures = fixtures.sort_values(["date", "round", "home"], na_position="last")
     DATA_DIR.mkdir(exist_ok=True)
     fixtures.to_csv(out, index=False)
     print(f"wrote {out.relative_to(Path(__file__).parent)} ({len(fixtures)} rows)")

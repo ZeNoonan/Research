@@ -16,36 +16,19 @@ finding yet.
 
 ## 📋 What I need from you
 
-*The pipeline is built and tested. It has almost no data, and cannot get any on
-its own: this environment's network policy blocks Wikipedia, oddsportal.com and
-stats.unitedrugby.com, so every one of these has to be pasted or typed in.*
+*The pipeline is built and tested and the full fixture list is in. What is left
+is the numbers, and it cannot fetch those on its own: this environment's network
+policy blocks Wikipedia, oddsportal.com and stats.unitedrugby.com, so handicaps
+and turnovers have to be typed in.*
 
-### 1. The rest of the 2026-27 fixture list — the one blocker
+### Nothing needed for this
 
-**Round 1 is loaded** (all eight matches, cross-checked against two sources).
-**Rounds 2-18 are not.** Web search returns rounds in fragments — six of eight,
-with no way to tell which two are missing without checking every club — so
-rather than half-fill the schedule with guesses, it is empty.
+- **The 2026-27 fixture list** — **loaded in full**: all 144 matches, 18 rounds,
+  every round pairing all 16 clubs exactly once, every club 9 home and 9 away.
+  Imported from your paste with `import_fixtures.py`; the shape checks pass
+  clean. Re-run that command if the URC moves a fixture.
 
-Copy the fixture list from
-<https://www.unitedrugby.com/latest/news/2026-27-fixtures-in-full/> (or the
-Wikipedia regular-season section) into a text file and run:
-
-```bash
-python import_fixtures.py paste.txt --season 2026
-```
-
-Layout does not matter much — sponsor names, venues, kick-off times, footnotes
-and TV listings are all stripped. What matters is that each line names two
-clubs. The importer then checks the shape a real URC season must have (every
-round pairs all 16 clubs exactly once; each club plays 9 home and 9 away) and
-**tells you exactly what is missing** rather than accepting it silently.
-
-Why this matters beyond the schedule: a missing fixture does not just leave a
-gap, it makes the *next* match wrong, because a club's "last match" turnover
-margin is read off the fixture order.
-
-### 2. Round 1 handicaps
+### 1. Round 1 handicaps
 
 Eight numbers. Open `entry/urc_2026_entry.xlsx`, fill the yellow `line` column
 — **negative when the home side is favoured** — and run:
@@ -54,14 +37,14 @@ Eight numbers. Open `entry/urc_2026_entry.xlsx`, fill the yellow `line` column
 python entry_sheet.py import --season 2026 && python season_report.py
 ```
 
-### 3. The 2025-26 seed — what makes round 1 pickable at all
+### 2. The 2025-26 seed — what makes round 1 pickable at all
 
 Two factors reach back across the season boundary, so **without this the model
 declines every round-1 pick**. It needs less than a full season:
 
 | What | Which matches | Why |
 |---|---|---|
-| **Handicaps** | rounds 15, 16, 17, 18 (32 matches) | fits the opening power ratings — the last four rounds, weighted 1, ½, ¼, ⅛ |
+| **Handicaps** | rounds 15, 16, 17, 18 (32 matches) | fits the opening power ratings — the last four **match-weeks**, weighted 1, ½, ¼, ⅛ |
 | **Turnovers conceded** | round 18 **and** the 7 playoff matches | seeds round 1's LGT from each club's *last* match of the season |
 
 **Scores are not needed** for the seed: the power fit reads handicaps only, and
@@ -77,7 +60,7 @@ turnovers, then:
 python entry_sheet.py import --season 2025 && python season_report.py
 ```
 
-### 4. Once a season of handicaps exists — calibrate
+### 3. Once a season of handicaps exists — calibrate
 
 `HOME_ADVANTAGE` is currently a **provisional 5.0**. The NFL system uses a
 well-established 3-point home field; the URC has no settled equivalent and its
@@ -130,6 +113,32 @@ The intuitions, unchanged from the source:
 > the factor leans away by roughly whatever `HOME_ADVANTAGE` is set to, which
 > for the URC is still a guess. This is the single biggest reason to run
 > `calibrate.py` early.
+
+### A round is not a date: the split round 8
+
+The URC numbers its rounds for scheduling, not chronology, and 2026-27 proves
+it. **Round 8 runs from 26 December to 21 February**: six matches over the
+Christmas weekend, then Lions v Sharks and Bulls v Stormers on 20-21 February,
+*after* rounds 9, 10 and 11 have been played.
+
+The NFL system takes week order and date order to be the same thing, and they
+are there. Carrying that assumption across would have been wrong three ways,
+all of them silent:
+
+- **Look-ahead in the turnover factor.** In round order, the Lions' round-8
+  match sorts before their round-9 match — so January's pick would have read a
+  turnover margin from a match played seven weeks later. That is not a stale
+  number, it is a number that did not exist.
+- **Season-to-date cover** would have counted a February cover in January.
+- **Power ratings** keyed on round number would have rated those two February
+  matches on October form.
+
+So ordering is **by date**, and the rating window is the last four **match-weeks**
+(ISO calendar weeks) rather than the last four round numbers. Weeks split a
+split round correctly and make the season boundary fall out for free — the
+previous season's last weeks are just the previous weeks, with no special case.
+`test_pipeline.py` check 9 pins this down: it builds a season with a deliberately
+displaced round and asserts every club's LGT is its previous match **by date**.
 
 ## What is different from the NFL project, and why
 
@@ -216,6 +225,7 @@ power ratings and turnover counts and asserts the pipeline recovers them:
 | STDC resets each season | pass |
 | System #, pick and grade reproducible from the stored columns | pass |
 | `calibrate.py` recovers the edge terms that built the handicaps | **exact** |
+| A split round is ordered by date, so no factor reads a future match | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.
 
@@ -269,8 +279,11 @@ default branch. For that window only, the branch renders through
 1. ~~Port the engine, the pipeline and the viewer.~~ ✅
 2. ~~Fixture importer with URC shape checks.~~ ✅
 3. ~~Spreadsheet data entry with club validation.~~ ✅
-4. **Load rounds 2-18 of the 2026-27 fixture list.** ← blocked on the paste
-5. **Enter the 2025-26 seed** so round 1 is pickable.
-6. **Calibrate `HOME_ADVANTAGE`** once a season of handicaps exists.
-7. Revisit the turnover definition (conceded differential vs won/conceded
+4. ~~Load the 2026-27 fixture list.~~ ✅ all 144 matches, shape checks clean
+5. ~~Handle a round whose matches are months apart.~~ ✅ date ordering + match-week
+   rating windows
+6. **Enter the 2025-26 seed** so round 1 is pickable. ← the remaining blocker
+7. **Enter round 1's eight handicaps.**
+8. **Calibrate `HOME_ADVANTAGE`** once a season of handicaps exists.
+9. Revisit the turnover definition (conceded differential vs won/conceded
    separately) once a season of match-centre data is in.

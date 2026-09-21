@@ -12,7 +12,9 @@ depends on hold:
 3. a missing turnover count blocks a pick rather than counting as neutral;
 4. STDC resets each season and tracks net covers;
 5. System #, pick and grade agree with a hand computation;
-6. ``calibrate.py`` recovers the home-advantage terms used to build the data.
+6. ``calibrate.py`` recovers the home-advantage terms used to build the data;
+7. a **split round** - one whose matches are months apart, as 2026-27's round 8
+   is - is ordered by date, so no factor reads a match that had not been played.
 
 Run: ``python test_pipeline.py``
 """
@@ -174,6 +176,58 @@ def main() -> int:
         passed &= check("long-haul penalty recovered",
                         abs(fitted["long_haul_penalty"] - true_lh) < 1e-6,
                         f"{fitted['long_haul_penalty']:+.3f} vs {true_lh:+.3f}")
+
+        print("\n9. a split round is ordered by date, not by round number")
+        # The real 2026-27 list puts six of round 8 on 26-27 December and the
+        # two South African derbies on 20-21 February, after rounds 9-11. Round
+        # order would make January's matches read a February turnover margin.
+        base = pd.Timestamp("2026-09-25")
+        rows = []
+        for rnd in range(1, 6):
+            for i, (home, away) in enumerate(round_robin(CLUBS, rnd)):
+                rows.append({
+                    "round": rnd, "date": (base + pd.Timedelta(days=7 * rnd)).date(),
+                    "home": home, "away": away, "neutral": "",
+                    "line": TRUE_POWER[away] - TRUE_POWER[home]
+                            - season_report.HOME_ADVANTAGE,
+                    "home_score": 20 + i, "away_score": 18,
+                    "home_turnovers_conceded": 6 + i,
+                    "away_turnovers_conceded": 11})
+        split = pd.DataFrame(rows, columns=season_report.SEASON_COLUMNS)
+        late = split.index[split["round"] == 2][-2:]          # push them past round 5
+        split.loc[late, "date"] = (base + pd.Timedelta(days=7 * 7)).date()
+        split.to_csv(data / "season_2026.csv", index=False)
+
+        report = season_report.build_reports()[2026]
+        report["date"] = pd.to_datetime(report["date"])
+        net = {(r.date, r.home, r.away):
+               r.home_turnovers_conceded - r.away_turnovers_conceded
+               for r in split.assign(date=pd.to_datetime(split["date"])).itertuples()}
+
+        wrong = []
+        for club in CLUBS:
+            played = report[(report["home"] == club) | (report["away"] == club)]
+            expected = 0.0
+            for r in played.sort_values("date").itertuples():
+                side_lgt = r.home_lgt if r.home == club else r.away_lgt
+                if side_lgt != expected:
+                    wrong.append(f"{club} on {r.date.date()}: "
+                                 f"lgt {side_lgt:+.0f}, expected {expected:+.0f}")
+                margin = net[(r.date, r.home, r.away)]
+                expected = float(margin if r.home == club else -margin)
+        passed &= check("every club's LGT is its previous match by date",
+                        not wrong, "; ".join(wrong[:3]))
+
+        late_dates = report[report["round"] == 2]["date"]
+        passed &= check("the split round really is split",
+                        late_dates.max() > report[report["round"] == 5]["date"].max(),
+                        f"round 2 runs to {late_dates.max().date()}")
+        r2_early = report[(report["round"] == 2) & (report["date"] == late_dates.min())]
+        r2_late = report[(report["round"] == 2) & (report["date"] == late_dates.max())]
+        passed &= check("the late matches are rated on later form, not round-2 form",
+                        not r2_early["home_power"].reset_index(drop=True).equals(
+                            r2_late["home_power"].reset_index(drop=True))
+                        or r2_late["home_power"].notna().all())
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1

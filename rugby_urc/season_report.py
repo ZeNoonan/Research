@@ -39,8 +39,8 @@ import teams
 DATA_DIR = Path(__file__).parent / "data"
 
 REGULAR_ROUNDS = 18            # rounds above this are playoffs
-FIT_WEIGHTS = [1.0, 0.5, 0.25, 0.125]  # most recent source round first
-FIT_ROUNDS = len(FIT_WEIGHTS)
+FIT_WEIGHTS = [1.0, 0.5, 0.25, 0.125]  # most recent source week first
+FIT_WEEKS = len(FIT_WEIGHTS)
 
 # Points of home advantage, applied inside the rating fit only (the ratings it
 # produces are neutral-venue). PROVISIONAL: the NFL system uses a well
@@ -98,11 +98,15 @@ def load_season(year: int) -> pd.DataFrame:
     df["long_haul"] = [teams.is_long_haul(r.home, r.away) for r in df.itertuples()]
     df["season"] = year
 
-    if df["round"].isna().any():
-        missing = df[df["round"].isna()]
-        raise ValueError(
-            f"season_{year}.csv: {len(missing)} row(s) with no round number, "
-            f"first is {missing.iloc[0]['home']} v {missing.iloc[0]['away']}")
+    for col, what in (("round", "round number"), ("date", "date")):
+        blank = df[col].isna()
+        if blank.any():
+            first = df[blank].iloc[0]
+            raise ValueError(
+                f"season_{year}.csv: {int(blank.sum())} row(s) with no {what}, "
+                f"first is {first['home']} v {first['away']}. Every match needs "
+                f"a date: the previous-match and season-to-date factors are "
+                f"ordered by it, not by round number.")
     return df
 
 
@@ -151,47 +155,50 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     return g.drop(columns=["home_net_to", "home_lgt_unknown", "away_lgt_unknown"])
 
 
-def _source_rounds(season: int, rnd: int, season_rounds: dict[int, list[int]],
-                   regular_rounds: dict[int, list[int]],
-                   prior: dict[int, int]) -> list[tuple[int, int]]:
-    """Up to four (season, round) sources for the power fit, most recent first."""
-    picked = [(season, r) for r in season_rounds[season] if r < rnd][::-1][:FIT_ROUNDS]
-    s = season
-    while len(picked) < FIT_ROUNDS and s in prior:
-        s = prior[s]
-        for r in reversed(regular_rounds[s]):
-            picked.append((s, r))
-            if len(picked) == FIT_ROUNDS:
-                break
-    return picked
+def _week_key(day: pd.Timestamp) -> int:
+    """The match-week a fixture belongs to, as a sortable ``yyyyww`` integer."""
+    iso = day.isocalendar()
+    return int(iso[0]) * 100 + int(iso[1])
 
 
 def add_powers(combined: pd.DataFrame) -> pd.DataFrame:
-    """Weighted least-squares power ratings, refit before every round.
+    """Weighted least-squares power ratings, refit before every match-week.
 
     The model is ``line = away_power - home_power - home_edge``, where the home
     edge is ``HOME_ADVANTAGE`` (zero at a neutral venue) plus
     ``LONG_HAUL_PENALTY`` when the away side crosses between hemispheres. The
-    last four rounds of handicaps are weighted 1, 1/2, 1/4, 1/8.
+    last four match-weeks of handicaps are weighted 1, 1/2, 1/4, 1/8.
+
+    The window is four **match-weeks**, not four round numbers, because in the
+    URC a round is a scheduling label rather than a date. 2026-27's round 8
+    puts six matches on 26-27 December and the two South African derbies on
+    20-21 February, after rounds 9, 10 and 11 have been played. Keyed on the
+    round number those two February matches would be rated on October form, and
+    rounds 9-11 would be rated on a match that had not happened. Calendar weeks
+    split a split round correctly, and they make the season boundary fall out
+    for free: the previous season's last weeks are simply the previous weeks.
+
+    Only weeks holding priced **regular-season** matches are used as sources. A
+    playoff week has four, two or one match between mismatched sides - too thin
+    to pin sixteen ratings, and the same reason the NFL version seeds a new
+    season from the previous one's regular weeks.
     """
     g = combined.copy()
     clubs = sorted(set(g["home"]) | set(g["away"]))
     idx = {t: i for i, t in enumerate(clubs)}
+    g["week_key"] = [_week_key(d) for d in g["date"]]
 
-    season_rounds = {s: sorted(d["round"].unique()) for s, d in g.groupby("season")}
-    regular_rounds = {s: sorted(d.loc[~d["playoff"], "round"].unique())
-                      for s, d in g.groupby("season")}
-    prior = {s: s - 1 for s in season_rounds if (s - 1) in season_rounds}
-    by_round = {(s, r): d for (s, r), d in g.groupby(["season", "round"])}
+    usable = g["line"].notna() & ~g["playoff"]
+    weeks_in_block = {blk: sorted(set(d["week_key"]))
+                      for blk, d in g[usable].groupby("block")}
+    by_week = {key: d for key, d in g[usable].groupby(["block", "week_key"])}
 
-    def fit(season: int, rnd: int) -> dict[str, float] | None:
+    def fit(block: int, week_key: int) -> dict[str, float] | None:
+        prior = [w for w in weeks_in_block.get(block, []) if w < week_key]
         rows, targets = [], []
-        for weight, key in zip(FIT_WEIGHTS,
-                               _source_rounds(season, rnd, season_rounds,
-                                              regular_rounds, prior)):
-            window = by_round[key]
+        for weight, wk in zip(FIT_WEIGHTS, prior[-FIT_WEEKS:][::-1]):
             rw = np.sqrt(weight)
-            for r in window[window["line"].notna()].itertuples():
+            for r in by_week[(block, wk)].itertuples():
                 row = np.zeros(len(clubs))
                 row[idx[r.away]] += rw
                 row[idx[r.home]] -= rw
@@ -208,7 +215,7 @@ def add_powers(combined: pd.DataFrame) -> pd.DataFrame:
     cache: dict[tuple[int, int], dict | None] = {}
     home_power, away_power = [], []
     for r in g.itertuples():
-        key = (r.season, int(r.round))
+        key = (r.block, r.week_key)
         if key not in cache:
             cache[key] = fit(*key)
         ratings = cache[key]
@@ -220,7 +227,7 @@ def add_powers(combined: pd.DataFrame) -> pd.DataFrame:
             away_power.append(round(ratings[r.away], 1))
     g["home_power"] = home_power
     g["away_power"] = away_power
-    return g
+    return g.drop(columns=["week_key"])
 
 
 # --- assembling the report ---------------------------------------------------
@@ -233,7 +240,10 @@ def build_reports() -> dict[int, pd.DataFrame]:
         return {}
 
     combined = pd.concat(frames, ignore_index=True)
-    combined = combined.sort_values(["season", "round", "date"]).reset_index(drop=True)
+    # Chronological, NOT by round: a club's previous match and its running
+    # cover record are both "what had happened by then", and the URC's round
+    # numbers are not in date order (see add_powers).
+    combined = combined.sort_values(["season", "date", "round"]).reset_index(drop=True)
     combined["order"] = np.arange(len(combined))
 
     # Block id = contiguous run of seasons; LGT carries within a block only.
