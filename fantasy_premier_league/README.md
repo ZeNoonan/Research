@@ -1355,7 +1355,7 @@ penalties rather than who is getting shots away. Left in, one spot kick
 outranks four good chances in the same week. So every attempt fbref records
 costs its taker **`PENALTY_XG = 0.75`** in that gameweek, subtracted from
 the *weekly* count so a penalty is charged once, in its own week. Through
-GW4 that is eight kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
+GW5 that is nine kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
 the check that the constant is the right size.
 
 ### Ranking
@@ -1406,7 +1406,7 @@ people. The key is **name + nationality + birth year**, and his spells are
 summed *before* the sheets are differenced — his club totals are each
 cumulative, so their sum is the cumulative total for the man, and
 differencing that gives his week. Four players have two fbref rows through
-GW4; the page lists them, oldest club first.
+GW5; the page lists them, oldest club first.
 
 Leftovers are settled on **minutes**: a club he has played for, and accepted
 only when exactly one unclaimed candidate is within `MINUTES_TOL = 10`. That
@@ -1420,21 +1420,21 @@ believable rather than plausible:
 
 ```
 verdict: clean (0 rows to check)
-gameweeks ranked: GW1, GW2, GW3, GW4
-fbref players: 406
-matched: exact 345, partial 47, surname 8, minutes 3, token 3
-minutes agree within 10: 406 of 406
+gameweeks ranked: GW1, GW2, GW3, GW4, GW5
+fbref players: 421
+matched: exact 358, partial 49, surname 8, minutes 3, token 3
+minutes agree within 10: 421 of 421
 played but absent from fbref: 0
 ```
 
 Two sources that counted the same minutes independently agreeing on **all
-406** players is the evidence. The residual disagreement is fbref quoting
+421** players is the evidence. The residual disagreement is fbref quoting
 `90s` to one decimal — 9-minute steps — plus the two disagreeing on
-stoppage time. And 406 is not a coincidence either: FPL says 310 played GW1,
-312 GW2, 307 GW3 and 307 GW4; fbref's cumulative GW1 sheet has exactly 310
-rows, and its GW4 sheet's 411 rows are those 406 people plus the five
-movers counted twice. The two sources agree on *who has played*, not just
-on how long.
+stoppage time. And 421 is not a coincidence either: FPL says 310 played GW1,
+312 GW2, 307 GW3, 307 GW4 and 302 GW5; fbref's cumulative GW1 sheet has
+exactly 310 rows, and its GW5 sheet's 426 rows are those 421 people plus
+the five movers counted twice. The two sources agree on *who has played*,
+not just on how long.
 
 The audit earned its place on the GW3 update: fbref's per-club split was new
 that week, and the verdict went straight to **NEEDS A LOOK (6 rows)** —
@@ -1470,18 +1470,19 @@ midfielder** — so the raw count and the reward do not line up: a midfielder's
 count includes recoveries and needs two more of them. Rather than distort
 the ranking to patch that, the threshold is displayed: a cell that cleared
 it carries a green ✓, and a **DC pts** column counts the gameweeks a player
-has done it. Through GW4 that is defenders 85 of 436 player-gameweeks (19%),
-midfielders 43 of 580 (7%).
+has done it. Through GW5 that is defenders 107 of 533 player-gameweeks (20%),
+midfielders 56 of 729 (8%).
 
 **Three of the four categories are attacking**, so the aggregate leans that
-way — 42 of the top 50 are midfielders, and the first defender is 19th.
+way — 41 of the top 50 are midfielders, and the first defender is 26th.
 That is the honest consequence of the categories asked for, not a bug, and
 there are two ways round it on the page: the position filter reads it as a
 defenders' board, and the **Defensive contributions** tab opens on the
-season total, which reads it as a purely defensive one. John Egan tops that
-tab on 55 actions with three weeks over the bar while sitting 147th on the
-aggregate — a good illustration of how far apart the two questions are.
-Vitaly Janelt is the counter-example, level with him on 55 and 29th.
+season total, which reads it as a purely defensive one. John Egan is in
+that tab's top ten on 59 actions with three weeks over the bar while
+sitting 154th on the aggregate — a good illustration of how far apart the
+two questions are. Vitaly Janelt is the counter-example: he leads the tab
+on 64 and is 30th, because he also gets forward.
 
 ### Keeping it current
 
