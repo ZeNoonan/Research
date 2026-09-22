@@ -696,13 +696,13 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       if (hcapOf(t) > 0)
         el("rect", { x: x(0) + wA + 1, y, width: Math.max(wH - 1, 1), height: barH, fill: c2, rx: 2 }, svg);
       el("text", { x: x(adjOf(t)) + 6, y: y + barH / 2 + 4, "font-size": 11.5, "font-weight": 600,
-        fill: css("--ink"), text: fmt(adjOf(t), D.complete ? 0 : 2) }, svg);
+        fill: css("--ink"), text: fmt(adjOf(t), D.complete ? 0 : 1) }, svg);
       const hit = el("rect", { x: 0, y: mT + i * rowH, width: W, height: rowH, fill: "transparent" }, svg);
       hit.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
         tipTitle(p, t.name);
         tipRow(p, c1, fmt(t.actual), "actual points");
         tipRow(p, c2, fmt(hcapOf(t), D.complete ? 0 : 3), D.complete ? "handicap" : "handicap so far");
-        tipRow(p, "transparent", fmt(adjOf(t), D.complete ? 0 : 2), "adjusted total");
+        tipRow(p, "transparent", fmt(adjOf(t), D.complete ? 0 : 1), "adjusted total");
       }));
       hit.addEventListener("pointerleave", tipHide);
     });
