@@ -16,21 +16,21 @@ Week,Day,Date,Time,Winner/tie,venue_marker,Loser/tie,Pts,Pts.1,TOW,TOL
 1,Sun,2026-09-13,8:20PM,Dallas Cowboys,@,New York Giants,20.0,28.0,1.0,1.0
 1,Mon,2026-09-14,8:15PM,Denver Broncos,@,Kansas City Chiefs,10.0,31.0,2.0,1.0
 2,Thu,2026-09-17,8:15PM,Detroit Lions,@,Buffalo Bills,31.0,41.0,0.0,0.0
-2,Sun,2026-09-20,1:00PM,Carolina Panthers,@,Atlanta Falcons,,,,
-2,Sun,2026-09-20,1:00PM,Cincinnati Bengals,@,Houston Texans,,,,
-2,Sun,2026-09-20,1:00PM,Cleveland Browns,@,Tampa Bay Buccaneers,,,,
-2,Sun,2026-09-20,1:00PM,Green Bay Packers,@,New York Jets,,,,
-2,Sun,2026-09-20,1:00PM,Minnesota Vikings,@,Chicago Bears,,,,
-2,Sun,2026-09-20,1:00PM,New Orleans Saints,@,Baltimore Ravens,,,,
-2,Sun,2026-09-20,1:00PM,Philadelphia Eagles,@,Tennessee Titans,,,,
-2,Sun,2026-09-20,1:00PM,Pittsburgh Steelers,@,New England Patriots,,,,
-2,Sun,2026-09-20,4:05PM,Jacksonville Jaguars,@,Denver Broncos,,,,
-2,Sun,2026-09-20,4:05PM,Las Vegas Raiders,@,Los Angeles Chargers,,,,
-2,Sun,2026-09-20,4:25PM,Miami Dolphins,@,San Francisco 49ers,,,,
-2,Sun,2026-09-20,4:25PM,Seattle Seahawks,@,Arizona Cardinals,,,,
-2,Sun,2026-09-20,4:25PM,Washington Commanders,@,Dallas Cowboys,,,,
-2,Sun,2026-09-20,8:20PM,Indianapolis Colts,@,Kansas City Chiefs,,,,
-2,Mon,2026-09-21,8:15PM,New York Giants,@,Los Angeles Rams,,,,
+2,Sun,2026-09-20,1:00PM,Carolina Panthers,@,Atlanta Falcons,34.0,3.0,0.0,5.0
+2,Sun,2026-09-20,1:00PM,Cincinnati Bengals,@,Houston Texans,20.0,6.0,0.0,0.0
+2,Sun,2026-09-20,1:00PM,Cleveland Browns,@,Tampa Bay Buccaneers,23.0,19.0,0.0,1.0
+2,Sun,2026-09-20,1:00PM,Green Bay Packers,@,New York Jets,20.0,17.0,1.0,0.0
+2,Sun,2026-09-20,1:00PM,Minnesota Vikings,@,Chicago Bears,9.0,3.0,0.0,2.0
+2,Sun,2026-09-20,1:00PM,New Orleans Saints,@,Baltimore Ravens,24.0,17.0,0.0,1.0
+2,Sun,2026-09-20,1:00PM,Philadelphia Eagles,@,Tennessee Titans,24.0,20.0,2.0,0.0
+2,Sun,2026-09-20,1:00PM,Pittsburgh Steelers,@,New England Patriots,3.0,20.0,2.0,2.0
+2,Sun,2026-09-20,4:05PM,Jacksonville Jaguars,@,Denver Broncos,13.0,20.0,1.0,1.0
+2,Sun,2026-09-20,4:05PM,Las Vegas Raiders,@,Los Angeles Chargers,26.0,14.0,1.0,3.0
+2,Sun,2026-09-20,4:25PM,Miami Dolphins,@,San Francisco 49ers,13.0,35.0,0.0,0.0
+2,Sun,2026-09-20,4:25PM,Seattle Seahawks,@,Arizona Cardinals,31.0,7.0,1.0,1.0
+2,Sun,2026-09-20,4:25PM,Washington Commanders,@,Dallas Cowboys,20.0,37.0,1.0,0.0
+2,Sun,2026-09-20,8:20PM,Indianapolis Colts,@,Kansas City Chiefs,30.0,33.0,1.0,0.0
+2,Mon,2026-09-21,8:15PM,New York Giants,@,Los Angeles Rams,6.0,28.0,1.0,2.0
 3,Thu,2026-09-24,8:15PM,Atlanta Falcons,@,Green Bay Packers,,,,
 3,Sun,2026-09-27,1:00PM,Carolina Panthers,@,Cleveland Browns,,,,
 3,Sun,2026-09-27,1:00PM,Cincinnati Bengals,@,Pittsburgh Steelers,,,,
