@@ -8,7 +8,7 @@ Seasons covered:
 
 | Season | State | Page |
 |---|---|---|
-| 2026-2027 | in progress — awaiting results | `2026_2027/index.html` (built once results land) |
+| 2026-2027 | in progress, updated weekly | `2026_2027/index.html` |
 | 2025-2026 | complete | `2025_2026/index.html` |
 
 The folder's canonical Pages URL always serves the **most recent season that
@@ -34,23 +34,39 @@ Each season lives in `data/<season>/`:
 
 - `season_handicap.csv` — `team`, `handicap`, and optionally `odds`
   (decimal odds on that team to win the handicap-adjusted league).
-- `results.csv` — match results. Either the full
-  [football-data.co.uk](https://www.football-data.co.uk/englandm.php) layout
-  (`Date`, `HomeTeam`, `AwayTeam`, `FTHG`, `FTAG`, …) or a minimal file with
-  `date`, `home`, `away`, `home_goals`, `away_goals`. Rows with blank scores
-  are treated as unplayed fixtures and ignored, so a part-season export works
-  as-is.
+- `results.csv` — match results, in any of three layouts:
+  the [football-data.co.uk](https://www.football-data.co.uk/englandm.php)
+  export (`Date`, `HomeTeam`, `AwayTeam`, `FTHG`, `FTAG`, …), an
+  [FBref](https://fbref.com) fixture export (`Date`, `Home`, `Away`, and a
+  combined `Score` like `3–0`), or a minimal file with `date`, `home`,
+  `away`, `home_goals`, `away_goals`. Blank separator rows and rows with no
+  score are ignored, so a part-season export with future fixtures still
+  listed works as-is.
+
+  **Dates.** Sources disagree on order — football-data writes `dd/mm/yyyy`,
+  FBref writes ISO `yyyy-mm-dd`. Feeding ISO dates to a day-first parser
+  silently transposes day and month whenever both are ≤ 12 (`2026-09-05`
+  becomes 9 May), which reorders fixtures with no error raised. ISO rows are
+  therefore parsed strictly as ISO and only the rest as day-first, and where
+  the file carries a weekday column (FBref's `Day`) the parsed dates are
+  checked against it — a mismatch raises at load time.
 
 Actual points are always derived from the results (3 for a win, 1 for a draw),
-never hard-coded. Team names differ between the two files (e.g.
-`Manchester Utd` vs `Man United`); the mapping lives in `analysis.py`, which
-raises if any team in the results has no handicap entry.
+never hard-coded.
+
+**Club names.** Each source spells clubs differently — the handicap sheet says
+`Nott'ham Forest`, football-data says `Nott'm Forest`, FBref says
+`Nottingham`. Both sides are resolved to a canonical club through
+`CLUB_ALIASES` in `analysis.py`, which normalises punctuation and the
+Utd/United/City/Town variants. An unrecognised spelling raises rather than
+silently dropping a team; add it to `CLUB_ALIASES` instead of editing the
+source data.
 
 ## Build
 
 ```bash
 pip install -r requirements.txt
-python build_site.py              # every season that has results
+python build_site.py              # every season that has handicaps
 python build_site.py 2026_2027    # just one
 streamlit run app.py              # interactive version, season picker in the sidebar
 ```
@@ -70,7 +86,12 @@ premier_league_handicap/
 ├── requirements.txt
 ├── README.md
 ├── 2025_2026/index.html
+├── 2026_2027/index.html
 └── data/
     ├── 2025_2026/{season_handicap.csv, results.csv}
-    └── 2026_2027/{season_handicap.csv}
+    └── 2026_2027/{season_handicap.csv, results.csv}
 ```
+
+A season becomes buildable as soon as it has a `season_handicap.csv`: with no
+results yet the page shows the handicaps and the odds market, and the table,
+race and grids appear once `results.csv` lands.
