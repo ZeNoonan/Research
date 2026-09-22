@@ -180,12 +180,14 @@ function renumber(table) {
 function filter() {
   const q = $('#q').value.trim().toLowerCase();
   const pos = $('#pos').value, team = $('#team').value;
+  const minGws = parseInt($('#mingw').value, 10) || 0;
   const table = $('table.board:not([hidden])');
   let shown = 0;
   $$('tbody tr', table).forEach(r => {
     const ok = (!q || r.dataset.name.includes(q))
       && (!pos || r.dataset.pos === pos)
-      && (!team || r.dataset.team === team);
+      && (!team || r.dataset.team === team)
+      && (+r.dataset.gws >= minGws);
     r.style.display = ok ? '' : 'none';
     if (ok) shown++;
   });
@@ -205,7 +207,7 @@ $$('.tabs button').forEach(b =>
   b.addEventListener('click', () => showView(b.dataset.view)));
 $$('table.board').forEach(t => $$('th:not(.nosort)', t).forEach(th =>
   th.addEventListener('click', () => sortBy(t, th))));
-['q', 'pos', 'team'].forEach(id =>
+['q', 'pos', 'team', 'mingw'].forEach(id =>
   $('#' + id).addEventListener('input', filter));
 showView('rank');
 """
@@ -271,7 +273,9 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
     """
     key, label, head, fmt = next(v for v in board.views() if v[0] == view)
     if view == "rank":
-        table = table.sort_values(["total", "average"])
+        # Opens on the average — how good he is when he plays — with the
+        # total, which counts turning up, as the tie-break.
+        table = table.sort_values(["average", "total"])
     else:
         table = table.sort_values(f"{key}_total", ascending=False)
 
@@ -288,8 +292,8 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
         heads += ['<th class="num" title="Gameweeks he cleared FPL\'s '
                   'defensive-contribution bar">DC pts</th>']
     if view == "rank":
-        heads += ['<th class="num" data-dir="asc">Total</th>',
-                  '<th class="num">Avg</th>']
+        heads += ['<th class="num">Total</th>',
+                  '<th class="num" data-dir="asc">Avg</th>']
     else:
         heads += [f'<th class="num" data-dir="desc">{esc(head)} total</th>']
 
@@ -322,7 +326,8 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
                          f'{fmt.format(total)}</td>')
         rows.append(
             f'<tr data-name="{esc(str(r["name"]).lower())}" '
-            f'data-pos="{esc(r["position"])}" data-team="{esc(r["team"])}">'
+            f'data-pos="{esc(r["position"])}" data-team="{esc(r["team"])}" '
+            f'data-gws="{r["played"]}">'
             + "".join(cells) + "</tr>")
 
     return (f'<table class="board" data-view="{key}"{"" if key == "rank" else " hidden"}>'
@@ -549,6 +554,11 @@ def build(board: Board, data_dir: Path, out: Path) -> None:
                         for t in teams)
     pos_opts = "".join(f'<option value="{p}">{p}</option>'
                        for p in POSITION_ORDER if (table["position"] == p).any())
+    # The floor that makes the average trustworthy: a man who played once is
+    # judged on one gameweek, and the board opens sorted on that average.
+    mingw_opts = "".join(
+        f'<option value="{n}">{n}+ gameweeks played</option>'
+        for n in range(2, len(gameweeks) + 1))
     views = board.views()
     tabs = "".join(
         f'<button data-view="{k}" aria-selected="false">{esc(lbl)}</button>'
@@ -577,6 +587,12 @@ def build(board: Board, data_dir: Path, out: Path) -> None:
     field_list = "; ".join(f"GW{g} {field[g]}" for g in gameweeks)
     quiet_list = "; ".join(
         f"GW{g} {quiet[g]} ({quiet[g] / field[g]:.0%})" for g in gameweeks)
+
+    # How many one-gameweek players the opening sort puts near the top —
+    # stated on the page rather than left for the reader to discover.
+    opening = table.sort_values(["average", "total"])
+    cameo_top20 = int((opening.head(20)["played"] == 1).sum())
+    n_gws = len(gameweeks)
 
     n_cats = len(board.categories)
     n_word = {3: "three", 4: "four"}[n_cats]
@@ -637,14 +653,21 @@ the raw numbers, and what they summed to.</p>
 
 <p class="note"><b>A player who did not play is blank</b> (&mdash;), not
 zero and not last: he was injured, rested, suspended or an unused
-substitute, and the data does not say which. But a column of blanks cannot
-be summed honestly, because missing a gameweek would then <i>improve</i> a
-player's total. So <b>Total</b> charges a missed gameweek that week's last
-place, and <b>Avg</b> is the mean over the gameweeks he actually played.
-They answer different questions &mdash; Total asks who has been most useful
-so far, Avg asks who is best when he plays &mdash; and <b>GWs</b> sits
-between them so you can always see which is which. Sorting is on any
+substitute, and the data does not say which. Two columns read that two
+ways. <b>Avg</b> is the mean over the gameweeks he actually played, so a
+missed week costs nothing &mdash; it asks <i>who is best when he plays</i>,
+and the board <b>opens sorted on it</b>. <b>Total</b> sums the ranks and
+charges a missed gameweek that week's last place, so turning up counts
+&mdash; it asks <i>who has been most useful so far</i>. Sorting is on any
 column; blanks always sink.</p>
+
+<p class="note"><b>The average is only as good as the weeks behind it.</b>
+One cameo ranked well is an average of one number, and it will sit near the
+top: through {n_gws} gameweeks this board has {cameo_top20} such
+player{'' if cameo_top20 == 1 else 's'} inside the top twenty. Nothing is hidden for it &mdash; <b>GWs</b> is on every row, and the
+<b>gameweeks played</b> filter above the table sets a floor when you want
+one. Total is the column that already accounts for absence, and it is one
+click away.</p>
 
 <p class="note"><b>Totals, not rates.</b> A substitute who plays ten minutes
 is ranked against a man who played ninety, on the same raw numbers. That is
@@ -673,6 +696,7 @@ ignored.</p>
 <input id="q" type="search" placeholder="Search player…" autocomplete="off">
 <select id="pos"><option value="">All positions</option>{pos_opts}</select>
 <select id="team"><option value="">All clubs</option>{team_opts}</select>
+<select id="mingw"><option value="">Any number of GWs</option>{mingw_opts}</select>
 </div>
 <div class="tablewrap">{tables}</div>
 <p class="count" id="count"></p>

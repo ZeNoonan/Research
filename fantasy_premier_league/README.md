@@ -1380,12 +1380,20 @@ A player who did not play is **blank**, not zero and not last. But blanks
 cannot be summed honestly, because missing a gameweek would then *improve* a
 total, so:
 
+* **Avg** — the mean over the gameweeks he played, so a missed week costs
+  nothing. Who is best when he plays. **The default sort.**
 * **Total** — ranks summed, a missed gameweek charged that week's last
-  place. Who has been most useful so far. The default sort.
-* **Avg** — the mean over the gameweeks he played. Who is best when he
-  plays.
+  place, so turning up counts. Who has been most useful so far.
 * **GWs** and **Mins** sit beside them, because the two answers diverge and
   you need to see which you are reading.
+
+Sorting on the average has one failure mode, and the page says so rather
+than hiding it: **one cameo ranked well is an average of one number**, and
+it lands near the top. Through GW5 the shots board has five one-gameweek
+players inside the top twenty — Tyler Dibling is 2nd off 24 minutes. So a
+**gameweeks played** filter sits with the search and position controls, and
+Total, which already charges absence, is one click on its heading away.
+Nothing is filtered by default: the board opens showing everyone.
 
 The ranking is on totals, not rates: a ten-minute substitute is ranked
 against a man who played ninety, on the same raw numbers.
