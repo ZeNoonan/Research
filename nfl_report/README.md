@@ -10,11 +10,11 @@
    including the `TOW`/`TOL` turnover columns. **Turnovers are the blocker:** two
    of the five factors read them, and without them the next week cannot be picked
    at all (the system deliberately declines rather than guessing).
-2. **Odds** — the nflverse `games` export (what you have been sending). Ideally
-   **as late as practical before the Thursday kick-off**: lines are imported once
-   and never overwritten, so a later export means a number closer to closing.
-   Week 2's Lions–Bills came in at −3.5 on the Tuesday and had moved to −5.5 by
-   kick-off. It did not change that result, but one day it will.
+2. **Odds** — the nflverse `games` export (what you have been sending). Send it
+   **as late as practical before the Thursday kick-off**, and send it again
+   mid-week if you like: an *unplayed* game's line now tracks the latest export,
+   so each one moves the number closer to the close. A game's line freezes the
+   moment it is played, so a later export can never revise a settled result.
 
 ### Nothing needed for these
 
