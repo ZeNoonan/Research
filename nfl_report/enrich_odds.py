@@ -19,8 +19,12 @@ two specific gaps in ``data/odds_<year>.csv``:
   the power fit zeroes its 3-point term for them. The odds export flags only
   some of them; nflverse flags all.
 
-A genuine closing line we already hold is **never** overwritten, so seasons keep
-the book they were built on. Only the two gaps above are repaired.
+Once a game has been **played** its line is frozen: the number the pick was made
+on is the number it is graded on, so a later export can never revise settled
+history. Before a game is played there is nothing to revise, so its line tracks
+the latest export — which is how a number imported early moves toward the close
+as kick-off approaches. Repairing an absent or opening-only line is allowed at
+any time, since that is fixing data rather than revising it.
 
 Sign convention: nflverse ``spread_line`` is positive when the home team is
 favoured, the opposite of this project's ``line``, so it is negated.
@@ -81,6 +85,19 @@ def nickname_of(full_name: str) -> str:
         else full_name.split()[-1]
 
 
+def played_games(year: int) -> pd.DataFrame:
+    """Date and team pair of every game of ``year`` that has been played."""
+    r = pd.read_csv(DATA_DIR / f"results_{year}.csv").dropna(subset=["Winner/tie", "Loser/tie"])
+    r = r[r["Pts"].notna() & r["Pts.1"].notna()].copy()
+    r["date"] = pd.to_datetime(r["Date"])
+    away_first = r["venue_marker"] == "@"
+    r["home"] = np.where(away_first, r["Loser/tie"], r["Winner/tie"])
+    r["away"] = np.where(away_first, r["Winner/tie"], r["Loser/tie"])
+    for c in ("home", "away"):
+        r[c] = r[c].map(nickname_of)
+    return r[["date", "home", "away"]]
+
+
 def pricing_horizon(year: int) -> int:
     """The furthest week worth importing a line for.
 
@@ -104,15 +121,16 @@ def pricing_horizon(year: int) -> int:
 
 
 def enrich_year(year: int, schedule: pd.DataFrame,
-                horizon: int) -> tuple[pd.DataFrame, int, int, int]:
-    """Return (odds frame, lines filled, neutral flags, held back, opens replaced)."""
+                horizon: int) -> tuple[pd.DataFrame, int, int, int, int]:
+    """Return (odds frame, filled, neutral flags, held back, replaced, refreshed)."""
     odds = pd.read_csv(DATA_DIR / f"odds_{year}.csv", parse_dates=["Date"])
+    done = played_games(year)
     # An all-empty flag column reads as float64, which will not take "Y".
     for flag in ("Neutral Venue?", "Playoff Game?"):
         odds[flag] = odds[flag].astype(object)
     season = schedule[schedule["season"] == year]
 
-    filled = flagged = held = replaced = 0
+    filled = flagged = held = replaced = refreshed = 0
     for i, row in odds.iterrows():
         home, away = nickname_of(row["Home Team"]), nickname_of(row["Away Team"])
         cand = season[(season["home"] == home) & (season["away"] == away)]
@@ -121,24 +139,31 @@ def enrich_year(year: int, schedule: pd.DataFrame,
             continue
         match = cand.iloc[0]
 
-        # No close of our own: either nothing at all, or only an opening number
-        # standing in for one. Both are repaired from the second source; a close
-        # we already hold is left alone.
-        needs_close = pd.isna(row["Home Line Close"])
-        if needs_close and not pd.isna(match["line"]):
-            if match["week"] <= horizon:
-                odds.at[i, "Home Line Close"] = match["line"]
-                if pd.isna(row["Home Line Open"]):
-                    filled += 1
-                else:
-                    replaced += 1
-            else:
+        # Either orientation counts: a neutral-venue game (the Super Bowl) can be
+        # oriented one way in the odds export and the other in the results file,
+        # and it is played regardless of which team is called home.
+        hit = done[((done["home"] == home) & (done["away"] == away))
+                   | ((done["home"] == away) & (done["away"] == home))]
+        is_played = bool(len(hit[(hit["date"] - row["Date"]).abs() <= pd.Timedelta(days=1)]))
+
+        # Repair an absent or opening-only line at any time; refresh a genuine
+        # close only while the game is still to be played.
+        no_close = pd.isna(row["Home Line Close"])
+        if (no_close or not is_played) and not pd.isna(match["line"]):
+            if match["week"] > horizon:
                 held += 1  # priced further ahead than we can pick
+            elif no_close:
+                odds.at[i, "Home Line Close"] = match["line"]
+                filled += 1 if pd.isna(row["Home Line Open"]) else 0
+                replaced += 0 if pd.isna(row["Home Line Open"]) else 1
+            elif row["Home Line Close"] != match["line"]:
+                odds.at[i, "Home Line Close"] = match["line"]
+                refreshed += 1
         if match["location"] == "Neutral" and row.get("Neutral Venue?") != "Y":
             odds.at[i, "Neutral Venue?"] = "Y"
             flagged += 1
 
-    return odds, filled, flagged, held, replaced
+    return odds, filled, flagged, held, replaced, refreshed
 
 
 def main() -> None:
@@ -146,12 +171,13 @@ def main() -> None:
     years = sorted(int(p.stem.split("_")[1]) for p in DATA_DIR.glob("odds_*.csv"))
     for year in years:
         horizon = pricing_horizon(year)
-        odds, filled, flagged, held, replaced = enrich_year(year, schedule, horizon)
-        if filled or flagged or replaced:
+        odds, filled, flagged, held, replaced, refreshed = enrich_year(year, schedule, horizon)
+        if filled or flagged or replaced or refreshed:
             odds[ODDS_COLUMNS].to_csv(DATA_DIR / f"odds_{year}.csv", index=False)
         note = ", ".join(
             p for p in (f"{filled} line(s) filled" if filled else "",
                         f"{replaced} opening line(s) replaced with closes" if replaced else "",
+                        f"{refreshed} unplayed line(s) refreshed" if refreshed else "",
                         f"{flagged} neutral venue(s) flagged" if flagged else "",
                         f"{held} priced beyond week {horizon}, held back" if held else "")
             if p) or "nothing to repair"
