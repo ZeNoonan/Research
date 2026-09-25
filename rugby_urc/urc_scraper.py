@@ -248,13 +248,28 @@ def turnovers(stats: dict[str, dict[str, float]]) -> dict:
     }
 
 
+def column_name(label: str) -> str:
+    """A stat label as a column stem: "Tackles Made" -> "tackles_made"."""
+    text = words(label).replace("%", " pct ")
+    return re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+
+
 def match_row(body: dict, match_id: str) -> dict:
-    """One CSV row from a match response."""
+    """One CSV row from a match response: the model's columns, then every stat.
+
+    The fixed ``COLUMNS`` come first and are what ``import_turnovers.py`` reads.
+    Every other stat in the response follows as a ``home_``/``away_`` pair, in
+    the order the feed lists them. Two guards: the turnover stats already used
+    are not repeated, and an extra stat can never overwrite one of the fixed
+    columns - a stat the feed happened to label "Score" must not replace the
+    score the model grades on.
+    """
     data = body.get("data", body)
     home, away = data.get("homeTeam") or {}, data.get("awayTeam") or {}
-    t = turnovers(find_stats(data))
+    stats = find_stats(data)
+    t = turnovers(stats)
     found = " / ".join(x for x in (t["won_label"], t["lost_label"]) if x)
-    return {
+    row = {
         "Date": str(data.get("date", ""))[:10],
         "Round": data.get("round"),
         "Home Team": home.get("name"), "Away Team": away.get("name"),
@@ -265,6 +280,25 @@ def match_row(body: dict, match_id: str) -> dict:
         "status": str(data.get("status") or ""),
         "found_as": found,
     }
+    for label, values in stats.items():
+        stem = column_name(label)
+        if not stem or label in (t["won_label"], t["lost_label"]):
+            continue
+        for side in ("home", "away"):
+            row.setdefault(f"{side}_{stem}", values.get(side))
+    return row
+
+
+def table_columns(rows: list[dict]) -> list[str]:
+    """The fixed columns, then every extra stat in first-seen order.
+
+    Matches in one round need not carry identical stat lists, so the union is
+    taken; a stat missing from one match is simply blank in its row.
+    """
+    extra: list[str] = []
+    for row in rows:
+        extra += [k for k in row if k not in COLUMNS and k not in extra]
+    return COLUMNS + extra
 
 
 def complete(row: dict) -> bool:
@@ -369,17 +403,24 @@ def main() -> None:
     if not rows:
         st.stop()
 
-    table = pd.DataFrame(rows, columns=COLUMNS)
+    table = pd.DataFrame(rows, columns=table_columns(rows))
+    extra_stats = (len(table.columns) - len(COLUMNS)) // 2
     missing = table[~table.apply(lambda r: complete(r.to_dict()), axis=1)]
     if missing.empty:
-        st.success(f"Turnovers found for all {len(table)} match(es).")
+        st.success(f"Turnovers found for all {len(table)} match(es), "
+                   f"plus {extra_stats} other stats per match.")
     else:
         st.warning(f"Turnovers incomplete for {len(missing)} match(es): "
                    + ", ".join(f"{r['Home Team']} v {r['Away Team']}"
                                for _, r in missing.iterrows())
                    + ". Open 'Every stat found' below to see what the feed calls "
                      "them, or download the raw JSON and send it over.")
-    wide(st, table, hide_index=True)
+    st.subheader("For the report")
+    wide(st, table[COLUMNS], hide_index=True)
+    st.subheader(f"Every stat, one row per match ({extra_stats} stats)")
+    wide(st, table.drop(columns=["status", "found_as"]), hide_index=True)
+    st.caption("Both tables are in the CSV. The extra stats are for your own use; "
+               "the report reads only the columns in the first.")
 
     OUT.mkdir(parents=True, exist_ok=True)
     stamp = label if label != "pasted" else f"to_{table['Date'].max()}"

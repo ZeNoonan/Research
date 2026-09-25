@@ -114,7 +114,50 @@ def pure_checks() -> bool:
     frame = pd.DataFrame([{**WANT, "away_turnovers_lost": None}])
     passed &= check("a count missing after a DataFrame round-trip is caught",
                     not s.complete(frame.iloc[0].to_dict()))
+
+    print("\n3. every other stat on the page")
+    row = s.match_row(LAYOUTS["paired list"], "292584")
+    passed &= check("other stats come through as home_/away_ pairs",
+                    row.get("home_tackles") == 150 and row.get("away_tackles") == 140)
+    passed &= check("and qualified turnover stats are kept as extras",
+                    row.get("home_ruck_turnovers_won") == 3)
+    passed &= check("the turnover stats already used are not repeated",
+                    "home_turnovers_conceded" not in row)
+    row = s.match_row(LAYOUTS["per-team dict"], "292584")
+    passed &= check("a player's stats never become team columns",
+                    99 not in row.values())
+
+    tricky = {"data": {"homeTeam": HOME, "awayTeam": AWAY, **META, "stats": [
+        {"name": "Turnovers Won", "home": 7, "away": 5},
+        {"name": "Turnovers Conceded", "home": 9, "away": 12},
+        {"name": "Score", "home": 999, "away": 999},
+        {"name": "Possession %", "home": "54%", "away": "46%"},
+        {"name": "Tackles Made", "home": 150, "away": 140}]}}
+    row = s.match_row(tricky, "1")
+    passed &= check("a stat labelled 'Score' cannot overwrite the real score",
+                    (row["home_score"], row["away_score"]) == (24, 17),
+                    f"{row['home_score']}-{row['away_score']}")
+    passed &= check("percentages parse, and are named as such",
+                    row.get("home_possession_pct") == 54, 
+                    str({k: v for k, v in row.items() if "possession" in k}))
+
+    a = s.match_row(LAYOUTS["paired list"], "1")
+    b = s.match_row(tricky, "2")
+    cols = s.table_columns([a, b])
+    passed &= check("a round's columns: the report's first, then the union of stats",
+                    cols[:len(s.COLUMNS)] == s.COLUMNS
+                    and {"home_tackles", "home_tackles_made"} <= set(cols))
     return passed
+
+
+def import_turnovers_reads(csv: Path) -> bool:
+    """The importer must take the real columns, not a lookalike extra stat."""
+    import import_turnovers
+    found = import_turnovers.find_columns(pd.read_csv(csv))
+    return found == {"home_turnovers_conceded": "home_turnovers_lost",
+                     "away_turnovers_conceded": "away_turnovers_lost",
+                     "home_turnovers_won": "home_turnovers_won",
+                     "away_turnovers_won": "away_turnovers_won"}
 
 
 def clean(at, label: str) -> bool:
@@ -131,7 +174,7 @@ def app_checks() -> bool:
     try:
         from streamlit.testing.v1 import AppTest
     except ImportError:
-        print("\n3. the app - skipped (streamlit not installed)")
+        print("\n4. the app - skipped (streamlit not installed)")
         return True
 
     passed = True
@@ -140,7 +183,7 @@ def app_checks() -> bool:
     script = str(tmp / "urc_scraper.py")
     real_get = requests.get
     try:
-        print("\n3. the app, headless")
+        print("\n4. the app, headless")
         try:
             real_get(s.FEED, timeout=5)
             reachable = True
@@ -175,7 +218,8 @@ def app_checks() -> bool:
         def fake_get(url, **_):
             if m := re.search(r"/matches/(\d+)\?", url):
                 f = next(x for x in fixtures if x["id"] == int(m.group(1)))
-                stats = [{"name": "Turnovers Won", "home": 6, "away": 4},
+                stats = [{"name": "Tackles Made", "home": 140, "away": 131},
+                         {"name": "Turnovers Won", "home": 6, "away": 4},
                          {"name": "Turnovers Conceded", "home": 9, "away": 11}]
                 return Response({"data": {**f, "stats": stats[:1] if f["id"] == short else stats}})
             if "/matches?" in url:
@@ -200,8 +244,13 @@ def app_checks() -> bool:
         passed &= check("the round is saved for import_turnovers.py", len(saved) == 1)
         if saved:
             got = pd.read_csv(saved[0])
-            passed &= check("in the columns import_turnovers.py reads",
-                            list(got.columns) == s.COLUMNS and len(got) == 8)
+            passed &= check("with the report's columns first, then every stat",
+                            list(got.columns[:len(s.COLUMNS)]) == s.COLUMNS
+                            and "home_tackles_made" in got.columns and len(got) == 8)
+            passed &= check("and import_turnovers.py reads the right columns from it",
+                            import_turnovers_reads(saved[0]))
+        passed &= check("both tables are drawn", len(at.dataframe) >= 3,
+                        f"{len(at.dataframe)} tables")
 
         at = AppTest.from_file(script, default_timeout=60).run()
         at.radio[0].set_value("Paste match links").run()
@@ -210,7 +259,7 @@ def app_checks() -> bool:
             passed &= check("paste mode reads the example link", bool(at.success)
                             and at.dataframe[0].value["match_id"].iloc[0] == "292584")
 
-        print("\n4. the report viewer (app.py), headless")
+        print("\n5. the report viewer (app.py), headless")
         requests.get = real_get
         at = AppTest.from_file(str(HERE / "app.py"), default_timeout=60).run()
         if clean(at, "app.py renders"):

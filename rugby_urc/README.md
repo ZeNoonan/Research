@@ -496,6 +496,18 @@ against the four layouts team stats are usually published in, and against a
 player carrying the same stat names with an impossible value — a player's count
 must never pass as the team's.
 
+**It saves every stat, not just turnovers.** The same search that finds the
+turnovers finds everything else carrying a home and an away value — tackles,
+possession, carries, whatever the feed publishes — and each becomes a
+`home_`/`away_` column pair in the round's CSV, after the columns the report
+reads. `import_turnovers.py` takes only its own columns from that file, and
+takes them by exact name first, so a lookalike such as `home_ruck_turnovers_won`
+can never be read in their place whatever order the columns are in. A stat the
+feed happened to label "Score" cannot overwrite the real score either.
+
+The first real run found the turnovers for Benetton v Dragons. The one thing
+still unconfirmed is that the numbers match the Stats tab on the page.
+
 So the first real run is the real test. If it cannot find turnovers it says
 which match, and two panels make the fix quick: **Every stat found** shows what
 the feed calls things, and **Raw JSON** downloads the response to send over,
