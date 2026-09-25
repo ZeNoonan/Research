@@ -619,6 +619,7 @@ def build(board: Board, data_dir: Path, out: Path) -> None:
 <b>fbref</b>, everything else from the <b>FPL API</b>. Every
 penalty attempt costs its taker <b>{S.PENALTY_XG:.2f} xG</b> in the week he
 took it. {other_link}
+<a href="teams.html" style="color:var(--accent2)">Team board &rarr;</a>
 <a href="preseason.html" style="color:var(--accent2)">Pre-season
 board &rarr;</a> <a href="index.html" style="color:var(--accent2)">In-season
 app &rarr;</a></div>

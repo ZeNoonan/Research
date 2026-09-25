@@ -606,7 +606,8 @@ shown as a diagnostic but no longer scored.
 <a href="index.html" style="color:var(--accent2)">In-season app →</a>
 <a href="shots.html" style="color:var(--accent2)">Shots, xG and xA by
 gameweek →</a>
-<a href="defcon.html" style="color:var(--accent2)">Defcon board →</a></div>
+<a href="defcon.html" style="color:var(--accent2)">Defcon board →</a>
+<a href="teams.html" style="color:var(--accent2)">Team board →</a></div>
 
 <section><h2>Read this first</h2>
 <p class="note">Every number here comes from <b>{esc(history_season)}</b>.
