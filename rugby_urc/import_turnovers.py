@@ -51,14 +51,22 @@ def _slug(name: str) -> str:
 
 
 def find_columns(df: pd.DataFrame) -> dict[str, str]:
-    """Map our column names onto whatever this sheet calls them."""
+    """Map our column names onto whatever this sheet calls them.
+
+    An exact name wins; otherwise the plainest of the loose matches, i.e. the
+    shortest. Order in the sheet must not decide it: a scraped round also
+    carries ``home_ruck_turnovers_won`` and the like, which match loosely too,
+    and whichever came first would otherwise be taken.
+    """
     found = {}
     for target, (side, words) in WANTED.items():
-        for col in df.columns:
-            key = _slug(col)
-            if "turnover" in key and side in key and any(w in key for w in words):
-                found[target] = col
-                break
+        exact = {_slug(target), _slug(target.replace("conceded", "lost"))}
+        loose = [col for col in df.columns
+                 if "turnover" in (key := _slug(col)) and side in key
+                 and any(w in key for w in words)]
+        if loose:
+            found[target] = next((c for c in loose if _slug(c) in exact),
+                                 min(loose, key=lambda c: len(_slug(c))))
     missing = set(WANTED) - set(found)
     if missing:
         raise SystemExit(
