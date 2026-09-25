@@ -235,9 +235,13 @@ def team_weeks(data_dir: str | Path = DATA,
     # match either, so the adjustment is applied to the week's sum.
     wk["xg_for"] = wk["xg_raw_for"] - S.PENALTY_XG * wk["pkatt_for"]
     wk["xg_against"] = wk["xg_raw_against"] - S.PENALTY_XG * wk["pkatt_against"]
+    # Sums of 2-place numbers carry binary noise that would split genuine
+    # ties in the ranks; see shots.XG_DECIMALS.
+    xg_cols = ["xg_raw_for", "xg_raw_against", "xg_for", "xg_against"]
+    wk[xg_cols] = wk[xg_cols].round(S.XG_DECIMALS)
 
     wk["shots_diff"] = wk["shots_for"] - wk["shots_against"]
-    wk["xg_diff"] = wk["xg_for"] - wk["xg_against"]
+    wk["xg_diff"] = (wk["xg_for"] - wk["xg_against"]).round(S.XG_DECIMALS)
     wk["goals_diff"] = wk["goals_for"] - wk["goals_against"]
 
     wk.attrs["audit"] = _audit(results, fixtures, shots_wk, xg_fx, wk, gws,
@@ -369,7 +373,7 @@ def board(ranked: pd.DataFrame) -> pd.DataFrame:
         for g in gws:
             out[f"{key}_gw{g}"] = val[g]
             out[f"{key}_rank_gw{g}"] = rk[g]
-        out[f"{key}_total"] = val.sum(axis=1)
+        out[f"{key}_total"] = val.sum(axis=1).round(S.XG_DECIMALS)
 
     opp = ranked.pivot(index="team", columns="gw", values="opponent").reindex(
         index=teams, columns=gws)
