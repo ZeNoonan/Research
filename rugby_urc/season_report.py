@@ -53,7 +53,8 @@ HOME_ADVANTAGE = 5.0
 # Off by default so the model is a straight port; ``calibrate.py`` estimates it.
 LONG_HAUL_PENALTY = 0.0
 
-SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line", "line_source",
+SEASON_COLUMNS = ["round", "date", "home", "away", "neutral",
+                  "opening_line", "closing_line", "line_source",
                   "home_score", "away_score",
                   "home_turnovers_conceded", "away_turnovers_conceded",
                   "home_turnovers_won", "away_turnovers_won"]
@@ -63,6 +64,18 @@ SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line", "line_sour
 # provenance (opening vs closing lines), so it is recorded rather than implied.
 LINE_QUOTED = ""
 LINE_INFERRED = "inferred-1x2"
+
+
+def model_line(opening: pd.Series, closing: pd.Series) -> pd.Series:
+    """The handicap the model runs on: the close, or the open until there is one.
+
+    ``nfl_report`` is defined on the closing line, falling back to the opening
+    line only where the close is missing, and this is the same rule. The close
+    carries what the open predates - in the URC chiefly the team sheets, which
+    moved round 1 of 2026-27 by up to 13 points. The opening line is otherwise
+    kept only as a record of how the market moved.
+    """
+    return closing.fillna(opening)
 
 
 def available_seasons() -> list[int]:
@@ -87,13 +100,16 @@ def load_season(year: int) -> pd.DataFrame:
             df[col] = np.nan
     df = df.dropna(subset=["home", "away"]).copy()
     if df.empty:
-        return df.assign(season=year, played=False, playoff=False, long_haul=False)
+        return df.assign(line=np.nan, season=year, played=False, playoff=False,
+                         long_haul=False)
 
     for col in ("home", "away"):
         df[col] = df[col].map(teams.canonical)
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["round"] = pd.to_numeric(df["round"], errors="coerce").astype("Int64")
-    df["line"] = pd.to_numeric(df["line"], errors="coerce")
+    for col in ("opening_line", "closing_line"):
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df["line"] = model_line(df["opening_line"], df["closing_line"])
     for col in ("home_score", "away_score",
                 "home_turnovers_conceded", "away_turnovers_conceded",
                 "home_turnovers_won", "away_turnovers_won"):
@@ -317,7 +333,8 @@ def build_reports() -> dict[int, pd.DataFrame]:
         reports[year] = pd.DataFrame({
             "date": season["date"].dt.strftime("%Y-%m-%d"),
             "round": season["round"].astype(int),
-            "home": season["home"], "away": season["away"], "line": season["line"],
+            "home": season["home"], "away": season["away"],
+            "opening_line": season["opening_line"], "line": season["line"],
             "home_score": season["home_score"], "away_score": season["away_score"],
             "home_lgt": season["home_lgt"], "home_stdc": season["home_stdc"],
             "home_power": season["home_power"], "away_lgt": season["away_lgt"],

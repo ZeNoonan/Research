@@ -2,7 +2,9 @@
 
 oddsportal publishes 1X2 decimal odds and the score, not a handicap, so each
 match's line is derived with ``spread_from_odds`` and marked
-``line_source = inferred-1x2`` - never left to pass as a quoted spread. Rows
+``line_source = inferred-1x2`` - never left to pass as a quoted spread. The
+prices it archives are the closing ones, so the line lands in ``closing_line``,
+the column the model runs on. Rows
 whose quote is too coarse to pin a line (heavy favourites, where one 0.01 tick
 is worth more than a point) are reported, and with ``--skip-coarse`` left
 unpriced rather than filled with a number that cannot bear the weight.
@@ -134,8 +136,9 @@ def to_season_rows(df: pd.DataFrame, sigma: float, skip_coarse: bool) -> pd.Data
         priced = not (coarse and skip_coarse)
         rows.append({
             "round": int(r.round), "date": r.date,
-            "home": r.home, "away": r.away, "neutral": "",
-            "line": round(sfo.line_from_odds(*quote, sigma) * 2) / 2 if priced else "",
+            "home": r.home, "away": r.away, "neutral": "", "opening_line": "",
+            "closing_line": (round(sfo.line_from_odds(*quote, sigma) * 2) / 2
+                             if priced else ""),
             "line_source": season_report.LINE_INFERRED if priced else "",
             "home_score": r.home_score, "away_score": r.away_score,
             "home_turnovers_conceded": "", "away_turnovers_conceded": "",
@@ -168,15 +171,15 @@ def merge_into_season(new: pd.DataFrame, season: int) -> tuple[Path, int]:
                 existing[col] = ""
         quoted = {(r.date, r.home, r.away)
                   for r in existing.itertuples()
-                  if filled(r.line) and not filled(r.line_source)}
-        # Stringify before blanking: `line` is numeric here, and pandas will not
-        # take "" into a float column.
+                  if filled(r.closing_line) and not filled(r.line_source)}
+        # Stringify before blanking: the line is numeric here, and pandas will
+        # not take "" into a float column.
         new = new.astype(str)
         if quoted:
             drop = new.apply(lambda r: (r["date"], r["home"], r["away"]) in quoted,
                              axis=1)
             kept = int(drop.sum())
-            new.loc[drop, ["line", "line_source"]] = ""
+            new.loc[drop, ["closing_line", "line_source"]] = ""
         combined = pd.concat([existing[SEASON_COLUMNS], new], ignore_index=True)
         # A later read of the same match wins, but only for the fields it fills.
         # ``filled`` must test for missing explicitly: ``str(float("nan"))`` is
