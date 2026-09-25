@@ -352,9 +352,14 @@ Table 3 of the Wilmott article: **every value Brown published is reproduced
 exactly — all 35 (seven seasons 2010–2016 × five factors)**. (The article's
 prose suggests neutral factors also get blocking credit; that variant does
 *not* reproduce the published table.)
-Both tables render in the web view's "Factor diagnostics" section. A standalone
-rate is only shown once at least 25 of that factor's votes have settled, so a
-season in progress shows a dash rather than a meaningless 0% or 100%.
+Both tables render in the web view's "Factor diagnostics" section. For a season
+in progress, a standalone rate is shown once 10 of that factor's votes have
+settled, in italics with its sample size — e.g. *47 (17)* — and left uncoloured
+against Brown's 52% bar until it passes 100 votes. Every completed season has at
+least ~180 settled votes per factor, so the provisional mark only ever appears on
+the live season. (It was previously hidden below 25 votes, which blanked the two
+hunger factors early in 2026 — they only begin voting in week 2 — while power and
+turnovers, voting from week 1, were shown. That read as hunger being broken.)
 
 ## Heatmaps
 
