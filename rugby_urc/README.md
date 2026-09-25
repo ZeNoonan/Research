@@ -377,7 +377,9 @@ rugby_urc/
 ├── import_oddsportal.py # pasted results+odds -> season file, handicaps inferred
 ├── spread_from_odds.py # 1X2 decimal odds -> a handicap (Shin de-vig + normal)
 ├── line_check.py       # check inferred handicaps against real ones, re-fit sigma
-├── import_turnovers.py # match-centre turnover sheet -> season file
+├── import_turnovers.py # match-centre turnover sheet -> season file (scores too)
+├── urc_scraper.py      # Streamlit: a round's turnovers + scores from the feed
+├── test_scraper.py     # scraper checks, incl. the app run headless
 ├── entry_sheet.py      # export a sheet to type into, and read it back
 ├── season_report.py    # season files -> data/report_<year>.csv
 ├── calibrate.py        # fit HOME_ADVANTAGE from the handicaps
@@ -458,10 +460,48 @@ streamlit run app.py                               # browse it
    priced, and `closing_line` once the teams are named, as late as practical
    before kick-off. Picks made on the opening line alone are provisional. In
    round 1 the close changed two of them.
-2. **Scores and turnovers** for the round just played, from
-   <https://stats.unitedrugby.com/match-centre/2026-27/>. **Turnovers are the
-   blocker**: without them the next round cannot be picked at all.
+2. **Scores and turnovers** for the round just played — scraped, not typed:
+
+   ```bash
+   streamlit run urc_scraper.py
+   ```
+
+   Pick the round (it defaults to the latest one played) and press *Fetch*. It
+   writes `entry/scraped/urc_202601_roundNN.csv`, then:
+
+   ```bash
+   python import_turnovers.py entry/scraped/urc_202601_round01.csv --season 2026
+   ```
+
+   **Turnovers are the blocker**: without them the next round cannot be picked
+   at all.
 3. `python entry_sheet.py import --season 2026 && python season_report.py && python build_site.py`
+
+### The scraper, and what it cannot yet be sure of
+
+The match centre is a JavaScript page; its numbers come from a JSON feed
+(`rugby-union-feeds.incrowdsports.com`, data from RugbyViz). `urc_scraper.py`
+reads that feed directly with `requests` — the same approach as reading the FPL
+API rather than the FPL website. Both endpoints it uses, the season's match
+list and a single match, are documented by working code in the public
+[transientlunatic/Rugby-Data](https://github.com/transientlunatic/Rugby-Data)
+project, including the URC's competition id (1068).
+
+**What is not documented anywhere is where the team stats sit inside a match
+response**, and the feed is blocked from the environment this was written in,
+so the scraper has not yet read a real match. Rather than hard-code a guessed
+path, it walks the whole response and collects every stat carrying a home and
+an away value, then picks turnovers won and conceded out by name. It is tested
+against the four layouts team stats are usually published in, and against a
+player carrying the same stat names with an impossible value — a player's count
+must never pass as the team's.
+
+So the first real run is the real test. If it cannot find turnovers it says
+which match, and two panels make the fix quick: **Every stat found** shows what
+the feed calls things, and **Raw JSON** downloads the response to send over,
+after which the extraction can be pinned to the real path. Two cases it will
+deliberately refuse to guess: a bare "Turnovers" label (it could mean either),
+and a match missing one of the two counts.
 
 ## View on a phone
 

@@ -14,6 +14,8 @@ ordered everything by.
 
 Accepts ``.xlsx`` or ``.csv``. Column names are matched loosely, so
 ``home_turnovers_lost`` and ``home_turnovers_conceded`` are both understood.
+Scores are taken too when the sheet has them (``home_score``, ``Home Points``),
+so a round scraped by ``urc_scraper.py`` loads in one step.
 
 Run::
 
@@ -82,6 +84,11 @@ def load_source(path: Path, sheet: str | None) -> pd.DataFrame:
     })
     out["source_date"] = (pd.to_datetime(raw[date_col], errors="coerce")
                           if date_col else pd.NaT)
+    for side in ("home", "away"):
+        col = next((c for c in raw.columns
+                    if _slug(c) in (f"{side}score", f"{side}points")), None)
+        out[f"{side}_score"] = (pd.to_numeric(raw[col], errors="coerce")
+                                if col else float("nan"))
     return out.dropna(subset=["home", "away"])
 
 
@@ -156,7 +163,7 @@ def main() -> None:
             if gap:
                 date_gaps.append((r.home, r.away, season_dates[i].date(),
                                   r.source_date.date(), gap))
-        for col in WANTED:
+        for col in (*WANTED, "home_score", "away_score"):
             value = getattr(r, col)
             if pd.notna(value):
                 season.at[i, col] = str(int(value))
