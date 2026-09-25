@@ -54,10 +54,37 @@ td.gw.top { font-weight: 700; }
 .legend.heatkey { margin: 0 0 10px; }
 .ramp { display: inline-block; width: 140px; height: 12px; border-radius: 3px;
   vertical-align: -1px; border: 1px solid var(--border); }
+/* The fixture ticker: 30-odd gameweek columns, so the club stays pinned
+   while the fixtures scroll under it. */
+table.ticker th, table.ticker td { padding: 5px 6px; }
+table.ticker td.fx { text-align: center; font-weight: 700; font-size: 13px;
+  min-width: 52px; font-variant-numeric: tabular-nums; }
+table.ticker th.gwh { text-align: center; }
+table.ticker th.gwh small { display: block; font-weight: 400; font-size: 10px;
+  text-transform: none; letter-spacing: 0; }
+table.ticker .pin { position: sticky; background: var(--card); z-index: 1; }
+table.ticker .pin0 { left: 0; min-width: 30px; }
+table.ticker .pin1 { left: 30px; min-width: 118px;
+  box-shadow: 1px 0 0 var(--border); }
+table.ticker td.fx .opp { font-weight: 400; }
 @media (prefers-color-scheme: dark) {
   td.gw.rb { background: rgba(239, 122, 114, .14); }
 }
 """
+
+# Three-letter codes for the ticker's cells, FPL's own abbreviations.
+SHORT = {
+    "Arsenal": "ARS", "Aston Villa": "AVL", "Bournemouth": "BOU",
+    "Brentford": "BRE", "Brighton": "BHA", "Chelsea": "CHE",
+    "Coventry City": "COV", "Crystal Palace": "CRY", "Everton": "EVE",
+    "Fulham": "FUL", "Hull City": "HUL", "Ipswich Town": "IPS",
+    "Leeds": "LEE", "Liverpool": "LIV", "Man City": "MCI", "Man Utd": "MUN",
+    "Newcastle": "NEW", "Nott'm Forest": "NFO", "Spurs": "TOT",
+    "Sunderland": "SUN",
+}
+
+# How many gameweeks ahead the ticker's summary column looks.
+TICKER_WINDOW = 6
 
 # Each section sorts its own tables and switches its own tabs; there is no
 # search or filter, since twenty clubs fit on a screen.
@@ -344,6 +371,88 @@ def side_section(side: str, wk: pd.DataFrame, seasons: dict) -> str:
 </section>"""
 
 
+def ticker_section(wk: pd.DataFrame, seasons: dict) -> str:
+    """The fixture ticker: every club's remaining games, shaded by opponent defence.
+
+    The shade is the opponent's season rank on the Defence composite — the
+    same ramp as the boards above, so the bottom of the Defence table is deep
+    green and the top deep red. The summary column averages that rank over
+    the next few gameweeks: the higher it is, the leakier the defences ahead.
+    """
+    last = max(wk.attrs["gameweeks"])
+    fx = T.ticker(last)
+    if fx.empty:
+        return ""
+    heat = seasons[("defence", "rank")]
+    gws = sorted(fx["gw"].unique())
+    window = gws[:TICKER_WINDOW]
+    first_date = fx.groupby("gw")["date"].min()
+
+    ahead = (fx[fx["gw"].isin(window)]
+             .assign(r=lambda d: d["opponent"].map(heat))
+             .groupby("team")["r"].mean())
+    clubs = sorted(set(fx["team"]), key=lambda c: (-ahead.get(c, 0), c))
+    by_cell = fx.groupby(["team", "gw"])
+
+    heads = ['<th class="nosort pin pin0">#</th>', '<th class="pin pin1">Club</th>',
+             f'<th class="num" data-dir="desc" title="Average season Defence rank '
+             f'of the opponents in GW{window[0]}&ndash;GW{window[-1]}: higher is '
+             f'easier">Next {len(window)}</th>']
+    heads += [f'<th class="gwh">GW{g}<small>{first_date[g]:%d %b}</small></th>'
+              for g in gws]
+
+    rows = []
+    for n, club in enumerate(clubs, 1):
+        cells = [f'<td class="rowno pin pin0">{n}</td>',
+                 f'<td class="pin pin1" data-v="{esc(club)}"><b>{esc(club)}</b></td>',
+                 f'<td class="num" data-v="{ahead.get(club, 0):.3f}">'
+                 f'<b>{ahead.get(club, 0):.1f}</b></td>']
+        for g in gws:
+            if (club, g) not in by_cell.groups:
+                cells.append('<td class="fx dnp" data-v="" title="Blank gameweek">'
+                             '&mdash;</td>')
+                continue
+            games = by_cell.get_group((club, g))
+            # A double stacks both fixtures in the one cell; the cell sorts
+            # and shades on the easier of the two.
+            parts, notes = [], []
+            for r in games.itertuples():
+                rk = heat.get(r.opponent)
+                venue = "home" if r.venue == "H" else "away"
+                parts.append(f'{SHORT.get(r.opponent, r.opponent[:3].upper())}'
+                             f'<span class="opp">{r.venue} &middot; #{rk:.0f}</span>')
+                notes.append(f"GW{g}, {r.date:%a %d %b}: {r.opponent} ({venue}) — "
+                             f"{_ordinal(rk)} on season defence")
+            rk_cell = max(heat.get(o, 0) for o in games["opponent"])
+            cells.append(f'<td class="fx" style="{_heat(rk_cell)}" '
+                         f'data-v="{rk_cell:.0f}" title="{esc(" · ".join(notes))}">'
+                         + "".join(parts) + '</td>')
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+
+    stops = ", ".join(_heat(k).split(":", 1)[1] for k in (1, 5, 10.5, 16, 20))
+    return f"""
+<section class="side" id="ticker"><h2>Fixture ticker &mdash; GW{gws[0]} onwards</h2>
+<p class="note">Every club's remaining fixtures, each cell shaded by the
+<b>opponent's season rank on the Defence table</b> above &mdash; the same
+composite, the same colours. The bottom of the Defence table, the leakiest
+defence so far, is <b>deep green</b>; the top, the meanest, is <b>deep red</b>.
+Under each opponent is <b>H</b>ome or <b>A</b>way and that opponent's
+Defence rank. <b>Next {len(window)}</b> averages those ranks over
+GW{window[0]}&ndash;GW{window[-1]}: the higher it is, the kinder the
+defences coming up, and the table opens with the kindest run at the top.
+Click any heading to sort; a gameweek column sorts by the defence faced.
+The colours are season-to-date, so they move each week as the Defence
+table does, and a gameweek drops off the front once it has been played.</p>
+<p class="legend heatkey">Opponent's season defence rank &nbsp;
+<span class="ramp" style="background:linear-gradient(90deg,{stops})"></span>
+&nbsp;<b>1st</b> meanest &rarr; <b>20th</b> leakiest</p>
+<div class="tablewrap"><table class="board ticker" data-view="rank">
+<thead><tr>{''.join(heads)}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+<p class="note" style="font-size:12px">Fixture list:
+<code>data/2026-27/fixture_list.csv</code> &middot; {esc(fx.attrs['audit'])}.</p>
+</section>"""
+
+
 def build(out: Path) -> None:
     wk = T.team_weeks()
     audit = wk.attrs["audit"]
@@ -353,6 +462,7 @@ def build(out: Path) -> None:
 
     seasons = season_ranks(wk)
     sections = "".join(side_section(s, wk, seasons) for s in T.SIDES)
+    sections += ticker_section(wk, seasons)
 
     page = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
@@ -371,6 +481,7 @@ attempt costs <b>{S.PENALTY_XG:.2f} xG</b>.
 <a href="#attack" style="color:var(--accent2)">Attack</a> &middot;
 <a href="#defence" style="color:var(--accent2)">Defence</a> &middot;
 <a href="#net" style="color:var(--accent2)">Net</a> &middot;
+<a href="#ticker" style="color:var(--accent2)">Fixture ticker</a> &middot;
 <a href="shots.html" style="color:var(--accent2)">Player shots board &rarr;</a>
 <a href="defcon.html" style="color:var(--accent2)">Defcon board &rarr;</a></div>
 

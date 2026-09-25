@@ -60,6 +60,7 @@ import shots as S
 HERE = Path(__file__).parent
 DATA = HERE / "data" / "2026-27"
 RESULTS = HERE.parent / "premier_league_handicap" / "data" / "2026_2027" / "results.csv"
+FIXTURE_LIST = DATA / "fixture_list.csv"
 
 # (key, name, direction). +1 means more is better and ranks first; -1 means
 # less is better. Defence ranks the fewest conceded first.
@@ -102,6 +103,54 @@ def load_results(path: str | Path = RESULTS) -> pd.DataFrame:
         "home_goals": goals.loc[r.index, 0].astype(int).values,
         "away_goals": goals.loc[r.index, 1].astype(int).values,
     })
+    return out
+
+
+def load_fixture_list(path: str | Path = FIXTURE_LIST) -> pd.DataFrame:
+    """The season's fixtures, one row a match: ``gw, date, home, away``.
+
+    The same fbref layout as the results file, so a full-season export with
+    scores filled in for the games already played works as well as a list of
+    the ones still to come. Named ``fixture_list.csv`` rather than
+    ``fixtures.csv``, which is the FPL-API layout ``hold8.py`` reads.
+    """
+    f = pd.read_csv(path, encoding="utf-8-sig").dropna(subset=["Home", "Away"])
+    f = f[f["Home"].astype(str).str.strip() != ""]
+    out = pd.DataFrame({
+        "gw": f["Wk"].astype(int).values,
+        "date": pd.to_datetime(f["Date"]).values,
+        "home": f["Home"].map(_club).values,
+        "away": f["Away"].map(_club).values,
+    })
+    return out.sort_values(["gw", "date"]).reset_index(drop=True)
+
+
+def ticker(after_gw: int, path: str | Path = FIXTURE_LIST) -> pd.DataFrame:
+    """Every club's fixtures after ``after_gw``: ``gw, date, team, opponent, venue``.
+
+    One row per club per match, so a blank gameweek is simply no row and a
+    double is two. ``attrs["audit"]`` says whether the list hangs together.
+    """
+    f = load_fixture_list(path)
+    ahead = f[f["gw"] > after_gw]
+    out = pd.concat([
+        pd.DataFrame({"gw": ahead["gw"], "date": ahead["date"], "team": ahead["home"],
+                      "opponent": ahead["away"], "venue": "H"}),
+        pd.DataFrame({"gw": ahead["gw"], "date": ahead["date"], "team": ahead["away"],
+                      "opponent": ahead["home"], "venue": "A"}),
+    ], ignore_index=True).sort_values(["gw", "date", "team"]).reset_index(drop=True)
+
+    per = out.groupby(["gw", "team"]).size()
+    doubles = sorted(k for k, n in per.items() if n > 1)
+    clubs = sorted(set(out["team"]))
+    blanks = sorted((g, c) for g in sorted(out["gw"].unique()) for c in clubs
+                    if (g, c) not in per.index)
+    gws = sorted(out["gw"].unique())
+    out.attrs["audit"] = (
+        f"{len(ahead)} fixtures, GW{gws[0]}-GW{gws[-1]}, {len(clubs)} clubs; "
+        f"doubles {len(doubles)}, blanks {len(blanks)}" if len(ahead) else
+        "no fixtures left after the last gameweek ranked")
+    out.attrs["doubles"], out.attrs["blanks"] = doubles, blanks
     return out
 
 
