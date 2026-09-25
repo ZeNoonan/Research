@@ -24,14 +24,19 @@ HERE = Path(__file__).parent
 
 SIDE_COPY = {
     "attack": ("Attack", "What a club creates: shots taken, penalty-adjusted "
-               "xG and goals scored. Most is best."),
+               "xG and goals scored. Most is best. Each cell is coloured by "
+               "how good the <b>opponent's defence</b> has been over the season "
+               "on the same measure, so a big number on a red cell came against "
+               "one of the league's tightest defences."),
     "defence": ("Defence", "What a club allows: shots conceded, "
                 "penalty-adjusted xG conceded and goals conceded. "
                 "<b>Fewest is best</b>, so rank 1 is the meanest defence."),
     "net": ("Net &mdash; attack minus defence", "The two combined as a "
             "difference: shots taken minus conceded, xG for minus against, "
             "goals for minus against. A club that outshoots its opponent by "
-            "ten ranks above one that edges it by two."),
+            "ten ranks above one that edges it by two. Each cell is coloured "
+            "by where the <b>opponent</b> stands on this same net table over "
+            "the season &mdash; red a strong side, green a weak one."),
 }
 
 MEASURE_FMT = {"shots": "{:+.0f}", "xg": "{:+.2f}", "goals": "{:+.0f}"}
@@ -41,6 +46,10 @@ td.gw.rb { background: rgba(179, 55, 47, .10); }
 td .opp { display: block; color: var(--muted); font-size: 10px;
   font-weight: 400; line-height: 1.1; white-space: nowrap; }
 section.side h2 small { color: var(--muted); font-weight: 400; font-size: 13px; }
+td.gw.top { font-weight: 700; }
+.legend.heatkey { margin: 0 0 10px; }
+.ramp { display: inline-block; width: 140px; height: 12px; border-radius: 3px;
+  vertical-align: -1px; border: 1px solid var(--border); }
 @media (prefers-color-scheme: dark) {
   td.gw.rb { background: rgba(239, 122, 114, .14); }
 }
@@ -86,6 +95,56 @@ $$('section.side').forEach(sec => {
   show('rank');
 });
 """
+
+
+# Which season ranking colours each side's cells, view by view. Attack is
+# read against the opponent's DEFENCE on the matching measure — shots taken
+# against how few shots that defence allows, and so on — and the composite
+# against the defence composite. Net is read against the opponent's NET: how
+# good a side it was, overall. Defence keeps the shading of its own week.
+HEAT_FROM = {
+    "attack": ("defence", {"rank": "rank", "shots_for": "shots_against",
+                           "xg_for": "xg_against", "goals_for": "goals_against"}),
+    "net": ("net", {"rank": "rank", "shots_diff": "shots_diff",
+                    "xg_diff": "xg_diff", "goals_diff": "goals_diff"}),
+}
+HEAT_WORD = {"defence": "defence", "net": "net"}
+
+# The FPL fixture-difficulty convention: red is a hard opponent, green an
+# easy one, pale in the middle of the table.
+HARD, EASY = (179, 55, 47), (0, 150, 85)
+
+
+def season_ranks(wk: pd.DataFrame) -> dict:
+    """{(side, view): {club: season rank}} — where each club stands on each table.
+
+    The composite's season rank is its place on the average composite rank;
+    a measure's is its place on the season total, fewest first on defence.
+    Ties share the better place.
+    """
+    out = {}
+    for side, measures in T.SIDES.items():
+        b = T.board(T.rank_side(wk, side)).set_index("team")
+        out[(side, "rank")] = b["average"].rank(method="min").to_dict()
+        for key, _, direction in measures:
+            out[(side, key)] = (b[f"{key}_total"]
+                                .rank(ascending=direction < 0, method="min")
+                                .to_dict())
+    return out
+
+
+def _heat(rank: float, field: int = 20) -> str:
+    """Background for an opponent's season rank: 1 deep red, 20 deep green."""
+    t = (rank - 1) / (field - 1)               # 0 = hardest, 1 = easiest
+    strength = abs(t - 0.5) * 2                # 0 in mid-table, 1 at the ends
+    r, g, b = HARD if t < 0.5 else EASY
+    return f"background:rgba({r},{g},{b},{0.42 * strength:.3f})"
+
+
+def _ordinal(n: float) -> str:
+    n = int(n)
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
 
 
 def _rank(v: float) -> str:
@@ -142,16 +201,36 @@ def cell_notes(ranked: pd.DataFrame, side: str) -> dict:
     return out
 
 
-def _opp(row, g) -> str:
+def _opp(row, g, heat: dict | None = None) -> str:
     opp, ven = row.get(f"opp_gw{g}"), row.get(f"venue_gw{g}")
     if pd.isna(opp):
         return ""
-    return f'<span class="opp">{esc(opp)} ({esc(ven)})</span>'
+    rank = f" #{heat[opp]:.0f}" if heat and opp in heat else ""
+    return f'<span class="opp">{esc(opp)} ({esc(ven)}){rank}</span>'
 
 
 def table_html(side: str, table: pd.DataFrame, view: str, gameweeks: list,
-               notes: dict, pens: dict) -> str:
-    """One view of one side: the composite, or a single measure."""
+               notes: dict, pens: dict, heat: dict | None = None,
+               heat_word: str = "") -> str:
+    """One view of one side: the composite, or a single measure.
+
+    With ``heat`` (club -> season rank), each cell is coloured by where the
+    **opponent** stands rather than by how the club did that week: the number
+    says what the club did, the colour who it did it against. The club's own
+    top-three weeks stay in bold so that signal is not lost.
+    """
+    def shade(rank_that_week, opp):
+        if heat is None:
+            return f"gw{_tier(rank_that_week)}", ""
+        cls = "gw" + (" top" if not pd.isna(rank_that_week) and rank_that_week <= 3 else "")
+        if opp in heat:
+            return cls, f' style="{_heat(heat[opp])}"'
+        return cls, ""
+
+    def heat_note(opp):
+        if heat is None or opp not in heat:
+            return ""
+        return f" · {opp} {_ordinal(heat[opp])} on season {heat_word}"
     if view == "rank":
         table = table.sort_values(["average", "total"])
         heads_tail = ['<th class="num tot">Total</th>',
@@ -171,26 +250,30 @@ def table_html(side: str, table: pd.DataFrame, view: str, gameweeks: list,
         cells = [f'<td class="rowno">{n}</td>',
                  f'<td data-v="{esc(r["team"])}"><b>{esc(r["team"])}</b></td>']
         for g in gameweeks:
-            note = esc(notes.get((r["team"], g), ""))
+            opp = r.get(f"opp_gw{g}")
+            note = esc(notes.get((r["team"], g), "") + heat_note(opp))
+            label = _opp(r, g, heat)
             if view == "rank":
                 v = r[f"gw{g}"]
                 if pd.isna(v):
                     cells.append(f'<td class="dnp" data-v="" title="{note}">'
-                                 f'&mdash;{_opp(r, g)}</td>')
+                                 f'&mdash;{label}</td>')
                     continue
-                cells.append(f'<td class="gw{_tier(v)}" data-v="{v:.0f}" '
-                             f'title="{note}">{v:.0f}{_opp(r, g)}</td>')
+                cls, style = shade(v, opp)
+                cells.append(f'<td class="{cls}"{style} data-v="{v:.0f}" '
+                             f'title="{note}">{v:.0f}{label}</td>')
             else:
                 v, rk = r[f"{view}_gw{g}"], r[f"{view}_rank_gw{g}"]
                 if pd.isna(v):
                     cells.append(f'<td class="dnp" data-v="" title="{note}">'
-                                 f'&mdash;{_opp(r, g)}</td>')
+                                 f'&mdash;{label}</td>')
                     continue
                 pen = " pen" if view.startswith("xg") and pens.get((r["team"], g)) else ""
+                cls, style = shade(rk, opp)
                 cells.append(
-                    f'<td class="gw{_tier(rk)}{pen}" data-v="{v:.4f}" title="{note}">'
+                    f'<td class="{cls}{pen}"{style} data-v="{v:.4f}" title="{note}">'
                     f'{_fmt(view).format(v)} <span class="rk">({_rank(rk)})</span>'
-                    f'{_opp(r, g)}</td>')
+                    f'{label}</td>')
         if view == "rank":
             cells.append(f'<td class="num tot" data-v="{r["total"]:.0f}">'
                          f'{r["total"]:.0f}</td>')
@@ -208,7 +291,18 @@ def table_html(side: str, table: pd.DataFrame, view: str, gameweeks: list,
             f'<tbody>{"".join(rows)}</tbody></table>')
 
 
-def side_section(side: str, wk: pd.DataFrame) -> str:
+def heat_legend(source: str) -> str:
+    """A key for the opponent colouring: the red-to-green ramp, 1 to 20."""
+    stops = ", ".join(_heat(k).split(":", 1)[1] for k in (1, 5, 10.5, 16, 20))
+    return (f'<p class="legend heatkey">Cell colour is the <b>opponent\'s '
+            f'season {source} rank</b> on the same measure &nbsp;'
+            f'<span class="ramp" style="background:linear-gradient(90deg,{stops})">'
+            f'</span> &nbsp;<b>1st</b> toughest &rarr; <b>20th</b> easiest. '
+            f'The <b>#</b> after each opponent is that rank; bold numbers are '
+            f'the club\'s own top-three weeks.</p>')
+
+
+def side_section(side: str, wk: pd.DataFrame, seasons: dict) -> str:
     ranked = T.rank_side(wk, side)
     table = T.board(ranked)
     gws = [int(g) for g in wk.attrs["gameweeks"]]
@@ -227,12 +321,26 @@ def side_section(side: str, wk: pd.DataFrame) -> str:
     tabs = ['<button data-view="rank" aria-selected="true">Composite ranking</button>']
     tabs += [f'<button data-view="{k}" aria-selected="false">{esc(n)}</button>'
              for k, n, _ in T.SIDES[side]]
-    tables = table_html(side, table, "rank", gws, notes, pens) + "".join(
-        table_html(side, table, k, gws, notes, pens) for k, _, _ in T.SIDES[side])
+    def heat_for(view):
+        if side not in HEAT_FROM:
+            return None, ""
+        source, mapping = HEAT_FROM[side]
+        return seasons[(source, mapping[view])], HEAT_WORD[source]
+
+    views = ["rank"] + [k for k, _, _ in T.SIDES[side]]
+    tables = "".join(table_html(side, table, v, gws, notes, pens, *heat_for(v))
+                     for v in views)
+    legend = heat_legend(HEAT_FROM[side][0]) if side in HEAT_FROM else (
+        '<p class="legend">Cell colour is how the club did <b>that week</b>: '
+        '<span class="key" style="background:rgba(0,160,90,.18)"></span> top 3 '
+        '&nbsp;<span class="key" style="background:rgba(0,160,90,.08)"></span> '
+        '4th&ndash;6th &nbsp;<span class="key" style="background:rgba(179,55,47,.10)">'
+        '</span> bottom 3.</p>')
     return f"""
 <section class="side" id="{side}"><h2>{title}</h2>
 <p class="note">{blurb}</p>
 <div class="tabs">{''.join(tabs)}</div>
+{legend}
 <div class="tablewrap">{tables}</div>
 </section>"""
 
@@ -244,7 +352,8 @@ def build(out: Path) -> None:
     gws = [int(g) for g in wk.attrs["gameweeks"]]
     gw_list = ", ".join(f"GW{g}" for g in gws)
 
-    sections = "".join(side_section(s, wk) for s in T.SIDES)
+    seasons = season_ranks(wk)
+    sections = "".join(side_section(s, wk, seasons) for s in T.SIDES)
 
     page = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
@@ -311,11 +420,20 @@ opponent ever plays twice in one gameweek its weekly shots cannot be split
 between the two matches, and that club's shots conceded will show a blank
 rather than a wrong number. No club has had a double or a blank yet.</p>
 
-<p class="legend"><span class="key" style="background:rgba(0,160,90,.18)">
-</span>top 3 that gameweek &nbsp;
-<span class="key" style="background:rgba(0,160,90,.08)"></span>4th&ndash;6th
-&nbsp; <span class="key" style="background:rgba(179,55,47,.10)"></span>bottom
-3 &nbsp; <b style="color:#b3372f">p</b> penalty taken that week</p>
+<p class="note"><b>What the colours mean.</b> On <b>Attack</b> and
+<b>Net</b> a cell is coloured by the <b>opponent</b>, not by the club: its
+season rank on the Defence table (for Attack) or the Net table (for Net), on
+the matching measure &mdash; red for the toughest opponents, green for the
+easiest, pale for mid-table, the same way round as FPL's fixture difficulty.
+The number in the cell is still what the club did; the colour is who it did
+it against. The opponent's rank is also printed after its name
+(<b>#1</b>&ndash;<b>#20</b>) for anyone who would rather read it than judge
+a shade, and the club's own top-three weeks are in bold. The season ranks
+are as they stand today, so an early-season opponent's colour will keep
+moving as its season fills in. <b>Defence</b> keeps the original colouring
+&mdash; green for the club's own top-three weeks, red for its bottom three.
+A small red <b style="color:#b3372f">p</b> marks a penalty taken that
+week.</p>
 </section>
 {sections}
 
