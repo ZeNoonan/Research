@@ -1137,11 +1137,12 @@ data/2026-27/       player_listing.csv — 2026/27 prices + ownership
                     fbref_shots.xlsx   — fbref shooting, one sheet per GW
                     all_gws.csv        — scraper_fpl.py dump, every GW
                     gw<N>.csv          — the same, split by gameweek
+                    fixture_list.csv   — every fixture, fbref layout (ticker)
 index.html          generated web view of the current picks
 preseason.html      generated pre-season draft board
 shots.html          generated shots / xG / xA board (all players)
 defcon.html         generated defcon board (DF/MD, + defensive contributions)
-teams.html          generated team board (attack, defence, net)
+teams.html          generated team board (attack, defence, net, fixture ticker)
 ```
 
 Run: `pip install -r requirements.txt`, then any of the commands above —
@@ -1547,6 +1548,29 @@ attack and defence composite ranks would throw away the margins twice; the
 differences keep them, so a club that outshoots its opponent by ten ranks
 above one that edges it by two. Through GW5 the three sides are led by
 Brighton (attack), Arsenal (defence) and Man City (net).
+
+### The fixture ticker
+
+At the foot of the team board: every club's remaining fixtures, GW6 to
+GW38, one column a gameweek, each cell shaded by the **opponent's season
+rank on the Defence composite** — the same ramp as the boards above, so the
+leakiest defence so far is deep green and the meanest deep red. Under each
+opponent's three-letter code is H or A and that defence rank. **Next 6**
+averages the rank over the coming six gameweeks — higher is kinder — and
+the ticker opens with the kindest run at the top; every heading sorts, and a
+gameweek column sorts by the defence faced. The club column stays pinned
+while the gameweeks scroll.
+
+The fixtures live in `data/2026-27/fixture_list.csv`, in the same fbref
+layout as the results file (named apart from `fixtures.csv`, the FPL-API
+layout `hold8.py` reads). A gameweek drops off the front of the ticker once
+it is ranked on the boards, so the file only needs touching if a match is
+rescheduled; a full-season fbref export with scores filled in works as
+well. When the list went in it was checked against the 50 matches already
+played: together they make exactly the 380-match double round-robin —
+every club home and away to every other once, 19 home games each — so no
+fixture was mistyped. Blank gameweeks show as a dash, and a double stacks
+both fixtures in the one cell.
 
 ### Three sources, one per measure
 
