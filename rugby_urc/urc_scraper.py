@@ -279,6 +279,20 @@ def complete(row: dict) -> bool:
 
 # --- the app -------------------------------------------------------------------
 
+def wide(container, data, **kwargs):
+    """``container.dataframe`` at full width, on old Streamlit and new.
+
+    Newer Streamlit takes ``width="stretch"`` and deprecates
+    ``use_container_width``; older releases only know the latter and reject a
+    string width with ``TypeError: 'str' object cannot be interpreted as an
+    integer``. That is raised before anything is drawn, so retrying is safe.
+    """
+    try:
+        return container.dataframe(data, width="stretch", **kwargs)
+    except TypeError:
+        return container.dataframe(data, use_container_width=True, **kwargs)
+
+
 def main() -> None:
     import streamlit as st
 
@@ -316,8 +330,8 @@ def main() -> None:
         rnd = st.selectbox("Round", rounds, index=rounds.index(latest)
                            if latest in rounds else 0)
         chosen = fixtures[fixtures["round"] == rnd]
-        st.dataframe(chosen[["date", "home", "away", "home_score", "away_score",
-                             "status"]], hide_index=True, width="stretch")
+        wide(st, chosen[["date", "home", "away", "home_score", "away_score",
+                         "status"]], hide_index=True)
         ready = chosen[chosen["status"].map(is_played)]
         if len(ready) < len(chosen):
             st.info(f"{len(chosen) - len(ready)} of {len(chosen)} not marked as played "
@@ -365,7 +379,7 @@ def main() -> None:
                                for _, r in missing.iterrows())
                    + ". Open 'Every stat found' below to see what the feed calls "
                      "them, or download the raw JSON and send it over.")
-    st.dataframe(table, hide_index=True, width="stretch")
+    wide(st, table, hide_index=True)
 
     OUT.mkdir(parents=True, exist_ok=True)
     stamp = label if label != "pasted" else f"to_{table['Date'].max()}"

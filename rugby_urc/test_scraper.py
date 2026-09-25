@@ -8,7 +8,10 @@ numbers in each, and that it does not mistake a player's count for the team's.
 
 If Streamlit is installed, the app itself is also run headless: once against
 the real network (it must fail cleanly if the feed is unreachable) and once
-against a faked feed, clicking through a whole round.
+against a faked feed, clicking through a whole round. The report viewer,
+``app.py``, is run too. Run these under the oldest Streamlit you support as
+well as the newest: the first bug found this way (``width="stretch"``) only
+existed on older releases.
 
 Run: ``python test_scraper.py``
 """
@@ -114,6 +117,16 @@ def pure_checks() -> bool:
     return passed
 
 
+def clean(at, label: str) -> bool:
+    """PASS when a run raised nothing; otherwise FAIL with the app's own error.
+
+    Checks after a failed run would only index into elements that were never
+    drawn, so callers stop there instead of crashing the suite.
+    """
+    errors = [e.value for e in at.exception]
+    return check(label, not errors, errors[0][:90] if errors else "")
+
+
 def app_checks() -> bool:
     try:
         from streamlit.testing.v1 import AppTest
@@ -171,11 +184,14 @@ def app_checks() -> bool:
 
         requests.get = fake_get
         at = AppTest.from_file(script, default_timeout=60).run()
+        if not clean(at, "the round page renders"):
+            return False
         passed &= check("defaults to the latest played round", at.selectbox[0].value == 1)
         passed &= check("offers only the played matches",
                         at.button[0].label == "Fetch stats for 8 match(es)", at.button[0].label)
         at.button[0].click().run()
-        passed &= check("a whole round fetches without error", not at.exception)
+        if not clean(at, "a whole round fetches and displays"):
+            return False
         home, away = clubs[short - fixtures[0]["id"]]
         passed &= check("a match missing a stat is called out by name",
                         bool(at.warning) and f"{home} v {away}" in at.warning[0].value,
@@ -190,8 +206,16 @@ def app_checks() -> bool:
         at = AppTest.from_file(script, default_timeout=60).run()
         at.radio[0].set_value("Paste match links").run()
         at.button[0].click().run()
-        passed &= check("paste mode reads the example link", not at.exception
-                        and bool(at.success) and at.dataframe[0].value["match_id"].iloc[0] == "292584")
+        if clean(at, "paste mode fetches and displays"):
+            passed &= check("paste mode reads the example link", bool(at.success)
+                            and at.dataframe[0].value["match_id"].iloc[0] == "292584")
+
+        print("\n4. the report viewer (app.py), headless")
+        requests.get = real_get
+        at = AppTest.from_file(str(HERE / "app.py"), default_timeout=60).run()
+        if clean(at, "app.py renders"):
+            passed &= check("with its tables drawn", len(at.dataframe) >= 1,
+                            f"{len(at.dataframe)} table(s)")
     finally:
         requests.get = real_get
         shutil.rmtree(tmp, ignore_errors=True)

@@ -31,6 +31,20 @@ DISPLAY_COLUMNS = {
 }
 
 
+def wide(container, data, **kwargs):
+    """``container.dataframe`` at full width, on old Streamlit and new.
+
+    Newer Streamlit takes ``width="stretch"`` and deprecates
+    ``use_container_width``; older releases only know the latter and reject a
+    string width with ``TypeError: 'str' object cannot be interpreted as an
+    integer``. That is raised before anything is drawn, so retrying is safe.
+    """
+    try:
+        return container.dataframe(data, width="stretch", **kwargs)
+    except TypeError:
+        return container.dataframe(data, use_container_width=True, **kwargs)
+
+
 @st.cache_data
 def load(year: int) -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / f"report_{year}.csv")
@@ -93,8 +107,8 @@ def main() -> None:
 
     only_bets = st.checkbox("Show only matches the system bet", value=False)
     view = df[df["system_bet"].notna()] if only_bets else df
-    st.dataframe(view[list(DISPLAY_COLUMNS)].rename(columns=DISPLAY_COLUMNS),
-                 width="stretch", hide_index=True, height=560)
+    wide(st, view[list(DISPLAY_COLUMNS)].rename(columns=DISPLAY_COLUMNS),
+         hide_index=True, height=560)
 
     st.subheader("Factor diagnostics")
     marginal, standalone = factor_analysis.build_tables()
@@ -105,13 +119,11 @@ def main() -> None:
         cols = {y: season_report.season_label(y) for y in marginal.columns}
         left, right = st.columns(2)
         left.caption("Marginal contribution — net wins charged to each factor")
-        left.dataframe(marginal.rename(index=labels, columns=cols), width="stretch")
+        wide(left, marginal.rename(index=labels, columns=cols))
         right.caption(f"Standalone success — each factor as its own rule "
                       f"(blank until {factor_analysis.MIN_VOTES} settled votes)")
-        right.dataframe(
-            standalone.rename(index=labels, columns=cols)
-            .style.format(lambda v: "—" if pd.isna(v) else f"{v:.1%}"),
-            width="stretch")
+        wide(right, standalone.rename(index=labels, columns=cols)
+             .style.format(lambda v: "—" if pd.isna(v) else f"{v:.1%}"))
 
     with st.expander("How the system works"):
         st.markdown(model.__doc__)
