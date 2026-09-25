@@ -70,7 +70,7 @@ def coarse(season: int) -> Path:
     merged["pts_per_tick"] = [
         round(sfo.tick_sensitivity(r.odds_home, r.odds_draw, r.odds_away), 2)
         for r in merged.itertuples()]
-    merged["inferred_line"] = merged["line"]
+    merged["inferred_line"] = merged["closing_line"]
     merged["actual_line"] = ""
     # Carry over anything already answered in the line check, so the same
     # number is never looked up twice.
@@ -142,8 +142,8 @@ def apply_real(season: int) -> None:
         value = known.get((str(r["date"])[:10], r["home"], r["away"]))
         if value is None:
             continue
-        was = r["line"]
-        df.at[i, "line"] = f"{value:g}"
+        was = r["closing_line"]
+        df.at[i, "closing_line"] = f"{value:g}"
         df.at[i, "line_source"] = season_report.LINE_QUOTED
         applied.append((r["date"], r["home"], r["away"], was, f"{value:g}"))
     df.to_csv(season_path, index=False)
@@ -181,7 +181,7 @@ def export(season: int) -> Path:
     # quotes from the odds file, so the merge does not produce round_x/round_y.
     quotes = raw[["date", "home", "away", "odds_home", "odds_draw", "odds_away"]]
     merged = rows.merge(quotes, on=["date", "home", "away"], how="inner")
-    merged["inferred_line"] = merged["line"]
+    merged["inferred_line"] = merged["closing_line"]
     merged["pts_per_tick"] = [
         round(sfo.tick_sensitivity(r.odds_home, r.odds_draw, r.odds_away), 2)
         for r in merged.itertuples()]

@@ -221,6 +221,9 @@ def profit_chart(df: pd.DataFrame) -> str:
 
 
 def report_table(df: pd.DataFrame) -> str:
+    # The opening line is a record of how the market moved, so it only earns a
+    # column in a season that has one; 2025-26 was priced at the close alone.
+    has_open = df["opening_line"].notna().any()
     rows = []
     for r in df.itertuples():
         if r.result == "W":
@@ -238,17 +241,20 @@ def report_table(df: pd.DataFrame) -> str:
         rated = pd.notna(r.home_power) and pd.notna(r.away_power)
         system = (f"<strong>{int(r.system_num):+d}</strong>" if rated
                   else '<span class="pending" title="no power ratings yet">—</span>')
+        opening = f"<td>{fmt_signed(r.opening_line)}</td>" if has_open else ""
         rows.append(
             f"<tr><td class='l'>{esc(r.date)}</td><td>{int(r.round)}</td>"
             f"<td class='l'>{esc(r.home)}</td><td class='l'>{esc(r.away)}</td>"
-            f"<td>{fmt_signed(r.line)}</td><td>{score}</td>"
+            f"{opening}<td>{fmt_signed(r.line)}</td><td>{score}</td>"
             f"<td>{fmt_signed(r.home_lgt, 0)}</td><td>{fmt_signed(r.home_stdc, 0)}</td>"
             f"<td>{fmt_signed(r.home_power)}</td>"
             f"<td>{fmt_signed(r.away_lgt, 0)}</td><td>{fmt_signed(r.away_stdc, 0)}</td>"
             f"<td>{fmt_signed(r.away_power)}</td><td>{system}</td>"
             f"<td class='l bet'>{esc(r.system_bet)}</td>{res}</tr>")
+    opening_head = ("<th title='The handicap when first priced. The system "
+                    "picks on Line, the close.'>Open</th>" if has_open else "")
     head = ("<tr><th class='l'>Date</th><th>Rd</th><th class='l'>Home</th>"
-            "<th class='l'>Away</th><th>Line</th><th>Score</th>"
+            f"<th class='l'>Away</th>{opening_head}<th>Line</th><th>Score</th>"
             "<th>H LGT</th><th>H STDC</th><th>H Pow</th>"
             "<th>A LGT</th><th>A STDC</th><th>A Pow</th>"
             "<th>Sys #</th><th class='l'>Bet</th><th>Res</th></tr>")

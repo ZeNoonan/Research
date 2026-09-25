@@ -17,7 +17,9 @@ depends on hold:
    is - is ordered by date, so no factor reads a match that had not been played;
 8. the odds-to-handicap conversion round-trips, and recovers a known sigma;
 9. merging new odds into a season file never erases what is already there, and
-   never overwrites a handicap that was quoted rather than inferred.
+   never overwrites a handicap that was quoted rather than inferred;
+10. the model runs on the closing line, and on the opening line until then;
+11. an entry sheet kept from an older export cannot erase a column it lacks.
 
 Run: ``python test_pipeline.py``
 """
@@ -31,6 +33,7 @@ import numpy as np
 import pandas as pd
 
 import calibrate
+import entry_sheet
 import import_oddsportal
 import model
 import spread_from_odds as sfo
@@ -88,7 +91,7 @@ def make_season(year: int, rounds: range, *, start: str,
                 "round": rnd,
                 "date": (day + pd.Timedelta(days=7 * rnd)).date(),
                 "home": home, "away": away, "neutral": "",
-                "line": round(line * 2) / 2 if priced else "",
+                "closing_line": round(line * 2) / 2 if priced else "",
                 "home_score": int(rng.integers(10, 40)) if played else "",
                 "away_score": int(rng.integers(10, 40)) if played else "",
                 "home_turnovers_conceded": int(rng.integers(5, 18)) if turnovers else "",
@@ -190,7 +193,7 @@ def main() -> int:
                 edge = true_hfa + (true_lh if teams.is_long_haul(home, away) else 0.0)
                 rows.append({"round": rnd, "date": f"2026-09-{(rnd % 28) + 1:02d}",
                              "home": home, "away": away, "neutral": "",
-                             "line": TRUE_POWER[away] - TRUE_POWER[home] - edge,
+                             "closing_line": TRUE_POWER[away] - TRUE_POWER[home] - edge,
                              "home_score": "", "away_score": "",
                              "home_turnovers_conceded": "",
                              "away_turnovers_conceded": "",
@@ -228,8 +231,8 @@ def main() -> int:
                 rows.append({
                     "round": rnd, "date": (base + pd.Timedelta(days=7 * rnd)).date(),
                     "home": home, "away": away, "neutral": "",
-                    "line": TRUE_POWER[away] - TRUE_POWER[home]
-                            - season_report.HOME_ADVANTAGE,
+                    "closing_line": TRUE_POWER[away] - TRUE_POWER[home]
+                                    - season_report.HOME_ADVANTAGE,
                     "home_score": 20 + i, "away_score": 18,
                     "home_turnovers_conceded": 6 + i,
                     "away_turnovers_conceded": 11,
@@ -351,12 +354,13 @@ def main() -> int:
         existing = pd.DataFrame([
             # a quoted handicap, plus turnovers the merge must leave alone
             {"round": 18, "date": "2026-05-16", "home": "Bulls", "away": "Benetton",
-             "neutral": "", "line": "-27.5", "line_source": "",
+             "neutral": "", "opening_line": "-26.5", "closing_line": "-27.5",
+             "line_source": "",
              "home_score": "45", "away_score": "19",
              "home_turnovers_conceded": "10", "away_turnovers_conceded": "10",
              "home_turnovers_won": "7", "away_turnovers_won": "6"},
             {"round": 18, "date": "2026-05-16", "home": "Sharks", "away": "Zebre",
-             "neutral": "", "line": "-20.0", "line_source": "inferred-1x2",
+             "neutral": "", "closing_line": "-20.0", "line_source": "inferred-1x2",
              "home_score": "54", "away_score": "19",
              "home_turnovers_conceded": "13", "away_turnovers_conceded": "2",
              "home_turnovers_won": "9", "away_turnovers_won": "11"},
@@ -365,12 +369,12 @@ def main() -> int:
 
         incoming = pd.DataFrame([
             {"round": 18, "date": "2026-05-16", "home": "Bulls", "away": "Benetton",
-             "neutral": "", "line": -25.5, "line_source": "inferred-1x2",
+             "neutral": "", "closing_line": -25.5, "line_source": "inferred-1x2",
              "home_score": 45, "away_score": 19, "home_turnovers_conceded": "",
              "away_turnovers_conceded": "", "home_turnovers_won": "",
              "away_turnovers_won": ""},
             {"round": 18, "date": "2026-05-16", "home": "Sharks", "away": "Zebre",
-             "neutral": "", "line": -23.5, "line_source": "inferred-1x2",
+             "neutral": "", "closing_line": -23.5, "line_source": "inferred-1x2",
              "home_score": 54, "away_score": 19, "home_turnovers_conceded": "",
              "away_turnovers_conceded": "", "home_turnovers_won": "",
              "away_turnovers_won": ""},
@@ -386,12 +390,81 @@ def main() -> int:
                         f"bulls won {bulls['home_turnovers_won']!r}, "
                         f"sharks away won {sharks['away_turnovers_won']!r}")
         passed &= check("a quoted handicap is not overwritten by an inferred one",
-                        bulls["line"] == "-27.5" and bulls["line_source"] == "",
-                        f"line {bulls['line']!r} source {bulls['line_source']!r}")
+                        bulls["closing_line"] == "-27.5" and bulls["line_source"] == "",
+                        f"line {bulls['closing_line']!r} source {bulls['line_source']!r}")
+        passed &= check("an opening line the odds do not carry survives",
+                        bulls["opening_line"] == "-26.5",
+                        f"opening {bulls['opening_line']!r}")
         passed &= check("an inferred handicap is refreshed",
-                        sharks["line"] == "-23.5",
-                        f"line {sharks['line']!r}")
+                        sharks["closing_line"] == "-23.5",
+                        f"line {sharks['closing_line']!r}")
         passed &= check("the guard reports what it protected", kept == 1, f"kept={kept}")
+
+    print("\n12. the model runs on the closing line, the opening line until then")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        season_report.DATA_DIR = data
+        make_season(2025, range(15, 19), start="2026-01-31").to_csv(
+            data / "season_2025.csv", index=False)
+        # Every match opens 8 points further toward home than it closes, so the
+        # move crosses the power-implied line; half of them have not closed yet.
+        cur = make_season(2026, range(1, 2), start="2026-09-18",
+                          played=False, turnovers=False)
+        cur["opening_line"] = cur["closing_line"] + 8
+        cur.loc[cur.index[4:], "closing_line"] = np.nan
+        cur.to_csv(data / "season_2026.csv", index=False)
+
+        rep = season_report.build_reports()[2026].merge(
+            cur[["home", "away", "closing_line"]], on=["home", "away"])
+        closed = rep[rep["closing_line"].notna()]
+        still_open = rep[rep["closing_line"].isna()]
+        passed &= check("a closed match runs on its closing line",
+                        len(closed) == 4 and (closed["line"] == closed["closing_line"]).all())
+        passed &= check("an unclosed match runs on its opening line",
+                        len(still_open) == 4
+                        and (still_open["line"] == still_open["opening_line"]).all())
+
+        def system_on(r, line: float) -> int:
+            return model.system_number(r.home_lgt, r.home_stdc, r.home_power,
+                                       r.away_lgt, r.away_stdc, r.away_power, line)
+        on_close = all(r.system_num == system_on(r, r.closing_line)
+                       != system_on(r, r.opening_line) for r in closed.itertuples())
+        passed &= check("System # is the closing line's, and the move changes it",
+                        on_close)
+
+    print("\n13. an entry sheet from an older export cannot erase a column")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        entry_sheet.DATA_DIR = entry_sheet.HERE = data
+        old_layout = ["line_source", "home_turnovers_won", "away_turnovers_won"]
+
+        season = make_season(2026, range(1, 2), start="2026-09-18")
+        season.to_csv(data / "season_2026.csv", index=False)
+        before = (data / "season_2026.csv").read_text()
+        season.drop(columns=old_layout).to_csv(data / "old.csv", index=False)
+        try:
+            entry_sheet.import_sheet(2026, data / "old.csv")
+            refused = ""
+        except ValueError as exc:
+            refused = str(exc)
+        passed &= check("refused while the missing columns hold turnovers",
+                        "home_turnovers_won" in refused, refused[:60])
+        passed &= check("and the season file is left as it was",
+                        (data / "season_2026.csv").read_text() == before)
+
+        blank = make_season(2026, range(1, 2), start="2026-09-18",
+                            played=False, turnovers=False)
+        blank.to_csv(data / "season_2026.csv", index=False)
+        sheet = blank.assign(closing_line=blank["closing_line"] - 1)
+        sheet.drop(columns=old_layout).to_csv(data / "old.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "old.csv")
+        after = pd.read_csv(data / "season_2026.csv")
+        typed = after.merge(sheet[["home", "away", "closing_line"]],
+                            on=["home", "away"], suffixes=("", "_typed"))
+        passed &= check("imported while those columns are still empty",
+                        len(typed) == len(sheet)
+                        and (typed["closing_line"] == typed["closing_line_typed"]).all()
+                        and list(after.columns) == season_report.SEASON_COLUMNS)
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1

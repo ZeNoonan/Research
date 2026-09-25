@@ -22,7 +22,8 @@ DATA_DIR = Path(__file__).parent / "data"
 JUICE = 1.1
 
 DISPLAY_COLUMNS = {
-    "date": "Date", "round": "Rd", "home": "Home", "away": "Away", "line": "Line",
+    "date": "Date", "round": "Rd", "home": "Home", "away": "Away",
+    "opening_line": "Open", "line": "Line",
     "home_score": "H", "away_score": "A",
     "home_lgt": "H LGT", "home_stdc": "H STDC", "home_power": "H Power",
     "away_lgt": "A LGT", "away_stdc": "A STDC", "away_power": "A Power",

@@ -46,10 +46,15 @@ GUIDE = [
     ("away", "Away club."),
     ("neutral", "Y if played at neither club's ground, otherwise leave blank. "
                 "Turns off the home-advantage term in the rating fit."),
-    ("line", "THE HANDICAP, from the home team's point of view. "
-             "NEGATIVE = home favoured (-7.5 means home must win by 8 to cover); "
-             "POSITIVE = home receiving points. This is the one number needed to "
-             "make a pick."),
+    ("opening_line", "The handicap when the round is first priced, from the home "
+                     "team's point of view. NEGATIVE = home favoured (-7.5 means "
+                     "home must win by 8 to cover); POSITIVE = home receiving "
+                     "points. The model picks on it only until closing_line is "
+                     "filled; after that it is kept as a record of the move."),
+    ("closing_line", "The handicap as late as practical before kick-off - after "
+                     "the teams are named. Same sign convention. THIS is the line "
+                     "the model picks, rates and grades on, as nfl_report does. "
+                     "Leave blank until you have it."),
     ("line_source", "Leave blank for a handicap you read off a spread market. "
                     "\"inferred-1x2\" means it was derived from win odds by "
                     "spread_from_odds.py and is an estimate, not a quote."),
@@ -116,7 +121,7 @@ def export(year: int, skeleton: bool) -> tuple[Path, Path]:
 
         last = max(len(df) + 1, 2)
         # Highlight the columns that are actually typed in.
-        for col in ("line", "home_score", "away_score",
+        for col in ("opening_line", "closing_line", "home_score", "away_score",
                     "home_turnovers_conceded", "away_turnovers_conceded",
                     "home_turnovers_won", "away_turnovers_won"):
             letter = get_column_letter(SEASON_COLUMNS.index(col) + 1)
@@ -163,9 +168,24 @@ def read_filled(year: int, source: Path | None) -> pd.DataFrame:
 
 def import_sheet(year: int, source: Path | None) -> Path:
     df, path = read_filled(year, source)
-    for col in SEASON_COLUMNS:
-        if col not in df.columns:
-            df[col] = ""
+    out = DATA_DIR / f"season_{year}.csv"
+    absent = [c for c in SEASON_COLUMNS if c not in df.columns]
+    ignored = [c for c in df.columns if c not in SEASON_COLUMNS]
+    # A sheet kept from an older export lacks every column added since, and the
+    # import writes those back blank. Harmless while they are empty; refuse
+    # when it would erase something already in the season file.
+    if absent and out.exists():
+        current = pd.read_csv(out, dtype=str).fillna("")
+        erased = [c for c in absent
+                  if c in current.columns and (current[c].str.strip() != "").any()]
+        if erased:
+            raise ValueError(
+                f"cannot import {path.name}: it has no {', '.join(erased)} "
+                f"column, and {out.name} holds values there that the import "
+                f"would erase. Export a fresh sheet (python entry_sheet.py export "
+                f"--season {year}) and carry the new entries across into it.")
+    for col in absent:
+        df[col] = ""
     df = df[SEASON_COLUMNS]
     df = df[(df["home"].str.strip() != "") & (df["away"].str.strip() != "")].copy()
 
@@ -187,15 +207,20 @@ def import_sheet(year: int, source: Path | None) -> Path:
         raise ValueError("cannot import:\n  " + "\n  ".join(problems))
 
     df = df.sort_values(["date", "round", "home"])
-    out = DATA_DIR / f"season_{year}.csv"
     if out.exists():
         shutil.copy(out, out.with_suffix(".csv.bak"))
     df.to_csv(out, index=False)
 
-    priced = int((df["line"].str.strip() != "").sum())
+    has_open = df["opening_line"].str.strip() != ""
+    has_close = df["closing_line"].str.strip() != ""
     turns = int((df["home_turnovers_conceded"].str.strip() != "").sum())
     print(f"read {path.name}: {len(df)} matches -> {out.relative_to(HERE)}")
-    print(f"  {priced} with a handicap, {turns} with turnover counts")
+    print(f"  {int((has_open | has_close).sum())} with a handicap "
+          f"({int(has_close.sum())} closing), {turns} with turnover counts")
+    if absent:
+        print(f"  not in the sheet, so left blank: {', '.join(absent)}")
+    if ignored:
+        print(f"  not a season column, so ignored: {', '.join(ignored)}")
     return out
 
 

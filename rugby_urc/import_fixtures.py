@@ -34,6 +34,7 @@ from pathlib import Path
 import pandas as pd
 
 import teams
+from season_report import SEASON_COLUMNS
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -146,7 +147,8 @@ def parse_text(raw: str, season: int) -> tuple[pd.DataFrame, list[str]]:
             "home": home,
             "away": away,
             "neutral": "",
-            "line": "",
+            "opening_line": "",
+            "closing_line": "",
             "line_source": "",
             "home_score": m.group("hs") or "",
             "away_score": m.group("as") or "",
@@ -157,12 +159,6 @@ def parse_text(raw: str, season: int) -> tuple[pd.DataFrame, list[str]]:
         })
 
     return pd.DataFrame(rows, columns=SEASON_COLUMNS), skipped
-
-
-SEASON_COLUMNS = ["round", "date", "home", "away", "neutral", "line", "line_source",
-                  "home_score", "away_score",
-                  "home_turnovers_conceded", "away_turnovers_conceded",
-                  "home_turnovers_won", "away_turnovers_won"]
 
 
 def check(df: pd.DataFrame) -> list[str]:
@@ -228,7 +224,7 @@ def main() -> None:
     print(f"parsed {len(fixtures)} fixtures for the {season}-{(season + 1) % 100:02d} season")
 
     out = DATA_DIR / f"season_{season}.csv"
-    TYPED = ["line", "home_score", "away_score",
+    TYPED = ["opening_line", "closing_line", "home_score", "away_score",
              "home_turnovers_conceded", "away_turnovers_conceded",
              "home_turnovers_won", "away_turnovers_won"]
     if out.exists() and not args.append and not args.force:
