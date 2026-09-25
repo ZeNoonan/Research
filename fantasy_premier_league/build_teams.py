@@ -30,7 +30,11 @@ SIDE_COPY = {
                "one of the league's tightest defences."),
     "defence": ("Defence", "What a club allows: shots conceded, "
                 "penalty-adjusted xG conceded and goals conceded. "
-                "<b>Fewest is best</b>, so rank 1 is the meanest defence."),
+                "<b>Fewest is best</b>, so rank 1 is the meanest defence. "
+                "Each cell is coloured by how dangerous the <b>opponent's "
+                "attack</b> has been over the season on the same measure, so "
+                "a clean sheet on a red cell was kept against one of the "
+                "league's best attacks."),
     "net": ("Net &mdash; attack minus defence", "The two combined as a "
             "difference: shots taken minus conceded, xG for minus against, "
             "goals for minus against. A club that outshoots its opponent by "
@@ -99,16 +103,19 @@ $$('section.side').forEach(sec => {
 
 # Which season ranking colours each side's cells, view by view. Attack is
 # read against the opponent's DEFENCE on the matching measure — shots taken
-# against how few shots that defence allows, and so on — and the composite
-# against the defence composite. Net is read against the opponent's NET: how
-# good a side it was, overall. Defence keeps the shading of its own week.
+# against how few shots that defence allows, and so on — and Defence the
+# other way round, against the opponent's ATTACK: shots conceded against how
+# many shots that attack takes. Composites against composites. Net is read
+# against the opponent's NET: how good a side it was, overall.
 HEAT_FROM = {
     "attack": ("defence", {"rank": "rank", "shots_for": "shots_against",
                            "xg_for": "xg_against", "goals_for": "goals_against"}),
+    "defence": ("attack", {"rank": "rank", "shots_against": "shots_for",
+                           "xg_against": "xg_for", "goals_against": "goals_for"}),
     "net": ("net", {"rank": "rank", "shots_diff": "shots_diff",
                     "xg_diff": "xg_diff", "goals_diff": "goals_diff"}),
 }
-HEAT_WORD = {"defence": "defence", "net": "net"}
+HEAT_WORD = {"attack": "attack", "defence": "defence", "net": "net"}
 
 # The FPL fixture-difficulty convention: red is a hard opponent, green an
 # easy one, pale in the middle of the table.
@@ -321,21 +328,13 @@ def side_section(side: str, wk: pd.DataFrame, seasons: dict) -> str:
     tabs = ['<button data-view="rank" aria-selected="true">Composite ranking</button>']
     tabs += [f'<button data-view="{k}" aria-selected="false">{esc(n)}</button>'
              for k, n, _ in T.SIDES[side]]
-    def heat_for(view):
-        if side not in HEAT_FROM:
-            return None, ""
-        source, mapping = HEAT_FROM[side]
-        return seasons[(source, mapping[view])], HEAT_WORD[source]
-
+    source, mapping = HEAT_FROM[side]
     views = ["rank"] + [k for k, _, _ in T.SIDES[side]]
-    tables = "".join(table_html(side, table, v, gws, notes, pens, *heat_for(v))
-                     for v in views)
-    legend = heat_legend(HEAT_FROM[side][0]) if side in HEAT_FROM else (
-        '<p class="legend">Cell colour is how the club did <b>that week</b>: '
-        '<span class="key" style="background:rgba(0,160,90,.18)"></span> top 3 '
-        '&nbsp;<span class="key" style="background:rgba(0,160,90,.08)"></span> '
-        '4th&ndash;6th &nbsp;<span class="key" style="background:rgba(179,55,47,.10)">'
-        '</span> bottom 3.</p>')
+    tables = "".join(
+        table_html(side, table, v, gws, notes, pens,
+                   seasons[(source, mapping[v])], HEAT_WORD[source])
+        for v in views)
+    legend = heat_legend(source)
     return f"""
 <section class="side" id="{side}"><h2>{title}</h2>
 <p class="note">{blurb}</p>
@@ -420,19 +419,17 @@ opponent ever plays twice in one gameweek its weekly shots cannot be split
 between the two matches, and that club's shots conceded will show a blank
 rather than a wrong number. No club has had a double or a blank yet.</p>
 
-<p class="note"><b>What the colours mean.</b> On <b>Attack</b> and
-<b>Net</b> a cell is coloured by the <b>opponent</b>, not by the club: its
-season rank on the Defence table (for Attack) or the Net table (for Net), on
-the matching measure &mdash; red for the toughest opponents, green for the
+<p class="note"><b>What the colours mean.</b> Every cell is coloured by the
+<b>opponent</b>, not by the club: its season rank on the Defence table (for
+Attack), the Attack table (for Defence) or the Net table (for Net), on the
+matching measure &mdash; red for the toughest opponents, green for the
 easiest, pale for mid-table, the same way round as FPL's fixture difficulty.
 The number in the cell is still what the club did; the colour is who it did
 it against. The opponent's rank is also printed after its name
 (<b>#1</b>&ndash;<b>#20</b>) for anyone who would rather read it than judge
 a shade, and the club's own top-three weeks are in bold. The season ranks
 are as they stand today, so an early-season opponent's colour will keep
-moving as its season fills in. <b>Defence</b> keeps the original colouring
-&mdash; green for the club's own top-three weeks, red for its bottom three.
-A small red <b style="color:#b3372f">p</b> marks a penalty taken that
+moving as its season fills in. A small red <b style="color:#b3372f">p</b> marks a penalty taken that
 week.</p>
 </section>
 {sections}
