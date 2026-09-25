@@ -74,6 +74,14 @@ HERE = Path(__file__).parent
 # ~0.79 conversion rate the xG models themselves use for a spot kick.
 PENALTY_XG = 0.75
 
+# Decimal places computed xG is rounded to. FPL publishes xG to 2 places and
+# the penalty charge is 0.75, so nothing real lives beyond the second place —
+# but binary floating point does: 0.84 - 0.75 comes out as 0.0899999...97,
+# not 0.09, and a rank would split that penalty-taker from the players he is
+# genuinely level with. Rounding well past the data's precision removes the
+# noise without touching a single real value.
+XG_DECIMALS = 4
+
 # How far fbref's minutes (90s x 90, so quantised to 9-minute steps) may sit
 # from FPL's before a pair is called a disagreement. Nine covers the
 # rounding; the two sources also differ on whether stoppage time counts.
@@ -367,7 +375,7 @@ def weekly(data_dir: str | Path = HERE / "data" / "2026-27") -> pd.DataFrame:
 
     out["played"] = out["minutes"] > 0
     out["xg_raw"] = out["expected_goals"]
-    out["xg"] = out["xg_raw"] - PENALTY_XG * out["pkatt"]
+    out["xg"] = (out["xg_raw"] - PENALTY_XG * out["pkatt"]).round(XG_DECIMALS)
     out["xa"] = out["expected_assists"]
     out = out.rename(columns={"Position": "position"})
 
@@ -506,7 +514,7 @@ def board(ranked: pd.DataFrame, categories=None) -> pd.DataFrame:
             # that keeps a blank week blank rather than showing it as zero.
             out[f"{cat}_gw{gw}"] = totals[gw].where(ranks[gw].notna())
             out[f"{cat}_rank_gw{gw}"] = cat_ranks[gw]
-        out[f"{cat}_total"] = totals.sum(axis=1)
+        out[f"{cat}_total"] = totals.sum(axis=1).round(XG_DECIMALS)
 
     # Which weeks cleared the 2-point defensive bar, for the marker on the
     # defcon board's cells. Kept whatever the categories, since it costs one

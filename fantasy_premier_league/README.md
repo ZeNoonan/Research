@@ -1527,6 +1527,21 @@ since a team week means little without knowing who it was against. Tables
 open on the average composite rank; with no blank gameweeks yet, Total gives
 the same order.
 
+**The colours say who it was against.** On **Attack** each cell is shaded
+by the *opponent's* season rank on the **Defence** table, measure for
+measure — shots taken against how few shots that defence allows, xG against
+xG conceded, goals against goals conceded, composite against composite.
+**Defence** is the mirror image: shaded by the opponent's season rank on the
+**Attack** table, so shots conceded are read against how many shots that
+attack takes. On **Net** the shade is the opponent's season rank on the
+**Net** table itself, i.e. how strong a side it was. Red is a tough opponent and green an easy
+one, pale for mid-table — FPL's fixture-difficulty convention. The number is
+still what the club did, the colour who it did it against, and the
+opponent's rank is printed after its name (`#1`–`#20`) so the page never
+relies on colour alone; the club's own top-three weeks stay bold. The ranks
+are season-to-date, so an early opponent's colour keeps moving as its
+season fills in.
+
 **Net is a difference, not a sum of the other two boards.** Adding the
 attack and defence composite ranks would throw away the margins twice; the
 differences keep them, so a club that outshoots its opponent by ten ranks
