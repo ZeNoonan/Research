@@ -107,16 +107,22 @@ def marginal_contributions(df: pd.DataFrame) -> pd.Series:
     return pd.Series(net)
 
 
-MIN_VOTES = 25  # below this a rate is noise, not signal (a season in progress)
+# A rate from a handful of games says nothing (0% or 100% off two votes), so it
+# stays blank until MIN_VOTES have settled. Between that and PROVISIONAL_VOTES it
+# is shown but marked provisional, with its sample size. Every completed season
+# has at least ~180 settled votes per factor, so the mark only ever appears on a
+# season still in progress.
+MIN_VOTES = 10
+PROVISIONAL_VOTES = 100
+
+
+def standalone_counts(df: pd.DataFrame) -> pd.Series:
+    """Settled votes per factor: games where it voted and the cover was not a push."""
+    return pd.Series({f: int(((df[f] != 0) & (df["cover"] != 0)).sum()) for f in FACTORS})
 
 
 def standalone_rates(df: pd.DataFrame) -> pd.Series:
-    """Each factor as a binary indicator: share of its votes that cover.
-
-    A season still being played can have only a handful of settled games, where
-    a rate of 0% or 100% says nothing; those are left as NaN (shown as a dash)
-    until ``MIN_VOTES`` games have settled. A full season has several hundred.
-    """
+    """Each factor as a binary indicator: share of its settled votes that cover."""
     rates = {}
     for f in FACTORS:
         votes = df[(df[f] != 0) & (df["cover"] != 0)]
@@ -125,27 +131,37 @@ def standalone_rates(df: pd.DataFrame) -> pd.Series:
     return pd.Series(rates)
 
 
-def build_tables() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """(marginal net wins, standalone cover rates); factors x seasons."""
+def build_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """(marginal net wins, standalone cover rates, settled vote counts);
+    each factors x seasons."""
     years = available_years()
     frames = {y: factor_frame(y) for y in years}
     marginal = pd.DataFrame({y: marginal_contributions(f) for y, f in frames.items()})
     standalone = pd.DataFrame({y: standalone_rates(f) for y, f in frames.items()})
-    return marginal, standalone
+    counts = pd.DataFrame({y: standalone_counts(f) for y, f in frames.items()})
+    return marginal, standalone, counts
 
 
 def main() -> None:
-    marginal, standalone = build_tables()
+    marginal, standalone, counts = build_tables()
     marginal.index = [FACTOR_LABELS[f] for f in marginal.index]
     standalone.index = [FACTOR_LABELS[f] for f in standalone.index]
+    counts.index = standalone.index
 
     print("Marginal contributions (net wins charged to each factor):")
     out = marginal.copy()
     out.loc["Total"] = out.sum()
     print(out.to_string())
 
-    print("\nStandalone success (share of factor votes that cover):")
-    print(standalone.map(lambda x: f"{x:.1%}").to_string())
+    print("\nStandalone success (share of factor votes that cover);"
+          " * = provisional, settled votes in brackets:")
+    shown = standalone.copy().astype(object)
+    for f in standalone.index:
+        for y in standalone.columns:
+            v, n = standalone.loc[f, y], counts.loc[f, y]
+            shown.loc[f, y] = ("-" if pd.isna(v) else
+                               f"{v:.1%}*({n})" if n < PROVISIONAL_VOTES else f"{v:.1%}")
+    print(shown.to_string())
 
 
 if __name__ == "__main__":

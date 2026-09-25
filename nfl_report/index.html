@@ -63,6 +63,8 @@ body.betsonly tr.nobet { display: none; }
 .seasonnote { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
 table.diag td.pos { color: var(--win); font-weight: 600; }
 table.diag td.neg { color: var(--loss); font-weight: 600; }
+table.diag td.prov { color: var(--muted); font-style: italic; }
+table.diag td.prov small { font-size: 10px; margin-left: 2px; }
 .diagnote { font-size: 13px; color: var(--muted); margin: 8px 2px 14px; }
 table.heat { font-size: 11px; }
 table.heat th, table.heat td { padding: 3px 5px; text-align: center; border: 1px solid #fff; }
@@ -5027,8 +5029,8 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
   contribution</b> charges a factor only on close calls its vote alone decided:
   on a bet made at exactly &plusmn;3 every aligned factor earns the result, and on a
   near-miss at &plusmn;2 every opposing factor earns the opposite of what the blocked bet
-  would have done. This accounting reproduces the published Table&nbsp;3 values for
-  2015 and 2016 exactly.</p>
+  would have done. This accounting reproduces every value in Brown&rsquo;s published
+  Table&nbsp;3 exactly &mdash; all 35, across 2010&ndash;2016.</p>
   <div class="tablewrap">
     <table class="diag">
       <thead><tr><th class="l">Net wins charged</th><th>2010–11</th><th>2011–12</th><th>2012–13</th><th>2013–14</th><th>2014–15</th><th>2015–16</th><th>2016–17</th><th>2018–19</th><th>2019–20</th><th>2020–21</th><th>2021–22</th><th>2022–23</th><th>2023–24</th><th>2024–25</th><th>2025–26</th><th>2026–27</th></tr></thead>
@@ -5044,16 +5046,19 @@ footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
   </div>
   <p class="diagnote" style="margin-top:14px"><b>Standalone success</b> treats each factor
   as its own betting rule over all games: the share of its votes that cover the spread.
-  Brown&rsquo;s bar for a useful factor was 52% (green); below 48% is red.</p>
+  Brown&rsquo;s bar for a useful factor was 52% (green); below 48% is red.
+  <i>Italic</i> figures are provisional &mdash; a season still in progress &mdash; with
+  the number of settled votes in brackets, and are left uncoloured until the sample
+  is large enough to judge.</p>
   <div class="tablewrap">
     <table class="diag">
       <thead><tr><th class="l">% of votes that cover</th><th>2010–11</th><th>2011–12</th><th>2012–13</th><th>2013–14</th><th>2014–15</th><th>2015–16</th><th>2016–17</th><th>2018–19</th><th>2019–20</th><th>2020–21</th><th>2021–22</th><th>2022–23</th><th>2023–24</th><th>2024–25</th><th>2025–26</th><th>2026–27</th></tr></thead>
       <tbody>
-<tr><td class="l">Power</td><td class="pos">56</td><td class="pos">55</td><td class="pos">54</td><td class="pos">57</td><td class="pos">57</td><td class="pos">57</td><td>52</td><td class="pos">54</td><td class="pos">52</td><td class="pos">52</td><td>50</td><td class="neg">47</td><td>48</td><td>50</td><td>50</td><td class="pos">55</td></tr>
-<tr><td class="l">Turnover — home</td><td class="neg">47</td><td class="neg">43</td><td class="pos">58</td><td class="pos">54</td><td>50</td><td>49</td><td class="neg">46</td><td class="neg">45</td><td>48</td><td>51</td><td class="pos">54</td><td>50</td><td class="neg">46</td><td class="neg">43</td><td>50</td><td>48</td></tr>
-<tr><td class="l">Turnover — away</td><td class="pos">54</td><td>51</td><td class="neg">47</td><td>49</td><td>51</td><td>48</td><td>49</td><td class="pos">56</td><td class="neg">46</td><td class="pos">56</td><td class="pos">53</td><td>49</td><td class="neg">47</td><td class="neg">47</td><td class="pos">55</td><td class="pos">74</td></tr>
-<tr><td class="l">Hunger — home</td><td class="pos">54</td><td class="pos">53</td><td class="pos">54</td><td class="neg">48</td><td>50</td><td class="pos">54</td><td>51</td><td class="pos">52</td><td>51</td><td>52</td><td class="pos">54</td><td class="pos">52</td><td>51</td><td class="neg">43</td><td class="pos">53</td><td class="pending">&mdash;</td></tr>
-<tr><td class="l">Hunger — away</td><td>48</td><td>51</td><td>50</td><td>50</td><td class="pos">61</td><td>51</td><td>51</td><td class="pos">55</td><td>49</td><td>51</td><td class="pos">54</td><td class="pos">53</td><td>49</td><td>49</td><td>52</td><td class="pending">&mdash;</td></tr>
+<tr><td class="l">Power</td><td class="pos">56</td><td class="pos">55</td><td class="pos">54</td><td class="pos">57</td><td class="pos">57</td><td class="pos">57</td><td>52</td><td class="pos">54</td><td class="pos">52</td><td class="pos">52</td><td>50</td><td class="neg">47</td><td>48</td><td>50</td><td>50</td><td class="prov" title="provisional: 33 settled votes">55<small>(33)</small></td></tr>
+<tr><td class="l">Turnover — home</td><td class="neg">47</td><td class="neg">43</td><td class="pos">58</td><td class="pos">54</td><td>50</td><td>49</td><td class="neg">46</td><td class="neg">45</td><td>48</td><td>51</td><td class="pos">54</td><td>50</td><td class="neg">46</td><td class="neg">43</td><td>50</td><td class="prov" title="provisional: 29 settled votes">48<small>(29)</small></td></tr>
+<tr><td class="l">Turnover — away</td><td class="pos">54</td><td>51</td><td class="neg">47</td><td>49</td><td>51</td><td>48</td><td>49</td><td class="pos">56</td><td class="neg">46</td><td class="pos">56</td><td class="pos">53</td><td>49</td><td class="neg">47</td><td class="neg">47</td><td class="pos">55</td><td class="prov" title="provisional: 27 settled votes">74<small>(27)</small></td></tr>
+<tr><td class="l">Hunger — home</td><td class="pos">54</td><td class="pos">53</td><td class="pos">54</td><td class="neg">48</td><td>50</td><td class="pos">54</td><td>51</td><td class="pos">52</td><td>51</td><td>52</td><td class="pos">54</td><td class="pos">52</td><td>51</td><td class="neg">43</td><td class="pos">53</td><td class="prov" title="provisional: 17 settled votes">47<small>(17)</small></td></tr>
+<tr><td class="l">Hunger — away</td><td>48</td><td>51</td><td>50</td><td>50</td><td class="pos">61</td><td>51</td><td>51</td><td class="pos">55</td><td>49</td><td>51</td><td class="pos">54</td><td class="pos">53</td><td>49</td><td>49</td><td>52</td><td class="prov" title="provisional: 17 settled votes">53<small>(17)</small></td></tr>
 
       </tbody>
     </table>

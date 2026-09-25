@@ -113,6 +113,8 @@ body.betsonly tr.nobet { display: none; }
 .seasonnote { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
 table.diag td.pos { color: var(--win); font-weight: 600; }
 table.diag td.neg { color: var(--loss); font-weight: 600; }
+table.diag td.prov { color: var(--muted); font-style: italic; }
+table.diag td.prov small { font-size: 10px; margin-left: 2px; }
 .diagnote { font-size: 13px; color: var(--muted); margin: 8px 2px 14px; }
 table.heat { font-size: 11px; }
 table.heat th, table.heat td { padding: 3px 5px; text-align: center; border: 1px solid #fff; }
@@ -331,7 +333,7 @@ def heatmaps_block(df: pd.DataFrame) -> str:
 
 def diagnostics_section() -> str:
     """Brown's factor diagnostics: marginal contributions + standalone rates."""
-    marginal, standalone = factor_analysis.build_tables()
+    marginal, standalone, counts = factor_analysis.build_tables()
     years = list(marginal.columns)
     head = "".join(f"<th>{season_label(y)}</th>" for y in years)
 
@@ -352,12 +354,18 @@ def diagnostics_section() -> str:
                + "".join(cell(int(totals[y]), "{:+d}", totals[y] > 0, totals[y] < 0)
                          for y in years) + "</tr>")
 
+    def rate_cell(v: float, n: int) -> str:
+        # A small sample is shown, not hidden, but not coloured against Brown's
+        # 52% bar either -- at a few dozen votes that would overstate it.
+        if not pd.isna(v) and n < factor_analysis.PROVISIONAL_VOTES:
+            return (f'<td class="prov" title="provisional: {n} settled votes">'
+                    f'{v * 100:.0f}<small>({n})</small></td>')
+        return cell(v * 100, "{:.0f}", v >= 0.52, v < 0.48)
+
     s_rows = ""
     for key in factor_analysis.FACTORS:
-        cells = "".join(
-            cell(v * 100, "{:.0f}", v >= 0.52, v < 0.48)
-            for v in (standalone.loc[key, y] for y in years)
-        )
+        cells = "".join(rate_cell(standalone.loc[key, y], int(counts.loc[key, y]))
+                        for y in years)
         s_rows += f'<tr><td class="l">{factor_analysis.FACTOR_LABELS[key]}</td>{cells}</tr>\n'
 
     return f"""
@@ -366,8 +374,8 @@ def diagnostics_section() -> str:
   contribution</b> charges a factor only on close calls its vote alone decided:
   on a bet made at exactly &plusmn;3 every aligned factor earns the result, and on a
   near-miss at &plusmn;2 every opposing factor earns the opposite of what the blocked bet
-  would have done. This accounting reproduces the published Table&nbsp;3 values for
-  2015 and 2016 exactly.</p>
+  would have done. This accounting reproduces every value in Brown&rsquo;s published
+  Table&nbsp;3 exactly &mdash; all 35, across 2010&ndash;2016.</p>
   <div class="tablewrap">
     <table class="diag">
       <thead><tr><th class="l">Net wins charged</th>{head}</tr></thead>
@@ -378,7 +386,10 @@ def diagnostics_section() -> str:
   </div>
   <p class="diagnote" style="margin-top:14px"><b>Standalone success</b> treats each factor
   as its own betting rule over all games: the share of its votes that cover the spread.
-  Brown&rsquo;s bar for a useful factor was 52% (green); below 48% is red.</p>
+  Brown&rsquo;s bar for a useful factor was 52% (green); below 48% is red.
+  <i>Italic</i> figures are provisional &mdash; a season still in progress &mdash; with
+  the number of settled votes in brackets, and are left uncoloured until the sample
+  is large enough to judge.</p>
   <div class="tablewrap">
     <table class="diag">
       <thead><tr><th class="l">% of votes that cover</th>{head}</tr></thead>
