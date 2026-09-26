@@ -505,8 +505,14 @@ takes them by exact name first, so a lookalike such as `home_ruck_turnovers_won`
 can never be read in their place whatever order the columns are in. A stat the
 feed happened to label "Score" cannot overwrite the real score either.
 
-The first real run found the turnovers for Benetton v Dragons. The one thing
-still unconfirmed is that the numbers match the Stats tab on the page.
+**First real run (round 1, Friday's three matches).** Turnovers were found for
+all three, and the reading is internally consistent: each score agrees across
+the three places the feed reports it, and every team's points reconcile
+exactly with its tries, conversions, penalties and drop goals — 6 of 6. That
+rules out reading player-level stats or crossing home and away. It turned up
+one bug, since fixed: the team objects carry a date, and the leading digits of
+`"2026-09-25T…"` were read as a stat (`home_date = 2026`). A string now counts
+as a number only when the whole of it is one.
 
 So the first real run is the real test. If it cannot find turnovers it says
 which match, and two panels make the fix quick: **Every stat found** shows what
