@@ -14,8 +14,8 @@ import math
 import sys
 from pathlib import Path
 
-from analysis import (GAMES_PER_SEASON, SEASONS, has_results, load_all,
-                      load_handicaps, market_view, season_dir)
+from analysis import (GAMES_PER_SEASON, SEASONS, ah_source, has_ah, has_results,
+                      load_ah, load_all, load_handicaps, market_view, season_dir)
 
 HERE = Path(__file__).parent
 TEMPLATE = HERE / "template.html"
@@ -86,8 +86,63 @@ def preseason_payload(season: str) -> dict:
     }
 
 
+def ah_fields(found):
+    """Per-game line and cover, or nothing when the lines file lacks the game."""
+    if found is None:
+        return {}
+    line, cover = found
+    return {"ahl": line, "ahc": cover}
+
+
+def ah_payload(season: str):
+    """Asian handicap table, per-team cover series and a per-game lookup.
+
+    Returns (block, lookup): ``block`` goes into the page payload and
+    ``lookup`` maps (team, opponent, venue) to (line, cover) so each game in
+    the game-by-game explorer can show the line it was settled against.
+    """
+    ah, games, table = load_ah(season)
+    rows = [
+        {
+            "name": r.team,
+            "short": SHORT_NAMES.get(r.team, r.team),
+            "rank": int(r.ah_rank),
+            "played": int(r.played),
+            "w": int(r.w), "hw": int(r.hw), "p": int(r.p), "hl": int(r.hl), "l": int(r.l),
+            "stdc": float(r.stdc),
+            "margin": round(float(r.margin), 2),
+            "handicapRank": int(r.handicap_rank),
+            "rankDiff": int(r.rank_diff),
+        }
+        for r in table.itertuples()
+    ]
+    series = {
+        team: [float(v) for v in grp.sort_values("ah_no")["stdc"]]
+        for team, grp in games.groupby("team")
+    }
+    stand_ins = [
+        {"d": g.date.strftime("%d %b %Y"), "h": g.team, "a": g.opponent, "line": float(g.line)}
+        for g in games.itertuples()
+        if g.line_source == "close" and g.venue == "Home"
+    ]
+    lookup = {
+        (g.team, g.opponent, g.venue): (float(g.line), float(g.cover))
+        for g in games.itertuples()
+    }
+    block = {
+        "matches": int(len(ah)),
+        "noLine": int(ah.attrs["no_line"]),
+        "standIns": stand_ins,
+        "source": ah_source(season).name,
+        "rows": rows,
+        "series": series,
+    }
+    return block, lookup
+
+
 def build_payload(season: str) -> dict:
     handicaps, results, games, standings = load_all(season)
+    ah_block, ah_lookup = ah_payload(season) if has_ah(season) else (None, {})
     max_played = int(standings["played"].max())
     complete = bool((standings["played"] == GAMES_PER_SEASON).all())
 
@@ -120,6 +175,7 @@ def build_payload(season: str) -> dict:
                     "gf": int(g["gf"]),
                     "ga": int(g["ga"]),
                     "p": int(g["base_points"]),
+                    **ah_fields(ah_lookup.get((name, g["opponent"], g["venue"]))),
                 }
                 for _, g in tg.iterrows()
             ],
@@ -150,6 +206,7 @@ def build_payload(season: str) -> dict:
         "handicapActualCorr": round(corr, 3),
         "teams": teams,
         "market": market_payload(handicaps),
+        "ah": ah_block,
     }
 
 
@@ -181,6 +238,11 @@ def copy_for(payload: dict) -> dict:
             f"This page re-scores the {label} season as it happens &mdash; {games_txt} "
             "so far: the adjusted table, how the race is unfolding game by game, and "
             "how well the handicaps are levelling the field."
+        )
+    if payload.get("ah"):
+        intro += (
+            " Part two sets the same clubs against the market&rsquo;s weekly Asian "
+            "handicap &mdash; a rating that, unlike the pre-season one, keeps moving."
         )
     return {"SEASON_LABEL": label, "STATUS": status, "INTRO": intro}
 
