@@ -17,6 +17,8 @@ Run::
     python line_check.py export --season 2025     # -> entry/urc_2025_line_check.csv
     python line_check.py check  --season 2025     # after filling actual_line
     python line_check.py coarse --season 2025     # only the un-inferable matches
+    python line_check.py close  --season 2025     # bets a line error could flip
+    python line_check.py apply  --season 2025     # write every real line filled in
 """
 
 from __future__ import annotations
@@ -34,6 +36,18 @@ ENTRY_DIR = HERE / "entry"
 
 COLUMNS = ["date", "round", "home", "away", "odds_home", "odds_draw", "odds_away",
            "inferred_line", "pts_per_tick", "actual_line"]
+CLOSE_COLUMNS = ["date", "round", "home", "away", "inferred_line", "bet", "result",
+                 "covered_by", "actual_line"]
+
+# How far an inferred line can be trusted: about a point and a half from a
+# readable quote (the line check's error on those), about three from a quote
+# too coarse to pin (two 1.01 shots came back three points apart).
+FINE_BAND = 1.5
+COARSE_BAND = 3.0
+
+# Every sheet a real handicap can be typed into: (file stem, worksheet name).
+SHEETS = (("line_check", "Line check"), ("coarse_lines", "Coarse quotes"),
+          ("close_calls", "Close calls"))
 
 
 def select(df: pd.DataFrame, n: int = 14) -> pd.DataFrame:
@@ -74,22 +88,14 @@ def coarse(season: int) -> Path:
     merged["actual_line"] = ""
     # Carry over anything already answered in the line check, so the same
     # number is never looked up twice.
-    known = _checked_lines(season)
+    known = _known_lines(season)
     if known:
         merged["actual_line"] = [
             known.get((r.date, r.home, r.away), "") for r in merged.itertuples()]
     sample = merged[merged["pts_per_tick"] > sfo.COARSE_POINTS_PER_TICK]
     sample = sample.sort_values("pts_per_tick", ascending=False)[COLUMNS]
 
-    ENTRY_DIR.mkdir(exist_ok=True)
-    out = ENTRY_DIR / f"urc_{season}_coarse_lines.csv"
-    sample.to_csv(out, index=False)
-    with pd.ExcelWriter(out.with_suffix(".xlsx"), engine="openpyxl") as w:
-        sample.to_excel(w, sheet_name="Coarse quotes", index=False)
-        sheet = w.sheets["Coarse quotes"]
-        sheet.freeze_panes = "A2"
-        for i, col in enumerate(COLUMNS, start=1):
-            sheet.column_dimensions[chr(64 + i)].width = max(12, len(col) + 3)
+    out = _write_sheet(sample, season, "coarse_lines", "Coarse quotes")
     print(f"{len(sample)} matches the odds cannot price -> "
           f"{out.relative_to(HERE)} (+ .xlsx)")
     print("Fill `actual_line` with the real home handicap "
@@ -99,18 +105,82 @@ def coarse(season: int) -> Path:
     return out
 
 
-def _checked_lines(season: int) -> dict:
-    """Real handicaps already filled in the line-check sheet, by match."""
-    for path in (ENTRY_DIR / f"urc_{season}_line_check.xlsx",
-                 ENTRY_DIR / f"urc_{season}_line_check.csv"):
+def _sheet_lines(season: int, stem: str, sheet: str) -> dict:
+    """Real handicaps filled in one entry sheet, by match - the .xlsx if present."""
+    for path in (ENTRY_DIR / f"urc_{season}_{stem}.xlsx",
+                 ENTRY_DIR / f"urc_{season}_{stem}.csv"):
         if not path.exists():
             continue
-        df = (pd.read_excel(path, sheet_name="Line check") if path.suffix == ".xlsx"
+        df = (pd.read_excel(path, sheet_name=sheet) if path.suffix == ".xlsx"
               else pd.read_csv(path))
         df = df[pd.to_numeric(df["actual_line"], errors="coerce").notna()]
         return {(str(r.date)[:10], r.home, r.away): float(r.actual_line)
                 for r in df.itertuples()}
     return {}
+
+
+def _known_lines(season: int) -> dict:
+    """Every real handicap filled in any entry sheet, by match."""
+    known = {}
+    for stem, sheet in SHEETS:
+        known.update(_sheet_lines(season, stem, sheet))
+    return known
+
+
+def _write_sheet(frame: pd.DataFrame, season: int, stem: str, sheet: str) -> Path:
+    """Write an entry sheet as .csv and .xlsx; the .xlsx is the one to fill."""
+    ENTRY_DIR.mkdir(exist_ok=True)
+    out = ENTRY_DIR / f"urc_{season}_{stem}.csv"
+    frame.to_csv(out, index=False)
+    with pd.ExcelWriter(out.with_suffix(".xlsx"), engine="openpyxl") as w:
+        frame.to_excel(w, sheet_name=sheet, index=False)
+        ws = w.sheets[sheet]
+        ws.freeze_panes = "A2"
+        for i, col in enumerate(frame.columns, start=1):
+            ws.column_dimensions[chr(64 + i)].width = max(12, len(col) + 3)
+    return out
+
+
+def close_calls(season: int) -> Path:
+    """Export the graded bets that a small error in an inferred line could flip.
+
+    A backtest on inferred lines grades every bet against a line known only to
+    within a point or two. Where the bet covered, or failed to, by less than
+    that, the W or L rests on the inference rather than the result - so those
+    are the matches where a real handicap changes the record, and the only
+    ones worth looking up. Settled on a quoted line, a bet is final and is
+    left out.
+    """
+    report = season_report.build_reports()[season]
+    rows, quotes = _load(season)
+    rows = rows.astype({"date": str})
+    graded = (report[report["result"].notna()]
+              .merge(rows[["date", "home", "away", "line_source"]],
+                     on=["date", "home", "away"])
+              .merge(quotes, on=["date", "home", "away"], how="left"))
+    inferred = graded["line_source"] == season_report.LINE_INFERRED
+    graded = graded[inferred].copy()
+    home_by = graded["home_score"] - graded["away_score"] + graded["line"]
+    graded["covered_by"] = home_by.where(graded["system_bet"] == graded["home"], -home_by)
+    coarse = [sfo.is_coarse(r.odds_home, r.odds_draw, r.odds_away)
+              for r in graded.itertuples()]
+    band = pd.Series(coarse, index=graded.index).map({True: COARSE_BAND, False: FINE_BAND})
+    sample = graded[graded["covered_by"].abs() <= band].copy()
+    sample["inferred_line"] = sample["line"]
+    sample["bet"] = sample["system_bet"]
+    known = _known_lines(season)
+    sample["actual_line"] = [known.get((r.date, r.home, r.away), "")
+                             for r in sample.itertuples()]
+    sample = sample[CLOSE_COLUMNS]
+
+    out = _write_sheet(sample, season, "close_calls", "Close calls")
+    wins = int((sample["result"] == "W").sum())
+    print(f"{len(graded)} bets graded on inferred lines; {len(sample)} settled within "
+          f"the line's uncertainty ({wins} W, {len(sample) - wins} L) -> "
+          f"{out.name} (+ .xlsx)")
+    print("Fill `actual_line` with the real home handicap (negative = home "
+          "favoured),\nthen run `apply` and season_report.py.")
+    return out
 
 
 def apply_real(season: int) -> None:
@@ -120,18 +190,7 @@ def apply_real(season: int) -> None:
     than inferred - and that is what stops ``import_oddsportal.py`` overwriting
     them on its next run.
     """
-    known = dict(_checked_lines(season))
-    coarse_path = ENTRY_DIR / f"urc_{season}_coarse_lines.csv"
-    xlsx = coarse_path.with_suffix(".xlsx")
-    for path, sheet in ((xlsx, "Coarse quotes"), (coarse_path, None)):
-        if path.exists():
-            df = (pd.read_excel(path, sheet_name=sheet) if sheet
-                  else pd.read_csv(path))
-            df = df[pd.to_numeric(df["actual_line"], errors="coerce").notna()]
-            known.update({(str(r.date)[:10], r.home, r.away): float(r.actual_line)
-                          for r in df.itertuples()})
-            break
-
+    known = _known_lines(season)
     if not known:
         raise SystemExit("no real handicaps filled in yet")
 
@@ -188,15 +247,7 @@ def export(season: int) -> Path:
     merged["actual_line"] = ""
     sample = select(merged)[COLUMNS]
 
-    ENTRY_DIR.mkdir(exist_ok=True)
-    out = ENTRY_DIR / f"urc_{season}_line_check.csv"
-    sample.to_csv(out, index=False)
-    with pd.ExcelWriter(out.with_suffix(".xlsx"), engine="openpyxl") as w:
-        sample.to_excel(w, sheet_name="Line check", index=False)
-        sheet = w.sheets["Line check"]
-        sheet.freeze_panes = "A2"
-        for i, col in enumerate(COLUMNS, start=1):
-            sheet.column_dimensions[chr(64 + i)].width = max(12, len(col) + 3)
+    out = _write_sheet(sample, season, "line_check", "Line check")
     print(f"{len(sample)} matches -> {out.relative_to(HERE)} (+ .xlsx)")
     print("Fill `actual_line` with the real home handicap "
           "(negative = home favoured), then run `check`.")
@@ -257,10 +308,10 @@ def check(season: int) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("action", choices=("export", "check", "coarse", "apply"))
+    ap.add_argument("action", choices=("export", "check", "coarse", "close", "apply"))
     ap.add_argument("--season", type=int, required=True)
     args = ap.parse_args()
-    {"export": export, "check": check, "coarse": coarse,
+    {"export": export, "check": check, "coarse": coarse, "close": close_calls,
      "apply": apply_real}[args.action](args.season)
 
 

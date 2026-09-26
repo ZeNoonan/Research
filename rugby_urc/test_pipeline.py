@@ -7,21 +7,29 @@ whose handicaps are generated from *known* power ratings and turnover counts,
 then assert the pipeline recovers what was put in, and that the rules the model
 depends on hold:
 
-1. the weighted fit recovers the ratings that generated the handicaps;
-2. LGT carries across the season boundary, and resets nowhere else;
-3. a missing turnover count blocks a pick rather than counting as neutral;
-4. STDC resets each season and tracks net covers;
-5. System #, pick and grade agree with a hand computation;
-6. ``calibrate.py`` recovers the home-advantage terms used to build the data;
-7. a **split round** - one whose matches are months apart, as 2026-27's round 8
+1. the pipeline runs and reports both seasons;
+2. the weighted fit recovers the ratings that generated the handicaps;
+3. LGT carries across the season boundary, and resets nowhere else;
+4. a missing turnover count blocks a pick rather than counting as neutral;
+5. STDC resets each season and tracks net covers;
+6. System #, pick and grade agree with a hand computation;
+7. an unpriced round produces no report rows;
+8. ``calibrate.py`` recovers the home-advantage terms used to build the data;
+9. a **split round** - one whose matches are months apart, as 2026-27's round 8
    is - is ordered by date, so no factor reads a match that had not been played;
-8. the odds-to-handicap conversion round-trips, and recovers a known sigma;
-9. merging new odds into a season file never erases what is already there, and
-   never overwrites a handicap that was quoted rather than inferred;
-10. the model runs on the closing line, and on the opening line until then;
-11. an entry sheet can never erase a stored value: not a column it lacks (an
+10. the odds-to-handicap conversion round-trips, and recovers a known sigma;
+11. merging new odds into a season file never erases what is already there, and
+    never overwrites a handicap that was quoted rather than inferred;
+12. the model runs on the closing line, and on the opening line until then;
+13. an entry sheet can never erase a stored value: not a column it lacks (an
     older export), and not a blank cell (a sheet exported before the latest
-    results were loaded).
+    results were loaded);
+14. LGT is the turnovers-conceded differential - zero-sum, and blind to
+    turnovers won;
+15. a whole past season loads from the scrape: quoted lines kept, the rest
+    inferred, and every replaced value reported;
+16. the close-calls sheet lists exactly the bets an inferred line's error
+    could flip, and a line typed into it is applied.
 
 Run: ``python test_pipeline.py``
 """
@@ -37,6 +45,8 @@ import pandas as pd
 import calibrate
 import entry_sheet
 import import_oddsportal
+import import_season
+import line_check
 import model
 import spread_from_odds as sfo
 import season_report
@@ -248,8 +258,8 @@ def main() -> int:
         report = season_report.build_reports()[2026]
         report["date"] = pd.to_datetime(report["date"])
         net = {(r.date, r.home, r.away):
-               (r.home_turnovers_conceded - r.home_turnovers_won,
-                r.away_turnovers_conceded - r.away_turnovers_won)
+               (r.home_turnovers_conceded - r.away_turnovers_conceded,
+                r.away_turnovers_conceded - r.home_turnovers_conceded)
                for r in split.assign(date=pd.to_datetime(split["date"])).itertuples()}
 
         wrong = []
@@ -492,6 +502,144 @@ def main() -> int:
         passed &= check("a sheet missing a played match is refused",
                         "played match" in refused, refused[:60])
         passed &= check("and the season file is left as it was", stored().equals(before))
+
+    print("\n14. LGT is the conceded differential, not own conceded minus own won")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        season_report.DATA_DIR = data
+        season = make_season(2026, range(1, 3), start="2026-09-18")
+        r1 = season.index[season["round"] == 1]
+        first = r1[0]
+        home, away = season.loc[first, "home"], season.loc[first, "away"]
+        # The home side leaked 12 and won back 5 - more lost than won, the way
+        # nearly every club's own count reads in the real feed - but its
+        # opponent leaked 15, so it WON the turnover count.
+        for col, value in (("home_turnovers_conceded", 12), ("away_turnovers_conceded", 15),
+                           ("home_turnovers_won", 5), ("away_turnovers_won", 4)):
+            season[col] = season[col].astype(object)
+            season.loc[first, col] = value
+        # Every other round-1 match has no turnovers-won count at all.
+        season.loc[r1[1:], ["home_turnovers_won", "away_turnovers_won"]] = ""
+        season.to_csv(data / "season_2026.csv", index=False)
+
+        rep = season_report.build_reports()[2026]
+        r2 = rep[rep["round"] == 2]
+        lgt = {r.home: r.home_lgt for r in r2.itertuples()}
+        lgt.update({r.away: r.away_lgt for r in r2.itertuples()})
+        passed &= check("a side that leaked less than its opponent reads negative",
+                        lgt[home] == -3 and lgt[away] == 3,
+                        f"{home} {lgt[home]:+.0f}, {away} {lgt[away]:+.0f}")
+        zero_sum = all(lgt[h] == -lgt[a] for h, a in
+                       season.loc[r1, ["home", "away"]].itertuples(index=False))
+        passed &= check("the two sides of every match carry opposite margins", zero_sum)
+        passed &= check("a blank turnovers-won count blocks nothing",
+                        not r2["lgt_unknown"].any())
+
+    print("\n15. a whole past season loads from the scrape, lines hung on it")
+    scraped = pd.DataFrame({
+        "Date": ["2025-09-26", "2025-09-27", "2025-10-03"],
+        "Round": [1, 1, 2],
+        "Home_Team": ["DHL Stormers", "Munster Rugby", "Leinster Rugby"],
+        "Away_Team": ["Leinster Rugby", "Ulster Rugby", "Munster Rugby"],
+        "home_score": [35, 20, 30], "away_score": [0, 13, 10],
+        "home_turnovers_won": [3, 6, 5], "away_turnovers_won": [6, 7, 4],
+        "home_turnovers_lost": [13, 12, 11], "away_turnovers_lost": [18, 14, 10],
+    })
+    quotes = pd.DataFrame({
+        # Munster v Ulster is quoted a day late; Leinster v Munster not at all;
+        # the last quote is for a match the scrape does not have.
+        "date": ["2025-09-26", "2025-09-28", "2025-10-04"],
+        "home": ["Stormers", "Munster", "Zebre"],
+        "away": ["Leinster", "Ulster", "Bulls"],
+        "odds_home": [1.8, 1.5, 8.0], "odds_draw": [21.0, 22.0, 30.0],
+        "odds_away": [2.0, 2.6, 1.08],
+    })
+    existing = pd.DataFrame([
+        {**{c: "" for c in season_report.SEASON_COLUMNS},
+         "round": "1", "date": "2025-09-26", "home": "Stormers", "away": "Leinster",
+         "closing_line": "-2.5", "line_source": season_report.LINE_INFERRED,
+         "home_score": "35", "away_score": "3",
+         # a net figure (13 - 3) typed as a count
+         "home_turnovers_conceded": "10", "home_turnovers_won": "3"},
+        {**{c: "" for c in season_report.SEASON_COLUMNS},
+         "round": "1", "date": "2025-09-27", "home": "Munster", "away": "Ulster",
+         "opening_line": "-3.5", "closing_line": "-4.5", "line_source": ""},
+    ])
+    built, log = import_season.build(scraped, quotes, existing, sfo.DEFAULT_SIGMA)
+    by = built.set_index(["home", "away"])
+    passed &= check("every scraped match is in, in date order",
+                    len(built) == 3 and built["date"].is_monotonic_increasing)
+    passed &= check("a quoted line and its opening line are kept",
+                    by.loc[("Munster", "Ulster"), "closing_line"] == "-4.5"
+                    and by.loc[("Munster", "Ulster"), "line_source"] == ""
+                    and by.loc[("Munster", "Ulster"), "opening_line"] == "-3.5"
+                    and log["quoted_kept"] == 1)
+    want = round(sfo.line_from_odds(1.8, 21.0, 2.0, sfo.DEFAULT_SIGMA) * 2) / 2
+    passed &= check("an unquoted match gets a line inferred from its odds",
+                    by.loc[("Stormers", "Leinster"), "closing_line"] == want
+                    and by.loc[("Stormers", "Leinster"), "line_source"]
+                    == season_report.LINE_INFERRED)
+    passed &= check("a match with no odds is left unpriced, and listed",
+                    by.loc[("Leinster", "Munster"), "closing_line"] == ""
+                    and len(log["unpriced"]) == 1 and log["unused_quotes"] == 1)
+    passed &= check("the feed's turnover counts replace the file's, and each is logged",
+                    by.loc[("Stormers", "Leinster"), "home_turnovers_conceded"] == 13
+                    and ("2025-09-26", "Stormers", "Leinster", "home_turnovers_conceded",
+                         10.0, 13) in log["replaced"])
+    passed &= check("a score that differs from the file's is reported",
+                    len(log["score_clash"]) == 1 and "away_score" in log["score_clash"][0])
+    kept = {(q["home"], q["away"]): q for q in log["quotes"]}
+    passed &= check("a quote is filed under its fixture's date and round",
+                    kept[("Munster", "Ulster")]["date"] == "2025-09-27"
+                    and kept[("Munster", "Ulster")]["round"] == 1)
+
+    print("\n16. close calls: the bets a small line error could flip, and only those")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        season_report.DATA_DIR = data
+        line_check.ENTRY_DIR = data
+        season = make_season(2025, range(1, 19), start="2025-09-19")
+        season["line_source"] = season_report.LINE_INFERRED
+        season.to_csv(data / "season_2025.csv", index=False)
+        # Mark the closest-settled bet as quoted: it would be listed otherwise.
+        first = season_report.build_reports()[2025]
+        first = first[first["result"].notna()]
+        closest = (first["home_score"] - first["away_score"] + first["line"]).abs().idxmin()
+        quoted = first.loc[closest]
+        season.loc[(season["date"].astype(str) == quoted["date"])
+                   & (season["home"] == quoted["home"]), "line_source"] = ""
+        season.to_csv(data / "season_2025.csv", index=False)
+        # Readable odds for every match: the band is the fine one throughout.
+        pd.DataFrame({"date": season["date"].astype(str), "round": season["round"],
+                      "home": season["home"], "away": season["away"],
+                      "odds_home": 1.9, "odds_draw": 21.0, "odds_away": 1.9}
+                     ).to_csv(data / "urc_2025_odds.csv", index=False)
+
+        out = line_check.close_calls(2025)
+        got = pd.read_csv(out)
+        rep = season_report.build_reports()[2025]
+        rep = rep[rep["result"].notna()].merge(
+            season.astype({"date": str})[["date", "home", "away", "line_source"]],
+            on=["date", "home", "away"])
+        by = (rep["home_score"] - rep["away_score"] + rep["line"]).abs()
+        want = rep[(rep["line_source"] == season_report.LINE_INFERRED)
+                   & (by <= line_check.FINE_BAND)]
+        key = lambda f: set(zip(f["date"], f["home"], f["away"]))
+        passed &= check("exactly the inferred-line bets settled within the band",
+                        key(got) == key(want), f"{len(got)} exported, {len(want)} expected")
+        passed &= check("a bet on a quoted line is never listed",
+                        (quoted["date"], quoted["home"], quoted["away"]) not in key(got))
+        passed &= check("the W or L it hinges on carries the right sign",
+                        ((got["covered_by"] > 0) == (got["result"] == "W")).all())
+        if len(got):
+            got.loc[0, "actual_line"] = -3.0
+            got.to_excel(out.with_suffix(".xlsx"), sheet_name="Close calls", index=False)
+            line_check.apply_real(2025)
+            after = pd.read_csv(data / "season_2025.csv", dtype=str).fillna("")
+            row = after[(after["date"] == got.loc[0, "date"])
+                        & (after["home"] == got.loc[0, "home"])].iloc[0]
+            passed &= check("a line filled in the sheet is applied, marked quoted",
+                            float(row["closing_line"]) == -3.0 and row["line_source"] == "")
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1

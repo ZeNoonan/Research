@@ -18,9 +18,9 @@ Factors that cross the season boundary
 * **Power** - the new season's first rounds are fit on the previous season's
   last *regular* rounds until four of its own exist.
 
-Both need the prior season present as ``data/season_<year-1>.csv``, which is
-why only the tail of 2025-26 is kept: four rounds of handicaps to seed the
-ratings, and the last round's turnovers to seed LGT.
+Both need the prior season present as ``data/season_<year-1>.csv``. Only the
+last four regular match-weeks and each club's final match are read for that;
+2025-26 is kept in full because it is also backtested.
 
 Run: ``python season_report.py`` -> ``data/report_<year>.csv``
 """
@@ -137,22 +137,25 @@ def load_season(year: int) -> pd.DataFrame:
 # --- cross-season factors ----------------------------------------------------
 
 def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
-    """Last Game Turnover: each club's own net turnover margin last time out.
+    """Last Game Turnover: each club's turnover margin last time out.
 
-    A club's margin is **its own turnovers conceded minus its own turnovers
-    won** - how much ball it leaked, net of how much it won back.
+    A club's margin is **its turnovers conceded minus its opponent's** - how
+    much more ball it leaked than the side it played. Positive = lost the
+    turnover count. Zero-sum within a match, as in ``nfl_report``, which
+    computes ``home_giveaways - away_giveaways``: this is that line with the
+    match centre's "turnovers conceded" in place of giveaways.
 
-    That is the NFL system's definition (``giveaways - takeaways``) read
-    literally. The NFL implementation computes it as a *differential* between
-    the two sides instead, which is equivalent there because a giveaway by one
-    team is by definition a takeaway by the other. **Rugby breaks that
-    identity**: a knock-on into touch is a turnover conceded that nobody won,
-    and across the 15 URC matches first loaded here ``home_conceded`` never
-    once equalled ``away_won``, differing by as much as 8. The differential is
-    therefore not a shortcut to the same number in rugby, it is a different
-    quantity - and the two disagree on the *sign*, which is all this factor
-    reads, in 8 of 30 club-matches. So the definition carries over, not the
-    shortcut, and both columns are required.
+    It is **not** ``own conceded - own won``, the NFL's ``giveaways -
+    takeaways`` read literally. That was tried, and a full season of the feed's
+    counts showed it cannot work as a vote, because the two counts are not
+    the same size. "Conceded" is every way of losing the ball, handling errors
+    included, and averaged 13.4 per club per match in 2025-26; "won" is only
+    ball taken off the opponent, and averaged 6.1. So own conceded minus own
+    won came out positive in 281 of 302 club-matches. The home factor backed
+    the home side and the away factor the away side almost every week, and on
+    81% of matches the two cancelled out. A margin that is nearly always
+    positive does not say who lost the count. Turnovers won is still
+    recorded, but not read.
 
     Carried across the season boundary, but only within a contiguous run of
     seasons, so the first round of a block starts at 0 (no previous match).
@@ -166,9 +169,9 @@ def add_lgt(combined: pd.DataFrame) -> pd.DataFrame:
     g = combined.copy()
     # float (not Int64) so a match with no counts contributes NaN, which flows
     # through to lgt_unknown rather than to a typed NA.
-    for side in ("home", "away"):
-        g[f"{side}_net_to"] = (g[f"{side}_turnovers_conceded"]
-                               - g[f"{side}_turnovers_won"]).astype(float)
+    g["home_net_to"] = (g["home_turnovers_conceded"]
+                        - g["away_turnovers_conceded"]).astype(float)
+    g["away_net_to"] = -g["home_net_to"]
 
     long = pd.concat([
         g[["order", "block", "home", "home_net_to"]]

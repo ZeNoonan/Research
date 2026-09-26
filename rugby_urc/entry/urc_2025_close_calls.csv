@@ -1,0 +1,11 @@
+date,round,home,away,inferred_line,bet,result,covered_by,actual_line
+2025-10-03,2,Dragons,Sharks,1.0,Dragons,W,1.0,
+2025-10-05,2,Zebre,Lions,-2.5,Lions,W,0.5,
+2025-10-17,4,Connacht,Bulls,0.0,Bulls,W,1.0,
+2025-10-17,4,Dragons,Cardiff,8.0,Dragons,W,1.0,
+2025-10-24,5,Glasgow,Bulls,-9.5,Bulls,W,0.5,
+2025-10-25,5,Leinster,Zebre,-22.5,Leinster,W,1.5,
+2025-12-27,8,Munster,Leinster,5.5,Munster,W,0.5,
+2026-01-24,10,Cardiff,Benetton,-7.5,Benetton,L,-1.5,
+2026-03-28,14,Stormers,Edinburgh,-17.5,Edinburgh,L,-1.5,
+2026-05-16,18,Bulls,Benetton,-25.5,Benetton,L,-0.5,

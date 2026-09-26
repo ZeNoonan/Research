@@ -1,10 +1,10 @@
 """Merge a turnover sheet from the URC match centre into a season file.
 
 The match centre reports, for each side, turnovers **won** and turnovers
-**conceded** (sometimes labelled "lost"). Both are needed: a club's last-game
-turnover margin is its own conceded minus its own won, and in rugby those are
-separate counts rather than two views of the same events - see ``add_lgt`` in
-``season_report.py`` for why that distinction changes picks.
+**conceded** (sometimes labelled "lost"). Both are imported. The model reads
+only turnovers conceded: a club's last-game margin is its conceded minus its
+opponent's - see ``add_lgt`` in ``season_report.py`` for why not its own
+conceded minus its own won.
 
 Matches are joined to the season file on the **club pair**, not the date, and
 then checked: sources disagree about dates more often than they disagree about
@@ -108,12 +108,13 @@ PLAUSIBLE_MAX = 40
 def implausible(df: pd.DataFrame) -> list[str]:
     """Counts outside the range a turnover count normally takes.
 
-    Flagged, not rejected. The URC match centre really does publish the odd
-    negative figure - 2025-26's Cardiff v Stormers carries
-    ``home_turnovers_lost = -1`` on the site itself - so refusing them would
-    block real source data. But a negative count can flip the sign of a club's
-    margin, and the sign is the entire input to the turnover factor, so it is
-    worth seeing every time rather than once.
+    Flagged, not rejected (``--strict`` refuses). A count cannot be negative,
+    so a negative value means the column holds something else - most likely a
+    **net** figure. That is how the one seen so far arose: 2025-26's Cardiff v
+    Stormers had ``home_turnovers_lost = -1`` in a sheet whose "lost" column
+    turned out to be conceded minus won (7 - 8). Loaded as a count, a net
+    figure silently changes the margin the turnover factor reads, so it is
+    worth seeing every time.
     """
     problems = []
     for r in df.itertuples():
@@ -123,7 +124,7 @@ def implausible(df: pd.DataFrame) -> list[str]:
                 continue
             if value < 0:
                 problems.append(f"{r.home} v {r.away}: {col} = {value:g} "
-                                f"(negative - check the sign of that club's margin)")
+                                f"(negative - is this a net figure, not a count?)")
             elif value > PLAUSIBLE_MAX:
                 problems.append(f"{r.home} v {r.away}: {col} = {value:g} "
                                 f"(over {PLAUSIBLE_MAX} - check the column)")
@@ -147,9 +148,9 @@ def main() -> None:
             print(f"  {b}")
         if args.strict:
             raise SystemExit("\nrefusing to load these (--strict).")
-        print("  loaded anyway - the source does publish figures like these. "
-              "Check whether\n  the sign of that club's margin looks right "
-              "before trusting a pick from it.\n")
+        print("  loaded anyway. Check the column really holds counts before "
+              "trusting a pick\n  from it - a net figure (conceded minus won) "
+              "is not the same statistic.\n")
     season_path = DATA_DIR / f"season_{args.season}.csv"
     season = pd.read_csv(season_path, dtype=str).fillna("")
     for col in SEASON_COLUMNS:
@@ -197,7 +198,7 @@ def main() -> None:
                   f"same match)")
 
     # Which clubs now have a margin for their most recent match?
-    filled = season[season["home_turnovers_won"].str.strip() != ""]
+    filled = season[season["home_turnovers_conceded"].str.strip() != ""]
     covered = set(filled["home"]) | set(filled["away"])
     missing = sorted(set(teams.TEAMS) - covered)
     print(f"\n{len(covered)} of {len(teams.TEAMS)} clubs have a turnover margin "

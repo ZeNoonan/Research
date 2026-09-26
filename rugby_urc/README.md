@@ -17,9 +17,9 @@ finding yet.
 ## 📋 What I need from you
 
 *The pipeline is built and tested and the full fixture list is in. What is left
-is the numbers, and it cannot fetch those on its own: this environment's network
-policy blocks Wikipedia, oddsportal.com and stats.unitedrugby.com, so handicaps
-and turnovers have to be typed in.*
+is the numbers. This environment's network policy blocks Wikipedia,
+oddsportal.com and stats.unitedrugby.com, so handicaps are typed in, and scores
+and turnovers come from the scrapers run on your machine.*
 
 ### Nothing needed for these
 
@@ -30,50 +30,55 @@ and turnovers have to be typed in.*
 - **Round 1's eight handicaps, opening and closing** — **received and loaded**.
   Four lines moved once the teams were named, and two of those moves change
   the picks; see *The line the model runs on*.
-- **The 2025-26 turnovers** — **received and loaded**: round 18 and the seven
-  playoff matches, 15 rows, giving all 16 clubs a last-match margin. **Round 1
-  of 2026-27 is now pickable** — see below. The sheet also changed the turnover
-  definition; that is written up under *A turnover is not a giveaway*.
-- **The 2025-26 handicaps** — **derived, not needed by hand**. The oddsportal
-  export carries 1X2 win odds rather than a spread, and
-  [`spread_from_odds.py`](spread_from_odds.py) converts one into the other
-  (below). 50 matches are loaded, covering the last five regular match-weeks
-  and all seven playoffs — more than the four weeks the power seed needs. Round
-  1 of 2026-27 now **has power ratings**.
+- **The whole 2025-26 season** — **received and loaded**: all 151 matches (144
+  regular, 7 playoff) from `urc_season_scraper.py`, with the feed's scores and
+  turnover counts, and a handicap on every one: your 14 quoted lines kept, the
+  other 137 inferred from your oddsportal odds. The feed's scores agree with
+  oddsportal's on all 151. See *How it did on 2025-26*.
 
-### 1. Five handicaps, from the spread market rather than the win-odds market
+**A correction.** The turnover sheet you sent earlier for the 2025-26 run-in
+had a "lost" column that was already a **net** figure — turnovers conceded
+minus turnovers won, in all 30 club-matches (Cardiff's −1 against the Stormers
+is 7 − 8). I loaded it as a raw count, which was my error. Those 15 matches now
+carry the feed's own counts, and `import_season.py` listed every value it
+replaced. With the error fixed, the full season also showed that the turnover
+definition this project had switched to could not work — see *A turnover is
+not a giveaway*. Between them, they swap one of round 1's picks; see *The line
+the model runs on*.
 
-**This is the only outstanding data ask, and it is five numbers.**
+### 1. Ten handicaps that would firm up the backtest (optional)
 
-The line check settled `sigma` for the readable range (below) and showed that
-the **far tail cannot be inferred at all**: two matches both quoted at 1.01
-came back with real handicaps of −30.5 and −33.5, three points apart from
-*identical* odds. No model separates those.
+Of the 45 graded 2025-26 bets, **10 covered or missed their inferred line by
+less than that line is good for**: about a point and a half, or three for a
+heavy favourite quoted near 1.01. On those ten the W or L rests on the estimate
+rather than the result, and seven of them are wins, so they are worth checking.
 
-Seven matches sit in that zone. Two you have already answered, so they are
-pre-filled. The remaining five are in
-**`entry/urc_2025_coarse_lines.xlsx`** — open it and fill `actual_line` for:
+| date | match | inferred | bet | result | by |
+|---|---|---|---|---|---|
+| 2025-10-03 | Dragons v Sharks | +1.0 | Dragons | W | 1.0 |
+| 2025-10-05 | Zebre v Lions | −2.5 | Lions | W | 0.5 |
+| 2025-10-17 | Connacht v Bulls | 0.0 | Bulls | W | 1.0 |
+| 2025-10-17 | Dragons v Cardiff | +8.0 | Dragons | W | 1.0 |
+| 2025-10-24 | Glasgow v Bulls | −9.5 | Bulls | W | 0.5 |
+| 2025-10-25 | Leinster v Zebre | −22.5 | Leinster | W | 1.5 |
+| 2025-12-27 | Munster v Leinster | +5.5 | Munster | W | 0.5 |
+| 2026-01-24 | Cardiff v Benetton | −7.5 | Benetton | L | −1.5 |
+| 2026-03-28 | Stormers v Edinburgh | −17.5 | Edinburgh | L | −1.5 |
+| 2026-05-16 | Bulls v Benetton | −25.5 | Benetton | L | −0.5 |
 
-| date | match | inferred (unreliable) |
-|---|---|---|
-| 2026-05-16 | Bulls v Benetton | −25.5 |
-| 2026-03-27 | Leinster v Scarlets | −25.0 |
-| 2026-05-16 | Sharks v Zebre | −23.5 |
-| 2026-04-25 | Munster v Ulster | −23.5 |
-| 2026-05-16 | Leinster v Ospreys | −21.5 |
-
-On oddsportal these are under the **handicap / spread** tab rather than the
-1X2 tab you exported before — the number wanted is the home handicap, negative
-when the home side is favoured. Then:
+They are in **`entry/urc_2025_close_calls.xlsx`**. The number wanted is the
+home handicap from oddsportal's handicap tab, negative when the home side is
+favoured, typed into `actual_line`. Then:
 
 ```bash
-python line_check.py apply --season 2025 && python season_report.py
+python line_check.py apply --season 2025 && python season_report.py && python build_site.py
 ```
 
-They land marked as quoted rather than inferred, which is what stops
-`import_oddsportal.py` overwriting them on its next run.
-
-Not urgent — the round-1 picks do not move either way.
+They land marked as quoted, so no later import overwrites them. None of this
+touches the 2026-27 picks: it only says how far to trust the backtest. The four
+other heavy-favourite lines asked for earlier
+(`entry/urc_2025_coarse_lines.xlsx`) are lower priority still; `apply` reads
+both sheets.
 
 ### 2. Monitoring home advantage
 
@@ -92,13 +97,81 @@ matters:
   at home as away. It prints how far from that the sample is, so it reads as a
   direction of travel rather than a measurement.
 
-With 2025-26's tail loaded, `calibrate.py` pools 58 priced matches and clears
-the 40-match floor. It fits **+5.0** for home advantage, which is the
-provisional value, and **+3.1** for a long-haul trip, a term currently switched
-off. The early read is **+5.5 over 26 domestic matches** and **+9.6 over 32
-long-haul ones**. Neither is ready to adopt. 50 of the 58 matches are last
-season's run-in, and 13 of the 16 clubs have not yet played as often at home
-as away. Revisit around round 5, when this season's own matches carry the fit.
+With the whole of 2025-26 loaded, `calibrate.py` pools 159 priced matches. It
+fits **+5.3** for home advantage, close to the provisional 5.0, and **+3.3**
+for a long-haul trip, a term currently switched off. The early read is **+5.4
+over 101 domestic matches** and **+8.5 over 58 long-haul ones**.
+
+**Not adopted, for now.** 137 of those lines are inferred rather than quoted,
+and one set of ratings is fitted across a whole season, where the model refits
+every week. More to the point, adopting either number did not help the
+backtest: 5.3 did slightly worse than 5.0, and adding the long-haul term did
+clearly worse (below). Revisit around round 5, when this season's own quoted
+lines carry the fit.
+
+## How it did on 2025-26
+
+The whole season, run through the system exactly as 2026-27 will be:
+
+| | bets | record | win rate | units at −110 |
+|---|---|---|---|---|
+| **2025-26** | 46 (one push) | **22–23** | **48.9%** | **−3.3** |
+
+Break-even at −110 is 52.4%, so on this season the system **lost a little**.
+Round 1 made no picks, because there is no 2024-25 file to seed its ratings;
+nor did the playoffs, where no match reached ±3.
+
+**Read it as one season, not a verdict.** 45 bets carry a standard error of
+about 7.5 points on the win rate. This record sits as comfortably with a
+system that wins 55% of the time as with one that wins 45%. Nor is it being
+flattered by the settings: no value of `sigma` or home advantage tried did
+better.
+
+| what was varied | values | best | worst |
+|---|---|---|---|
+| `sigma` for the inferred lines | 12, 13, 13.75, 14.5, 16 | 22–23 (13–13.75) | 20–25, −7.5u (14.5) |
+| `HOME_ADVANTAGE` | 3, 4, 5, 5.3, 6, 7 | 22–23 (5.0) | 20–24, −6.4u (3, 4) |
+| long-haul term 3.3, home 5.3 | — | — | 20–26, −8.6u |
+
+The run-in did no better than the start: rounds 1–9 went 13–13, rounds 10–18
+went 9–10. Away picks went 17–17 and home picks 5–6. The picks lean heavily
+away, 34 of 46, which is the lean the power factor's construction predicts
+(see *Power factor detail*).
+
+**Each factor on its own** (`factor_analysis.py`), as a win rate when it votes:
+
+| factor | votes | right | rate |
+|---|---|---|---|
+| Power / over-reaction | 140 | 73 | 52.1% |
+| Turnover — home | 133 | 70 | 52.6% |
+| Turnover — away | 135 | 59 | 43.7% |
+| Hunger — home | 122 | 63 | 51.6% |
+| Hunger — away | 118 | 54 | 45.8% |
+
+All five are within two standard errors of 50%, so none of them is
+established either way. The away turnover factor at 43.7% is the weakest, and
+the thing to watch this season, not a reason to flip it: choosing factors by
+how they did on the season they are then tested on is exactly the
+curve-fitting the NFL project was careful to avoid.
+
+**How good are the inferred lines?** A fair line should see the home side
+cover about half the time, and across the 151 matches it covered 77, failed 71
+and pushed 3. The inference is not leaning either way. What it cannot do is
+settle a bet decided by a point, hence the ten above.
+
+**The turnover definition, varied.** For the record, since it changed on this
+data (next section), the season under each candidate. None was chosen for its
+number, because with 45 bets a gap of 6 wins is noise.
+
+| turnover margin | record | units |
+|---|---|---|
+| **conceded − opponent's conceded** (in use; the NFL computation) | 22–23 | −3.3 |
+| opponent's won − own won | 25–20 | +3.0 |
+| own net − opponent's net (both counts) | 19–27 | −10.7 |
+| own conceded − own won (the definition replaced) | 18–14 | +2.6 |
+
+The last row has the best win rate, but its two turnover factors cancelled
+each other on 81% of matches, so it is really a three-factor system.
 
 ---
 
@@ -133,9 +206,9 @@ The intuitions, unchanged from the source:
   must win by 8 to cover); positive = home receiving points. It is entered
   twice, as `opening_line` and `closing_line`. `line` is the close, or the open
   until the close is in.
-- **`lgt`** — the side's own net turnover margin in its previous match
-  (**own conceded − own won**). Positive = leaked more ball than it won back.
-  Not a differential between the two sides; see *A turnover is not a giveaway*.
+- **`lgt`** — the side's turnover margin in its previous match: **its
+  turnovers conceded − its opponent's**. Positive = lost the turnover count.
+  Zero-sum within a match, as in the NFL; see *A turnover is not a giveaway*.
 - **`stdc`** — covers − non-covers this season. Negative = hungry.
 - **`power`** — rating in points; the power-implied handicap is
   `away_power − home_power`.
@@ -163,13 +236,16 @@ Round 1 shows how much that matters. Four of the eight lines moved on team news:
 
 | match | open | close | System # |
 |---|---|---|---|
-| Lions v Leinster | +7.5 | −5.5 | +3 → +1: **Lions no longer a bet** |
-| Munster v Glasgow | −2.5 | +2.5 | +1 → +3: **Munster +2.5 now a bet** |
-| Connacht v Stormers | −1.5 | −6.5 | −1, unchanged |
-| Sharks v Ospreys | −12.5 | −11.5 | +1, unchanged |
+| Lions v Leinster | +7.5 | −7.5 | +3 → +1: **Lions no longer a bet** |
+| Munster v Glasgow | −2.5 | +3.5 | +1 → +3: **Munster +3.5 now a bet** |
+| Connacht v Stormers | −1.5 | −6.5 | −2, unchanged |
+| Sharks v Ospreys | −12.5 | −10.5 | −1, unchanged |
 
-Edinburgh (+11.5 at Ulster) and the Bulls (−11.5 at Zebre) are unchanged, so
-the round still has three bets.
+The Dragons (+9.5 at Benetton) and the Bulls (−11.5 at Zebre) did not move, so
+the round has three bets: **Dragons, Munster, Bulls**. Until the turnover fix
+it was Edinburgh (+11.5 at Ulster) in place of the Dragons. Both covered on
+Friday, but Edinburgh's pick rested on the mislabelled seed and the replaced
+definition, so the Dragons are the pick of record.
 
 **Worth watching.** The power factor cannot tell a line that has overshot from
 one that moved on team news. It compares the line with ratings fitted to
@@ -215,27 +291,48 @@ displaced round and asserts every club's LGT is its previous match **by date**.
 
 The NFL system's turnover factor reads `giveaways − takeaways`: how much ball a
 team lost, net of how much it won back. The NFL implementation computes that as
-a **differential between the two sides** — `home_giveaways − away_giveaways` —
-which is exact there, because a giveaway by one team is by definition a
+a **differential between the two sides**, `home_giveaways − away_giveaways`,
+which is exact there because a giveaway by one team is by definition a
 takeaway by the other.
 
-This project copied the differential, on the assumption that it carried the
-same meaning. **The first real match-centre data disproved that.** Across the
-15 URC matches loaded, `home_turnovers_conceded` never once equalled
-`away_turnovers_won` — not in a single match — and the two differed by as much
-as 8. In rugby they are independently recorded events: a knock-on into touch is
-a turnover conceded that nobody won.
+**In use here: the same differential, on turnovers conceded.** A club's margin
+is its turnovers conceded minus its opponent's: the NFL line with the match
+centre's "turnovers conceded" in place of giveaways. Zero-sum, like the
+original, so in every match one side lost the count and the other won it.
 
-So the differential is not a shortcut to the same number here, it is a
-different quantity. And it matters: the two definitions **disagree on the sign
-in 8 of 30 club-matches**, and the sign is the entire input to the factor.
+**The detour, and why it was wrong.** This project started with exactly that
+differential. It then switched to reading the NFL definition literally, as
+**own conceded − own won**, on the evidence of the first 15 matches of
+match-centre data, in which one side's "conceded" never matched the other's
+"won". That evidence was mislabelled, since the sheet's "conceded" column was
+already net of turnovers won (see *A correction*, above), though the point
+itself survives on the feed's counts: they match in only 4 of 302
+club-matches. What the switch missed is the thing a full season makes
+obvious:
 
-The definition that carried over is therefore the original one read literally —
-**a club's own turnovers conceded minus its own turnovers won** — and both
-columns are required rather than one inferred from the other. A side effect
-worth noting: the margin is no longer zero-sum between the two teams in a
-match, so both sides can have leaked ball badly. That is a fact about rugby,
-not a modelling liberty.
+| per club per match, 2025-26 | mean | range |
+|---|---|---|
+| turnovers conceded | 13.4 | 4–25 |
+| turnovers won | 6.1 | 1–15 |
+
+The two counts are different sizes: "conceded" is every way of losing the ball,
+handling errors included, while "won" is only ball taken off the opponent. A
+club's own conceded minus its own won was therefore **positive in 281 of 302
+club-matches**. Nearly everyone "lost the count" nearly every week, so the home
+turnover factor backed the home side and the away factor the away side, and on
+**81% of matches the two cancelled out**. As a vote it measured nothing.
+
+The differential does not have that problem, because it compares like with
+like: two clubs' turnovers conceded, in the same match, counted the same way.
+Turnovers won is still scraped and stored; the model does not read it, so a
+blank never blocks a pick. `test_pipeline.py` check 14 pins the definition down.
+
+**A note on negative turnover counts.** A count cannot be negative, so a
+negative value means a column holds something else, most likely a net figure.
+That is how the one seen so far arose: the −1 in 2025-26's Cardiff v Stormers
+came from a sheet whose "lost" column was conceded minus won (7 − 8).
+`import_turnovers.py` flags such a value on every run, and `--strict` refuses
+it.
 
 ## Inferring a handicap from win odds
 
@@ -254,29 +351,23 @@ with `p = p_home + p_draw / 2`, a draw being the mass sitting exactly on zero.
 
 Two things have to be right, and both were checked rather than assumed.
 
-**A note on the source's own oddities.** The URC match centre publishes the
-occasional negative turnover count — 2025-26's Cardiff v Stormers carries
-`home_turnovers_lost = -1` on the site itself, confirmed against the source.
-`import_turnovers.py` flags counts like that on every run rather than
-rejecting them (refusing would block real data) or swallowing them (a negative
-count can flip the sign of a club's margin, which is the factor's entire
-input). That particular row does not reach round 1 — Cardiff's last 2025-26
-match is the quarter-final — and its sign is negative either way.
-
 **Removing the bookmaker's margin.** The quotes sum to about 8.3% over
 certainty. Dividing through by that — the obvious fix — systematically
 overstates short prices. Shin's method, which models the book as protecting
 itself against better-informed traders, takes proportionally more out of the
 longshots. The test is whether the resulting lines behave like lines:
 
-| de-vig | home cover rate vs its own inferred line |
-|---|---|
-| proportional | 54.0% |
-| additive | 48.0% |
-| **Shin** | **48.0%** |
+| de-vig | home cover rate vs its own inferred line: first 50 matches | all 151 |
+|---|---|---|
+| proportional | 54.0% | 54.7% |
+| additive | 48.0% | 51.0% |
+| **Shin** | **48.0%** | **52.0%** |
 
-A fair line must produce ~50%, so proportional is measurably biased and Shin is
-used.
+A fair line should produce about 50%. Proportional leans home in both samples,
+while Shin and additive stay within two points of 50%. On this many matches none of
+those gaps is conclusive (the standard error on 148 is about 4 points), so
+Shin is used because it is built for exactly this bias, with the data
+agreeing rather than proving it.
 
 **The value of `sigma`.** **13.75**, measured against 12 real quoted handicaps.
 
@@ -345,7 +436,7 @@ mistaken later for a handicap that was actually quoted.
 | | `nfl_report` | here |
 |---|---|---|
 | **Raw inputs** | two machine-generated exports (pro-football-reference, nflverse), joined on team pair ± 1 day | **one hand-keyed file per season** |
-| **Turnovers** | giveaways − takeaways (equivalently, a differential) | **own conceded − own won**, which is not a differential |
+| **Turnovers** | `home_giveaways − away_giveaways` | **the same differential, on turnovers conceded** |
 | **Home edge** | 3.0 points, well established | **5.0, provisional**, plus an optional long-haul term |
 | **Heatmap scale** | red-yellow-green | **blue ↔ grey ↔ red** |
 | **Validation** | 7 published seasons | none — generated-data tests only |
@@ -356,9 +447,9 @@ match. `data/season_<year>.csv` carries the fixture, the opening and closing
 handicaps, the score and the turnover counts in one row, and `entry_sheet.py`
 keeps the typing in a spreadsheet rather than in the CSV.
 
-**Turnovers: own conceded minus own won.** See *A turnover is not a giveaway*
-below — this started as the conceded differential, on an assumption the data
-then disproved.
+**Turnovers: the conceded differential.** The NFL computation with turnovers
+conceded in place of giveaways. It went to own conceded − own won and back; see
+*A turnover is not a giveaway* above.
 
 **Blue ↔ red heatmaps.** A red-yellow-green ramp puts a hue at the midpoint,
 where it reads as a third category rather than as zero, and red/green is the
@@ -376,8 +467,10 @@ rugby_urc/
 ├── import_fixtures.py  # pasted fixture text -> data/season_<year>.csv
 ├── import_oddsportal.py # pasted results+odds -> season file, handicaps inferred
 ├── spread_from_odds.py # 1X2 decimal odds -> a handicap (Shin de-vig + normal)
-├── line_check.py       # check inferred handicaps against real ones, re-fit sigma
+├── line_check.py       # check inferred handicaps against real ones, re-fit sigma,
+│                       #   and list the bets a line error could flip
 ├── import_turnovers.py # match-centre turnover sheet -> season file (scores too)
+├── import_season.py    # a whole scraped past season + its odds -> season file
 ├── urc_scraper.py      # Streamlit: a round's turnovers + scores from the feed
 ├── urc_season_scraper.py # Streamlit: a whole past season, for backtesting
 ├── test_scraper.py     # scraper checks, incl. the app run headless
@@ -392,7 +485,7 @@ rugby_urc/
 ├── test_pipeline.py    # end-to-end checks on generated data
 ├── data/
 │   ├── season_2026.csv   # 2026-27: all 144 fixtures; round 1 priced, open and close
-│   ├── season_2025.csv   # 2025-26 seed: the last 50 matches, priced at the close
+│   ├── season_2025.csv   # 2025-26 in full: 151 matches, priced at the close
 │   └── report_<year>.csv # generated
 └── entry/
     └── urc_<year>_entry.{xlsx,csv}   # the sheets to type into
@@ -437,6 +530,9 @@ power ratings and turnover counts and asserts the pipeline recovers them:
 | `fit_from_lines` recovers the line scale from quoted lines | **exact** |
 | The model runs on the closing line, and on the opening line until then | pass |
 | An entry sheet from an older export cannot erase a column it lacks | pass |
+| LGT is the conceded differential: zero-sum, blind to turnovers won | pass |
+| A scraped season loads with quoted lines kept and replaced values reported | pass |
+| The close-calls sheet lists exactly the bets a line error could flip | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.
 
@@ -491,6 +587,23 @@ own knockout numbering is undocumented, and kept in `feed_round`); one retry per
 failed request, with any still failing listed and a second click retrying only
 those; and results held in the session, so downloading the CSV does not throw
 away a two-minute pull.
+
+Then load it, with the season's oddsportal results page pasted to a text file:
+
+```bash
+python import_season.py entry/scraped/urc_202501_season.csv --odds odds.txt --season 2025
+python season_report.py && python factor_analysis.py
+```
+
+`import_season.py` takes the scraped file as the backbone — fixtures, dates,
+rounds, scores and turnover counts all come from the feed — and hangs a
+handicap on every match, inferred from its 1X2 odds and matched by club pair
+and nearest date. Any line already quoted in the season file is kept, along
+with opening lines and neutral-venue flags. Turnover counts already there are
+**replaced** by the feed's, and each replaced value is listed, so the season
+file holds the same statistic the live season is scraped with. It reports any
+match with no odds, any quote that matched no match, and any score that
+disagrees.
 
 ### The scraper, and what it cannot yet be sure of
 
@@ -564,15 +677,18 @@ default branch. For that window only, the branch renders through
 5. ~~Handle a round whose matches are months apart.~~ ✅ date ordering + match-week
    rating windows
 6. ~~Enter round 1's eight handicaps.~~ ✅
-7. ~~Derive the 2025-26 handicaps from 1X2 odds.~~ ✅ 50 matches, Shin + sigma 16
-8. ~~Enter the 2025-26 turnovers so round 1 is pickable.~~ ✅ 15 matches, all 16 clubs
-9. ~~Revisit the turnover definition against real match-centre data.~~ ✅ switched to
-   own conceded − own won
+7. ~~Derive the 2025-26 handicaps from 1X2 odds.~~ ✅ all 151 matches, Shin +
+   sigma 13.75, 14 quoted lines kept
+8. ~~Enter the 2025-26 turnovers so round 1 is pickable.~~ ✅ the whole season,
+   from the feed
+9. ~~Revisit the turnover definition once a season of match-centre data is
+   in.~~ ✅ back to the conceded differential, the NFL computation; own
+   conceded − own won does not vary enough to vote
 10. ~~Check the inferred handicaps against real ones and re-fit `sigma`.~~ ✅
     13.75, from 12 quoted lines; the tail shown to be un-inferable
 11. ~~Record opening and closing lines, and run on the close.~~ ✅ round 1 in
     both
-12. **Calibrate `HOME_ADVANTAGE`** once ~40 handicaps exist (about round 5);
-    watch the early read until then.
-13. Revisit the turnover definition (conceded differential vs won/conceded
-   separately) once a season of match-centre data is in.
+12. ~~Backtest 2025-26.~~ ✅ 22–23, −3.3u; see *How it did on 2025-26*
+13. **Calibrate `HOME_ADVANTAGE`** on this season's own quoted lines, about
+    round 5. 2025-26's inferred lines fit 5.3, not adopted.
+14. Firm up the backtest with the ten close-call lines (optional).

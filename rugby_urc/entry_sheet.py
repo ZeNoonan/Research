@@ -63,9 +63,9 @@ GUIDE = [
     ("home_turnovers_conceded", "Turnovers the HOME side conceded, from the URC "
                                 "match centre. Leave blank until played."),
     ("away_turnovers_conceded", "Turnovers the AWAY side conceded."),
-    ("home_turnovers_won", "Turnovers the HOME side won. Needed as well as "
-                           "conceded: a club's margin is its own conceded minus "
-                           "its own won, and in rugby those are separate counts."),
+    ("home_turnovers_won", "Turnovers the HOME side won. Recorded for analysis; "
+                           "the model reads turnovers conceded only (home minus "
+                           "away), so a blank here blocks nothing."),
     ("away_turnovers_won", "Turnovers the AWAY side won."),
 ]
 
