@@ -35,7 +35,7 @@ A factor **abstains** (no vote) when it cannot be computed: the club's first
 match of a run of seasons, a previous match with no stats or no line.
 
 Run: ``python shadow_factors.py`` -> a table per season, and
-``data/shadow_<year>.csv`` with every match's votes.
+``data/shadow_<year>.csv`` with every match's votes as tracked (+1 backs home).
 """
 
 from __future__ import annotations
@@ -280,12 +280,15 @@ def build() -> dict[int, pd.DataFrame]:
     if g.empty:
         return {}
     v = votes(g)
+    # The file holds the votes as tracked - each factor's DIRECTION applied -
+    # so it agrees with the tables and the site.
+    tracked = v * pd.Series({k: DIRECTION[k] or 1 for k in v.columns})
     tables = {}
     for year in sorted(g["season"].unique()):
         tables[int(year)] = evaluate(g, v, year)
         keep = g["season"] == year
         (pd.concat([g.loc[keep, KEY + ["line", "system_num", "system_bet", "result"]],
-                    v[keep].astype("Int64")], axis=1)
+                    tracked[keep].astype("Int64")], axis=1)
          .to_csv(season_report.DATA_DIR / f"shadow_{year}.csv", index=False))
     return tables
 
