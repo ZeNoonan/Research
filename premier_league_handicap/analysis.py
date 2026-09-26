@@ -330,6 +330,225 @@ def market_view(handicaps: pd.DataFrame) -> pd.DataFrame:
     return df.sort_values(["odds", "team"]).reset_index(drop=True)
 
 
+# --- Asian handicap ----------------------------------------------------------
+#
+# The pre-season handicap is one rating per club, fixed in August. The Asian
+# handicap is the market's line for each individual match, re-set every week,
+# so covering it means beating the market's *current* view of a team.
+#
+# football-data.co.uk publishes the line as AHh: the handicap applied to the
+# home team (negative = the home side gives goals). The away side's line is the
+# negation. A side covers when its goal difference plus its line is positive.
+
+AH_OUTCOMES = {1.0: "W", 0.5: "½W", 0.0: "P", -0.5: "½L", -1.0: "L"}
+
+
+def settle_asian_handicap(goal_diff: int, line: float) -> float:
+    """Settle one side of an Asian handicap bet.
+
+    ``goal_diff`` is the side's goals minus its opponent's and ``line`` the
+    handicap applied to that side. Returns +1 (win), +0.5 (half win), 0 (push),
+    -0.5 (half loss) or -1 (loss).
+
+    Quarter lines (x.25 / x.75) split the stake evenly across the two
+    neighbouring lines -- -0.75 is half on -0.5 and half on -1.0 -- so they can
+    settle as half a win or half a loss. Every line is a multiple of 0.25, so
+    the margins below are exact in floating point and ``== 0`` is safe.
+    """
+    quarters = round(line * 4)
+    if abs(line * 4 - quarters) > 1e-9:
+        raise ValueError(f"Asian handicap line {line} is not a multiple of 0.25")
+    parts = (line - 0.25, line + 0.25) if quarters % 2 else (line,)
+
+    def one(part: float) -> float:
+        margin = goal_diff + part
+        return 1.0 if margin > 0 else 0.0 if margin == 0 else -1.0
+
+    return sum(one(part) for part in parts) / len(parts)
+
+
+def ah_source(season: str) -> "Path | None":
+    """The file carrying a season's Asian handicap lines, if there is one.
+
+    A dedicated football-data.co.uk export (``football_data.csv``) wins; failing
+    that, ``results.csv`` is used when it is itself a football-data export with
+    an ``AHh`` column (as 2025/26's is).
+    """
+    dedicated = season_dir(season) / "football_data.csv"
+    if dedicated.exists():
+        return dedicated
+    results = season_dir(season) / "results.csv"
+    if results.exists():
+        header = pd.read_csv(results, nrows=0, encoding="utf-8-sig").columns
+        if "AHh" in header:
+            return results
+    return None
+
+
+def has_ah(season: str) -> bool:
+    return ah_source(season) is not None
+
+
+def load_ah_lines(season: str) -> pd.DataFrame:
+    """One row per match with a usable line: date, clubs, score, home line.
+
+    Uses the pre-closing line (AHh). Where that is missing but the closing line
+    (AHCh) is present, the closing line stands in and ``line_source`` records
+    it as "close" so the page can say so. A match with neither is dropped and
+    counted in ``attrs["no_line"]``.
+    """
+    df = pd.read_csv(ah_source(season), encoding="utf-8-sig")
+    df = df.dropna(subset=["HomeTeam", "AwayTeam", "FTHG", "FTAG"])
+    df = df[df["HomeTeam"].astype(str).str.strip() != ""]
+
+    line = df["AHh"].astype(float)
+    source = pd.Series("open", index=df.index)
+    if "AHCh" in df.columns:
+        stand_in = line.isna() & df["AHCh"].notna()
+        line = line.where(~stand_in, df["AHCh"].astype(float))
+        source = source.where(~stand_in, "close")
+
+    out = pd.DataFrame(
+        {
+            "Date": _parse_dates(df["Date"]),
+            "HomeTeam": df["HomeTeam"].map(canonical_team),
+            "AwayTeam": df["AwayTeam"].map(canonical_team),
+            "FTHG": df["FTHG"].astype(int),
+            "FTAG": df["FTAG"].astype(int),
+            "line": line,
+            "line_source": source,
+        }
+    )
+    no_line = int(out["line"].isna().sum())
+    out = out.dropna(subset=["line"]).sort_values("Date").reset_index(drop=True)
+    out.attrs["no_line"] = no_line
+    return out
+
+
+def check_ah_against_results(ah: pd.DataFrame, results: pd.DataFrame) -> None:
+    """Raise if a fixture in both files disagrees on its score or date.
+
+    The Asian handicap table settles on the lines file's own scores, so they
+    must match the results the rest of the page is built from. A fixture in
+    only one file is fine (one source may simply be a week behind).
+    """
+    known = {
+        (r.HomeTeam, r.AwayTeam): (r.Date.date(), r.FTHG, r.FTAG)
+        for r in results.itertuples()
+    }
+    clashes = []
+    for r in ah.itertuples():
+        mine = (r.Date.date(), r.FTHG, r.FTAG)
+        theirs = known.get((r.HomeTeam, r.AwayTeam))
+        if theirs is not None and theirs != mine:
+            clashes.append(f"{r.HomeTeam} v {r.AwayTeam}: lines file {mine}, results {theirs}")
+    if clashes:
+        raise ValueError(
+            "The Asian handicap file and results.csv disagree on "
+            f"{len(clashes)} fixture(s):\n  " + "\n  ".join(clashes)
+        )
+
+
+def build_ah_games(ah: pd.DataFrame, handicaps: pd.DataFrame) -> pd.DataFrame:
+    """One row per team per match, settled against that team's line."""
+    display = dict(zip(handicaps["club"], handicaps["team"]))
+    rows = []
+    for m in ah.itertuples():
+        for club, opp, gf, ga, venue, line in (
+            (m.HomeTeam, m.AwayTeam, m.FTHG, m.FTAG, "Home", m.line),
+            # "+ 0.0" turns the away side of a level line from -0.0 into 0.0
+            (m.AwayTeam, m.HomeTeam, m.FTAG, m.FTHG, "Away", -m.line + 0.0),
+        ):
+            cover = settle_asian_handicap(gf - ga, line)
+            rows.append(
+                {
+                    "team": display[club],
+                    "date": m.Date,
+                    "venue": venue,
+                    "opponent": display[opp],
+                    "gf": gf,
+                    "ga": ga,
+                    "line": line,
+                    "line_source": m.line_source,
+                    "cover": cover,
+                    "outcome": AH_OUTCOMES[cover],
+                    "margin_vs_line": (gf - ga) + line,
+                }
+            )
+    games = pd.DataFrame(rows).sort_values(["team", "date"]).reset_index(drop=True)
+    games["ah_no"] = games.groupby("team").cumcount() + 1
+    games["stdc"] = games.groupby("team")["cover"].cumsum()
+    return games
+
+
+def build_ah_table(ah_games: pd.DataFrame, standings: pd.DataFrame) -> pd.DataFrame:
+    """Season-to-date record against the Asian handicap, one row per team.
+
+    ``stdc`` (season-to-date cover) is net covers: +1 a win, +0.5 a half win,
+    -0.5 a half loss, -1 a loss -- the same measure as the NFL report's STDC.
+    Ties are broken by total goals beaten the line by, then by name.
+    """
+    count = lambda v: ("cover", lambda s: int((s == v).sum()))
+    table = (
+        ah_games.groupby("team")
+        .agg(
+            played=("cover", "size"),
+            w=count(1.0),
+            hw=count(0.5),
+            p=count(0.0),
+            hl=count(-0.5),
+            l=count(-1.0),
+            stdc=("cover", "sum"),
+            margin=("margin_vs_line", "sum"),
+        )
+        .reset_index()
+        .sort_values(["stdc", "margin", "team"], ascending=[False, False, True])
+        .reset_index(drop=True)
+    )
+    table.insert(0, "ah_rank", table.index + 1)
+    table = table.merge(
+        standings[["team", "adjusted_rank"]].rename(columns={"adjusted_rank": "handicap_rank"}),
+        on="team",
+        how="left",
+    )
+    # positive = the team sits higher against the market than against August
+    table["rank_diff"] = table["handicap_rank"] - table["ah_rank"]
+    return table
+
+
+def ah_price_summary(season: str) -> "dict | None":
+    """Typical Asian handicap price and the cover rate needed to break even.
+
+    Uses the market-average prices (AvgAHH / AvgAHA) where the lines file has
+    them. The table ignores prices -- it counts covers, not profit -- and this
+    is what lets the page say how far from profit an even record is.
+    """
+    df = pd.read_csv(ah_source(season), encoding="utf-8-sig")
+    if not {"AvgAHH", "AvgAHA"}.issubset(df.columns):
+        return None
+    df = df.dropna(subset=["AvgAHH", "AvgAHA"])
+    if df.empty:
+        return None
+    prices = pd.concat([df["AvgAHH"], df["AvgAHA"]]).astype(float)
+    median = float(prices.median())
+    return {
+        "median": round(median, 2),
+        "breakEven": round(100 / median, 1),
+        "book": round(float((1 / df["AvgAHH"] + 1 / df["AvgAHA"]).mean()), 3),
+    }
+
+
+def load_ah(season: str):
+    """Asian handicap lines, per-team games and table for a season."""
+    handicaps = load_handicaps(season)
+    ah = load_ah_lines(season)
+    if has_results(season) and ah_source(season) != season_dir(season) / "results.csv":
+        check_ah_against_results(ah, load_results(season))
+    games = build_ah_games(ah, handicaps)
+    _, _, _, standings = load_all(season)
+    return ah, games, build_ah_table(games, standings)
+
+
 def load_all(season: str = "2025_2026"):
     handicaps = load_handicaps(season)
     results = load_results(season)
