@@ -97,12 +97,17 @@ FACTORS = [
 BY_KEY = {f.key: f for f in FACTORS}
 
 # Which way each factor is tracked: +1 as its rule is written, -1 the reverse.
-# Luck factors and the line move are fixed by theory. The situational ones are
-# undecided (None) until 2025-26 has been run; then they are set from it, once,
-# and 2026-27 tests that direction.
+# Luck factors and the line move are fixed by theory. The situational ones were
+# undecided (None) until 2025-26 had been run, and were then set from it, once,
+# by the rule "whichever way won more often" - so 2025-26 flatters them by
+# construction, and 2026-27 is their test. Do not change these again.
+#   long_haul  as written 30-23 (56.6%) -> backs home
+#   tour_leg2  as written 13-10 (56.5%) -> backs home
+#   derby      as written 24-14 (63.2%) -> backs the underdog
+#   big_line   as written 22-24 (47.8%) -> reversed: backs the favourite
 DIRECTION: dict[str, int | None] = {
     "last_cover": 1, "cards": 1, "kicking": 1, "red_zone": 1,
-    "long_haul": None, "tour_leg2": None, "derby": None, "big_line": None,
+    "long_haul": 1, "tour_leg2": 1, "derby": 1, "big_line": -1,
     "line_move": 1,
 }
 

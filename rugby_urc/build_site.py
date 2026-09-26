@@ -21,6 +21,7 @@ import pandas as pd
 
 import heatmaps
 import season_report
+import shadow_factors
 import teams
 
 HERE = Path(__file__).parent
@@ -75,6 +76,7 @@ tbody tr:hover{background:var(--surface-2)}
 .bet{font-weight:650}
 .res-w{color:var(--pos);font-weight:650}.res-l{color:var(--neg);font-weight:650}
 .pending{color:var(--text-muted)}
+.compact th,.compact td{padding:6px 4px}
 .heat table{font-size:.72rem}
 .heat td{padding:3px 5px;text-align:center;border:1px solid var(--surface-1);
  background:var(--lbg);color:var(--lfg)}
@@ -289,6 +291,52 @@ System #; the system bets home at +3 or more and away at −3 or less, and passe
 </tbody></table></div></div>"""
 
 
+def shadow_table(table: pd.DataFrame, first_look: bool) -> str:
+    """The nine candidate factors for one season: tracked, not bet.
+
+    ``first_look`` marks the season the situational directions were chosen on.
+    """
+    rows = []
+    for r in table.itertuples():
+        n = r.W + r.L
+        rate = f"{r.rate:.0%}" if n else "—"
+        band = f"{r.rate:.0%} ± {r.band:.0%} (95%)" if n else ""
+        mark = ("<sup title='direction chosen on this season'>†</sup>"
+                if first_look and r.group == "situational" else "")
+        units = f"{r.sys_units:+.1f}"
+        rows.append(
+            f"<tr><td class='l' style='white-space:normal'>{esc(r.factor)}{mark}</td>"
+            f"<td>{r.votes}</td><td>{r.W}–{r.L}</td><td title='{band}'>{rate}</td>"
+            f"<td>{r.sys_W}–{r.sys_L} <span class='pending'>{units}</span></td></tr>")
+    note = ("<p class='sub'>Nine candidate factors, <strong>tracked but not bet</strong>. "
+            "Their rules were fixed before any results were run. Voting about 100 times, "
+            "a factor with no edge lands anywhere from about 40% to 60% by chance, so "
+            "one season settles nothing: 2025-26 is the first look and 2026-27 the test."
+            + (" † The direction of the four situational factors was chosen on this "
+               "season, which flatters their rates here." if first_look else "")
+            + " <em>With it</em> is the system's record with the factor added as a "
+            "sixth vote.</p>")
+    head = ("<tr><th class='l'>Shadow factor</th><th>Votes</th><th>W–L</th>"
+            "<th>Rate</th><th>With it</th></tr>")
+    return (f"<h3>Shadow factors</h3>{note}<div class='scroll'><table class='compact'><thead>{head}"
+            f"</thead><tbody>{''.join(rows)}</tbody></table></div>")
+
+
+def shadow_legend() -> str:
+    items = []
+    for i, f in enumerate(shadow_factors.FACTORS, start=1):
+        d = shadow_factors.DIRECTION[f.key]
+        rule = f.rule if d != -1 else f.rule + " — <em>tracked reversed</em>"
+        items.append(f"<tr><td>{i}</td><td class='l'>{esc(f.label)}</td>"
+                     f"<td class='l' style='white-space:normal'>{rule}</td></tr>")
+    return ('<div class="card"><h3>The nine shadow factors</h3>'
+            '<p class="sub">Tracked alongside the five, not counted in the System #. '
+            'Luck (1–4) compares each club with its opponent in its last match.</p>'
+            '<div class="scroll"><table><thead><tr><th>#</th><th class="l">Factor</th>'
+            '<th class="l">Rule</th></tr></thead><tbody>' + "".join(items)
+            + "</tbody></table></div></div>")
+
+
 def status_panel(seasons: dict[int, pd.DataFrame]) -> str:
     """What the model still needs before it can pick - the page's lead item."""
     needs: list[str] = []
@@ -344,6 +392,9 @@ def build() -> Path:
         if path.exists():
             reports[year] = pd.read_csv(path)
 
+    shadow = shadow_factors.build()
+    first_look = min(shadow) if shadow else None
+
     tabs, panels = [], []
     listed = sorted(set(seasons) | set(reports), reverse=True)
     for i, year in enumerate(listed):
@@ -360,7 +411,9 @@ def build() -> Path:
                                             decimals=0, caption="Blue = covering (“fat”), red = hungry")
                     + "<h3>Power rating, club × round</h3>"
                     + heatmaps.heatmap_html(heatmaps.club_round_pivot(report, "power"),
-                                            decimals=1, caption="Blue = stronger"))
+                                            decimals=1, caption="Blue = stronger")
+                    + (shadow_table(shadow[year], year == first_look)
+                       if year in shadow else ""))
         else:
             fixtures = seasons.get(year)
             body = ('<p class="empty">No priced matches yet, so there is nothing to '
@@ -385,6 +438,7 @@ validated on rugby yet — that is what the season is for.</p></header>
 <div class="tabs" role="tablist">{''.join(tabs)}</div>
 {''.join(panels)}
 {FACTOR_LEGEND}
+{shadow_legend()}
 <footer>Built by <code>build_site.py</code> from the CSVs in <code>data/</code>.
 Handicaps are from the home side's point of view: negative means home favoured.
 {len(teams.TEAMS)} clubs, {season_report.REGULAR_ROUNDS} regular rounds.<br>

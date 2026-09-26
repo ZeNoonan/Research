@@ -231,6 +231,54 @@ first look).
 |---|---|---|---|
 | 9 | **Line move** | the close is 2 or more points from the open | backs the side the line moved against: fades the move, the over-reaction reading the power factor already takes |
 
+### First look: 2025-26
+
+Run once the rules above were committed, then the four situational directions
+were set from it (so their rates here are flattered by construction, marked †):
+
+| factor | votes | W–L | rate | ±95% | system with it as a 6th vote |
+|---|---|---|---|---|---|
+| Last result v the line | 92 | 45–46 | 49.5% | 10% | 26–27, −3.7u |
+| Cards | 106 | 50–53 | 48.5% | 10% | 19–19, −1.9u |
+| **Goal-kicking** | 100 | **55–43** | **56.1%** | 10% | **22–17, +3.3u** |
+| Scoring from the 22 | 77 | 40–36 | 52.6% | 11% | 24–23, −1.3u |
+| Long-haul trip † (backs home) | 54 | 30–23 | 56.6% | 13% | 20–22, −4.2u |
+| Second match of a tour † (backs home) | 24 | 13–10 | 56.5% | 20% | 19–21, −4.1u |
+| **Derby †** (backs the underdog) | 40 | **24–14** | **63.2%** | 16% | 23–21, −0.1u |
+| Big handicap † (reversed: backs the favourite) | 46 | 24–22 | 52.2% | 14% | 21–18, +1.2u |
+| Line move | — | no opening lines in 2025-26 | | | |
+| *the five alone* | | | | | *22–23, −3.3u* |
+
+**Nothing here is clear of chance.** Every rate sits inside its own 95% band
+around 50%. The best, the derby factor, is about 1.6 standard errors out; with
+eight factors tested, the odds that at least one gets that far on luck alone
+are better than even.
+
+What is worth watching in 2026-27, and why:
+
+- **Goal-kicking** is the one to watch most. It is a luck factor, so its
+  direction came from the theory, not the data. It was the best of the four on
+  its own (56%), and as a sixth vote it turned the system from 22–23, −3.3u
+  into 22–17, +3.3u, the biggest improvement of any factor. Kicking is partly
+  skill, which cuts against it: a side with a poor kicker keeps missing.
+- **Derby** — rivalries closer than the line — had the highest rate, but on 40
+  votes and in a direction chosen on this season.
+- **Long-haul and second leg of a tour** both backed the home side at about
+  57%, although the lines already charge a long-haul trip about 3.3 points
+  (`calibrate.py`). The two overlap, since every second leg is also a long-haul
+  trip. And both made the system *worse* as a sixth vote. The five lean away,
+  so a home vote removes more bets than it adds: long-haul removed six that
+  had split 3–3 and added three that went 1–2.
+- **Last result v the line** and **cards**, the two purest over-reaction
+  ideas, showed nothing at all.
+
+**What would count in 2026-27.** A factor voting ~100 times a season needs to
+stay above ~55% for the two seasons together (≈200 votes, a band of about ±7%)
+before it is a candidate for the system. The situational ones vote 25–55 times,
+so one more season is unlikely to settle them either way; for those the test
+is whether they stay on the same side of 50%. The site shows every factor's
+running record, season by season, under each season's tab.
+
 ### What is reported
 
 For each factor and season: how often it voted, its record on the matches it
@@ -651,6 +699,8 @@ streamlit run app.py                               # browse it
    **Turnovers are the blocker**: without them the next round cannot be picked
    at all.
 3. `python entry_sheet.py import --season 2026 && python season_report.py && python build_site.py`
+   — the shadow factors update with the site; `python shadow_factors.py`
+   prints them in full.
 
 ### A whole past season: `urc_season_scraper.py`
 
