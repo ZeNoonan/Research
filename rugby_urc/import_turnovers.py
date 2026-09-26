@@ -31,6 +31,7 @@ from pathlib import Path
 
 import pandas as pd
 
+import match_stats
 import teams
 from season_report import SEASON_COLUMNS
 
@@ -75,9 +76,19 @@ def find_columns(df: pd.DataFrame) -> dict[str, str]:
     return found
 
 
-def load_source(path: Path, sheet: str | None) -> pd.DataFrame:
-    raw = (pd.read_csv(path) if path.suffix.lower() == ".csv"
-           else pd.read_excel(path, sheet_name=sheet or 0))
+def read_raw(path: Path, sheet: str | None) -> pd.DataFrame:
+    return (pd.read_csv(path) if path.suffix.lower() == ".csv"
+            else pd.read_excel(path, sheet_name=sheet or 0))
+
+
+def load_source(path: Path, sheet: str | None = None,
+                raw: pd.DataFrame | None = None) -> pd.DataFrame:
+    """The turnover counts and scores of a sheet, one row per match.
+
+    Rows keep the sheet's own index, so they line up with ``raw`` for the
+    stats that ``match_stats`` stores alongside.
+    """
+    raw = read_raw(path, sheet) if raw is None else raw
     cols = find_columns(raw)
 
     home_col = next(c for c in raw.columns if _slug(c) in ("hometeam", "home"))
@@ -141,7 +152,9 @@ def main() -> None:
                     help="refuse counts outside the usual range instead of flagging them")
     args = ap.parse_args()
 
-    incoming = load_source(args.source, args.sheet)
+    raw = read_raw(args.source, args.sheet)
+    incoming = load_source(args.source, raw=raw)
+    stat_cols = match_stats.stat_pairs(raw)
     if bad := implausible(incoming):
         print(f"{len(bad)} turnover count(s) outside the usual range:")
         for b in bad:
@@ -158,7 +171,7 @@ def main() -> None:
             season[col] = ""
     season_dates = pd.to_datetime(season["date"], errors="coerce")
 
-    applied, unmatched, date_gaps = 0, [], []
+    applied, unmatched, date_gaps, stats = 0, [], [], []
     for r in incoming.itertuples():
         hit = season.index[(season["home"] == r.home) & (season["away"] == r.away)]
         if not len(hit):
@@ -177,10 +190,15 @@ def main() -> None:
             if pd.notna(value):
                 season.at[i, col] = str(int(value))
         applied += 1
+        stats.append({"date": season.at[i, "date"], "home": r.home, "away": r.away,
+                      **raw.loc[r.Index, stat_cols].to_dict()})
 
     season[SEASON_COLUMNS].to_csv(season_path, index=False)
     print(f"read {len(incoming)} matches, applied turnovers to {applied} rows of "
           f"{season_path.name}")
+    if stats:
+        out = match_stats.upsert(args.season, pd.DataFrame(stats))
+        print(f"  and {len(stat_cols) // 2} stats per match to {out.name}")
 
     if unmatched:
         print(f"\n{len(unmatched)} not found in the season file:")

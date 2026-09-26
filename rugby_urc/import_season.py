@@ -19,7 +19,8 @@ as the backbone and hangs the lines on it:
   always beats an inferred one.
 
 Existing turnover counts are **replaced** by the feed's, and every replaced
-value is reported. That is deliberate: the season file must hold the same
+value is reported. Every other stat in the scrape goes to
+``data/stats_<year>.csv`` (see ``match_stats.py``). That is deliberate: the season file must hold the same
 statistic the live season is scraped with, or the turnover margin carried from
 one season into the next compares two different things.
 
@@ -37,6 +38,7 @@ from pathlib import Path
 import pandas as pd
 
 import import_oddsportal
+import match_stats
 import season_report
 import spread_from_odds as sfo
 import teams
@@ -123,6 +125,14 @@ def build(scraped: pd.DataFrame, quotes: pd.DataFrame, existing: pd.DataFrame,
     return out, log
 
 
+def stats_rows(scraped: pd.DataFrame) -> pd.DataFrame:
+    """Every stat pair of the scrape, keyed as the season file keys the match."""
+    key = pd.DataFrame({"date": pd.to_datetime(scraped["Date"]).dt.strftime("%Y-%m-%d"),
+                        "home": scraped["Home_Team"].map(teams.canonical),
+                        "away": scraped["Away_Team"].map(teams.canonical)})
+    return pd.concat([key, scraped[match_stats.stat_pairs(scraped)]], axis=1)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -142,6 +152,7 @@ def main() -> None:
     if path.exists():
         path.with_suffix(".csv.bak").write_bytes(path.read_bytes())
     season.to_csv(path, index=False)
+    stats_path = match_stats.upsert(args.season, stats_rows(scraped))
 
     # Keep the raw quotes beside the entry sheets, as import_oddsportal does,
     # under the fixture's own date and round: line_check.py joins on them to
@@ -156,6 +167,7 @@ def main() -> None:
     rounds = season.groupby("round").size()
     print(f"{len(season)} matches -> {path.relative_to(HERE)}  "
           f"(rounds {rounds.index.min()}-{rounds.index.max()})")
+    print(f"  every scraped stat -> {stats_path.relative_to(HERE)}")
     priced = int((season["closing_line"].astype(str).str.strip() != "").sum())
     print(f"  lines: {priced} priced - {log['quoted_kept']} quoted kept, "
           f"{priced - log['quoted_kept']} inferred at sigma {args.sigma} "

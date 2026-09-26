@@ -29,7 +29,10 @@ depends on hold:
 15. a whole past season loads from the scrape: quoted lines kept, the rest
     inferred, and every replaced value reported;
 16. the close-calls sheet lists exactly the bets an inferred line's error
-    could flip, and a line typed into it is applied.
+    could flip, and a line typed into it is applied;
+17. each shadow factor votes as its rule is written, on a hand-built case;
+18. the shadow factors run end to end: stats stored and reloaded, every
+    factor reported, and a reversed direction swaps a record.
 
 Run: ``python test_pipeline.py``
 """
@@ -47,9 +50,11 @@ import entry_sheet
 import import_oddsportal
 import import_season
 import line_check
+import match_stats
 import model
 import spread_from_odds as sfo
 import season_report
+import shadow_factors
 import teams
 
 CLUBS = sorted(teams.TEAMS)
@@ -640,6 +645,108 @@ def main() -> int:
                         & (after["home"] == got.loc[0, "home"])].iloc[0]
             passed &= check("a line filled in the sheet is applied, marked quoted",
                             float(row["closing_line"]) == -3.0 and row["line_source"] == "")
+
+    print("\n17. shadow factors vote as their rules are written")
+    stat_names = ["yellow_cards", "red_cards", "missed_conversion_goals",
+                  "missed_penalty_goals", "points_from_visits_to22", "num_visits_to22"]
+
+    def match(date, home, away, line, hs, as_, home_stats, away_stats, opening=np.nan):
+        row = {"date": date, "round": 1, "home": home, "away": away, "season": 2025,
+               "block": 0, "neutral": False, "line": line, "opening_line": opening,
+               "home_score": hs, "away_score": as_}
+        row.update({f"home_{k}": v for k, v in zip(stat_names, home_stats)})
+        row.update({f"away_{k}": v for k, v in zip(stat_names, away_stats)})
+        return row
+
+    g = pd.DataFrame([
+        # Leinster beat the line by 15; took two yellows; missed 2 points off
+        # the tee to Munster's 6; 5 points per 22 visit to Munster's 2.
+        match("2025-10-01", "Leinster", "Munster", -5.0, 30, 10,
+              [2, 0, 1, 0, 30, 6], [0, 0, 0, 2, 10, 5]),
+        match("2025-10-01", "Bulls", "Stormers", -3.0, 20, 18,
+              [0, 0, 0, 0, 20, 4], [0, 0, 0, 0, 18, 6]),
+        # Leinster fly south: a long-haul trip, and the line moves 3 their way.
+        match("2025-10-08", "Bulls", "Leinster", 2.0, 25, 20,
+              [0, 0, 0, 0, 25, 5], [0, 0, 0, 0, 20, 5], opening=5.0),
+        # ...and stay a second week: the second match of a tour.
+        match("2025-10-15", "Stormers", "Leinster", -15.0, 30, 10,
+              [0, 0, 0, 0, 30, 5], [0, 0, 0, 0, 10, 5]),
+    ])
+    v = shadow_factors.votes(g)
+    first, trip, leg2 = v.iloc[1], v.iloc[2], v.iloc[3]
+    passed &= check("a club's first match abstains on every luck factor",
+                    first[["last_cover", "cards", "kicking", "red_zone"]].isna().all())
+    passed &= check("a derby backs the underdog", first["derby"] == -1)
+    passed &= check("a side that beat its last line by 10+ is faded",
+                    trip["last_cover"] == 1, f"vote {trip['last_cover']}")
+    passed &= check("a side carded more than its opponent last time is backed",
+                    trip["cards"] == -1, f"vote {trip['cards']}")
+    passed &= check("a side that missed less off the tee is faded",
+                    trip["kicking"] == 1, f"vote {trip['kicking']}")
+    passed &= check("two sides both more efficient in the 22 cancel",
+                    trip["red_zone"] == 0, f"vote {trip['red_zone']}")
+    passed &= check("a Europe <-> South Africa trip backs the home side",
+                    trip["long_haul"] == 1 and v.iloc[0]["long_haul"] == 0)
+    passed &= check("a first match abroad is not a tour's second leg",
+                    trip["tour_leg2"] == 0)
+    passed &= check("a second match abroad within 8 days is",
+                    leg2["tour_leg2"] == 1 and leg2["long_haul"] == 1)
+    passed &= check("a line moved toward the home side backs the away side",
+                    trip["line_move"] == -1 and leg2["line_move"] == 0)
+    passed &= check("a 15-point handicap backs the underdog",
+                    leg2["big_line"] == -1 and trip["big_line"] == 0)
+    passed &= check("the second match reads the first, not a later one",
+                    leg2["cards"] == 0 and leg2["kicking"] == 0)
+
+    print("\n18. shadow factors end to end: stats file, scoring, direction")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        season_report.DATA_DIR = match_stats.DATA_DIR = data
+        season = make_season(2025, range(1, 19), start="2025-09-19")
+        season.to_csv(data / "season_2025.csv", index=False)
+        rng = np.random.default_rng(7)
+        stats = season[["date", "home", "away"]].copy()
+        for name in stat_names + ["date"]:
+            for side in ("home", "away"):
+                stats[f"{side}_{name}"] = (rng.integers(0, 12, len(stats))
+                                           if name != "date" else 2026)
+        match_stats.upsert(2025, stats)
+        passed &= check("the stats file skips the junk *_date columns",
+                        "home_date" not in match_stats.load(2025).columns)
+        again = stats.iloc[:3].copy()
+        again["home_yellow_cards"] = 99
+        again["home_new_stat"] = 1
+        match_stats.upsert(2025, again.drop(columns=["home_date", "away_date"]))
+        kept = match_stats.load(2025)
+        passed &= check("reloading a match keeps its latest stats, once",
+                        len(kept) == len(stats)
+                        and (kept.set_index(["date", "home", "away"])
+                             .loc[list(again.set_index(["date", "home", "away"]).index
+                                       .map(lambda k: (str(k[0]), k[1], k[2])))]
+                             ["home_yellow_cards"] == 99).all())
+
+        tables = shadow_factors.build()
+        t = tables[2025].set_index("key")
+        base = season_report.build_reports()[2025]
+        bw, bl = int((base["result"] == "W").sum()), int((base["result"] == "L").sum())
+        passed &= check("every factor is reported", list(t.index) == [
+            f.key for f in shadow_factors.FACTORS])
+        passed &= check("the luck factors vote", (t.loc[["last_cover", "cards", "kicking",
+                                                          "red_zone"], "votes"] > 0).all())
+        passed &= check("no opening lines: the line move never votes, and adding it "
+                        "leaves the system's record as it was",
+                        t.loc["line_move", "votes"] == 0
+                        and (t.loc["line_move", "sys_W"], t.loc["line_move", "sys_L"]) == (bw, bl))
+        passed &= check("a factor's record never exceeds its votes",
+                        ((t["W"] + t["L"]) <= t["votes"]).all())
+        was = shadow_factors.DIRECTION["cards"]
+        shadow_factors.DIRECTION["cards"] = -1
+        flipped = shadow_factors.build()[2025].set_index("key").loc["cards"]
+        shadow_factors.DIRECTION["cards"] = was
+        passed &= check("reversing a direction swaps its record",
+                        (flipped["W"], flipped["L"]) == (t.loc["cards", "L"], t.loc["cards", "W"]))
+        passed &= check("each match's votes are written out",
+                        (data / "shadow_2025.csv").exists())
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1
