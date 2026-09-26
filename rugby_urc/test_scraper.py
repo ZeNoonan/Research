@@ -141,6 +141,20 @@ def pure_checks() -> bool:
                     row.get("home_possession_pct") == 54, 
                     str({k: v for k, v in row.items() if "possession" in k}))
 
+    # The first real run produced home_date = 2026: the team objects carry a
+    # date, and its leading digits were read as a stat.
+    dated = {"data": {**META,
+        "homeTeam": {**HOME, "date": "2026-09-25T18:45:00.000Z", "kickOff": "19:45",
+                     "stats": {"turnoversWon": 7, "turnoversConceded": 9}},
+        "awayTeam": {**AWAY, "date": "2026-09-25T18:45:00.000Z", "kickOff": "19:45",
+                     "stats": {"turnoversWon": 5, "turnoversConceded": 12}}}}
+    row = s.match_row(dated, "1")
+    junk = [k for k in row if any(w in k for w in ("date", "kick_off")) and k != "Date"]
+    passed &= check("dates and kick-off times are not read as stats", not junk, str(junk))
+    passed &= check("a string is a number only when all of it is",
+                    [s.number(v) for v in ("54%", "7 (54%)", "2026-09-25T18:45:00Z",
+                                           "19:45", "150/12")] == [54, 7, None, None, None])
+
     a = s.match_row(LAYOUTS["paired list"], "1")
     b = s.match_row(tricky, "2")
     cols = s.table_columns([a, b])

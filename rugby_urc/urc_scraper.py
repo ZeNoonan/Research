@@ -120,20 +120,29 @@ PLAYER_PARTS = ("players", "player", "lineup", "lineups", "squad", "bench",
                 "substitutes", "events")
 IDENTIFIERS = {"id", "teamid", "playerid", "positionid", "score", "round",
                "roundtypeid", "compid", "season", "attendance", "minute",
-               "group", "venueid", "matchid", "shirtnumber", "number"}
+               "group", "venueid", "matchid", "shirtnumber", "number",
+               "date", "kickoff", "time", "year"}
 
 TURNOVER = re.compile(r"turn\s*-?\s*overs?", re.I)
 WON = re.compile(r"\b(won|win|wins|gained|forced|recovered)\b", re.I)
 LOST = re.compile(r"\b(conceded|lost|loses|given|against)\b", re.I)
 
 
+# A string is a stat only when the whole of it is a number, optionally with a
+# percent sign or a bracketed note. Matching just the leading digits read the
+# year out of "2026-09-25T18:45:00Z" and produced home_date = 2026 on the first
+# real run; a kick-off time would have done the same.
+NUMERIC = re.compile(r"\s*(-?\d+(?:\.\d+)?)\s*%?\s*(?:\([^)]*\))?\s*")
+
+
 def number(value) -> float | None:
-    """A stat value as a number: 7, 7.0, "7" and "7 (54%)" all give 7."""
+    """A stat value as a number: 7, 7.0, "7", "54%" and "7 (54%)" all parse;
+    "2026-09-25T18:45:00Z", "19:45" and "150/12" do not."""
     if isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
         return float(value)
-    if isinstance(value, str) and (m := re.match(r"\s*(-?\d+(?:\.\d+)?)", value)):
+    if isinstance(value, str) and (m := NUMERIC.fullmatch(value)):
         return float(m.group(1))
     return None
 

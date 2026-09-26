@@ -1,11 +1,11 @@
 round,date,home,away,neutral,opening_line,closing_line,line_source,home_score,away_score,home_turnovers_conceded,away_turnovers_conceded,home_turnovers_won,away_turnovers_won
-1,2026-09-25,Benetton,Dragons,,-9.5,-9.5,,,,,,,
-1,2026-09-25,Connacht,Stormers,,-1.5,-6.5,,,,,,,
-1,2026-09-25,Ulster,Edinburgh,,-11.5,-11.5,,,,,,,
-1,2026-09-26,Lions,Leinster,,7.5,-5.5,,,,,,,
-1,2026-09-26,Munster,Glasgow,,-2.5,2.5,,,,,,,
+1,2026-09-25,Benetton,Dragons,,-9.5,-9.5,,19,19,13,9,5,10
+1,2026-09-25,Connacht,Stormers,,-1.5,-6.5,,15,29,17,12,5,4
+1,2026-09-25,Ulster,Edinburgh,,-11.5,-11.5,,29,34,19,9,3,14
+1,2026-09-26,Lions,Leinster,,7.5,-7.5,,,,,,,
+1,2026-09-26,Munster,Glasgow,,-2.5,3.5,,,,,,,
 1,2026-09-26,Scarlets,Cardiff,,1.5,1.5,,,,,,,
-1,2026-09-26,Sharks,Ospreys,,-12.5,-11.5,,,,,,,
+1,2026-09-26,Sharks,Ospreys,,-12.5,-10.5,,,,,,,
 1,2026-09-26,Zebre,Bulls,,11.5,11.5,,,,,,,
 2,2026-10-02,Benetton,Connacht,,,,,,,,,,
 2,2026-10-02,Cardiff,Zebre,,,,,,,,,,
