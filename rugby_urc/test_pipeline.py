@@ -19,7 +19,9 @@ depends on hold:
 9. merging new odds into a season file never erases what is already there, and
    never overwrites a handicap that was quoted rather than inferred;
 10. the model runs on the closing line, and on the opening line until then;
-11. an entry sheet kept from an older export cannot erase a column it lacks.
+11. an entry sheet can never erase a stored value: not a column it lacks (an
+    older export), and not a blank cell (a sheet exported before the latest
+    results were loaded).
 
 Run: ``python test_pipeline.py``
 """
@@ -432,39 +434,64 @@ def main() -> int:
         passed &= check("System # is the closing line's, and the move changes it",
                         on_close)
 
-    print("\n13. an entry sheet from an older export cannot erase a column")
+    print("\n13. an entry sheet can never erase a stored value")
     with tempfile.TemporaryDirectory() as tmp:
         data = Path(tmp)
         entry_sheet.DATA_DIR = entry_sheet.HERE = data
         old_layout = ["line_source", "home_turnovers_won", "away_turnovers_won"]
+        results = ["home_score", "away_score", "home_turnovers_conceded",
+                   "away_turnovers_conceded", "home_turnovers_won", "away_turnovers_won"]
 
-        season = make_season(2026, range(1, 2), start="2026-09-18")
+        def stored() -> pd.DataFrame:
+            """The season file, keyed by match - the import re-sorts by date, so
+            rows are compared by which match they are, not by position."""
+            return (pd.read_csv(data / "season_2026.csv", dtype=str).fillna("")
+                    .sort_values(["date", "home", "away"]).reset_index(drop=True))
+
+        # A season holding round 1's results; round 2 not yet played.
+        season = pd.concat([
+            make_season(2026, range(1, 2), start="2026-09-18"),
+            make_season(2026, range(2, 3), start="2026-09-18",
+                        played=False, turnovers=False)], ignore_index=True)
         season.to_csv(data / "season_2026.csv", index=False)
-        before = (data / "season_2026.csv").read_text()
-        season.drop(columns=old_layout).to_csv(data / "old.csv", index=False)
+        before = stored()
+
+        # (a) an older export - no turnovers-won columns - with a line corrected
+        sheet = season.drop(columns=old_layout).copy()
+        sheet["closing_line"] = sheet["closing_line"] - 1
+        sheet.to_csv(data / "old.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "old.csv")
+        after = stored()
+        passed &= check("an older export imports, keeping the columns it lacks",
+                        after[old_layout].equals(before[old_layout]))
+        passed &= check("and its corrected lines are applied",
+                        (pd.to_numeric(after["closing_line"])
+                         == pd.to_numeric(before["closing_line"]) - 1).all())
+
+        # (b) the case the column check alone missed: every column present, but
+        # the results blank because the sheet was exported before they arrived
+        season.to_csv(data / "season_2026.csv", index=False)
+        sheet = season.copy()
+        sheet[results] = ""
+        sheet.to_csv(data / "stale.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "stale.csv")
+        passed &= check("blank result cells never erase stored results",
+                        stored()[results].equals(before[results]))
+        passed &= check("and the file keeps the season layout",
+                        list(stored().columns) == season_report.SEASON_COLUMNS)
+
+        # (c) a played match missing from the sheet would take its result with it
+        before = stored()
+        sheet = season.iloc[1:].copy()
+        sheet.to_csv(data / "short.csv", index=False)
         try:
-            entry_sheet.import_sheet(2026, data / "old.csv")
+            entry_sheet.import_sheet(2026, data / "short.csv")
             refused = ""
         except ValueError as exc:
             refused = str(exc)
-        passed &= check("refused while the missing columns hold turnovers",
-                        "home_turnovers_won" in refused, refused[:60])
-        passed &= check("and the season file is left as it was",
-                        (data / "season_2026.csv").read_text() == before)
-
-        blank = make_season(2026, range(1, 2), start="2026-09-18",
-                            played=False, turnovers=False)
-        blank.to_csv(data / "season_2026.csv", index=False)
-        sheet = blank.assign(closing_line=blank["closing_line"] - 1)
-        sheet.drop(columns=old_layout).to_csv(data / "old.csv", index=False)
-        entry_sheet.import_sheet(2026, data / "old.csv")
-        after = pd.read_csv(data / "season_2026.csv")
-        typed = after.merge(sheet[["home", "away", "closing_line"]],
-                            on=["home", "away"], suffixes=("", "_typed"))
-        passed &= check("imported while those columns are still empty",
-                        len(typed) == len(sheet)
-                        and (typed["closing_line"] == typed["closing_line_typed"]).all()
-                        and list(after.columns) == season_report.SEASON_COLUMNS)
+        passed &= check("a sheet missing a played match is refused",
+                        "played match" in refused, refused[:60])
+        passed &= check("and the season file is left as it was", stored().equals(before))
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1

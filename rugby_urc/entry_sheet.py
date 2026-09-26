@@ -166,24 +166,67 @@ def read_filled(year: int, source: Path | None) -> pd.DataFrame:
         f"no filled sheet for {year}; looked for {', '.join(str(c) for c in candidates)}")
 
 
+KEY = ["date", "home", "away"]
+# Filled in once a match is played. A row holding any of these is a result.
+RESULT_COLUMNS = ["home_score", "away_score",
+                  "home_turnovers_conceded", "away_turnovers_conceded",
+                  "home_turnovers_won", "away_turnovers_won"]
+
+
+def keep_existing(sheet: pd.DataFrame, current: pd.DataFrame,
+                  name: str) -> tuple[pd.DataFrame, int]:
+    """Merge a sheet over the season file without ever erasing a value.
+
+    The sheet is typed in by hand while other inputs arrive separately - a
+    round's scores and turnovers come from ``urc_scraper.py`` through
+    ``import_turnovers.py`` - so a sheet exported on Monday and sent back on
+    Thursday has blank cells for everything loaded in between. Writing it over
+    the season file wholesale would erase those results without a word.
+
+    So, cell by cell: a value in the sheet wins (that is how a line is
+    corrected), and a blank keeps whatever the season file already holds. A
+    column missing from the sheet altogether is the same case, so a sheet from
+    an older export imports safely rather than being refused. The one thing
+    refused outright is a played match missing from the sheet entirely, since
+    dropping the row would drop its result.
+    """
+    for col in SEASON_COLUMNS:
+        if col not in current.columns:
+            current[col] = ""
+    stored = current.set_index(KEY)
+
+    typed = set(map(tuple, sheet[KEY].to_numpy()))
+    played = current[(current[RESULT_COLUMNS].apply(lambda c: c.str.strip()) != "").any(axis=1)]
+    lost = [f"{r.date} {r.home} v {r.away}" for r in played.itertuples()
+            if (r.date, r.home, r.away) not in typed]
+    if lost:
+        raise ValueError(
+            f"cannot import {name}: it leaves out {len(lost)} played match(es) "
+            f"whose results the season file holds, and the import would drop "
+            f"them: {'; '.join(lost[:4])}")
+
+    sheet = sheet.copy()
+    kept = 0
+    for i, row in sheet.iterrows():
+        key = (row["date"], row["home"], row["away"])
+        if key not in stored.index:
+            continue
+        for col in SEASON_COLUMNS:
+            if col in KEY:
+                continue
+            if str(row[col]).strip() == "" and str(stored.at[key, col]).strip() != "":
+                sheet.at[i, col] = stored.at[key, col]
+                kept += 1
+    return sheet, kept
+
+
 def import_sheet(year: int, source: Path | None) -> Path:
     df, path = read_filled(year, source)
     out = DATA_DIR / f"season_{year}.csv"
     absent = [c for c in SEASON_COLUMNS if c not in df.columns]
     ignored = [c for c in df.columns if c not in SEASON_COLUMNS]
-    # A sheet kept from an older export lacks every column added since, and the
-    # import writes those back blank. Harmless while they are empty; refuse
-    # when it would erase something already in the season file.
-    if absent and out.exists():
-        current = pd.read_csv(out, dtype=str).fillna("")
-        erased = [c for c in absent
-                  if c in current.columns and (current[c].str.strip() != "").any()]
-        if erased:
-            raise ValueError(
-                f"cannot import {path.name}: it has no {', '.join(erased)} "
-                f"column, and {out.name} holds values there that the import "
-                f"would erase. Export a fresh sheet (python entry_sheet.py export "
-                f"--season {year}) and carry the new entries across into it.")
+    # Columns the sheet lacks (an older export) are treated as blank, and a
+    # blank never erases - see keep_existing below.
     for col in absent:
         df[col] = ""
     df = df[SEASON_COLUMNS]
@@ -206,6 +249,10 @@ def import_sheet(year: int, source: Path | None) -> Path:
     if problems:
         raise ValueError("cannot import:\n  " + "\n  ".join(problems))
 
+    kept = 0
+    if out.exists():
+        df, kept = keep_existing(df, pd.read_csv(out, dtype=str).fillna(""), path.name)
+
     df = df.sort_values(["date", "round", "home"])
     if out.exists():
         shutil.copy(out, out.with_suffix(".csv.bak"))
@@ -217,8 +264,11 @@ def import_sheet(year: int, source: Path | None) -> Path:
     print(f"read {path.name}: {len(df)} matches -> {out.relative_to(HERE)}")
     print(f"  {int((has_open | has_close).sum())} with a handicap "
           f"({int(has_close.sum())} closing), {turns} with turnover counts")
+    if kept:
+        print(f"  kept {kept} value(s) already in {out.name} that the sheet left "
+              f"blank - a blank never erases")
     if absent:
-        print(f"  not in the sheet, so left blank: {', '.join(absent)}")
+        print(f"  not in the sheet, so kept from {out.name}: {', '.join(absent)}")
     if ignored:
         print(f"  not a season column, so ignored: {', '.join(ignored)}")
     return out
