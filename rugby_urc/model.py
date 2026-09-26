@@ -21,7 +21,8 @@ Sign conventions (as stored in the report and in ``data/``)
 * ``lgt``   - *Last Game Turnover*: a side's **net turnovers conceded** in its
   previous match (own turnovers conceded minus the opponent's). Positive = it
   coughed up more ball than its opponent did. Zero-sum by construction, so the
-  two sides in a match carry equal and opposite values.
+  two sides in a match carry equal and opposite values. (Not own conceded
+  minus own won: see ``season_report.add_lgt`` for why that fails in rugby.)
 * ``stdc``  - *Season To Date Cover*: net handicap covers so far this season
   (covers minus non-covers). Negative = a "hungry" side that has been failing
   to cover; positive = a "fat" one.
@@ -76,7 +77,7 @@ def power_factor(home_power: float, away_power: float, line: float) -> int:
 
 
 def turnover_factor_home(home_lgt: float) -> int:
-    """Back a home side that conceded more turnovers than it won last match."""
+    """Back a home side that conceded more turnovers than its opponent last match."""
     return _sign(home_lgt)
 
 

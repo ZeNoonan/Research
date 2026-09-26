@@ -322,6 +322,20 @@ def status_panel(seasons: dict[int, pd.DataFrame]) -> str:
             + "".join(f"<li>{n}</li>" for n in needs) + "</ul></div>")
 
 
+def provenance_note(season: pd.DataFrame | None) -> str:
+    """Say so when a season's record rests on handicaps inferred from win odds."""
+    if season is None or season.empty:
+        return ""
+    priced = int(season["line"].notna().sum())
+    inferred = int((season["line_source"] == season_report.LINE_INFERRED).sum())
+    if not inferred:
+        return ""
+    return (f'<p class="sub" style="margin-top:14px">A backtest: {inferred} of '
+            f'these {priced} handicaps are <strong>inferred from 1X2 win odds</strong>, '
+            f'not quoted, so each is good to a point or two, and a bet that covered or '
+            f'missed by less than that could have gone the other way.</p>')
+
+
 def build() -> Path:
     seasons = {y: season_report.load_season(y) for y in season_report.available_seasons()}
     reports: dict[int, pd.DataFrame] = {}
@@ -338,7 +352,8 @@ def build() -> Path:
                     f'aria-selected="{str(i == 0).lower()}">{label}</button>')
         report = reports.get(year)
         if report is not None and len(report):
-            body = (tiles(stats(report)) + profit_chart(report)
+            body = (provenance_note(seasons.get(year)) + tiles(stats(report))
+                    + profit_chart(report)
                     + f"<h3>Every match</h3>{report_table(report)}"
                     + "<h3>Season to date cover, club × round</h3>"
                     + heatmaps.heatmap_html(heatmaps.club_round_pivot(report, "stdc"),
