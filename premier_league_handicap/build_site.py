@@ -14,8 +14,9 @@ import math
 import sys
 from pathlib import Path
 
-from analysis import (GAMES_PER_SEASON, SEASONS, ah_source, has_ah, has_results,
-                      load_ah, load_all, load_handicaps, market_view, season_dir)
+from analysis import (GAMES_PER_SEASON, SEASONS, ah_price_summary, ah_source, has_ah,
+                      has_results, load_ah, load_all, load_handicaps, market_view,
+                      season_dir)
 
 HERE = Path(__file__).parent
 TEMPLATE = HERE / "template.html"
@@ -129,8 +130,23 @@ def ah_payload(season: str):
         (g.team, g.opponent, g.venue): (float(g.line), float(g.cover))
         for g in games.itertuples()
     }
+    # How spread out would the clubs' STDC be if every cover were a coin flip?
+    # Covers average zero (every bet has an opposite side), so the per-game
+    # variance is the mean square, and n independent games spread sqrt(n * var).
+    per_game_var = float((games["cover"] ** 2).mean())
+    typical_n = float(table["played"].median())
+    spread = {
+        "observed": round(float(table["stdc"].std(ddof=0)), 2),
+        "chance": round(math.sqrt(typical_n * per_game_var), 2),
+    }
+    # does the gap between the two tables just track how big an underdog a club was?
+    avg_line = games.groupby("team")["line"].mean()
+    gap_line_corr = float(table.set_index("team")["rank_diff"].corr(avg_line))
     block = {
         "matches": int(len(ah)),
+        "spread": spread,
+        "price": ah_price_summary(season),
+        "gapLineCorr": round(gap_line_corr, 2) if not math.isnan(gap_line_corr) else None,
         "noLine": int(ah.attrs["no_line"]),
         "standIns": stand_ins,
         "source": ah_source(season).name,

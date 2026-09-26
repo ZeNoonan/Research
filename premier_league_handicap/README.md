@@ -70,9 +70,10 @@ source data.
 ## Against the market: the Asian handicap
 
 The pre-season handicap is one rating per club, fixed in August. The Asian
-handicap is the market's line for each individual match, re-set every week, so
-the page's second part asks a different question: not who is beating what was
-expected in August, but who is beating what the market expects *now*.
+handicap is the market's line for each individual match, re-set before every
+game, so the page's second part asks a different question: not who is beating
+what was expected in August, but who has beaten the market's line match by
+match.
 
 - **The line.** football-data's `AHh` is the pre-closing market handicap for
   the **home** team; negative means the home side gives goals. The away side's
@@ -88,9 +89,20 @@ expected in August, but who is beating what the market expects *now*.
   STDC, extended to half results. The table sorts on it, then on **goals vs
   line** (the summed margin by which a side beat or missed its lines).
 - **The comparison.** Each club's Asian handicap position is set against its
-  position in the pre-season handicap table. Better against August than against
-  the market means the market has caught up with a club; the reverse means the
-  market has marked it down further than its results justify.
+  position in the adjusted league table. **A gap between the two is not in
+  itself the market mis-rating a club**: each weekly line allows for the
+  opponent and venue where the flat August handicap does not, the adjusted table
+  counts points where covers count goal margins, and much of any gap is chance.
+  Over 2025/26 the gap correlates +0.50 with the average line a club faced —
+  underdogs rank systematically higher against the market — which is largely
+  structural. Whether the market has under- or over-rated a club so far is its
+  **STDC sign**: positive, its lines were too cautious; negative, too generous.
+- **How much is chance.** Against an efficient market, covers are close to coin
+  flips. The page compares the spread of STDC across clubs with what coin-flip
+  covers would produce. In 2025/26 it was 5.05 against 5.63 (below chance), and
+  a club's first-half and second-half cover records correlated −0.13, so runs
+  did not persist. Read the table as a record of what happened, not proof of
+  which clubs the market mis-rated.
 - **Checks.** Settlement is zero-sum — every bet has an equal and opposite side —
   so total STDC and total goals vs line are exactly zero league-wide. Where a
   season has both a lines file and `results.csv`, every fixture in both must
@@ -101,7 +113,10 @@ expected in August, but who is beating what the market expects *now*.
   at any line short of giving three goals.) A match with neither is left out.
 
 Prices (the odds attached to each line) are not used: the table measures
-whether sides covered, not what backing them would have returned.
+whether sides covered, not what backing them would have returned. The page
+states the typical price and the break-even cover rate it implies (about 1.87
+and 53.5% in 2026/27), since a side with an even record against its lines has
+lost money for anyone backing it.
 
 ## Build
 

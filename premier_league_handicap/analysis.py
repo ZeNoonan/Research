@@ -516,6 +516,28 @@ def build_ah_table(ah_games: pd.DataFrame, standings: pd.DataFrame) -> pd.DataFr
     return table
 
 
+def ah_price_summary(season: str) -> "dict | None":
+    """Typical Asian handicap price and the cover rate needed to break even.
+
+    Uses the market-average prices (AvgAHH / AvgAHA) where the lines file has
+    them. The table ignores prices -- it counts covers, not profit -- and this
+    is what lets the page say how far from profit an even record is.
+    """
+    df = pd.read_csv(ah_source(season), encoding="utf-8-sig")
+    if not {"AvgAHH", "AvgAHA"}.issubset(df.columns):
+        return None
+    df = df.dropna(subset=["AvgAHH", "AvgAHA"])
+    if df.empty:
+        return None
+    prices = pd.concat([df["AvgAHH"], df["AvgAHA"]]).astype(float)
+    median = float(prices.median())
+    return {
+        "median": round(median, 2),
+        "breakEven": round(100 / median, 1),
+        "book": round(float((1 / df["AvgAHH"] + 1 / df["AvgAHA"]).mean()), 3),
+    }
+
+
 def load_ah(season: str):
     """Asian handicap lines, per-team games and table for a season."""
     handicaps = load_handicaps(season)

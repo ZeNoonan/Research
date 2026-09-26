@@ -144,6 +144,7 @@
     cursor: pointer; user-select: none; position: relative;
   }
   thead th.nosort { cursor: default; }
+  thead th:focus-visible { outline: 2px solid var(--s1); outline-offset: -2px; }
   tbody td { border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
   tbody tr:last-child td { border-bottom: none; }
   tbody tr.champ td { font-weight: 600; }
@@ -355,8 +356,8 @@
     <p class="sub">The pre-season handicap is a rating fixed in August and never revised. The
       <strong>Asian handicap</strong> is the market&rsquo;s line for each match, re-set every week as
       bookmakers re-rate every club. So the tables ask different questions: the one above, who is
-      beating what was expected in August; the ones below, who is beating what the market expects
-      <em>now</em>.</p>
+      beating what was expected in August; the ones below, who has beaten the market&rsquo;s line
+      match by match &mdash; a line that, unlike August&rsquo;s handicap, is re-set before every game.</p>
   </div>
 
   <section class="card" data-needs-ah>
@@ -367,8 +368,9 @@
       season-to-date cover &mdash; is net covers: +1 a win, +&frac12; a half win, &minus;&frac12; a half
       loss, &minus;1 a loss. <strong>Goals vs line</strong> totals how far a side beat, or fell short of,
       its lines.
+      <span id="ah-price"></span>
       <span style="color:var(--muted)">Sorted by STDC, then goals vs line. &Delta; is places higher (&#9650;)
-      or lower (&#9660;) than in the pre-season handicap table. Click a column heading to re-sort.</span></p>
+      or lower (&#9660;) than in the adjusted league table above. Click a column heading to re-sort.</span></p>
     <div class="tbl-scroll"><table id="ah-table" aria-label="Record against the Asian handicap"></table></div>
     <p class="note" id="ah-note"></p>
   </section>
@@ -385,10 +387,11 @@
   <section class="card" data-needs-ah>
     <h2>Season-to-date covers &mdash; full grid</h2>
     <p class="desc">Net covers against the Asian handicap after each game, rows in the order of the
-      table above. Blue is a side beating the market&rsquo;s line, red a side falling short, and the
-      deeper the colour the bigger the running total. This is the market re-rating week by week: a
-      run of deepening blue means the line has not yet caught up with a side. Hover a cell for the
-      game behind it.</p>
+      table above. Blue is a side that has beaten its lines more often than not, red one that has
+      fallen short, and the deeper the colour the bigger the running total. Because each line is
+      re-set before every game, a side only keeps adding covers if the market keeps under-rating it
+      &mdash; or if it keeps getting lucky, which over a handful of games is the likelier
+      explanation. Hover a cell for the game behind it.</p>
     <div class="heat-scroll" id="stdc-grid"></div>
     <div class="heat-legend" id="stdc-legend"></div>
   </section>
@@ -479,10 +482,27 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
     let px = x + 14, py = y + 14;
     if (px + r.width > window.innerWidth - 8) px = x - r.width - 14;
     if (py + r.height > window.innerHeight - 8) py = y - r.height - 14;
+    px = Math.max(8, Math.min(px, window.innerWidth - r.width - 8));
+    py = Math.max(8, Math.min(py, window.innerHeight - r.height - 8));
     tip.style.left = px + "px";
     tip.style.top = py + "px";
   }
   function tipHide() { tip.style.display = "none"; }
+
+  // Sortable table headers: click, or Tab to a header and press Enter/Space.
+  // Sorting rebuilds the table, so keyboard focus is put back on the same header.
+  function sortableHeader(th, table, key, onSort) {
+    th.tabIndex = 0;
+    th.dataset.key = key;
+    th.addEventListener("click", onSort);
+    th.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      onSort();
+      const again = table.querySelector(`th[data-key="${key}"]`);
+      if (again) again.focus();
+    });
+  }
   function tipTitle(parent, text) { el("div", { cls: "tt-title", text }, parent); }
   function tipRow(parent, color, value, name) {
     const row = el("div", { cls: "tt-row" }, parent);
@@ -706,7 +726,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
           el("span", { cls: "arr", text: sortDir === -1 ? "▼" : "▲" }, th);
           th.setAttribute("aria-sort", sortDir === -1 ? "descending" : "ascending");
         }
-        th.addEventListener("click", () => {
+        sortableHeader(th, table, c.k, () => {
           if (sortKey === c.k) sortDir = -sortDir;
           else { sortKey = c.k; sortDir = c.txt ? 1 : -1; }
           render();
@@ -1130,7 +1150,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       { k: "hl", h: "½L", dim: true }, { k: "l", h: "L", dim: true },
       { k: "stdc", h: "STDC", emph: true, show: stdcText },
       { k: "margin", h: "Goals vs line", show: (v) => signed(v, 2) },
-      { k: "handicapRank", h: "Handicap table", pos: true, dim: true, show: ordinal },
+      { k: "handicapRank", h: "Adjusted table", pos: true, dim: true, show: ordinal },
       { k: "rankDiff", h: "Δ" },
     ];
     let sortKey = "rank", sortDir = 1;
@@ -1143,7 +1163,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
           el("span", { cls: "arr", text: sortDir === -1 ? "▼" : "▲" }, th);
           th.setAttribute("aria-sort", sortDir === -1 ? "descending" : "ascending");
         }
-        th.addEventListener("click", () => {
+        sortableHeader(th, table, c.k, () => {
           if (sortKey === c.k) sortDir = -sortDir;
           else { sortKey = c.k; sortDir = (c.txt || c.pos) ? 1 : -1; }
           render();
@@ -1183,8 +1203,25 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
     const resultsGames = TEAMS.reduce((n, t) => n + t.played, 0) / 2;
     if (resultsGames !== AH.matches) parts.push(`The results above cover ${resultsGames} matches, so the `
       + `two parts of the page are not yet level.`);
-    if (!D.complete) parts.push(`${MAXP} games is a small sample: expect these positions to move.`);
+    const sp = AH.spread;
+    const wide = sp.observed > sp.chance * 1.2;
+    parts.push(`Against an efficient market, covers are close to coin flips: the spread of STDC across `
+      + `clubs (standard deviation ${fmt(sp.observed, 2)}) is ${wide ? "wider than" : "about what"} `
+      + `coin-flip covers would produce (${fmt(sp.chance, 2)}), so `
+      + (wide ? "some of it may reflect clubs the market has genuinely mis-rated."
+              : "read these positions as a record of what happened, not proof of which clubs the "
+                + "market has mis-rated."));
+    if (!D.complete) parts.push(`After only ${MAXP} games, a gap of several places can come down to a `
+      + `single goal or a tie-break.`);
     note.textContent = parts.join(" ");
+
+    const price = document.getElementById("ah-price");
+    price.textContent = AH.price
+      ? `Prices are not used: STDC counts covers, not profit. At the typical price of `
+        + `${fmt(AH.price.median, 2)}, backing a side breaks even only if it covers `
+        + `${fmt(AH.price.breakEven, 1)}% of the time, so a side with an even record against its `
+        + `lines has lost money for anyone backing it.`
+      : "Prices are not used: STDC counts covers, not profit.";
   }
 
   /* ---------- Asian handicap: the two tables compared ---------- */
@@ -1192,25 +1229,29 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
     const host = document.getElementById("cmp-chart");
     host.textContent = "";
     const rows = AH.rows, N = rows.length;
-    const lead = [...rows].sort((a, b) => b.rankDiff - a.rankDiff);
-    const up = lead[0], down = lead[lead.length - 1];
     const desc = document.getElementById("cmp-desc");
     desc.textContent = "";
     const b = (t) => { const x = document.createElement("strong"); x.textContent = t; return x; };
-    desc.append("Each dot is a club: across, its place in the pre-season handicap table; down, its place "
-      + "against the Asian handicap. On the diagonal the two agree. ",
-      b("Below it"), ", a club is doing better against August’s handicap than against the market’s "
-      + "line — the market has caught up with it. ",
-      b("Above it"), ", the reverse: the market has marked the club down further than its results now justify. "
-      + `The widest gaps are ${up.short} (${ordinal(up.handicapRank)} → ${ordinal(up.rank)}) and `
-      + `${down.short} (${ordinal(down.handicapRank)} → ${ordinal(down.rank)}).`);
+    desc.append("Each dot is a club: across, its place in the adjusted league table; down, its place "
+      + "against the Asian handicap. On the diagonal the two agree; above it a club ranks higher against "
+      + "the market, below it higher in the adjusted table. ",
+      b("A gap is not in itself the market mis-rating a club."),
+      " Each weekly line allows for the opponent and the venue where the flat August handicap does not, "
+      + "the adjusted table counts points where covers count goal margins, and much of any gap is chance. "
+      + "Whether the market has under- or over-rated a club so far is its STDC: positive means its lines "
+      + "have been too cautious, negative too generous.");
+    if (D.complete && AH.gapLineCorr !== null && AH.gapLineCorr >= 0.3) {
+      desc.append(" Over this season the gap tracks the average line a club faced (correlation "
+        + `${signed(AH.gapLineCorr, 2)}): underdogs, receiving goals most weeks, rank systematically `
+        + "higher against the market — largely a difference in how the two tables are built.");
+    }
 
     const W = Math.max(560, Math.min(host.clientWidth || 800, 1052));
     const H = 470, mL = 50, mR = 30, mT = 16, mB = 46;
     const x = (r) => mL + ((r - 0.5) / N) * (W - mL - mR);
     const y = (r) => mT + ((r - 0.5) / N) * (H - mT - mB);
     const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
-      "aria-label": "Each club's position in the pre-season handicap table against its position against the Asian handicap" }, host);
+      "aria-label": "Each club's position in the adjusted league table against its position against the Asian handicap" }, host);
     const ticks = [1, 5, 10, 15, N];
     for (const r of ticks) {
       el("line", { x1: x(r), x2: x(r), y1: mT, y2: H - mB, stroke: css("--grid"), "stroke-width": 1 }, svg);
@@ -1219,7 +1260,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       el("text", { x: mL - 8, y: y(r) + 4, "text-anchor": "end", "font-size": 11, fill: css("--muted"), text: ordinal(r) }, svg);
     }
     el("text", { x: (mL + W - mR) / 2, y: H - 6, "text-anchor": "middle", "font-size": 11.5, fill: css("--muted"),
-      text: "Position in the pre-season handicap table →" }, svg);
+      text: "Position in the adjusted league table →" }, svg);
     el("text", { x: 14, y: (mT + H - mB) / 2, "text-anchor": "middle", "font-size": 11.5, fill: css("--muted"),
       transform: `rotate(-90 14 ${(mT + H - mB) / 2})`, text: "← Position against the Asian handicap" }, svg);
     // agreement diagonal
@@ -1227,8 +1268,8 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
     // the four corners, read off the diagonal
     const corner = (tx, ty, anchor, text) => el("text", { x: tx, y: ty, "text-anchor": anchor,
       "font-size": 11.5, "font-style": "italic", fill: css("--muted"), text }, svg);
-    corner(x(N + 0.5) - 8, y(0.5) + 16, "end", "Above the line: market has over-corrected");
-    corner(x(0.5) + 8, y(N + 0.5) - 10, "start", "Below the line: market has caught up");
+    corner(x(N + 0.5) - 8, y(0.5) + 16, "end", "Above the line: higher against the market");
+    corner(x(0.5) + 8, y(N + 0.5) - 10, "start", "Below the line: higher in the adjusted table");
 
     const dot = css("--s1");
     for (const r of rows) {
@@ -1240,7 +1281,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       const hit = el("circle", { cx, cy, r: 13, fill: "transparent" }, svg);
       hit.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
         tipTitle(p, r.name);
-        tipRow(p, "transparent", ordinal(r.handicapRank), "in the pre-season handicap table");
+        tipRow(p, "transparent", ordinal(r.handicapRank), "in the adjusted league table");
         tipRow(p, dot, ordinal(r.rank), "against the Asian handicap");
         tipRow(p, "transparent", stdcText(r.stdc), "STDC (net covers)");
       }));
