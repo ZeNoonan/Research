@@ -379,7 +379,9 @@ rugby_urc/
 ├── line_check.py       # check inferred handicaps against real ones, re-fit sigma
 ├── import_turnovers.py # match-centre turnover sheet -> season file (scores too)
 ├── urc_scraper.py      # Streamlit: a round's turnovers + scores from the feed
+├── urc_season_scraper.py # Streamlit: a whole past season, for backtesting
 ├── test_scraper.py     # scraper checks, incl. the app run headless
+├── test_season_scraper.py # season-scraper checks: playoff rounds, retries, reruns
 ├── entry_sheet.py      # export a sheet to type into, and read it back
 ├── season_report.py    # season files -> data/report_<year>.csv
 ├── calibrate.py        # fit HOME_ADVANTAGE from the handicaps
@@ -476,6 +478,19 @@ streamlit run app.py                               # browse it
    **Turnovers are the blocker**: without them the next round cannot be picked
    at all.
 3. `python entry_sheet.py import --season 2026 && python season_report.py && python build_site.py`
+
+### A whole past season: `urc_season_scraper.py`
+
+For backtesting, `streamlit run urc_season_scraper.py` fetches every played
+match of a finished season in one click — about 151 for a URC season — and
+writes `entry/scraped/urc_202501_season.csv`. It leaves `urc_scraper.py`
+untouched and **imports** its reading of the feed instead of copying it, so the
+two must sit in the same folder and a fix to that code serves both. What it adds:
+playoff rounds numbered 19, 20, 21 by the week each stage is played (the feed's
+own knockout numbering is undocumented, and kept in `feed_round`); one retry per
+failed request, with any still failing listed and a second click retrying only
+those; and results held in the session, so downloading the CSV does not throw
+away a two-minute pull.
 
 ### The scraper, and what it cannot yet be sure of
 
