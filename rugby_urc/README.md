@@ -173,6 +173,124 @@ number, because with 45 bets a gap of 6 wins is noise.
 The last row has the best win rate, but its two turnover factors cancelled
 each other on 81% of matches, so it is really a three-factor system.
 
+## Shadow factors: nine candidates, tracked but not bet
+
+Nine candidate factors run alongside the five in `shadow_factors.py`. Each
+casts the same kind of vote (+1 home, −1 away, 0 neither), but **none counts
+towards the System # or the picks**. They are there to be tested.
+
+### The protocol
+
+Testing nine things on one season is the easiest way there is to find an edge
+that is not there. A factor that votes about 100 times has a 95% band of
+roughly 40–60% with no edge at all, so on nine factors one or two will look
+good by chance. So:
+
+1. **The rules below were fixed and committed before any of them was run on
+   real data**, and are not tuned afterwards. The commit history shows the
+   order.
+2. **2025-26 is the first look; 2026-27 is the test.** Only a factor that
+   holds up on a season it was not chosen on is a candidate for the system.
+3. **Every factor is reported**, not only the ones that look good.
+
+"Last match" means a club's previous match by date, carried across the season
+boundary like the turnover factor. A factor **abstains** when it cannot be
+computed: a club's first match (so all of round 1 of 2025-26), or a previous
+match with no stats or no line.
+
+### The rules
+
+**Luck** (the turnover factor's logic: something swung a club's last result
+that does not repeat, so the next line over-reacts). Each compares the club
+with its own opponent in its last match, and the vote backs the side the
+comparison favours; if both sides score the same, no vote. The direction comes
+from the theory and is fixed.
+
+| # | factor | a club is backed (+) or faded (−) when, last match… |
+|---|---|---|
+| 1 | **Last result v the line** | + it missed the handicap by 10 or more; − it beat it by 10 or more |
+| 2 | **Cards** | + it had more cards than its opponent (yellow 1, red 2); − fewer |
+| 3 | **Goal-kicking** | + it left more points on the tee than its opponent (2 per missed conversion, 3 per missed penalty); − fewer |
+| 4 | **Scoring from the 22** | + it scored fewer points per visit to the opponent's 22 than its opponent did; − more |
+
+**Situational.** The theory does not say which way these should go, so each
+is written in one direction by convention. 2025-26 decides the direction, once,
+and 2026-27 tests it.
+
+| # | factor | votes | as written |
+|---|---|---|---|
+| 5 | **Long-haul trip** | the away side crosses between Europe and South Africa (not at a neutral venue) | backs home |
+| 6 | **Second match of a tour** | the away side's previous match was also abroad, 8 days or fewer earlier | backs home |
+| 7 | **Derby** | both clubs are from the same country | backs the underdog |
+| 8 | **Big handicap** | the handicap is 14 points or more | backs the underdog |
+
+**Market** (needs opening lines, which only 2026-27 has, so 2026-27 is its
+first look).
+
+| # | factor | votes | as written |
+|---|---|---|---|
+| 9 | **Line move** | the close is 2 or more points from the open | backs the side the line moved against: fades the move, the over-reaction reading the power factor already takes |
+
+### First look: 2025-26
+
+Run once the rules above were committed, then the four situational directions
+were set from it (so their rates here are flattered by construction, marked †):
+
+| factor | votes | W–L | rate | ±95% | system with it as a 6th vote |
+|---|---|---|---|---|---|
+| Last result v the line | 92 | 45–46 | 49.5% | 10% | 26–27, −3.7u |
+| Cards | 106 | 50–53 | 48.5% | 10% | 19–19, −1.9u |
+| **Goal-kicking** | 100 | **55–43** | **56.1%** | 10% | **22–17, +3.3u** |
+| Scoring from the 22 | 77 | 40–36 | 52.6% | 11% | 24–23, −1.3u |
+| Long-haul trip † (backs home) | 54 | 30–23 | 56.6% | 13% | 20–22, −4.2u |
+| Second match of a tour † (backs home) | 24 | 13–10 | 56.5% | 20% | 19–21, −4.1u |
+| **Derby †** (backs the underdog) | 40 | **24–14** | **63.2%** | 16% | 23–21, −0.1u |
+| Big handicap † (reversed: backs the favourite) | 46 | 24–22 | 52.2% | 14% | 21–18, +1.2u |
+| Line move | — | no opening lines in 2025-26 | | | |
+| *the five alone* | | | | | *22–23, −3.3u* |
+
+**Nothing here is clear of chance.** Every rate sits inside its own 95% band
+around 50%. The best, the derby factor, is about 1.6 standard errors out; with
+eight factors tested, the odds that at least one gets that far on luck alone
+are better than even.
+
+What is worth watching in 2026-27, and why:
+
+- **Goal-kicking** is the one to watch most. It is a luck factor, so its
+  direction came from the theory, not the data. It was the best of the four on
+  its own (56%), and as a sixth vote it turned the system from 22–23, −3.3u
+  into 22–17, +3.3u, the biggest improvement of any factor. Kicking is partly
+  skill, which cuts against it: a side with a poor kicker keeps missing.
+- **Derby** — rivalries closer than the line — had the highest rate, but on 40
+  votes and in a direction chosen on this season.
+- **Long-haul and second leg of a tour** both backed the home side at about
+  57%, although the lines already charge a long-haul trip about 3.3 points
+  (`calibrate.py`). The two overlap, since every second leg is also a long-haul
+  trip. And both made the system *worse* as a sixth vote. The five lean away,
+  so a home vote removes more bets than it adds: long-haul removed six that
+  had split 3–3 and added three that went 1–2.
+- **Last result v the line** and **cards**, the two purest over-reaction
+  ideas, showed nothing at all.
+
+**What would count in 2026-27.** A factor voting ~100 times a season needs to
+stay above ~55% for the two seasons together (≈200 votes, a band of about ±7%)
+before it is a candidate for the system. The situational ones vote 25–55 times,
+so one more season is unlikely to settle them either way; for those the test
+is whether they stay on the same side of 50%. The site shows every factor's
+running record, season by season, under each season's tab.
+
+### What is reported
+
+For each factor and season: how often it voted, its record on the matches it
+voted on (pushes excluded), a 95% band, and **the system's record with it
+added as a sixth vote**. That is the five-factor System # plus this vote,
+betting at the same ±3, and only where the system itself could bet.
+
+The stats come from `data/stats_<year>.csv`, which holds every stat the
+scrapers fetch (about 100 per match). `import_season.py` writes it for a whole
+season and `import_turnovers.py` adds to it each round, so the weekly routine
+does not change.
+
 ---
 
 ## The model
@@ -471,6 +589,8 @@ rugby_urc/
 │                       #   and list the bets a line error could flip
 ├── import_turnovers.py # match-centre turnover sheet -> season file (scores too)
 ├── import_season.py    # a whole scraped past season + its odds -> season file
+├── match_stats.py      # every scraped stat per match -> data/stats_<year>.csv
+├── shadow_factors.py   # nine candidate factors, tracked but not bet
 ├── urc_scraper.py      # Streamlit: a round's turnovers + scores from the feed
 ├── urc_season_scraper.py # Streamlit: a whole past season, for backtesting
 ├── test_scraper.py     # scraper checks, incl. the app run headless
@@ -486,6 +606,8 @@ rugby_urc/
 ├── data/
 │   ├── season_2026.csv   # 2026-27: all 144 fixtures; round 1 priced, open and close
 │   ├── season_2025.csv   # 2025-26 in full: 151 matches, priced at the close
+│   ├── stats_<year>.csv  # every scraped stat, one row per match
+│   ├── shadow_<year>.csv # generated: each match's shadow-factor votes
 │   └── report_<year>.csv # generated
 └── entry/
     └── urc_<year>_entry.{xlsx,csv}   # the sheets to type into
@@ -533,6 +655,8 @@ power ratings and turnover counts and asserts the pipeline recovers them:
 | LGT is the conceded differential: zero-sum, blind to turnovers won | pass |
 | A scraped season loads with quoted lines kept and replaced values reported | pass |
 | The close-calls sheet lists exactly the bets a line error could flip | pass |
+| Each shadow factor votes as its rule is written, on a hand-built case | pass |
+| Shadow factors end to end: stats stored and reloaded, a reversed direction swaps a record | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.
 
@@ -548,6 +672,7 @@ python entry_sheet.py import --season 2026         # filled sheet -> data/
 python season_report.py                            # -> data/report_<year>.csv
 python calibrate.py                                # fit the home-advantage terms
 python factor_analysis.py                          # per-factor diagnostics
+python shadow_factors.py                           # the nine candidate factors
 python build_site.py                               # -> index.html
 streamlit run app.py                               # browse it
 ```
@@ -574,6 +699,8 @@ streamlit run app.py                               # browse it
    **Turnovers are the blocker**: without them the next round cannot be picked
    at all.
 3. `python entry_sheet.py import --season 2026 && python season_report.py && python build_site.py`
+   — the shadow factors update with the site; `python shadow_factors.py`
+   prints them in full.
 
 ### A whole past season: `urc_season_scraper.py`
 
