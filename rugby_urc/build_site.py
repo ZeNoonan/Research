@@ -20,6 +20,7 @@ from pathlib import Path
 import pandas as pd
 
 import heatmaps
+import my_bets
 import season_report
 import shadow_factors
 import teams
@@ -370,6 +371,63 @@ def status_panel(seasons: dict[int, pd.DataFrame]) -> str:
             + "".join(f"<li>{n}</li>" for n in needs) + "</ul></div>")
 
 
+def euros(x) -> str:
+    return "?" if pd.isna(x) else f"{'+' if x > 0 else '−' if x < 0 else ''}€{abs(x):.2f}"
+
+
+def your_bets(year: int) -> str:
+    """Your actual URC bets for a season, from the shared bet log."""
+    got = my_bets.season(year)
+    if got is None:
+        return ""
+    bets, problems, s = got
+    profit_cls = "pos" if s["profit"] > 0 else "neg" if s["profit"] < 0 else ""
+    sys_cls = "pos" if s["sys_profit"] > 0 else "neg" if s["sys_profit"] < 0 else ""
+    record = f"{s['won']}–{s['lost']}" + (f" +{s['pending']}" if s["pending"] else "")
+    roi = "—" if s["roi"] is None else f"{s['roi']:+.0%}"
+    value = "—" if s["line_value"] is None else f"{s['line_value']:+.1f}"
+    items = [("Record", record, ""), ("Staked", f"€{s['staked']:.0f}", ""),
+             ("Profit", euros(s["profit"]), profit_cls), ("Return", roi, profit_cls),
+             ("Line v close", value, ""),
+             (f"System, same rounds", f"{s['sys_won']}–{s['sys_lost']} · {euros(s['sys_profit'])}",
+              sys_cls)]
+    tiles_html = ('<div class="tiles">' + "".join(
+        f'<div class="tile"><div class="k">{k}</div><div class="v {c}">{v}</div></div>'
+        for k, v, c in items) + "</div>")
+
+    rows = []
+    for r in bets.itertuples():
+        cls = "pos" if r.profit > 0 else "neg" if r.profit < 0 else ""
+        tag = {"Won": "W", "Lost": "L", "Void": "void"}.get(r.result, "pending")
+        money = "" if pd.isna(r.profit) else f"<br>{euros(r.profit)}"
+        odds = "" if pd.isna(r.odds) else f" · {r.odds:.2f}"
+        opponent = r.match.replace(r.team, "").replace(" v ", "").strip()
+        rows.append(
+            f"<tr><td class='l'><strong>{esc(r.bet)}</strong><br>"
+            f"<span class='pending'>R{r.round} v {esc(opponent)}{odds}</span></td>"
+            f"<td>{fmt_signed(r.close)}</td><td>{fmt_signed(r.line_value)}</td>"
+            f"<td class='l' style='white-space:normal'>{esc(r.system)}</td>"
+            f"<td class='{cls or 'pending'}'><strong>{tag}</strong>{money}</td></tr>")
+    head = ("<tr><th class='l'>Your bet · price</th><th>Close</th>"
+            "<th title='Your line minus the closing line, from your side: + means you "
+            "got more points than the close gave'>v close</th>"
+            "<th class='l' title='Does the System # back your side at the line you "
+            "took (and at the close, where that differs)?'>System</th>"
+            "<th>Result</th></tr>")
+    flags = [c for c in bets["check"] if c] + problems
+    flag_html = ("<ul class='todo'>" + "".join(f"<li>{esc(f)}</li>" for f in flags)
+                 + "</ul>") if flags else ""
+    note = (f"<p class='sub'>Your actual bets, from <code>bets/bet_log.csv</code>. "
+            f"<em>v close</em> is how many points better than the closing line you got. "
+            f"<em>System</em> says whether the System # backed your side at your line. "
+            f"The system's own picks in the same rounds are staked like yours "
+            f"(€{s['sys_stake']:.0f}) at the standard 1.91. A bet logged as pending is "
+            f"graded from the score once the round is in.</p>")
+    return (f"<h3>Your bets</h3>{note}{tiles_html}<div class='scroll'>"
+            f"<table class='compact'><thead>{head}</thead><tbody>{''.join(rows)}"
+            f"</tbody></table></div>{flag_html}")
+
+
 def provenance_note(season: pd.DataFrame | None) -> str:
     """Say so when a season's record rests on handicaps inferred from win odds."""
     if season is None or season.empty:
@@ -404,7 +462,7 @@ def build() -> Path:
         report = reports.get(year)
         if report is not None and len(report):
             body = (provenance_note(seasons.get(year)) + tiles(stats(report))
-                    + profit_chart(report)
+                    + profit_chart(report) + your_bets(year)
                     + f"<h3>Every match</h3>{report_table(report)}"
                     + "<h3>Season to date cover, club × round</h3>"
                     + heatmaps.heatmap_html(heatmaps.club_round_pivot(report, "stdc"),

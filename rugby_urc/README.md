@@ -173,6 +173,36 @@ number, because with 45 bets a gap of 6 wins is noise.
 The last row has the best win rate, but its two turnover factors cancelled
 each other on 81% of matches, so it is really a three-factor system.
 
+## Your bets
+
+Your actual bets live in [`../bets/bet_log.csv`](../bets/), one log for every
+sport so `nfl_report/` can read the same file. `my_bets.py` takes the URC rows
+of a season and matches each to its fixture by the club backed and the match
+date (or the round). On the site and in the app, each season then gets a
+**Your bets** section beside the system's record:
+
+- **Line v close.** Your handicap minus the closing one, from your side: +14
+  means you got 14 points more than the close offered. Over a season this is
+  the best single test of whether bets are being placed well, because it does
+  not wait for the results to even out.
+- **System.** Whether the System # backed your side at the line you took, and
+  at the close where that differs. Round 1's Lions +6.5 reads *yes, no at
+  close*: a pick at your number, dropped once the line moved on team news.
+- **Result and profit.** The bookmaker's settlement where the log has one.
+  Otherwise the bet is graded from the score at your own line, so a bet logged
+  as `Pending` settles itself once the round is scraped. A settlement the score
+  contradicts is flagged.
+- **The system, same rounds.** The system's picks in the rounds you bet,
+  staked like yours (your median stake) at the standard 1.91, so the two
+  profits compare like with like.
+
+**The repository is public**, so the log, stakes and returns included, is
+readable on GitHub, and the site shows the URC bets.
+
+To add bets, send the bet slips (open or settled) and they are added to the
+log, or add rows yourself; `bets/README.md` lists the columns. Run
+`python my_bets.py` for the table in the terminal.
+
 ## Shadow factors: nine candidates, tracked but not bet
 
 Nine candidate factors run alongside the five in `shadow_factors.py`. Each
@@ -591,6 +621,7 @@ rugby_urc/
 ├── import_season.py    # a whole scraped past season + its odds -> season file
 ├── match_stats.py      # every scraped stat per match -> data/stats_<year>.csv
 ├── shadow_factors.py   # nine candidate factors, tracked but not bet
+├── my_bets.py          # your bets from ../bets/bet_log.csv, beside the system
 ├── urc_scraper.py      # Streamlit: a round's turnovers + scores from the feed
 ├── urc_season_scraper.py # Streamlit: a whole past season, for backtesting
 ├── test_scraper.py     # scraper checks, incl. the app run headless
@@ -657,6 +688,7 @@ power ratings and turnover counts and asserts the pipeline recovers them:
 | The close-calls sheet lists exactly the bets a line error could flip | pass |
 | Each shadow factor votes as its rule is written, on a hand-built case | pass |
 | Shadow factors end to end: stats stored and reloaded, a reversed direction swaps a record | pass |
+| Your bets are matched, graded at your own line, and a contradicted settlement is flagged | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.
 
@@ -673,6 +705,7 @@ python season_report.py                            # -> data/report_<year>.csv
 python calibrate.py                                # fit the home-advantage terms
 python factor_analysis.py                          # per-factor diagnostics
 python shadow_factors.py                           # the nine candidate factors
+python my_bets.py                                  # your bets beside the system
 python build_site.py                               # -> index.html
 streamlit run app.py                               # browse it
 ```

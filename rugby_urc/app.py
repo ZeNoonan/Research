@@ -16,6 +16,7 @@ import streamlit as st
 
 import factor_analysis
 import model
+import my_bets
 import season_report
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -52,6 +53,11 @@ def load(year: int) -> pd.DataFrame:
 
 def available() -> list[int]:
     return factor_analysis.available_years()
+
+
+def euros(x: float) -> str:
+    """+€20.45 / -€25.00: the sign first, so st.metric colours a delta by it."""
+    return f"{'-' if x < 0 else '+'}€{abs(x):.2f}"
 
 
 def betting_summary(df: pd.DataFrame) -> dict:
@@ -109,6 +115,34 @@ def main() -> None:
     view = df[df["system_bet"].notna()] if only_bets else df
     wide(st, view[list(DISPLAY_COLUMNS)].rename(columns=DISPLAY_COLUMNS),
          hide_index=True, height=560)
+
+    got = my_bets.season(year)
+    if got is not None:
+        bets, problems, mine = got
+        st.subheader("Your bets")
+        st.caption("Your actual URC bets, from `bets/bet_log.csv`. *v close* is how many "
+                   "points better than the closing line you got; *System* says whether "
+                   "the System # backed your side at your line. The system's picks in the "
+                   f"same rounds are staked like yours (€{mine['sys_stake']:.0f}) at 1.91.")
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Record", f"{mine['won']}–{mine['lost']}"
+                  + (f" (+{mine['pending']} pending)" if mine["pending"] else ""))
+        c2.metric("Staked", f"€{mine['staked']:.0f}")
+        c3.metric("Profit", euros(mine["profit"]),
+                  delta=None if mine["roi"] is None else f"{mine['roi']:+.0%}")
+        c4.metric("Line v close", "—" if mine["line_value"] is None
+                  else f"{mine['line_value']:+.1f}")
+        c5.metric("System, same rounds", f"{mine['sys_won']}–{mine['sys_lost']}",
+                  delta=euros(mine["sys_profit"]))
+        wide(st, bets[["round", "bet", "match", "odds", "stake", "close", "line_value",
+                       "system", "result", "profit"]].rename(columns={
+                           "round": "Rd", "bet": "Your bet", "match": "Match",
+                           "odds": "Price", "stake": "Stake", "close": "Close",
+                           "line_value": "v close", "system": "System",
+                           "result": "Result", "profit": "Profit"}),
+             hide_index=True)
+        for flag in [c for c in bets["check"] if c] + problems:
+            st.warning(flag)
 
     st.subheader("Factor diagnostics")
     marginal, standalone = factor_analysis.build_tables()

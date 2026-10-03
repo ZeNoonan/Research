@@ -32,7 +32,10 @@ depends on hold:
     could flip, and a line typed into it is applied;
 17. each shadow factor votes as its rule is written, on a hand-built case;
 18. the shadow factors run end to end: stats stored and reloaded, every
-    factor reported, and a reversed direction swaps a record.
+    factor reported, and a reversed direction swaps a record;
+19. your bets from the shared log are matched to fixtures, graded at your own
+    line, checked against the bookmaker's settlement, and set beside the
+    system's picks in the same rounds.
 
 Run: ``python test_pipeline.py``
 """
@@ -51,6 +54,7 @@ import import_oddsportal
 import import_season
 import line_check
 import match_stats
+import my_bets
 import model
 import spread_from_odds as sfo
 import season_report
@@ -747,6 +751,68 @@ def main() -> int:
                         (flipped["W"], flipped["L"]) == (t.loc["cards", "L"], t.loc["cards", "W"]))
         passed &= check("each match's votes are written out",
                         (data / "shadow_2025.csv").exists())
+
+    print("\n19. your bets: matched to fixtures, graded, and set beside the system")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        season_report.DATA_DIR = data
+        make_season(2025, range(1, 19), start="2025-09-19").to_csv(
+            data / "season_2025.csv", index=False)
+        rep = season_report.build_reports()[2025]
+        picked = rep[rep["system_bet"].notna() & rep["result"].notna()].iloc[0]
+        other = rep[rep["system_bet"].isna() & rep["home_score"].notna()
+                    & (rep["round"] != picked["round"])].iloc[0]
+        dog = other["away"]
+        dog_line = -other["line"] + 3                # three points better than the close
+        margin = other["away_score"] - other["home_score"]
+        expect = model._sign(margin + dog_line)
+        log = pd.DataFrame([
+            # the system's own pick, settled by the bookmaker
+            {"bet_id": 1, "sport": "rugby", "competition": "URC", "event_date": picked["date"],
+             "team": picked["system_bet"],
+             "line": picked["line"] if picked["system_bet"] == picked["home"] else -picked["line"],
+             "decimal_odds": 1.9, "stake_eur": 20, "result": "Won" if picked["result"] == "W" else "Lost",
+             "profit_eur": 18.0 if picked["result"] == "W" else -20.0},
+            # an off-system bet logged when placed: graded from the score
+            {"bet_id": 2, "sport": "rugby", "competition": "URC", "round_week": f"R{other['round']}",
+             "team": dog, "line": dog_line, "decimal_odds": 2.0, "stake_eur": 10,
+             "result": "Pending"},
+            # a settlement the score contradicts
+            {"bet_id": 3, "sport": "rugby", "competition": "URC", "event_date": other["date"],
+             "team": dog, "line": dog_line, "decimal_odds": 2.0, "stake_eur": 10,
+             "result": "Lost" if expect > 0 else "Won"},
+            {"bet_id": 4, "sport": "rugby", "competition": "URC", "event_date": other["date"],
+             "team": "Detroit", "line": 3.5, "stake_eur": 10, "result": "Lost"},
+            {"bet_id": 5, "sport": "rugby", "competition": "URC", "placed": other["date"],
+             "team": dog, "line": 1.5, "stake_eur": 10, "result": "Lost"},
+            {"bet_id": 6, "sport": "nfl", "competition": "NFL", "event_date": other["date"],
+             "team": "DET Lions", "line": -6.5, "stake_eur": 25, "result": "Won"},
+            {"bet_id": 7, "sport": "rugby", "competition": "URC", "event_date": "2024-10-01",
+             "team": dog, "line": 1.5, "stake_eur": 10, "result": "Won"},
+        ])
+        bets, problems = my_bets.assess(log, rep, 2025)
+        by = bets.set_index("bet_id")
+        passed &= check("URC bets of the season are matched; NFL and other seasons are not",
+                        sorted(by.index) == [1, 2, 3], f"matched {sorted(by.index)}")
+        passed &= check("a bet on the system's side reads as a system pick",
+                        by.loc[1, "system"] == "yes", by.loc[1, "system"])
+        passed &= check("line v close: three points better reads +3",
+                        by.loc[2, "line_value"] == 3, f"{by.loc[2, 'line_value']}")
+        want = {1: "Won", -1: "Lost", 0: "Void"}[expect]
+        passed &= check("a pending bet is graded from the score at its own line",
+                        by.loc[2, "result"] == want, f"{by.loc[2, 'result']} vs {want}")
+        passed &= check("and its profit comes from its price",
+                        by.loc[2, "profit"] == {"Won": 10.0, "Lost": -10.0, "Void": 0.0}[want])
+        passed &= check("a settlement the score contradicts is flagged",
+                        bool(by.loc[3, "check"]) and not by.loc[2, "check"], by.loc[3, "check"])
+        passed &= check("an unknown club and a bet with no date or round are listed",
+                        len(problems) == 2 and "Detroit" in problems[0]
+                        and "event_date" in problems[1], "; ".join(problems))
+        s = my_bets.summary(bets, rep)
+        rounds = rep[rep["round"].isin({picked["round"], other["round"]}) & rep["result"].notna()]
+        passed &= check("the system is counted over the same rounds as your bets",
+                        (s["sys_won"], s["sys_lost"]) == (int((rounds["result"] == "W").sum()),
+                                                          int((rounds["result"] == "L").sum())))
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1
