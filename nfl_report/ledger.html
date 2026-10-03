@@ -1,0 +1,1003 @@
+<title>NFL Bet Ledger</title>
+<style>
+:root {
+  --bg: #f4f6f8; --card: #ffffff; --ink: #1c2733; --muted: #5f6b76;
+  --accent: #134074; --on-accent: #ffffff; --focus: #3b7bd1;
+  --win: #1e7d46; --loss: #b3372f; --push: #8a8f98; --on-badge: #ffffff;
+  --pick: #eef4fb; --border: #dce3ea; --field: #ffffff; --soft: #e8edf3;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151c; --card: #17202a; --ink: #e3e9ef; --muted: #95a3b0;
+    --accent: #86b4e8; --on-accent: #0f151c; --focus: #9cc4f2;
+    --win: #52c08b; --loss: #ef8277; --push: #a2abb5; --on-badge: #0f151c;
+    --pick: #1a2838; --border: #2a3643; --field: #111922; --soft: #222e3a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151c; --card: #17202a; --ink: #e3e9ef; --muted: #95a3b0;
+  --accent: #86b4e8; --on-accent: #0f151c; --focus: #9cc4f2;
+  --win: #52c08b; --loss: #ef8277; --push: #a2abb5; --on-badge: #0f151c;
+  --pick: #1a2838; --border: #2a3643; --field: #111922; --soft: #222e3a;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg); color: var(--ink);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.wrap { max-width: 44rem; margin: 0 auto; padding-inline: 16px; padding-block: 14px 48px; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.num, table, .pnl, .amt { font-variant-numeric: tabular-nums; }
+.pos { color: var(--win); }
+.neg { color: var(--loss); }
+.muted { color: var(--muted); }
+
+.top .eyebrow {
+  margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+h1 { margin: 2px 0; font-size: 26px; line-height: 1.15; text-wrap: balance; }
+h2 { margin: 0; font-size: 18px; line-height: 1.25; text-wrap: balance; }
+.asof { margin: 0; font-size: 13px; color: var(--muted); }
+
+.notice {
+  margin-top: 14px; padding: 12px 14px; font-size: 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-left: 4px solid var(--accent); border-radius: 8px;
+}
+
+/* season totals */
+.board {
+  margin-top: 14px; padding: 10px 14px 12px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+}
+.board table { width: 100%; border-collapse: collapse; }
+.board th {
+  padding: 2px 0 6px; text-align: right; font-size: 12px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+.board td { padding: 6px 0; text-align: right; border-top: 1px solid var(--border); white-space: nowrap; }
+.board td:first-child, .board th:first-child { text-align: left; color: var(--muted); }
+.board tr.big td:not(:first-child) { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.board td + td, .board th + th { padding-left: 12px; width: 34%; }
+.board .foot { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+
+/* week view */
+.sec { margin-top: 26px; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.sec-head .aside { font-size: 13px; color: var(--muted); }
+.strip {
+  display: flex; gap: 6px; overflow-x: auto; padding: 10px 2px 8px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.strip::-webkit-scrollbar { display: none; }
+.strip button {
+  position: relative; flex: 0 0 auto; min-width: 42px; height: 40px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 20px; background: var(--card);
+  font-weight: 600; font-size: 14px;
+}
+.strip button[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.strip button.has::after {
+  content: ""; position: absolute; left: 50%; bottom: 4px; width: 5px; height: 5px;
+  margin-left: -2.5px; border-radius: 50%; background: currentColor; opacity: .75;
+}
+
+.games {
+  list-style: none; margin: 0; padding: 0; overflow: hidden;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+}
+.game { padding: 12px 14px; border-top: 1px solid var(--border); }
+.game:first-child { border-top: 0; }
+.game.pick { background: var(--pick); box-shadow: inset 4px 0 0 var(--accent); }
+.g-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto auto; gap: 1px 10px; align-items: baseline; }
+.nolog .g-row { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+.g-row .nm { font-weight: 600; overflow-wrap: anywhere; }
+.g-row .at { color: var(--muted); font-weight: 400; margin-right: 3px; }
+.g-row .sp { text-align: right; font-size: 13.5px; color: var(--muted); white-space: nowrap; }
+.g-row .sc { min-width: 2ch; text-align: right; font-weight: 700; }
+.g-row .meta { min-width: 4.6em; text-align: right; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.add {
+  grid-column: 5; grid-row: 1 / span 2; align-self: center;
+  min-width: 4.4em; padding: 5px 10px; border: 1px solid var(--accent); border-radius: 999px;
+  background: transparent; color: var(--accent); font-size: 13px; font-weight: 600;
+}
+.add[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); }
+.sys { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); }
+.sys b { color: var(--ink); font-weight: 600; }
+.mine { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.betbtn {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; text-align: left;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
+}
+.betbtn .what { flex: 1; min-width: 0; font-weight: 600; }
+.betbtn .what small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); overflow-wrap: anywhere; }
+.betbtn .out { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.badge {
+  display: inline-block; min-width: 1.7em; padding: 1px 7px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; text-align: center; color: var(--on-badge);
+}
+.badge.W { background: var(--win); }
+.badge.L { background: var(--loss); }
+.badge.P { background: var(--push); }
+.badge.open { background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 600; }
+.pnl { font-weight: 600; }
+.empty { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+
+/* bet form */
+.betform {
+  display: grid; gap: 10px; margin-top: 10px; padding: 12px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+}
+.betform:focus { outline: none; }
+.seg { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button {
+  flex: 1; min-width: 0; padding: 9px 6px; border: 0; background: var(--field);
+  font-size: 14px; font-weight: 600; overflow-wrap: anywhere;
+}
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fields.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.field { display: grid; gap: 4px; min-width: 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.field input {
+  width: 100%; min-width: 0; box-sizing: border-box; padding: 9px 10px;
+  background: var(--field); border: 1px solid var(--border); border-radius: 8px;
+  font-size: 16px; font-weight: 400; color: var(--ink);
+}
+.linebox { display: flex; min-width: 0; }
+.linebox .sign {
+  flex: 0 0 2.4em; border: 1px solid var(--border); border-right: 0; border-radius: 8px 0 0 8px;
+  background: var(--soft); color: var(--accent); font-size: 17px; font-weight: 700;
+}
+.linebox input { border-radius: 0 8px 8px 0; }
+.hint { margin: -2px 0 0; font-size: 12.5px; color: var(--muted); }
+.form-err { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--loss); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  padding: 9px 14px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card); font-size: 14px; font-weight: 600;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.danger { margin-left: auto; background: transparent; border-color: var(--loss); color: var(--loss); }
+.btn.danger.armed { background: var(--loss); color: var(--on-badge); }
+.btn:disabled { opacity: .6; cursor: default; }
+
+/* you vs the system */
+.gap-total { font-size: 22px; font-weight: 700; }
+.lede { margin: 4px 0 0; font-size: 14px; color: var(--muted); max-width: 65ch; }
+.slices { margin-top: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+.slice + .slice { border-top: 1px solid var(--border); }
+.slice summary {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline;
+  padding: 11px 14px; list-style: none; cursor: pointer;
+}
+.slice summary::-webkit-details-marker { display: none; }
+.slice .lab { font-weight: 600; }
+.slice .lab small { display: block; font-size: 12.5px; font-weight: 400; color: var(--muted); }
+.slice .cnt { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.slice .amt { min-width: 5.6em; text-align: right; font-weight: 700; }
+.slice ul { list-style: none; margin: 0; padding: 0 14px 10px; font-size: 13px; }
+.slice li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; color: var(--muted); }
+.slice li span:last-child { white-space: nowrap; }
+.slice .none { padding: 0 14px 10px; font-size: 13px; color: var(--muted); }
+.checkline { margin: 8px 2px 0; font-size: 12.5px; color: var(--muted); }
+
+/* week by week */
+.tablewrap {
+  overflow-x: auto; margin-top: 10px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+}
+table.weeks { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.weeks th {
+  padding: 9px 12px 6px; text-align: right; font-size: 11px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+table.weeks td { padding: 7px 12px; text-align: right; border-top: 1px solid var(--border); white-space: nowrap; }
+table.weeks th:first-child, table.weeks td:first-child { text-align: left; }
+table.weeks tfoot td { font-weight: 700; }
+.wklink {
+  padding: 2px 8px; margin-left: -8px; border: 0; border-radius: 6px;
+  background: transparent; color: var(--accent); font-weight: 600;
+}
+
+footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65ch; }
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <p class="eyebrow">NFL Report · 2026–27 season</p>
+    <h1>Bet Ledger</h1>
+    <p class="asof" id="asof">Loading…</p>
+  </header>
+  <div class="notice" id="notice" role="status" hidden></div>
+  <section id="board" aria-label="Season totals"></section>
+  <section class="sec" id="week" aria-label="Games by week"></section>
+  <section class="sec" id="gap" aria-label="You against the system"></section>
+  <section class="sec" id="weekly" aria-label="Week by week"></section>
+  <footer>
+    Only you see your bets: they're saved in your own claude.ai storage for this page, not in the
+    GitHub repo or on the public NFL Report site. Scores, lines and system picks come from the
+    NFL Report data and update when Claude loads each week's results.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const SEASON = 2026;
+  const STD_ODDS = 1 + 100 / 110; // the standard -110 price, as decimal odds
+  const DEFAULT_STAKE = 25;
+  const MINUS = "−";
+  const ROUNDS = ["Wild Card", "Divisional", "Conference", "Super Bowl"];
+  const ROUND_CHIPS = ["WC", "DIV", "CONF", "SB"];
+  const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const app = document.getElementById("app");
+  const el = {
+    asof: document.getElementById("asof"),
+    notice: document.getElementById("notice"),
+    board: document.getElementById("board"),
+    week: document.getElementById("week"),
+    gap: document.getElementById("gap"),
+    weekly: document.getElementById("weekly"),
+  };
+
+  const state = {
+    status: "loading", // loading | outside | nodb | ready
+    notice: "",
+    games: null,       // the season's games once its document has been read
+    updated: null,     // when Claude last refreshed them
+    maxRegular: 18,
+    bets: [],
+    betsLoaded: false,
+    betsRef: null,
+    canLog: false,
+    week: null,
+    weekChosen: false,
+    form: null,        // the open bet form, if any
+  };
+
+  // --- small helpers ---------------------------------------------------------
+
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const isNum = (x) => typeof x === "number" && Number.isFinite(x);
+  const keyOf = (week, a, b) => week + ":" + [a, b].sort().join("|");
+  const played = (g) => !!g && isNum(g.home_score) && isNum(g.away_score);
+  const sum = (xs) => xs.reduce((a, b) => a + b, 0);
+  const cents = (x) => Math.round(x * 100);
+
+  function median(xs) {
+    if (!xs.length) return null;
+    const s = xs.slice().sort((a, b) => a - b), m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+  function parseNum(text) {
+    const t = String(text).trim().replace(",", ".").replace(MINUS, "-");
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(t)) return null;
+    return Number(t);
+  }
+
+  function fmtLine(x) {
+    if (!isNum(x)) return "";
+    if (x === 0) return "PK";
+    return (x > 0 ? "+" : MINUS) + Math.abs(x);
+  }
+  function fmtSysNum(n) {
+    if (!isNum(n)) return "";
+    return "#" + (n > 0 ? "+" + n : n < 0 ? MINUS + Math.abs(n) : "0");
+  }
+  function money(x) {
+    const c = cents(x);
+    if (c === 0) return "€0.00";
+    return (c > 0 ? "+" : MINUS) + "€" + (Math.abs(c) / 100).toFixed(2);
+  }
+  function euros(x) {
+    const c = cents(x);
+    return "€" + (c % 100 ? (c / 100).toFixed(2) : String(c / 100));
+  }
+  const tone = (x) => (cents(x) === 0 ? "" : x > 0 ? "pos" : "neg");
+  const record = (t) => t.w + "–" + t.l + (t.p ? "–" + t.p : "");
+  function pct(x) {
+    const v = Math.round(x * 1000) / 10;
+    return (v > 0 ? "+" : v < 0 ? MINUS : "") + Math.abs(v).toFixed(1) + "%";
+  }
+  const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+
+  function utcDate(iso) {
+    const [y, m, d] = String(iso).split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d));
+  }
+  function fmtDate(iso) {
+    const d = utcDate(iso);
+    if (isNaN(d)) return "";
+    return WEEKDAYS[d.getUTCDay()] + " " + d.getUTCDate() + " " + MONTHS[d.getUTCMonth()];
+  }
+  function fmtRange(isoA, isoB) {
+    const a = utcDate(isoA), b = utcDate(isoB);
+    if (isNaN(a) || isNaN(b)) return "";
+    if (a.getTime() === b.getTime()) return a.getUTCDate() + " " + MONTHS[a.getUTCMonth()];
+    if (a.getUTCMonth() === b.getUTCMonth()) return a.getUTCDate() + "–" + b.getUTCDate() + " " + MONTHS[b.getUTCMonth()];
+    return a.getUTCDate() + " " + MONTHS[a.getUTCMonth()] + " – " + b.getUTCDate() + " " + MONTHS[b.getUTCMonth()];
+  }
+  function weekName(w, short) {
+    if (w > state.maxRegular) {
+      const i = Math.min(w - state.maxRegular, ROUNDS.length) - 1;
+      return short ? ROUND_CHIPS[i] : ROUNDS[i];
+    }
+    return short ? String(w) : "Week " + w;
+  }
+
+  // --- grading -----------------------------------------------------------------
+
+  // The game's spread from one team's side (the stored line is the home team's).
+  function sideLine(g, side) {
+    if (!g || !isNum(g.line)) return null;
+    return side === g.home ? g.line : -g.line;
+  }
+  function cover(g, side, line) {
+    if (!played(g) || !isNum(line) || (side !== g.home && side !== g.away)) return null;
+    const margin = side === g.home ? g.home_score - g.away_score : g.away_score - g.home_score;
+    const m = margin + line;
+    return m > 0 ? "W" : m < 0 ? "L" : "P";
+  }
+  function settle(res, stake, odds) {
+    if (res === "W") return stake * ((odds > 1 ? odds : STD_ODDS) - 1);
+    if (res === "L") return -stake;
+    return 0;
+  }
+
+  // A stored bet, cleaned up: storage is data, so nothing in it is trusted.
+  function cleanBet(id, raw) {
+    const b = raw || {};
+    return {
+      id,
+      week: isNum(b.week) ? b.week : 0,
+      home: typeof b.home === "string" ? b.home : "",
+      away: typeof b.away === "string" ? b.away : "",
+      kind: b.kind === "builder" ? "builder" : "single",
+      side: typeof b.side === "string" && b.side ? b.side : null,
+      line: isNum(b.line) ? b.line : null,
+      odds: isNum(b.odds) && b.odds > 1 ? b.odds : null,
+      stake: isNum(b.stake) && b.stake > 0 ? b.stake : 0,
+      result: b.result === "W" || b.result === "L" || b.result === "P" ? b.result : null,
+      note: typeof b.note === "string" ? b.note : "",
+      created: typeof b.created === "string" ? b.created : "",
+    };
+  }
+  function outcome(b, g) {
+    let res = b.result;
+    if (!res && b.kind === "single") res = cover(g, b.side, b.line);
+    if (!res) return { res: null, pnl: null, assumed: false };
+    return { res, pnl: settle(res, b.stake, b.odds), assumed: res === "W" && !b.odds };
+  }
+
+  function tally() { return { w: 0, l: 0, p: 0, pnl: 0, staked: 0, open: 0, openStake: 0 }; }
+  function count(t, res, pnl, stake) {
+    if (!res) { t.open += 1; t.openStake += stake; return; }
+    t[res === "W" ? "w" : res === "L" ? "l" : "p"] += 1;
+    t.pnl += pnl;
+    t.staked += stake;
+  }
+
+  // Everything the page shows, derived from the games and the bets.
+  function derive() {
+    const games = state.games || [];
+    const gameByKey = new Map(games.map((g) => [keyOf(g.week, g.home, g.away), g]));
+
+    const bets = state.bets.map((b) => {
+      const key = keyOf(b.week, b.home, b.away);
+      const g = gameByKey.get(key) || null;
+      return Object.assign({ b, g, key }, outcome(b, g));
+    }).sort((x, y) => (x.b.created < y.b.created ? -1 : x.b.created > y.b.created ? 1 : 0));
+    const singles = bets.filter((x) => x.b.kind === "single");
+    const stake = median(singles.map((x) => x.b.stake).filter((s) => s > 0)) || DEFAULT_STAKE;
+    const lastSingle = singles.length ? singles[singles.length - 1].b.stake : null;
+
+    const betsByGame = new Map();
+    for (const x of bets) {
+      if (!betsByGame.has(x.key)) betsByGame.set(x.key, []);
+      betsByGame.get(x.key).push(x);
+    }
+
+    const sys = new Map();
+    for (const g of games) {
+      if (!g.system_bet) continue;
+      const line = sideLine(g, g.system_bet);
+      const res = cover(g, g.system_bet, line);
+      sys.set(keyOf(g.week, g.home, g.away),
+        { g, side: g.system_bet, line, res, pnl: res ? settle(res, stake, STD_ODDS) : null });
+    }
+
+    const you = tally(), system = tally(), builders = tally();
+    const weeks = new Map();
+    const wk = (w) => {
+      if (!weeks.has(w)) weeks.set(w, { you: tally(), system: tally(), builders: tally() });
+      return weeks.get(w);
+    };
+    for (const x of bets) {
+      const t = x.b.kind === "builder" ? "builders" : "you";
+      count(t === "you" ? you : builders, x.res, x.pnl, x.b.stake);
+      count(wk(x.b.week)[t], x.res, x.pnl, x.b.stake);
+    }
+    for (const s of sys.values()) {
+      count(system, s.res, s.pnl, stake);
+      count(wk(s.g.week).system, s.res, s.pnl, stake);
+    }
+
+    // You minus the system, split by what you did with each system pick. Every
+    // settled spread bet and every graded pick lands in exactly one slice, so the
+    // slices add up to the whole difference.
+    const slices = {
+      skipped: { n: 0, amt: 0, items: [] }, against: { n: 0, amt: 0, items: [] },
+      same: { n: 0, amt: 0, items: [] }, off: { n: 0, amt: 0, items: [] },
+    };
+    const put = (slice, n, amt, week, text) => {
+      slice.n += n; slice.amt += amt; slice.items.push({ week, text, amt });
+    };
+    const yours = (xs) => xs.map((x) =>
+      x.b.side + " " + fmtLine(x.b.line) + (x.b.odds ? " at " + x.b.odds.toFixed(2) : "")).join(", ");
+    for (const key of new Set([...sys.keys(), ...betsByGame.keys()])) {
+      const s = sys.get(key);
+      const mine = (betsByGame.get(key) || []).filter((x) => x.b.kind === "single" && x.res);
+      const sysPnl = s && s.res ? s.pnl : 0;
+      if (!s) {
+        for (const x of mine) put(slices.off, 1, x.pnl, x.b.week, yours([x]));
+        continue;
+      }
+      const pick = s.side + " " + fmtLine(s.line);
+      const withPick = mine.filter((x) => x.b.side === s.side);
+      const against = mine.filter((x) => x.b.side !== s.side);
+      if (withPick.length) {
+        put(slices.same, withPick.length, sum(withPick.map((x) => x.pnl)) - sysPnl, s.g.week,
+          yours(withPick) + " · system " + fmtLine(s.line) + " at 1.91");
+        if (against.length) put(slices.against, against.length, sum(against.map((x) => x.pnl)), s.g.week,
+          yours(against) + " · system " + pick);
+      } else if (against.length) {
+        put(slices.against, against.length, sum(against.map((x) => x.pnl)) - sysPnl, s.g.week,
+          yours(against) + " · system " + pick);
+      } else if (s.res) {
+        put(slices.skipped, 1, -sysPnl, s.g.week, pick + " · " + (s.res === "W" ? "won" : s.res === "L" ? "lost" : "push"));
+      }
+    }
+    for (const sl of Object.values(slices)) sl.items.sort((a, b) => a.week - b.week);
+
+    return { games, gameByKey, bets, betsByGame, sys, stake, lastSingle, you, system, builders, weeks, slices };
+  }
+
+  // --- rendering ---------------------------------------------------------------
+
+  function badge(res) {
+    return res ? `<span class="badge ${res}">${res}</span>` : `<span class="badge open">open</span>`;
+  }
+
+  function renderHeader() {
+    const games = state.games;
+    if (!games) { el.asof.textContent = state.status === "loading" ? "Loading…" : ""; return; }
+    if (!games.length) { el.asof.textContent = "Waiting for the season's games"; return; }
+    const playedDates = games.filter(played).map((g) => g.date).sort();
+    const priced = games.filter((g) => isNum(g.line)).map((g) => g.week);
+    const parts = [];
+    if (playedDates.length) parts.push("Scores to " + fmtDate(playedDates[playedDates.length - 1]));
+    if (priced.length) parts.push("lines to " + weekName(Math.max(...priced)).toLowerCase());
+    if (state.updated) parts.push("updated " + fmtDate(state.updated));
+    el.asof.textContent = parts.join(" · ") || "No games played yet";
+  }
+
+  function renderBoard(d) {
+    if (state.status !== "ready") { el.board.innerHTML = ""; return; }
+    if (!state.games || !state.betsLoaded) {
+      el.board.innerHTML = `<div class="board"><p class="empty">Loading your ledger…</p></div>`;
+      return;
+    }
+    const y = d.you, s = d.system, b = d.builders;
+    const cell = (t, has) => (has ? `<td class="${tone(t.pnl)}">${money(t.pnl)}</td>` : `<td class="muted">—</td>`);
+    const ySettled = y.w + y.l + y.p, sSettled = s.w + s.l + s.p;
+    const roi = (t) => (t.staked ? pct(t.pnl / t.staked) : "—");
+    const open = (t, one, many) => (t.open ? plural(t.open, one, many) : "—");
+    const bAll = b.w + b.l + b.p + b.open;
+    const builderLine = bAll
+      ? `Bet builders ${record(b)}${b.open ? " (" + b.open + " open)" : ""}, ${money(b.pnl)} on ${euros(b.staked)} · all NFL bets <b class="${tone(y.pnl + b.pnl)}">${money(y.pnl + b.pnl)}</b>.`
+      : "";
+    el.board.innerHTML = `
+      <div class="board">
+        <table>
+          <thead><tr><th scope="col">Spread bets</th><th scope="col">You</th><th scope="col">System</th></tr></thead>
+          <tbody>
+            <tr class="big"><td>Profit</td>${cell(y, ySettled)}${cell(s, sSettled)}</tr>
+            <tr><td>Record</td><td>${ySettled ? record(y) : "—"}</td><td>${sSettled ? record(s) : "—"}</td></tr>
+            <tr><td>Staked</td><td>${y.staked ? euros(y.staked) : "—"}</td><td>${s.staked ? euros(s.staked) : "—"}</td></tr>
+            <tr><td>Return</td><td>${roi(y)}</td><td>${roi(s)}</td></tr>
+            <tr><td>Open</td><td>${y.open ? plural(y.open, "bet", "bets") + " · " + euros(y.openStake) : "—"}</td><td>${open(s, "pick", "picks")}</td></tr>
+          </tbody>
+        </table>
+        <p class="foot">The system is every pick at ${euros(d.stake)} (your usual stake) and −110, i.e. 1.91.
+          ${builderLine}${d.bets.length || !state.canLog ? "" : " No bets logged yet: tap + Bet on any game below."}</p>
+      </div>`;
+  }
+
+  function weeksList(d) {
+    return [...new Set(d.games.map((g) => g.week))].sort((a, b) => a - b);
+  }
+  function defaultWeek(games) {
+    const open = games.filter((g) => !played(g)).map((g) => g.week);
+    if (open.length) return Math.min(...open);
+    return games.length ? Math.max(...games.map((g) => g.week)) : null;
+  }
+
+  function gameItem(g, d) {
+    const key = keyOf(g.week, g.home, g.away);
+    const s = d.sys.get(key);
+    const mine = d.betsByGame.get(key) || [];
+    const done = played(g);
+    const num = isNum(g.system_num) ? `<span title="System number">${fmtSysNum(g.system_num)}</span>`
+      : isNum(g.line) ? "" : "no line yet";
+    const sysText = s
+      ? `<p class="sys">System bet <b>${esc(s.side)} ${fmtLine(s.line)}</b> `
+        + (s.res ? badge(s.res) : `<span class="badge open">pending</span>`) + `</p>`
+      : "";
+    const formOpen = !!state.form && state.form.key === key;
+    const betsHtml = mine.length ? `<ul class="mine">${mine.map(betItem).join("")}</ul>` : "";
+    const addBtn = !state.canLog ? ""
+      : formOpen
+        ? `<button type="button" class="add" data-act="cancel" aria-expanded="true">Close</button>`
+        : `<button type="button" class="add" data-act="new" data-k="${esc(key)}" aria-label="Log a bet on ${esc(g.away)} at ${esc(g.home)}">+ Bet</button>`;
+    return `
+      <li class="game${s ? " pick" : ""}">
+        <div class="g-row">
+          <span class="nm">${esc(g.away)}</span><span class="sp">${fmtLine(sideLine(g, g.away))}</span>
+          <span class="sc">${done ? g.away_score : ""}</span><span class="meta">${done ? "Final" : esc(fmtDate(g.date))}</span>
+          ${addBtn}
+          <span class="nm"><span class="at">@</span>${esc(g.home)}</span><span class="sp">${fmtLine(sideLine(g, g.home))}</span>
+          <span class="sc">${done ? g.home_score : ""}</span><span class="meta">${num}</span>
+        </div>
+        ${sysText}
+        ${betsHtml}
+        ${formOpen ? formHtml(g) : ""}
+      </li>`;
+  }
+
+  function betItem(x) {
+    const b = x.b;
+    const what = b.kind === "builder"
+      ? "Bet builder" + (b.side ? " · " + esc(b.side) : "")
+      : esc(b.side || "?") + " " + fmtLine(b.line);
+    const meta = [b.odds ? b.odds.toFixed(2) : "", euros(b.stake), x.assumed ? "won at an assumed 1.91" : "", esc(b.note)]
+      .filter(Boolean).join(" · ");
+    const out = x.res
+      ? `${badge(x.res)}<span class="pnl ${tone(x.pnl)}">${money(x.pnl)}</span>`
+      : badge(null);
+    const editing = state.form && state.form.id === b.id;
+    return `<li><button type="button" class="betbtn" data-act="edit" data-id="${esc(b.id)}"${editing ? ' aria-expanded="true"' : ""}>
+        <span class="what">${what}<small>${meta}</small></span><span class="out">${out}</span>
+      </button></li>`;
+  }
+
+  function seg(act, value, label, current) {
+    return `<button type="button" data-act="${act}" data-v="${esc(value)}" aria-pressed="${value === current}">${label}</button>`;
+  }
+
+  function formHtml(g) {
+    const f = state.form;
+    const single = f.kind === "single";
+    const sideLabel = (t) => esc(t) + (single && isNum(sideLine(g, t)) ? " " + fmtLine(sideLine(g, t)) : "");
+    const results = single
+      ? [["auto", "Auto"], ["W", "Won"], ["L", "Lost"], ["P", "Push"]]
+      : [["auto", "Open"], ["W", "Won"], ["L", "Lost"]];
+    const lineField = single ? `
+        <div class="field"><span id="line-label">Your line</span>
+          <div class="linebox">
+            <button type="button" class="sign" data-act="sign" aria-label="Switch the line between plus and minus">${f.sign < 0 ? MINUS : "+"}</button>
+            <input name="line" inputmode="decimal" autocomplete="off" aria-labelledby="line-label" placeholder="3.5" value="${esc(f.lineAbs)}">
+          </div>
+        </div>` : "";
+    return `
+      <form class="betform" tabindex="-1" aria-label="${f.id ? "Edit bet" : "New bet"}" novalidate>
+        <div class="seg" role="group" aria-label="Bet type">
+          ${seg("kind", "single", "Spread", f.kind)}${seg("kind", "builder", "Bet builder", f.kind)}
+        </div>
+        <div class="seg" role="group" aria-label="${single ? "Team you backed" : "Team (optional)"}">
+          ${seg("side", g.away, sideLabel(g.away), f.side)}${seg("side", g.home, sideLabel(g.home), f.side)}
+        </div>
+        <div class="fields${single ? "" : " two"}">
+          ${lineField}
+          <label class="field"><span>Odds</span>
+            <input name="odds" inputmode="decimal" autocomplete="off" placeholder="1.91" value="${esc(f.odds)}"></label>
+          <label class="field"><span>Stake €</span>
+            <input name="stake" inputmode="decimal" autocomplete="off" value="${esc(f.stake)}"></label>
+        </div>
+        <div class="seg" role="group" aria-label="Result">
+          ${results.map(([v, t]) => seg("result", v, t, f.result)).join("")}
+        </div>
+        <p class="hint">${single
+          ? "Auto settles the bet from the final score at your line. Leave odds blank for a standard 1.91."
+          : "Builders aren't graded from the score: mark Won or Lost once it settles."}</p>
+        <label class="field"><span>Note</span>
+          <input name="note" maxlength="140" autocomplete="off" value="${esc(f.note)}"></label>
+        ${f.error ? `<p class="form-err" role="alert">${esc(f.error)}</p>` : ""}
+        <div class="actions">
+          <button type="submit" class="btn primary"${f.saving ? " disabled" : ""}>${f.saving ? "Saving…" : f.id ? "Save changes" : "Save bet"}</button>
+          <button type="button" class="btn" data-act="cancel"${f.saving ? " disabled" : ""}>Cancel</button>
+          ${f.id ? `<button type="button" class="btn danger${f.armed ? " armed" : ""}" data-act="delete"${f.saving ? " disabled" : ""}>${f.armed ? "Tap again to delete" : "Delete"}</button>` : ""}
+        </div>
+      </form>`;
+  }
+
+  function renderWeek(d) {
+    if (state.status !== "ready" || !state.games || !state.betsLoaded) { el.week.innerHTML = ""; return; }
+    if (!d.games.length) {
+      el.week.innerHTML = `<p class="empty">The season's games haven't been loaded yet. Claude adds them with each weekly update.</p>`;
+      return;
+    }
+    const weeks = weeksList(d);
+    const w = state.week;
+    const games = d.games.filter((g) => g.week === w);
+    const dates = games.map((g) => g.date).sort();
+    const t = d.weeks.get(w) || { you: tally(), system: tally(), builders: tally() };
+    const bettedWeeks = new Set(d.bets.map((x) => x.b.week));
+    const settled = (x) => x.w + x.l + x.p;
+    let aside;
+    if (settled(t.you) || settled(t.system)) {
+      aside = `You ${settled(t.you) ? record(t.you) + " " + money(t.you.pnl) : "no spread bets"} · System ${settled(t.system) ? record(t.system) + " " + money(t.system.pnl) : "no picks"}`;
+    } else {
+      const picks = games.filter((g) => g.system_bet).length;
+      const mine = d.bets.filter((x) => x.b.week === w).length;
+      aside = plural(picks, "system pick", "system picks") + " · " + plural(mine, "bet", "bets") + " logged";
+    }
+    const strays = d.bets.filter((x) => x.b.week === w && !x.g);
+    el.week.innerHTML = `
+      <div class="sec-head">
+        <h2>${weekName(w)} <span class="aside">${esc(fmtRange(dates[0], dates[dates.length - 1]))}</span></h2>
+        <span class="aside">${aside}</span>
+      </div>
+      <div class="strip" role="group" aria-label="Choose a week">
+        ${weeks.map((n) => `<button type="button" data-act="week" data-v="${n}" aria-label="${weekName(n)}"${n === w ? ' aria-current="true"' : ""}${bettedWeeks.has(n) ? ' class="has"' : ""}>${weekName(n, true)}</button>`).join("")}
+      </div>
+      ${state.canLog ? "" : `<p class="empty">Bets can't be logged in this view.</p>`}
+      <ul class="games${state.canLog ? "" : " nolog"}">${games.map((g) => gameItem(g, d)).join("")}</ul>
+      ${strays.length ? `<p class="empty">Bets this week that don't match a game in the schedule:</p><ul class="mine">${strays.map(betItem).join("")}</ul>` : ""}`;
+    const strip = el.week.querySelector(".strip");
+    const chip = strip && strip.querySelector('[aria-current="true"]');
+    if (chip) strip.scrollLeft = chip.offsetLeft - strip.clientWidth / 2 + chip.offsetWidth / 2;
+  }
+
+  function renderGap(d) {
+    if (state.status !== "ready" || !state.games || !state.betsLoaded) { el.gap.innerHTML = ""; return; }
+    const y = d.you, s = d.system;
+    if (!d.bets.length || (!(y.w + y.l + y.p) && !(s.w + s.l + s.p))) { el.gap.innerHTML = ""; return; }
+    const diff = y.pnl - s.pnl;
+    const sl = d.slices;
+    const rows = [
+      ["skipped", "Skipped system picks", "Picks you didn't bet", "pick", "picks"],
+      ["against", "Bet against the system", "You took the other side", "bet", "bets"],
+      ["same", "Same side as the system", "Your line, odds and stake against its line at 1.91", "bet", "bets"],
+      ["off", "Bets the system didn't make", "Games with no system pick", "bet", "bets"],
+    ];
+    const shown = sum(Object.values(sl).map((x) => cents(x.amt)));
+    el.gap.innerHTML = `
+      <div class="sec-head"><h2>You vs the system</h2><span class="gap-total ${tone(diff)}">${money(diff)}</span></div>
+      <p class="lede">Your spread bets made ${money(y.pnl)}; the system made ${money(s.pnl)}. Each line below is your profit minus the system's on those games, so together they make up the difference. Tap a line for the games.</p>
+      <div class="slices">
+        ${rows.map(([k, label, sub, one, many]) => `
+          <details class="slice">
+            <summary><span class="lab">${label}<small>${sub}</small></span>
+              <span class="cnt">${plural(sl[k].n, one, many)}</span>
+              <span class="amt ${tone(sl[k].amt)}">${money(sl[k].amt)}</span></summary>
+            ${sl[k].items.length
+              ? `<ul>${sl[k].items.map((it) => `<li><span>Wk ${it.week} · ${esc(it.text)}</span><span class="${tone(it.amt)}">${money(it.amt)}</span></li>`).join("")}</ul>`
+              : `<p class="none">None so far.</p>`}
+          </details>`).join("")}
+      </div>
+      ${shown === cents(diff) ? "" : `<p class="checkline">Each line is rounded to the cent, so they can add up to a cent away from the total.</p>`}`;
+  }
+
+  function renderWeekly(d) {
+    if (state.status !== "ready" || !state.games || !state.betsLoaded) { el.weekly.innerHTML = ""; return; }
+    const settled = (t) => t.w + t.l + t.p;
+    const rows = [...d.weeks.entries()]
+      .filter(([, t]) => settled(t.you) || settled(t.system))
+      .sort((a, b) => a[0] - b[0]);
+    if (!rows.length) { el.weekly.innerHTML = ""; return; }
+    const cells = (t) => settled(t)
+      ? `<td>${record(t)}</td><td class="${tone(t.pnl)}">${money(t.pnl)}</td>`
+      : `<td class="muted">—</td><td class="muted">—</td>`;
+    el.weekly.innerHTML = `
+      <div class="sec-head"><h2>Week by week</h2><span class="aside">Spread bets · system at ${euros(d.stake)} a pick</span></div>
+      <div class="tablewrap"><table class="weeks">
+        <thead><tr><th scope="col">Week</th><th scope="col">You</th><th scope="col">Profit</th><th scope="col">System</th><th scope="col">Profit</th></tr></thead>
+        <tbody>${rows.map(([w, t]) => `<tr><td><button type="button" class="wklink" data-act="week" data-v="${w}" aria-label="Show ${weekName(w)}">${weekName(w, true)}</button></td>${cells(t.you)}${cells(t.system)}</tr>`).join("")}</tbody>
+        <tfoot><tr><td>Total</td>${cells(d.you)}${cells(d.system)}</tr></tfoot>
+      </table></div>`;
+  }
+
+  function renderNotice() {
+    const text = state.status === "outside"
+      ? "This ledger runs inside claude.ai, where your bets are kept privately. Open it from your claude.ai link."
+      : state.status === "nodb"
+        ? "Your private storage isn't available in this view. Open the ledger on claude.ai while signed in."
+        : state.notice;
+    el.notice.hidden = !text;
+    el.notice.textContent = text || "";
+  }
+
+  // Which control had focus, so a re-render can hand it back.
+  function focusKey() {
+    const a = document.activeElement;
+    if (!a || !app.contains(a) || a === document.body) return null;
+    if (a.name) return { sel: `[name="${a.name}"]`, start: a.selectionStart, end: a.selectionEnd };
+    if (a.dataset && a.dataset.act) {
+      const attrs = ["act", "v", "k", "id"].filter((k) => a.dataset[k] != null)
+        .map((k) => `[data-${k}="${CSS.escape(a.dataset[k])}"]`).join("");
+      return { sel: attrs };
+    }
+    return null;
+  }
+  function restoreFocus(k) {
+    if (!k) return;
+    const target = app.querySelector(k.sel);
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    if (k.start != null && target.setSelectionRange) {
+      try { target.setSelectionRange(k.start, k.end); } catch (e) { /* not a text field */ }
+    }
+  }
+
+  function render() {
+    const k = focusKey();
+    const d = derive();
+    renderHeader();
+    renderNotice();
+    renderBoard(d);
+    renderWeek(d);
+    renderGap(d);
+    renderWeekly(d);
+    restoreFocus(k);
+  }
+
+  // --- the bet form ------------------------------------------------------------
+
+  function gameFor(key) {
+    const d = state.games || [];
+    const g = d.find((x) => keyOf(x.week, x.home, x.away) === key);
+    if (g) return g;
+    const b = state.bets.find((x) => keyOf(x.week, x.home, x.away) === key);
+    return b ? { week: b.week, home: b.home, away: b.away, line: null, date: "" } : null;
+  }
+
+  function openNew(key) {
+    const g = gameFor(key);
+    if (!g) return;
+    const d = derive();
+    const s = d.sys.get(key);
+    const side = s ? s.side : null;
+    const line = side ? sideLine(g, side) : null;
+    state.form = {
+      key, id: null, kind: "single", side,
+      sign: isNum(line) && line < 0 ? -1 : 1,
+      lineAbs: isNum(line) ? String(Math.abs(line)) : "",
+      odds: "", stake: String(d.lastSingle || d.stake), result: "auto", note: "",
+      error: "", armed: false, saving: false,
+    };
+  }
+
+  function openEdit(id) {
+    const b = state.bets.find((x) => x.id === id);
+    if (!b) return;
+    if (state.form && state.form.id === id) { state.form = null; return; }
+    state.form = {
+      key: keyOf(b.week, b.home, b.away), id, kind: b.kind, side: b.side,
+      sign: isNum(b.line) && b.line < 0 ? -1 : 1,
+      lineAbs: isNum(b.line) ? String(Math.abs(b.line)) : "",
+      odds: b.odds ? String(b.odds) : "", stake: b.stake ? String(b.stake) : "",
+      result: b.result || "auto", note: b.note, error: "", armed: false, saving: false,
+    };
+  }
+
+  function chooseSide(team) {
+    const f = state.form;
+    const g = gameFor(f.key);
+    if (f.kind === "builder") { f.side = f.side === team ? null : team; return; }
+    if (f.side === team) return;
+    const had = f.side;
+    f.side = team;
+    if (had && f.lineAbs.trim()) { f.sign = -f.sign; return; } // the other side of the same number
+    const line = sideLine(g, team);
+    if (isNum(line)) { f.sign = line < 0 ? -1 : 1; f.lineAbs = String(Math.abs(line)); }
+  }
+
+  function chooseKind(kind) {
+    const f = state.form;
+    if (f.kind === kind) return;
+    f.kind = kind;
+    if (kind === "builder" && f.result === "P") f.result = "auto";
+    const line = f.side ? sideLine(gameFor(f.key), f.side) : null;
+    if (kind === "single" && !f.lineAbs.trim() && isNum(line)) {
+      f.sign = line < 0 ? -1 : 1; f.lineAbs = String(Math.abs(line));
+    }
+  }
+
+  function writeError(e) {
+    const code = e && e.code;
+    if (code === "quota_exceeded") return "Storage for this page is full. Delete some old bets, then try again.";
+    if (code === "invalid_argument") return "This view can't save bets.";
+    if (code === "resource_exhausted") return "Too many saves at once. Wait a moment and try again.";
+    if (code === "revoked") return "This page lost access to its storage. Reload to carry on.";
+    return "Couldn't save just now" + (code ? " (" + code + ")" : "") + ". Try again.";
+  }
+  async function withRetry(fn) {
+    try { return await fn(); } catch (e) {
+      if (!e || e.code !== "unavailable") throw e;
+      await new Promise((r) => setTimeout(r, 400 + Math.random() * 600));
+      return fn();
+    }
+  }
+
+  async function save() {
+    const f = state.form;
+    const g = gameFor(f.key);
+    const fail = (msg) => { f.error = msg; render(); };
+    if (!g || !state.betsRef) return fail("This game isn't in the schedule any more.");
+    const stake = parseNum(f.stake);
+    const odds = f.odds.trim() ? parseNum(f.odds) : null;
+    let line = null;
+    if (f.kind === "single") {
+      if (!f.side) return fail("Choose the team you backed.");
+      const abs = parseNum(f.lineAbs);
+      if (abs == null || abs < 0 || abs > 60) return fail("Enter the line you got, such as 3.5.");
+      line = abs === 0 ? 0 : f.sign * abs;
+    }
+    if (stake == null || !(stake > 0) || stake > 100000) return fail("Enter your stake in euros.");
+    if (odds != null && !(odds > 1 && odds < 1000)) return fail("Odds are decimal, such as 1.91.");
+    if (f.kind === "builder" && f.result === "W" && odds == null) return fail("Add the builder's odds so the win counts.");
+
+    const prev = f.id ? state.bets.find((b) => b.id === f.id) : null;
+    const now = new Date().toISOString();
+    const body = {
+      season: SEASON, week: g.week, home: g.home, away: g.away,
+      kind: f.kind, side: f.side || null, line, odds,
+      stake: Math.round(stake * 100) / 100,
+      result: f.result === "auto" ? null : f.result,
+      note: f.note.trim().slice(0, 140),
+      created: (prev && prev.created) || now,
+    };
+    if (prev) body.updated = now;
+    f.saving = true; f.error = ""; render();
+    try {
+      const ref = f.id ? state.betsRef.doc(f.id) : state.betsRef.doc();
+      await withRetry(() => ref.set(body));
+      if (state.form === f) state.form = null;
+    } catch (e) {
+      f.saving = false; f.error = writeError(e);
+    }
+    render();
+  }
+
+  async function remove() {
+    const f = state.form;
+    if (!f.armed) { f.armed = true; render(); return; }
+    f.saving = true; f.error = ""; render();
+    try {
+      await withRetry(() => state.betsRef.doc(f.id).delete());
+      if (state.form === f) state.form = null;
+    } catch (e) {
+      f.saving = false; f.armed = false; f.error = writeError(e);
+    }
+    render();
+  }
+
+  // --- events --------------------------------------------------------------------
+
+  function showForm() {
+    const form = app.querySelector(".betform");
+    if (!form) return;
+    form.focus({ preventScroll: true });
+    form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  app.addEventListener("click", (ev) => {
+    const t = ev.target.closest("[data-act]");
+    if (!t || !app.contains(t) || t.disabled) return;
+    const act = t.dataset.act, v = t.dataset.v, f = state.form;
+    if (act === "week") {
+      state.week = Number(v); state.weekChosen = true; state.form = null; render();
+      if (t.classList.contains("wklink")) el.week.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (act === "new") {
+      openNew(t.dataset.k); render(); showForm();
+      return;
+    }
+    if (act === "edit") { openEdit(t.dataset.id); render(); showForm(); return; }
+    if (!f || f.saving) return;
+    if (act !== "delete") f.armed = false;
+    if (act === "cancel") state.form = null;
+    else if (act === "kind") chooseKind(v);
+    else if (act === "side") chooseSide(v);
+    else if (act === "sign") f.sign = -f.sign;
+    else if (act === "result") f.result = v;
+    else if (act === "delete") { remove(); return; }
+    render();
+  });
+
+  app.addEventListener("input", (ev) => {
+    const f = state.form, t = ev.target;
+    if (!f || !t.name) return;
+    if (t.name === "line") {
+      // Typing a sign into the number box flips the sign button instead.
+      const m = /^\s*([-+−])/.exec(t.value);
+      if (m) {
+        f.sign = m[1] === "+" ? 1 : -1;
+        t.value = t.value.replace(/^\s*[-+−]\s*/, "");
+        const btn = app.querySelector('[data-act="sign"]');
+        if (btn) btn.textContent = f.sign < 0 ? MINUS : "+";
+      }
+      f.lineAbs = t.value;
+    } else if (t.name in f) {
+      f[t.name] = t.value;
+    }
+  });
+
+  app.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    if (state.form && !state.form.saving) save();
+  });
+
+  // --- start -----------------------------------------------------------------------
+
+  function onFailure(e) {
+    state.canLog = false;
+    state.notice = e && e.code === "revoked"
+      ? "This page lost access to its storage. Reload to carry on."
+      : "Couldn't keep the ledger up to date" + (e && e.code ? " (" + e.code + ")" : "") + ". Reload to try again.";
+    render();
+  }
+
+  async function start() {
+    render();
+    if (!window.claude || typeof window.claude.use !== "function") { state.status = "outside"; render(); return; }
+    let db = null, user = null;
+    try {
+      [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    } catch (e) { db = null; }
+    if (!db) { state.status = "nodb"; render(); return; }
+    state.status = "ready";
+
+    db.doc("seasons/" + SEASON).onSnapshot((snap) => {
+      const body = snap.exists ? snap.data() : null;
+      const games = body && Array.isArray(body.games) ? body.games.filter((g) =>
+        g && isNum(g.week) && typeof g.home === "string" && typeof g.away === "string") : [];
+      state.games = games;
+      state.updated = body && typeof body.updated === "string" ? body.updated : null;
+      const regular = games.filter((g) => !g.playoff).map((g) => g.week);
+      state.maxRegular = regular.length ? Math.max(...regular) : 18;
+      if (!state.weekChosen || !games.some((g) => g.week === state.week)) state.week = defaultWeek(games);
+      render();
+    }, onFailure);
+
+    let uid = null;
+    try { uid = user ? await user.id() : null; } catch (e) { uid = null; }
+    if (!uid) {
+      state.betsLoaded = true;
+      state.notice = "Sign in to claude.ai to log bets: they're kept in your own private storage.";
+      render();
+      return;
+    }
+    state.betsRef = db.doc("data/users/" + uid + "/nfl" + SEASON).collection("bets");
+    state.canLog = true;
+    state.betsRef.onSnapshot((qs) => {
+      state.bets = qs.docs.filter((s) => s.exists).map((s) => cleanBet(s.id, s.data()));
+      state.betsLoaded = true;
+      if (state.form && state.form.id && !state.bets.some((b) => b.id === state.form.id)) state.form = null;
+      render();
+    }, onFailure);
+  }
+
+  start();
+})();
+</script>
