@@ -443,8 +443,8 @@ def build() -> Path:
   <header>
     <h1>NFL Report &mdash; five-factor system</h1>
     <p class="sub">Aaron Brown&rsquo;s demonstration NFL betting system (Wilmott magazine):
-    seven of his published reports (2010&ndash;2016) replicated, plus seven seasons
-    generated from raw data (2019&ndash;2025).</p>
+    {len(replicated)} of his published reports ({replicated[0]}&ndash;{replicated[-1]}) replicated,
+    plus {len(gen)} seasons generated from raw data ({gen[0]}&ndash;{gen[-1]}).</p>
   </header>
 
   <div class="banner">

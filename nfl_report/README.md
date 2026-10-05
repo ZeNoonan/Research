@@ -4,6 +4,18 @@
 
 *Anything I'm waiting on lives here, newest first. Nothing is urgent unless marked.*
 
+### ⚠️ Needed now — before Thursday 8 Oct (Buccaneers @ Cowboys)
+
+1. **Week 4's pro-football-reference rows, all 16 games, with `TOW`/`TOL`** —
+   including Monday night's Falcons @ Saints (5 Oct) once it's played. The 5 Oct
+   paste stopped at week 3 (those rows matched what's on file exactly), so week 4
+   is graded from the nflverse scores but carries no turnovers. Every team played
+   in week 4, so **no week-5 game can be picked until these arrive**.
+2. **A fresh nflverse export after Monday night**, as late as practical before
+   Thursday's kick-off: week-5 lines only import once Falcons @ Saints has a
+   score. If week-5 rows show a System # before the turnovers are in, it is
+   provisional and no bet is made.
+
 ### Every week, to keep 2026–27 running
 
 1. **Results** — the pro-football-reference rows for the games just played,

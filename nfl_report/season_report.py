@@ -107,15 +107,17 @@ def load_results(year: int) -> pd.DataFrame:
     df["Week"], df["playoff"] = assign_weeks(df["Week"])
     df["played"] = df["Pts"].notna() & df["Pts.1"].notna()
 
-    # '@' = the away team is listed first (and, for a played game, won).
-    away_won = df["venue_marker"] == "@"
-    df["home"] = np.where(away_won, df["Loser/tie"], df["Winner/tie"])
-    df["away"] = np.where(away_won, df["Winner/tie"], df["Loser/tie"])
+    # '@' = the away team is listed first. Rows are read by position, not by
+    # result: points and giveaways belong to whichever team is listed first,
+    # which is the winner in PFR's own export but not in every stored row.
+    away_first = df["venue_marker"] == "@"
+    df["home"] = np.where(away_first, df["Loser/tie"], df["Winner/tie"])
+    df["away"] = np.where(away_first, df["Winner/tie"], df["Loser/tie"])
     for col, (when_away, when_home) in {
         "home_score": ("Pts.1", "Pts"), "away_score": ("Pts", "Pts.1"),
         "home_giveaways": ("TOL", "TOW"), "away_giveaways": ("TOW", "TOL"),
     }.items():
-        df[col] = np.where(away_won, df[when_away], df[when_home])
+        df[col] = np.where(away_first, df[when_away], df[when_home])
         df[col] = pd.array(df[col], dtype="Int64")  # <NA> until played
     df["neutral"] = df["venue_marker"] == "N"  # neutral venue (e.g. Super Bowl)
     for col in ("home", "away"):
