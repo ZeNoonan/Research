@@ -173,8 +173,19 @@ RESULT_COLUMNS = ["home_score", "away_score",
                   "home_turnovers_won", "away_turnovers_won"]
 
 
-def keep_existing(sheet: pd.DataFrame, current: pd.DataFrame,
-                  name: str) -> tuple[pd.DataFrame, int]:
+LINE_COLUMNS = ("opening_line", "closing_line")
+
+
+def _differs(a: str, b: str) -> bool:
+    """Do two typed values differ? Numerically where both are numbers (-3.5 = -3.50)."""
+    try:
+        return float(a) != float(b)
+    except ValueError:
+        return a != b
+
+
+def keep_existing(sheet: pd.DataFrame, current: pd.DataFrame, name: str,
+                  relines: bool = False) -> tuple[pd.DataFrame, int, list[str]]:
     """Merge a sheet over the season file without ever erasing a value.
 
     The sheet is typed in by hand while other inputs arrive separately - a
@@ -189,6 +200,13 @@ def keep_existing(sheet: pd.DataFrame, current: pd.DataFrame,
     an older export imports safely rather than being refused. The one thing
     refused outright is a played match missing from the sheet entirely, since
     dropping the row would drop its result.
+
+    **A played match's lines are frozen.** Once a match has a result, a line in
+    the sheet that differs from the stored one is ignored and listed, not
+    applied: by then the stored line is the latest, and a different one in the
+    sheet is almost always an older copy of the sheet - round 2's Saturday
+    lines were nearly overwritten with Thursday's that way. ``relines=True``
+    (``--relines``) applies them anyway, for a line that was genuinely mistyped.
     """
     for col in SEASON_COLUMNS:
         if col not in current.columns:
@@ -206,21 +224,28 @@ def keep_existing(sheet: pd.DataFrame, current: pd.DataFrame,
             f"them: {'; '.join(lost[:4])}")
 
     sheet = sheet.copy()
-    kept = 0
+    kept, frozen = 0, []
     for i, row in sheet.iterrows():
         key = (row["date"], row["home"], row["away"])
         if key not in stored.index:
             continue
+        has_result = any(str(stored.at[key, c]).strip() for c in RESULT_COLUMNS)
         for col in SEASON_COLUMNS:
             if col in KEY:
                 continue
-            if str(row[col]).strip() == "" and str(stored.at[key, col]).strip() != "":
+            new, old = str(row[col]).strip(), str(stored.at[key, col]).strip()
+            if new == "" and old != "":
                 sheet.at[i, col] = stored.at[key, col]
                 kept += 1
-    return sheet, kept
+            elif (col in LINE_COLUMNS and has_result and not relines and new and old
+                  and _differs(new, old)):
+                sheet.at[i, col] = stored.at[key, col]
+                frozen.append(f"{row['home']} v {row['away']} {col}: kept {old}, "
+                              f"sheet has {new}")
+    return sheet, kept, frozen
 
 
-def import_sheet(year: int, source: Path | None) -> Path:
+def import_sheet(year: int, source: Path | None, relines: bool = False) -> Path:
     df, path = read_filled(year, source)
     out = DATA_DIR / f"season_{year}.csv"
     absent = [c for c in SEASON_COLUMNS if c not in df.columns]
@@ -249,9 +274,10 @@ def import_sheet(year: int, source: Path | None) -> Path:
     if problems:
         raise ValueError("cannot import:\n  " + "\n  ".join(problems))
 
-    kept = 0
+    kept, frozen = 0, []
     if out.exists():
-        df, kept = keep_existing(df, pd.read_csv(out, dtype=str).fillna(""), path.name)
+        df, kept, frozen = keep_existing(df, pd.read_csv(out, dtype=str).fillna(""),
+                                         path.name, relines)
 
     df = df.sort_values(["date", "round", "home"])
     if out.exists():
@@ -267,6 +293,12 @@ def import_sheet(year: int, source: Path | None) -> Path:
     if kept:
         print(f"  kept {kept} value(s) already in {out.name} that the sheet left "
               f"blank - a blank never erases")
+    if frozen:
+        print(f"  {len(frozen)} line(s) for matches already played differ in the sheet; "
+              f"the stored line is kept (an older copy of the sheet?). Use --relines "
+              f"to apply them:")
+        for f in frozen:
+            print(f"    {f}")
     if absent:
         print(f"  not in the sheet, so kept from {out.name}: {', '.join(absent)}")
     if ignored:
@@ -282,12 +314,14 @@ def main() -> None:
     ap.add_argument("--skeleton", action="store_true",
                     help="export blank rows with round numbers pre-filled")
     ap.add_argument("--file", type=Path, help="explicit sheet to import")
+    ap.add_argument("--relines", action="store_true",
+                    help="apply changed lines even for matches already played")
     args = ap.parse_args()
 
     if args.action == "export":
         export(args.season, args.skeleton)
     else:
-        import_sheet(args.season, args.file)
+        import_sheet(args.season, args.file, args.relines)
 
 
 if __name__ == "__main__":
