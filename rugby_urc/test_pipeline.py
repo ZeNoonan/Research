@@ -23,7 +23,7 @@ depends on hold:
 12. the model runs on the closing line, and on the opening line until then;
 13. an entry sheet can never erase a stored value: not a column it lacks (an
     older export), and not a blank cell (a sheet exported before the latest
-    results were loaded);
+    results were loaded); nor can an older copy change a played match's line;
 14. LGT is the turnovers-conceded differential - zero-sum, and blind to
     turnovers won;
 15. a whole past season loads from the scrape: quoted lines kept, the rest
@@ -475,17 +475,21 @@ def main() -> int:
         season.to_csv(data / "season_2026.csv", index=False)
         before = stored()
 
-        # (a) an older export - no turnovers-won columns - with a line corrected
+        # (a) an older export - no turnovers-won columns - with the unplayed
+        # round's lines corrected
         sheet = season.drop(columns=old_layout).copy()
-        sheet["closing_line"] = sheet["closing_line"] - 1
+        unplayed = sheet["round"] == 2
+        sheet.loc[unplayed, "closing_line"] = sheet.loc[unplayed, "closing_line"] - 1
         sheet.to_csv(data / "old.csv", index=False)
         entry_sheet.import_sheet(2026, data / "old.csv")
         after = stored()
         passed &= check("an older export imports, keeping the columns it lacks",
                         after[old_layout].equals(before[old_layout]))
+        shift = (pd.to_numeric(before["closing_line"])
+                 - pd.to_numeric(after["closing_line"]))
         passed &= check("and its corrected lines are applied",
-                        (pd.to_numeric(after["closing_line"])
-                         == pd.to_numeric(before["closing_line"]) - 1).all())
+                        (shift[after["round"] == "2"] == 1).all()
+                        and (shift[after["round"] == "1"] == 0).all())
 
         # (b) the case the column check alone missed: every column present, but
         # the results blank because the sheet was exported before they arrived
@@ -511,6 +515,23 @@ def main() -> int:
         passed &= check("a sheet missing a played match is refused",
                         "played match" in refused, refused[:60])
         passed &= check("and the season file is left as it was", stored().equals(before))
+
+        # (d) an older copy of the sheet carrying stale lines for played matches
+        season.to_csv(data / "season_2026.csv", index=False)
+        before = stored()
+        sheet = season.copy()
+        sheet["closing_line"] = sheet["closing_line"] + 2
+        sheet.to_csv(data / "older.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "older.csv")
+        shift = (pd.to_numeric(stored()["closing_line"])
+                 - pd.to_numeric(before["closing_line"]))
+        played = before["home_score"] != ""
+        passed &= check("a played match's line is not changed by a stale sheet",
+                        (shift[played] == 0).all() and (shift[~played] == 2).all())
+        entry_sheet.import_sheet(2026, data / "older.csv", relines=True)
+        shift = (pd.to_numeric(stored()["closing_line"])
+                 - pd.to_numeric(before["closing_line"]))
+        passed &= check("unless --relines says to", (shift == 2).all())
 
     print("\n14. LGT is the conceded differential, not own conceded minus own won")
     with tempfile.TemporaryDirectory() as tmp:
