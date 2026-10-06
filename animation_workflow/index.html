@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a 3D Animated Film Is Made — Follow Pip Through the Pipeline</title>
+<meta name="description" content="An interactive guide to the 3D animation studio pipeline. Follow one six-second shot of Pip the robot from story idea to final rendered frame, through every department.">
+<meta property="og:title" content="How a 3D Animated Film Is Made">
+<meta property="og:description" content="Follow one shot through every department of an animation studio, from a notebook scribble to a finished frame.">
+<link rel="canonical" href="https://zenoonan.github.io/Research/animation_workflow/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='36' r='22' fill='%23f1e8da'/%3E%3Crect x='16' y='26' width='32' height='20' rx='9' fill='%231a2033'/%3E%3Crect x='23' y='31' width='5' height='10' rx='2.5' fill='%2363f3ff'/%3E%3Crect x='36' y='31' width='5' height='10' rx='2.5' fill='%2363f3ff'/%3E%3Ccircle cx='34' cy='8' r='5' fill='%23ff5e7a'/%3E%3Cpath d='M32 14 L33 9' stroke='%23a9b2bd' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<!-- Shared SVG filters: the wobbly "pencil" line used by all the pre-production drawings. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="pencil"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <filter id="pencil2"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="8" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/></filter>
+</svg>
+
+<nav class="topbar" aria-label="Pipeline stages">
+  <a class="brand" href="#top"><span class="brand-dot"></span>Pip’s Journey</a>
+  <ol class="chips" id="chips"></ol>
+</nav>
+
+<header class="hero" id="top">
+  <div class="hero-sky" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="hero-inner">
+    <p class="eyebrow">An interactive guide to the animation pipeline</p>
+    <h1>How does a <em>3D animated film</em> actually get made?</h1>
+    <p class="lede">Follow one six-second shot — Pip the little robot leaping for a firefly — through every department of an animation studio. Watch it change from a scribble in a notebook into a finished, lit, rendered frame.</p>
+    <div class="cta">
+      <a class="btn primary" href="#overview">Start the journey ↓</a>
+      <button class="btn" id="tour-btn" type="button">▶ Take the guided tour</button>
+    </div>
+    <p class="hero-note">Everything you’ll see — the robot, the meadow, the animation, the effects — is built and rendered live in your browser.</p>
+  </div>
+</header>
+
+<main>
+<section class="overview" id="overview">
+  <div class="wrap">
+    <h2>The pipeline in one picture</h2>
+    <p class="intro">A studio works a bit like a car factory. Each department does one job really well, then passes its work along to the next — that chain of steps, people and software is called the <strong>pipeline</strong>. It falls into three phases: <em>plan it</em>, <em>make it</em>, <em>finish it</em>.</p>
+
+    <div class="map">
+      <div class="lane" data-phase="pre">
+        <h3><span>1</span> Pre-production <small>plan the film on paper</small></h3>
+        <ol>
+          <li><a href="#s-story">Story</a></li><li><a href="#s-concept">Visual development</a></li>
+          <li><a href="#s-storyboard">Storyboard</a></li><li><a href="#s-animatic">Animatic</a></li>
+        </ol>
+      </div>
+      <div class="lane" data-phase="assets">
+        <h3><span>2a</span> Production · assets <small>build each thing once</small></h3>
+        <ol>
+          <li><a href="#s-modeling">Modelling</a></li><li><a href="#s-surfacing">Surfacing</a></li><li><a href="#s-rigging">Rigging</a></li>
+        </ol>
+      </div>
+      <div class="lane" data-phase="shots">
+        <h3><span>2b</span> Production · shots <small>make every shot</small></h3>
+        <ol>
+          <li><a href="#s-layout">Layout</a></li><li><a href="#s-animation">Animation</a></li>
+          <li><a href="#s-fx">FX</a></li><li><a href="#s-lighting">Lighting</a></li>
+        </ol>
+      </div>
+      <div class="lane" data-phase="post">
+        <h3><span>3</span> Post-production <small>finish the pictures</small></h3>
+        <ol>
+          <li><a href="#s-rendering">Rendering</a></li><li><a href="#s-compositing">Compositing</a></li><li><a href="#s-final">Final</a></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="meet">
+      <div class="slate" aria-label="Production slate for our shot">
+        <div class="slate-top" aria-hidden="true"></div>
+        <dl>
+          <div><dt>Production</dt><dd>Pip &amp; the Firefly</dd></div>
+          <div><dt>Sequence</dt><dd>010</dd></div>
+          <div><dt>Shot</dt><dd>020</dd></div>
+          <div><dt>Length</dt><dd>6 s · 144 frames</dd></div>
+          <div><dt>Frames</dt><dd>1001–1144</dd></div>
+        </dl>
+      </div>
+      <div class="meet-text">
+        <h3>Meet our shot</h3>
+        <p>A film is cut into <strong>sequences</strong> (a scene, roughly) and each sequence into <strong>shots</strong> — one continuous piece of camera footage between two cuts. We’ll follow a single shot, <code>sq010_sh020</code>, all the way through. Scroll down and keep an eye on the viewport: it shows the shot exactly as each department would see it on their screens.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="journey" id="journey" aria-label="The pipeline, step by step">
+  <div class="stage-col">
+    <div class="stage" id="stage">
+      <div class="win-bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span class="dept" id="hud-dept">Story</span><span class="file" id="hud-file"></span></div>
+      <div class="screen" id="screen" data-stage="story">
+        <canvas id="gl" role="img" aria-label="Live 3D view of the shot at the current pipeline stage"></canvas>
+        <canvas id="bucket" class="bucket" hidden></canvas>
+        <div id="sketch" class="sketch"></div>
+        <div id="inset" class="inset" hidden><canvas id="inset-canvas" width="256" height="128"></canvas><span id="inset-label"></span></div>
+        <div id="pip-frame" class="pip-frame" hidden><span>What the shot camera sees</span></div>
+        <div id="slices" class="slices" hidden><span>Modelling</span><span>Layout</span><span>Animation</span><span>Lighting</span><span>Final</span></div>
+        <div class="letterbox" aria-hidden="true"><i></i><i></i></div>
+        <div class="title-card" aria-hidden="true">Pip <span>&amp;</span> the Firefly</div>
+        <div id="pass-label" class="pass-label" hidden></div>
+        <div id="bucket-label" class="bucket-label"></div>
+        <div id="nogl" class="nogl" hidden><p>The 3D viewport needs WebGL, which this browser doesn’t seem to support. The explanations still work — and the 2D stages above do too.</p></div>
+        <div id="fade" class="fade"></div>
+      </div>
+      <div class="timeline" id="timeline" hidden>
+        <button id="tl-play" type="button" aria-label="Pause">❚❚</button>
+        <div class="tl-track" id="tl-track" title="Drag to scrub through the shot"><div class="tl-keys" id="tl-keys"></div><div class="tl-head" id="tl-head"></div></div>
+        <span class="tl-frame" id="tl-frame">1001</span>
+      </div>
+      <p class="stage-cap" id="stage-cap"></p>
+    </div>
+  </div>
+
+  <div class="steps" id="steps">
+
+    <div class="chapter" data-phase="pre">
+      <p class="kicker">Phase 1</p>
+      <h2>Pre-production</h2>
+      <p>Before anything is built in 3D, the whole film is planned with words and drawings — because changing a drawing costs minutes, while changing a finished shot can cost weeks.</p>
+    </div>
+
+    <article class="step" id="s-story" data-stage="story" data-phase="pre">
+      <div class="card">
+        <p class="kicker"><span class="num">01</span> Pre-production</p>
+        <h3>Story <span>— it starts with an idea</span></h3>
+        <p>Every animated film begins as words, not pictures. A director pitches an idea, writers shape it into a story and then a script, and the story keeps being rewritten — often for years — until it works.</p>
+        <p>For this tour we’ll follow one tiny story, and one shot from it: <strong>Pip, a little robot, sees a firefly for the first time and leaps to catch it.</strong></p>
+        <dl class="facts"><div><dt>Who</dt><dd>Director, writers, story team</dd></div><div><dt>Tools</dt><dd>Paper, scriptwriting software, lots of meetings</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> a script → visual development &amp; story artists</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-concept" data-stage="concept" data-phase="pre">
+      <div class="card">
+        <p class="kicker"><span class="num">02</span> Pre-production</p>
+        <h3>Visual development <span>— what does it look like?</span></h3>
+        <p>Concept artists draw and paint dozens of options: what the characters could look like, what the world looks like, which colours set the mood. The director picks a direction — here, the round, bouncy robot.</p>
+        <p>Then a <strong>model sheet</strong> locks the design: the character from the front, side and back, lined up on guidelines, so every artist further down the line builds exactly the same Pip.</p>
+        <div class="try"><p class="try-label">Try it</p>
+          <div class="seg" data-ctl="concept.page"><button type="button" data-v="explore" aria-pressed="true">Design options</button><button type="button" data-v="sheet" aria-pressed="false">Model sheet</button></div>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Concept artists, art director, production designer</dd></div><div><dt>Tools</dt><dd>Photoshop, Procreate, pencils</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> model sheet + colour palette → modelling</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-storyboard" data-stage="storyboard" data-phase="pre">
+      <div class="card">
+        <p class="kicker"><span class="num">03</span> Pre-production</p>
+        <h3>Storyboard <span>— the film as a comic strip</span></h3>
+        <p>Story artists draw the script as quick sketches, panel by panel, like a comic. Each panel shows what the camera sees and what the characters do.</p>
+        <p>They’re rough on purpose: if an idea doesn’t work it’s thrown away and redrawn in minutes. A feature film goes through tens of thousands of these drawings. Our shot — <code>sq010_sh020</code>, sequence 10, shot 20 — gets six panels.</p>
+        <dl class="facts"><div><dt>Who</dt><dd>Story artists, head of story</dd></div><div><dt>Tools</dt><dd>Storyboard Pro, Photoshop</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> storyboard panels → editorial</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-animatic" data-stage="animatic" data-phase="pre">
+      <div class="card">
+        <p class="kicker"><span class="num">04</span> Pre-production</p>
+        <h3>Animatic <span>— a rough movie made of drawings</span></h3>
+        <p>The editor cuts the storyboard panels together with temporary voices, music and sound effects, timing each one. The result, an <strong>animatic</strong>, is the first time anyone can sit down and actually watch the film.</p>
+        <p>This is where pacing gets fixed while it’s still cheap. It also fixes each shot’s exact length: ours runs 6 seconds, and at 24 frames per second that’s <strong>144 frames</strong> that every department now has to deliver.</p>
+        <dl class="facts"><div><dt>Who</dt><dd>Editors, director</dd></div><div><dt>Tools</dt><dd>Avid Media Composer, Premiere Pro</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> the cut, with every shot’s frame count → all departments</p>
+      </div>
+    </article>
+
+    <div class="chapter" data-phase="assets">
+      <p class="kicker">Phase 2a</p>
+      <h2>Production: build the assets</h2>
+      <p>An <strong>asset</strong> is any “thing” in the film: a character, a prop, a set. Each one is built once, on its own, then reused in every shot it appears in. Asset artists usually work on a neutral turntable, far from any particular shot.</p>
+    </div>
+
+    <article class="step" id="s-modeling" data-stage="modeling" data-phase="assets">
+      <div class="card">
+        <p class="kicker"><span class="num">05</span> Production · assets</p>
+        <h3>Modelling <span>— sculpting in 3D</span></h3>
+        <p>A modeller builds Pip as a 3D surface made of thousands of tiny flat faces called <strong>polygons</strong> — like a sculpture made of paper triangles. More polygons means smoother curves, but heavier files that are slower for everyone to work with.</p>
+        <p>Pip is grey on purpose. With no colour to distract you, it’s easier to judge the shape. Models are reviewed spinning on a turntable like this one.</p>
+        <div class="try"><p class="try-label">Try it</p>
+          <button class="tog" type="button" data-ctl="wire" aria-pressed="true">Show polygons (wireframe)</button>
+          <label class="range">Polygon detail <input type="range" data-ctl="detail" min="0" max="4" step="1" value="3"></label>
+          <p class="readout"><b id="tri-count">—</b> triangles</p>
+          <p class="hint fine-only">Drag the viewport to spin Pip yourself.</p>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Modellers</dd></div><div><dt>Tools</dt><dd>Maya, ZBrush, Blender</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> <code>pip_model_v014</code> → surfacing &amp; rigging</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-surfacing" data-stage="surfacing" data-phase="assets">
+      <div class="card">
+        <p class="kicker"><span class="num">06</span> Production · assets</p>
+        <h3>Surfacing <span>— paint and materials</span></h3>
+        <p>The model is like an unpainted statue. Surfacing artists give it a skin in three steps:</p>
+        <ol class="steps-list">
+          <li><strong>UVs.</strong> The 3D surface is unwrapped into flat pieces, like a cardboard box opened out flat. A labelled grid shows if anything is stretched.</li>
+          <li><strong>Painting.</strong> Colour, scuffs, panel lines and that “07” on Pip’s back are painted onto the flat images.</li>
+          <li><strong>Materials.</strong> Rules for how light behaves on each surface: shiny plastic, brushed metal, a glossy glass visor, glowing eyes.</li>
+        </ol>
+        <div class="try"><p class="try-label">Try it</p>
+          <div class="seg" data-ctl="surface"><button type="button" data-v="uv" aria-pressed="false">1 · UV grid</button><button type="button" data-v="paint" aria-pressed="false">2 · Paint</button><button type="button" data-v="final" aria-pressed="true">3 · Materials</button></div>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Texture painters, look-development artists</dd></div><div><dt>Tools</dt><dd>Substance Painter, Mari, Photoshop</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> <code>pip_look_v009</code> (textures + shaders) → lighting</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-rigging" data-stage="rigging" data-phase="assets">
+      <div class="card">
+        <p class="kicker"><span class="num">07</span> Production · assets</p>
+        <h3>Rigging <span>— bones and puppet strings</span></h3>
+        <p>Right now Pip is a statue; it can’t move. A rigger builds a digital skeleton inside it (the <span class="swatch y">yellow bones</span>) and wires it to <span class="swatch c">controls</span>, the coloured circles animators grab — a bit like the strings on a puppet.</p>
+        <p>Riggers also add cartoon tricks like <strong>squash and stretch</strong>, so Pip can bend like a rubber ball rather than a stiff toy. The audience never sees a rig, but it decides how good the animation can be.</p>
+        <div class="try"><p class="try-label">Try it — pull the strings</p>
+          <label class="range">Turn head <input type="range" data-ctl="rig.head" min="-1" max="1" step="0.01" value="0"></label>
+          <label class="range">Raise arm <input type="range" data-ctl="rig.arm" min="-1" max="1" step="0.01" value="0"></label>
+          <label class="range">Squash ↔ stretch <input type="range" data-ctl="rig.squash" min="-1" max="1" step="0.01" value="0"></label>
+          <label class="range">Lean <input type="range" data-ctl="rig.lean" min="-1" max="1" step="0.01" value="0"></label>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Riggers (also called character TDs)</dd></div><div><dt>Tools</dt><dd>Maya, Houdini, in-house tools</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> <code>pip_rig_v007</code> → animation</p>
+      </div>
+    </article>
+
+    <div class="chapter" data-phase="shots">
+      <p class="kicker">Phase 2b</p>
+      <h2>Production: make the shots</h2>
+      <p>Now the assets come together, shot by shot. A feature film usually has more than a thousand shots, and each one passes through these same departments, one after another, while hundreds of others are at different steps at the same time.</p>
+    </div>
+
+    <article class="step" id="s-layout" data-stage="layout" data-phase="shots">
+      <div class="card">
+        <p class="kicker"><span class="num">08</span> Production · shots</p>
+        <h3>Layout <span>— where’s the camera?</span></h3>
+        <p>Layout artists are the film’s camera crew. Using the storyboard as a guide, they place the set, the characters and a virtual camera in 3D, choosing the lens, the angle and how the camera moves. Our camera drifts right and slowly pushes in as Pip lets the firefly go.</p>
+        <p>They work with simple stand-in models and rough poses so everything stays fast. The inset shows exactly what the camera will see.</p>
+        <div class="try"><p class="try-label">Try it</p>
+          <div class="seg" data-ctl="layoutView"><button type="button" data-v="work" aria-pressed="true">Layout artist’s view</button><button type="button" data-v="shot" aria-pressed="false">Through the camera</button></div>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Layout artists</dd></div><div><dt>Tools</dt><dd>Maya, Unreal Engine</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> <code>sh020_layout_v003</code> (camera + set) → animation</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-animation" data-stage="animation" data-phase="shots">
+      <div class="card">
+        <p class="kicker"><span class="num">09</span> Production · shots</p>
+        <h3>Animation <span>— bringing Pip to life</span></h3>
+        <p>Animators don’t film anything. They pose the rig at key moments — <strong>keyframes</strong>, the diamonds on the timeline — and the computer fills in the frames in between. They work in passes:</p>
+        <ol class="steps-list">
+          <li><strong>Blocking.</strong> Only the main poses, held like a flip-book of statues. Is the acting right?</li>
+          <li><strong>Spline.</strong> The computer smooths the motion between poses; the animator refines the timing.</li>
+          <li><strong>Polish.</strong> The details that make it feel alive: the antenna wobbling after the landing, blinks, breathing.</li>
+        </ol>
+        <div class="try"><p class="try-label">Try it</p>
+          <div class="seg" data-ctl="animMode"><button type="button" data-v="blocking" aria-pressed="false">Blocking</button><button type="button" data-v="spline" aria-pressed="false">Spline</button><button type="button" data-v="polish" aria-pressed="true">Polish</button></div>
+          <button class="tog" type="button" data-ctl="trail" aria-pressed="true">Show Pip’s arc</button>
+          <p class="hint">Drag along the timeline under the viewport to scrub frame by frame.</p>
+        </div>
+        <p class="aside">A feature animator might finish only a few seconds of polished animation in a whole week.</p>
+        <dl class="facts"><div><dt>Who</dt><dd>Animators, animation supervisors</dd></div><div><dt>Tools</dt><dd>Maya, Presto (Pixar’s in-house tool), Blender</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> <code>sh020_anim_v023</code> → FX &amp; lighting</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-fx" data-stage="fx" data-phase="shots">
+      <div class="card">
+        <p class="kicker"><span class="num">10</span> Production · shots</p>
+        <h3>FX <span>— things nobody animates by hand</span></h3>
+        <p>Dust, sparks, smoke, water, fire, cloth, hair: these are far too fiddly to pose by hand. FX artists set up rules such as gravity, wind and how fast things fade, and let the computer <strong>simulate</strong> thousands of particles.</p>
+        <p>Switch to the raw view to see what an FX artist sees: just dots. Each one is a particle the simulation tracks: the firefly’s glowing trail, dust when Pip takes off and lands, sparkles as it’s let go, and other fireflies in the dark.</p>
+        <div class="try"><p class="try-label">Try it</p>
+          <div class="seg" data-ctl="fxView"><button type="button" data-v="raw" aria-pressed="false">Raw simulation</button><button type="button" data-v="rendered" aria-pressed="true">Rendered look</button></div>
+          <p class="readout"><b id="fx-count">—</b> particles this frame</p>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>FX artists</dd></div><div><dt>Tools</dt><dd>Houdini</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> <code>sh020_fx_v011</code> (particle caches) → lighting</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-lighting" data-stage="lighting" data-phase="shots">
+      <div class="card">
+        <p class="kicker"><span class="num">11</span> Production · shots</p>
+        <h3>Lighting <span>— painting with light</span></h3>
+        <p>For the first time the whole scene appears with its final materials, and lighting artists place virtual lights just like a cinematographer on a film set. Lighting sets the mood and tells your eye where to look. For this dusk shot:</p>
+        <ul class="light-list">
+          <li><b class="lk">Key</b> cool moonlight, the main light, casting the shadows.</li>
+          <li><b class="lf">Fill</b> soft purple glow from the sky, so shadows aren’t pitch black.</li>
+          <li><b class="lr">Rim</b> warm sunset from behind, outlining Pip against the background.</li>
+          <li><b class="lp">Practical</b> the firefly itself, lighting Pip’s face when its hands open. The whole shot is built around that moment.</li>
+        </ul>
+        <div class="try"><p class="try-label">Try it — switch the lights</p>
+          <div class="light-toggles">
+            <button class="tog lk" type="button" data-ctl="light.key" aria-pressed="true">Key</button>
+            <button class="tog lf" type="button" data-ctl="light.fill" aria-pressed="true">Fill</button>
+            <button class="tog lr" type="button" data-ctl="light.rim" aria-pressed="true">Rim</button>
+            <button class="tog lp" type="button" data-ctl="light.firefly" aria-pressed="true">Firefly</button>
+          </div>
+          <svg class="plan" viewBox="0 0 280 150" role="img" aria-label="Lighting plan seen from above">
+            <text x="8" y="146" class="plan-t">plan view, from above</text>
+            <g class="lp-g" data-light="fill"><path d="M40,40 Q140,-8 240,40" fill="none" stroke="#9d8cff" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/><text x="140" y="34" text-anchor="middle">fill (sky)</text></g>
+            <g class="lp-g" data-light="key"><line x1="44" y1="62" x2="128" y2="88" stroke="#a9bcff" stroke-width="1.5" stroke-dasharray="4 3"/><circle cx="38" cy="60" r="10" fill="#a9bcff"/><text x="38" y="84" text-anchor="middle">key</text></g>
+            <g class="lp-g" data-light="rim"><line x1="236" y1="52" x2="152" y2="84" stroke="#ff9152" stroke-width="1.5" stroke-dasharray="4 3"/><circle cx="242" cy="50" r="10" fill="#ff9152"/><text x="242" y="74" text-anchor="middle">rim</text></g>
+            <g class="lp-g" data-light="firefly"><circle cx="160" cy="104" r="5" fill="#ffd36b"/><circle cx="160" cy="104" r="11" fill="none" stroke="#ffd36b" stroke-opacity=".5"/><text x="178" y="108">firefly</text></g>
+            <circle cx="140" cy="92" r="9" fill="#ee7a3a"/><text x="140" y="74" text-anchor="middle" class="plan-pip">Pip</text>
+            <rect x="128" y="128" width="24" height="15" rx="3" fill="#cfd3e6"/><path d="M140,128 L130,118 L150,118 Z" fill="#cfd3e6"/><text x="160" y="140">camera</text>
+          </svg>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Lighting artists</dd></div><div><dt>Tools</dt><dd>Katana, Houdini, RenderMan</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> <code>sh020_lgt_v008</code>, a lit shot ready to render → rendering</p>
+      </div>
+    </article>
+
+    <div class="chapter" data-phase="post">
+      <p class="kicker">Phase 3</p>
+      <h2>Post-production</h2>
+      <p>Until now everyone has worked with quick previews. Now the computer makes the real, full-quality pictures, and they get polished and finished.</p>
+    </div>
+
+    <article class="step" id="s-rendering" data-stage="rendering" data-phase="post">
+      <div class="card">
+        <p class="kicker"><span class="num">12</span> Post-production</p>
+        <h3>Rendering <span>— computing every pixel</span></h3>
+        <p>Rendering makes the final image: the computer traces how light bounces around the scene to work out the colour of every single pixel. Production renderers draw the frame in small squares called <strong>buckets</strong>, as in the viewport. At film quality one frame can take hours, and every second of film needs 24 of them.</p>
+        <p>So studios use a <strong>render farm</strong>, rooms full of computers (often thousands) each rendering different frames at the same time. Each frame is also saved as separate <strong>passes</strong> that give the next department extra control.</p>
+        <div class="try"><p class="try-label">Try it — look at the passes</p>
+          <div class="seg" data-ctl="pass"><button type="button" data-v="beauty" aria-pressed="true">Beauty</button><button type="button" data-v="depth" aria-pressed="false">Depth</button><button type="button" data-v="normal" aria-pressed="false">Normals</button><button type="button" data-v="id" aria-pressed="false">ID mattes</button></div>
+          <button class="btn small" type="button" data-act="rerender">⟳ Render the frame again</button>
+        </div>
+        <div class="farm-box">
+          <p class="try-label">The render farm: our 144 frames</p>
+          <div class="farm" id="farm" aria-hidden="true"></div>
+          <p class="farm-stats" id="farm-stats"></p>
+          <p class="aside">If each frame took 2 hours on one computer, this shot would take 12 days. Spread across 100 machines it’s done in under 3 hours.</p>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Lighting TDs, render wranglers</dd></div><div><dt>Tools</dt><dd>RenderMan, Arnold, Karma, V-Ray</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> 144 image files, <code>sh020.1001–1144.exr</code> → compositing</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-compositing" data-stage="compositing" data-phase="post">
+      <div class="card">
+        <p class="kicker"><span class="num">13</span> Post-production</p>
+        <h3>Compositing <span>— layering it all together</span></h3>
+        <p>Compositors stack the rendered layers like layers in Photoshop and do the final polishing that’s quicker on images than re-rendering: the glow around the firefly, colour tweaks, a soft vignette. If the director wants the sky a touch warmer, it’s changed here in minutes rather than re-rendered for hours.</p>
+        <div class="try"><p class="try-label">Try it — the layer stack (top layer first)</p>
+          <ol class="layers">
+            <li><button class="tog" type="button" data-ctl="layer.grade" aria-pressed="true">Colour grade &amp; vignette</button></li>
+            <li><button class="tog" type="button" data-ctl="layer.glow" aria-pressed="true">Glow</button></li>
+            <li><button class="tog" type="button" data-ctl="layer.fx" aria-pressed="true">FX: fireflies, dust, sparkles</button></li>
+            <li><button class="tog" type="button" data-ctl="layer.pip" aria-pressed="true">Pip</button></li>
+            <li><button class="tog" type="button" data-ctl="layer.set" aria-pressed="true">Set: ground, rocks, trees</button></li>
+            <li><button class="tog" type="button" data-ctl="layer.sky" aria-pressed="true">Sky</button></li>
+          </ol>
+          <button class="btn small" type="button" data-act="build-comp">⟳ Build it up layer by layer</button>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Compositors</dd></div><div><dt>Tools</dt><dd>Nuke</dd></div></dl>
+        <p class="handoff"><span>Passes on</span> <code>sh020_comp_v012</code>, the final frames → editorial</p>
+      </div>
+    </article>
+
+    <article class="step" id="s-final" data-stage="final" data-phase="post">
+      <div class="card">
+        <p class="kicker"><span class="num">14</span> Post-production</p>
+        <h3>The finished shot</h3>
+        <p>Finished shots go back to the editor and replace the storyboard drawings in the cut, one by one, until the whole film is final. Sound designers add every footstep, whirr and chirp, the composer records the score, and a colourist grades the film so every shot matches. Then it’s delivered to cinemas and streaming services.</p>
+        <p>Our six-second shot passed through fourteen steps and dozens of hands. Multiply that by more than a thousand shots and you have a feature film.</p>
+        <div class="try"><p class="try-label">Try it</p>
+          <button class="tog" type="button" data-ctl="slices" aria-pressed="false">Show the pipeline in one frame</button>
+          <p class="hint">Cuts the frame into strips, each one as an earlier department saw it.</p>
+        </div>
+        <dl class="facts"><div><dt>Who</dt><dd>Editors, sound designers, composer, colourist</dd></div><div><dt>Tools</dt><dd>Avid, Pro Tools, DaVinci Resolve</dd></div></dl>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="loops" id="loops">
+  <div class="wrap">
+    <h2>It’s not really a straight line</h2>
+    <p class="intro">The tour went department by department, but a real studio is busier and loopier than that.</p>
+    <div class="loop-grid">
+      <div class="loop-card"><h3>Dailies</h3><p>Every day, artists show their work in progress to the director and supervisors, who give notes. A single shot can go round this loop dozens of times before it’s approved.</p></div>
+      <div class="loop-card"><h3>Notes flow upstream</h3><p>Animation might reveal the rig needs a new control; lighting might show a texture looks wrong. The work goes back, gets fixed and flows down again. That’s why every file has a version number like <code>_v023</code>.</p></div>
+      <div class="loop-card"><h3>Everything at once</h3><p>While shot 20 is being lit, shot 21 is being animated and the next sequence is still being storyboarded. Like an assembly line, every station is busy with a different shot.</p></div>
+      <div class="loop-card"><h3>The plumbers</h3><p>Pipeline TDs and engineers write the software that moves files between departments and tracks every version, so when a modeller fixes Pip, every shot picks up the fix.</p></div>
+    </div>
+    <figure class="gantt">
+      <div class="gantt-grid" id="gantt" aria-hidden="true"></div>
+      <figcaption>Six shots moving through the shot departments over time. Each colour is a department; notice how many shots are in progress at once.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="numbers" id="numbers">
+  <div class="wrap">
+    <h2>By the numbers</h2>
+    <div class="stat-grid">
+      <div class="stat"><b>24</b><span>frames for every second of film</span></div>
+      <div class="stat"><b>144</b><span>frames in our six-second shot</span></div>
+      <div class="stat"><b>129,600</b><span>frames in a 90-minute film (90 × 60 × 24)</span></div>
+      <div class="stat"><b>1,000+</b><span>shots in a typical animated feature</span></div>
+      <div class="stat"><b>A few seconds</b><span>of finished animation per animator, per week</span></div>
+      <div class="stat"><b>Years</b><span>from first pitch to release, with hundreds of artists and engineers</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="glossary" id="glossary">
+  <div class="wrap">
+    <h2>Glossary</h2>
+    <dl class="gloss">
+      <div><dt>Asset</dt><dd>Any reusable “thing” in the film: a character, prop, vehicle or set.</dd></div>
+      <div><dt>Sequence &amp; shot</dt><dd>A sequence is a run of story (roughly a scene); a shot is one continuous piece of camera footage between two cuts.</dd></div>
+      <div><dt>Frame</dt><dd>A single still image. Film plays 24 of them every second.</dd></div>
+      <div><dt>Polygon</dt><dd>One of the tiny flat faces a 3D model’s surface is made of.</dd></div>
+      <div><dt>UVs</dt><dd>The “unfolded” flat version of a 3D surface that textures are painted onto.</dd></div>
+      <div><dt>Shader / material</dt><dd>The rules for how light reacts to a surface: shiny, rough, metallic, glowing, see-through.</dd></div>
+      <div><dt>Rig</dt><dd>The skeleton and controls that let animators move a model.</dd></div>
+      <div><dt>Keyframe</dt><dd>A pose the animator sets at a specific frame. The computer fills in the in-betweens.</dd></div>
+      <div><dt>Playblast</dt><dd>A quick, low-quality preview of a shot, used to review animation without rendering.</dd></div>
+      <div><dt>Simulation</dt><dd>Letting the computer calculate motion using physics-like rules, as FX does for dust and sparks.</dd></div>
+      <div><dt>Render / render farm</dt><dd>Computing the final images; a farm is the large group of computers that does it.</dd></div>
+      <div><dt>Pass (AOV)</dt><dd>One layer of a render, such as depth or just the lighting, kept separate for compositing.</dd></div>
+      <div><dt>Dailies</dt><dd>The daily review where work in progress is shown and notes are given.</dd></div>
+      <div><dt>Pipeline TD</dt><dd>A technical director who builds the tools and plumbing that connect departments.</dd></div>
+    </dl>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Pip, the meadow, the textures, the animation and the effects are all generated in code and rendered live with <a href="https://threejs.org">three.js</a>, with no video files. Studios differ in the details; this is the common shape of a 3D feature pipeline.</p>
+    <p><a href="https://github.com/ZeNoonan/Research/tree/HEAD/animation_workflow">Source on GitHub</a> · part of the <a href="../">Research</a> repo</p>
+  </div>
+</footer>
+
+<div class="tour-pill" id="tour-pill" hidden><span id="tour-step"></span><button type="button" id="tour-stop">Stop tour</button></div>
+</body>
+</html>
