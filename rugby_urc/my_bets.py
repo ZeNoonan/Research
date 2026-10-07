@@ -116,17 +116,28 @@ def assess(log: pd.DataFrame, report: pd.DataFrame, year: int, current: bool = T
 
         m = cand.iloc[0]
         home_side = team == m["home"]
-        line = float(b["line"])
+        # A line cut off on the screenshot is logged blank: the bet still counts,
+        # on the bookmaker's settlement, but has no line to compare or grade.
+        line = pd.to_numeric(b.get("line"), errors="coerce")
+        known = pd.notna(line)
         close = m["line"] if home_side else -m["line"]
         rated = pd.notna(m["home_power"]) and pd.notna(m["away_power"])
         at_line = (model.system_number(m["home_lgt"], m["home_stdc"], m["home_power"],
                                        m["away_lgt"], m["away_stdc"], m["away_power"],
                                        line if home_side else -line)
-                   if rated else np.nan)
+                   if rated and known else np.nan)
         yours = _verdict(at_line, home_side)
         at_close = _verdict(m["system_num"] if rated and pd.notna(m["line"]) else np.nan,
                             home_side)
-        system = yours if at_close in (yours, "?") else f"{yours}, {at_close} at close"
+        if not known:
+            system = "?" if at_close == "?" else f"{at_close} at close"
+        else:
+            system = yours if at_close in (yours, "?") else f"{yours}, {at_close} at close"
+        if known:
+            bet = f"{team} {line:+g}"
+        else:
+            tail = shown.split()[-1] if isinstance(shown, str) and shown.split() else ""
+            bet = f"{team} {tail if tail[:1] in ('+', '-') else '?'}"
 
         played = pd.notna(m["home_score"]) and pd.notna(m["away_score"])
         margin = ((m["home_score"] - m["away_score"]) * (1 if home_side else -1)
@@ -148,7 +159,7 @@ def assess(log: pd.DataFrame, report: pd.DataFrame, year: int, current: bool = T
         rows.append({
             "bet_id": b["bet_id"], "date": m["date"], "round": int(m["round"]),
             "match": f"{m['home']} v {m['away']}",
-            "bet": f"{team} {line:+g}", "team": team, "line": line, "odds": odds,
+            "bet": bet, "team": team, "line": line, "odds": odds,
             "stake": stake, "close": close, "line_value": line - close,
             "system": system, "result": result, "profit": profit, "check": check,
             "source": b.get("source", ""),
@@ -160,16 +171,18 @@ def assess(log: pd.DataFrame, report: pd.DataFrame, year: int, current: bool = T
 def summary(bets: pd.DataFrame, report: pd.DataFrame) -> dict:
     """Totals for your bets, and the system's picks over the same rounds.
 
-    The system is staked the way you stake (your median stake) at the standard
-    1.91, so the two profits compare like with like. Only rounds you have bets
-    logged for are counted, so a round missing from the log is not held against
+    The system is staked the way you stake - your median total stake on a match,
+    since one pick is sometimes split across two slips - at the standard 1.91,
+    so the two profits compare like with like. Only rounds you have bets logged
+    for are counted, so a round missing from the log is not held against
     either side.
     """
     settled = bets[bets["result"].isin(["Won", "Lost"])]
     w, l = int((settled["result"] == "Won").sum()), int((settled["result"] == "Lost").sum())
     staked = float(settled["stake"].sum())
     profit = float(settled["profit"].sum(min_count=1)) if len(settled) else 0.0
-    stake = float(bets["stake"].median()) if len(bets) else 25.0
+    stake = (float(bets.groupby(["date", "match"])["stake"].sum().median())
+             if len(bets) else 25.0)
     rounds = report[report["round"].isin(set(bets["round"])) & report["result"].notna()]
     sw, sl = int((rounds["result"] == "W").sum()), int((rounds["result"] == "L").sum())
     return {

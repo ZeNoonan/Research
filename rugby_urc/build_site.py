@@ -77,7 +77,7 @@ tbody tr:hover{background:var(--surface-2)}
 .bet{font-weight:650}
 .res-w{color:var(--pos);font-weight:650}.res-l{color:var(--neg);font-weight:650}
 .pending{color:var(--text-muted)}
-.compact th,.compact td{padding:6px 4px}
+.compact th,.compact td{padding:6px 3px}
 .heat table{font-size:.72rem}
 .heat td{padding:3px 5px;text-align:center;border:1px solid var(--surface-1);
  background:var(--lbg);color:var(--lfg)}
