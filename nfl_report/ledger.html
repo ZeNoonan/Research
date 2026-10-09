@@ -50,21 +50,23 @@ h2 { margin: 0; font-size: 18px; line-height: 1.25; text-wrap: balance; }
   border-left: 4px solid var(--accent); border-radius: 8px;
 }
 
-/* season totals */
-.board {
-  margin-top: 14px; padding: 10px 14px 12px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+/* season totals: the system first, your bets beneath */
+.tallies { display: grid; gap: 12px; margin-top: 14px; }
+.tally {
+  padding: 12px 14px 12px; background: var(--card);
+  border: 1px solid var(--border); border-radius: 12px;
 }
-.board table { width: 100%; border-collapse: collapse; }
-.board th {
-  padding: 2px 0 6px; text-align: right; font-size: 12px; font-weight: 600;
-  letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+.tally.sys { box-shadow: inset 4px 0 0 var(--accent); }
+.tally-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.tally-head h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
 }
-.board td { padding: 6px 0; text-align: right; border-top: 1px solid var(--border); white-space: nowrap; }
-.board td:first-child, .board th:first-child { text-align: left; color: var(--muted); }
-.board tr.big td:not(:first-child) { font-size: 22px; font-weight: 700; line-height: 1.2; }
-.board td + td, .board th + th { padding-left: 12px; width: 34%; }
-.board .foot { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.tally .big { font-size: 26px; font-weight: 700; line-height: 1.15; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; }
+.stats div { display: grid; gap: 1px; min-width: 0; }
+.stats dt { font-size: 12px; color: var(--muted); }
+.stats dd { margin: 0; font-weight: 600; }
+.tally .foot { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 
 /* week view */
 .sec { margin-top: 26px; }
@@ -166,26 +168,6 @@ h2 { margin: 0; font-size: 18px; line-height: 1.25; text-wrap: balance; }
 .btn.danger.armed { background: var(--loss); color: var(--on-badge); }
 .btn:disabled { opacity: .6; cursor: default; }
 
-/* you vs the system */
-.gap-total { font-size: 22px; font-weight: 700; }
-.lede { margin: 4px 0 0; font-size: 14px; color: var(--muted); max-width: 65ch; }
-.slices { margin-top: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
-.slice + .slice { border-top: 1px solid var(--border); }
-.slice summary {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline;
-  padding: 11px 14px; list-style: none; cursor: pointer;
-}
-.slice summary::-webkit-details-marker { display: none; }
-.slice .lab { font-weight: 600; }
-.slice .lab small { display: block; font-size: 12.5px; font-weight: 400; color: var(--muted); }
-.slice .cnt { font-size: 13px; color: var(--muted); white-space: nowrap; }
-.slice .amt { min-width: 5.6em; text-align: right; font-weight: 700; }
-.slice ul { list-style: none; margin: 0; padding: 0 14px 10px; font-size: 13px; }
-.slice li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; color: var(--muted); }
-.slice li span:last-child { white-space: nowrap; }
-.slice .none { padding: 0 14px 10px; font-size: 13px; color: var(--muted); }
-.checkline { margin: 8px 2px 0; font-size: 12.5px; color: var(--muted); }
-
 /* week by week */
 .tablewrap {
   overflow-x: auto; margin-top: 10px;
@@ -216,7 +198,6 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
   <div class="notice" id="notice" role="status" hidden></div>
   <section id="board" aria-label="Season totals"></section>
   <section class="sec" id="week" aria-label="Games by week"></section>
-  <section class="sec" id="gap" aria-label="You against the system"></section>
   <section class="sec" id="weekly" aria-label="Week by week"></section>
   <footer>
     Only you see your bets: they're saved in your own claude.ai storage for this page, not in the
@@ -244,7 +225,6 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
     notice: document.getElementById("notice"),
     board: document.getElementById("board"),
     week: document.getElementById("week"),
-    gap: document.getElementById("gap"),
     weekly: document.getElementById("weekly"),
   };
 
@@ -270,7 +250,6 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
   const isNum = (x) => typeof x === "number" && Number.isFinite(x);
   const keyOf = (week, a, b) => week + ":" + [a, b].sort().join("|");
   const played = (g) => !!g && isNum(g.home_score) && isNum(g.away_score);
-  const sum = (xs) => xs.reduce((a, b) => a + b, 0);
   const cents = (x) => Math.round(x * 100);
 
   function median(xs) {
@@ -431,44 +410,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
       count(wk(s.g.week).system, s.res, s.pnl, stake);
     }
 
-    // You minus the system, split by what you did with each system pick. Every
-    // settled spread bet and every graded pick lands in exactly one slice, so the
-    // slices add up to the whole difference.
-    const slices = {
-      skipped: { n: 0, amt: 0, items: [] }, against: { n: 0, amt: 0, items: [] },
-      same: { n: 0, amt: 0, items: [] }, off: { n: 0, amt: 0, items: [] },
-    };
-    const put = (slice, n, amt, week, text) => {
-      slice.n += n; slice.amt += amt; slice.items.push({ week, text, amt });
-    };
-    const yours = (xs) => xs.map((x) =>
-      x.b.side + " " + fmtLine(x.b.line) + (x.b.odds ? " at " + x.b.odds.toFixed(2) : "")).join(", ");
-    for (const key of new Set([...sys.keys(), ...betsByGame.keys()])) {
-      const s = sys.get(key);
-      const mine = (betsByGame.get(key) || []).filter((x) => x.b.kind === "single" && x.res);
-      const sysPnl = s && s.res ? s.pnl : 0;
-      if (!s) {
-        for (const x of mine) put(slices.off, 1, x.pnl, x.b.week, yours([x]));
-        continue;
-      }
-      const pick = s.side + " " + fmtLine(s.line);
-      const withPick = mine.filter((x) => x.b.side === s.side);
-      const against = mine.filter((x) => x.b.side !== s.side);
-      if (withPick.length) {
-        put(slices.same, withPick.length, sum(withPick.map((x) => x.pnl)) - sysPnl, s.g.week,
-          yours(withPick) + " · system " + fmtLine(s.line) + " at 1.91");
-        if (against.length) put(slices.against, against.length, sum(against.map((x) => x.pnl)), s.g.week,
-          yours(against) + " · system " + pick);
-      } else if (against.length) {
-        put(slices.against, against.length, sum(against.map((x) => x.pnl)) - sysPnl, s.g.week,
-          yours(against) + " · system " + pick);
-      } else if (s.res) {
-        put(slices.skipped, 1, -sysPnl, s.g.week, pick + " · " + (s.res === "W" ? "won" : s.res === "L" ? "lost" : "push"));
-      }
-    }
-    for (const sl of Object.values(slices)) sl.items.sort((a, b) => a.week - b.week);
-
-    return { games, gameByKey, bets, betsByGame, sys, stake, lastSingle, you, system, builders, weeks, slices };
+    return { games, gameByKey, bets, betsByGame, sys, stake, lastSingle, you, system, builders, weeks };
   }
 
   // --- rendering ---------------------------------------------------------------
@@ -493,32 +435,40 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
   function renderBoard(d) {
     if (state.status !== "ready") { el.board.innerHTML = ""; return; }
     if (!state.games || !state.betsLoaded) {
-      el.board.innerHTML = `<div class="board"><p class="empty">Loading your ledger…</p></div>`;
+      el.board.innerHTML = `<div class="tally"><p class="empty">Loading your ledger…</p></div>`;
       return;
     }
     const y = d.you, s = d.system, b = d.builders;
-    const cell = (t, has) => (has ? `<td class="${tone(t.pnl)}">${money(t.pnl)}</td>` : `<td class="muted">—</td>`);
-    const ySettled = y.w + y.l + y.p, sSettled = s.w + s.l + s.p;
+    const settled = (t) => t.w + t.l + t.p;
+    const big = (t) => (settled(t) ? `<span class="big ${tone(t.pnl)}">${money(t.pnl)}</span>` : `<span class="big muted">—</span>`);
     const roi = (t) => (t.staked ? pct(t.pnl / t.staked) : "—");
-    const open = (t, one, many) => (t.open ? plural(t.open, one, many) : "—");
+    const stat = (label, value) => `<div><dt>${label}</dt><dd>${value}</dd></div>`;
     const bAll = b.w + b.l + b.p + b.open;
-    const builderLine = bAll
-      ? `Bet builders ${record(b)}${b.open ? " (" + b.open + " open)" : ""}, ${money(b.pnl)} on ${euros(b.staked)} · all NFL bets <b class="${tone(y.pnl + b.pnl)}">${money(y.pnl + b.pnl)}</b>.`
-      : "";
+    const yourFoot = [
+      y.open ? `Open: ${plural(y.open, "bet", "bets")}, ${euros(y.openStake)} staked.` : "",
+      bAll ? `Bet builders ${record(b)}${b.open ? " (" + b.open + " open)" : ""}, ${money(b.pnl)} on ${euros(b.staked)}; all NFL bets <b class="${tone(y.pnl + b.pnl)}">${money(y.pnl + b.pnl)}</b>.` : "",
+      d.bets.length || !state.canLog ? "" : "No bets logged yet: tap + Bet on any game below.",
+    ].filter(Boolean).join(" ");
     el.board.innerHTML = `
-      <div class="board">
-        <table>
-          <thead><tr><th scope="col">Spread bets</th><th scope="col">You</th><th scope="col">System</th></tr></thead>
-          <tbody>
-            <tr class="big"><td>Profit</td>${cell(y, ySettled)}${cell(s, sSettled)}</tr>
-            <tr><td>Record</td><td>${ySettled ? record(y) : "—"}</td><td>${sSettled ? record(s) : "—"}</td></tr>
-            <tr><td>Staked</td><td>${y.staked ? euros(y.staked) : "—"}</td><td>${s.staked ? euros(s.staked) : "—"}</td></tr>
-            <tr><td>Return</td><td>${roi(y)}</td><td>${roi(s)}</td></tr>
-            <tr><td>Open</td><td>${y.open ? plural(y.open, "bet", "bets") + " · " + euros(y.openStake) : "—"}</td><td>${open(s, "pick", "picks")}</td></tr>
-          </tbody>
-        </table>
-        <p class="foot">The system is every pick at ${euros(d.stake)} (your usual stake) and −110, i.e. 1.91.
-          ${builderLine}${d.bets.length || !state.canLog ? "" : " No bets logged yet: tap + Bet on any game below."}</p>
+      <div class="tallies">
+        <section class="tally sys" aria-label="System picks">
+          <div class="tally-head"><h2>System picks</h2>${big(s)}</div>
+          <dl class="stats">
+            ${stat("Record", settled(s) ? record(s) : "—")}
+            ${stat("Return", roi(s))}
+            ${stat("Pending", s.open ? plural(s.open, "pick", "picks") : "—")}
+          </dl>
+          <p class="foot">Every pick at ${euros(d.stake)} (your usual stake) and −110, i.e. 1.91.</p>
+        </section>
+        <section class="tally" aria-label="Your bets">
+          <div class="tally-head"><h2>Your spread bets</h2>${big(y)}</div>
+          <dl class="stats">
+            ${stat("Record", settled(y) ? record(y) : "—")}
+            ${stat("Staked", y.staked ? euros(y.staked) : "—")}
+            ${stat("Return", roi(y))}
+          </dl>
+          ${yourFoot ? `<p class="foot">${yourFoot}</p>` : ""}
+        </section>
       </div>`;
   }
 
@@ -644,7 +594,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
     const settled = (x) => x.w + x.l + x.p;
     let aside;
     if (settled(t.you) || settled(t.system)) {
-      aside = `You ${settled(t.you) ? record(t.you) + " " + money(t.you.pnl) : "no spread bets"} · System ${settled(t.system) ? record(t.system) + " " + money(t.system.pnl) : "no picks"}`;
+      aside = `System ${settled(t.system) ? record(t.system) + " " + money(t.system.pnl) : "no picks"} · You ${settled(t.you) ? record(t.you) + " " + money(t.you.pnl) : "no spread bets"}`;
     } else {
       const picks = games.filter((g) => g.system_bet).length;
       const mine = d.bets.filter((x) => x.b.week === w).length;
@@ -667,36 +617,6 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
     if (chip) strip.scrollLeft = chip.offsetLeft - strip.clientWidth / 2 + chip.offsetWidth / 2;
   }
 
-  function renderGap(d) {
-    if (state.status !== "ready" || !state.games || !state.betsLoaded) { el.gap.innerHTML = ""; return; }
-    const y = d.you, s = d.system;
-    if (!d.bets.length || (!(y.w + y.l + y.p) && !(s.w + s.l + s.p))) { el.gap.innerHTML = ""; return; }
-    const diff = y.pnl - s.pnl;
-    const sl = d.slices;
-    const rows = [
-      ["skipped", "Skipped system picks", "Picks you didn't bet", "pick", "picks"],
-      ["against", "Bet against the system", "You took the other side", "bet", "bets"],
-      ["same", "Same side as the system", "Your line, odds and stake against its line at 1.91", "bet", "bets"],
-      ["off", "Bets the system didn't make", "Games with no system pick", "bet", "bets"],
-    ];
-    const shown = sum(Object.values(sl).map((x) => cents(x.amt)));
-    el.gap.innerHTML = `
-      <div class="sec-head"><h2>You vs the system</h2><span class="gap-total ${tone(diff)}">${money(diff)}</span></div>
-      <p class="lede">Your spread bets made ${money(y.pnl)}; the system made ${money(s.pnl)}. Each line below is your profit minus the system's on those games, so together they make up the difference. Tap a line for the games.</p>
-      <div class="slices">
-        ${rows.map(([k, label, sub, one, many]) => `
-          <details class="slice">
-            <summary><span class="lab">${label}<small>${sub}</small></span>
-              <span class="cnt">${plural(sl[k].n, one, many)}</span>
-              <span class="amt ${tone(sl[k].amt)}">${money(sl[k].amt)}</span></summary>
-            ${sl[k].items.length
-              ? `<ul>${sl[k].items.map((it) => `<li><span>Wk ${it.week} · ${esc(it.text)}</span><span class="${tone(it.amt)}">${money(it.amt)}</span></li>`).join("")}</ul>`
-              : `<p class="none">None so far.</p>`}
-          </details>`).join("")}
-      </div>
-      ${shown === cents(diff) ? "" : `<p class="checkline">Each line is rounded to the cent, so they can add up to a cent away from the total.</p>`}`;
-  }
-
   function renderWeekly(d) {
     if (state.status !== "ready" || !state.games || !state.betsLoaded) { el.weekly.innerHTML = ""; return; }
     const settled = (t) => t.w + t.l + t.p;
@@ -710,9 +630,9 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
     el.weekly.innerHTML = `
       <div class="sec-head"><h2>Week by week</h2><span class="aside">Spread bets · system at ${euros(d.stake)} a pick</span></div>
       <div class="tablewrap"><table class="weeks">
-        <thead><tr><th scope="col">Week</th><th scope="col">You</th><th scope="col">Profit</th><th scope="col">System</th><th scope="col">Profit</th></tr></thead>
-        <tbody>${rows.map(([w, t]) => `<tr><td><button type="button" class="wklink" data-act="week" data-v="${w}" aria-label="Show ${weekName(w)}">${weekName(w, true)}</button></td>${cells(t.you)}${cells(t.system)}</tr>`).join("")}</tbody>
-        <tfoot><tr><td>Total</td>${cells(d.you)}${cells(d.system)}</tr></tfoot>
+        <thead><tr><th scope="col">Week</th><th scope="col">System</th><th scope="col">Profit</th><th scope="col">You</th><th scope="col">Profit</th></tr></thead>
+        <tbody>${rows.map(([w, t]) => `<tr><td><button type="button" class="wklink" data-act="week" data-v="${w}" aria-label="Show ${weekName(w)}">${weekName(w, true)}</button></td>${cells(t.system)}${cells(t.you)}</tr>`).join("")}</tbody>
+        <tfoot><tr><td>Total</td>${cells(d.system)}${cells(d.you)}</tr></tfoot>
       </table></div>`;
   }
 
@@ -755,7 +675,6 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 65
     renderNotice();
     renderBoard(d);
     renderWeek(d);
-    renderGap(d);
     renderWeekly(d);
     restoreFocus(k);
   }
