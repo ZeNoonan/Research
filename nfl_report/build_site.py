@@ -33,6 +33,33 @@ def season_label(year: int) -> str:
     return f"{year}–{str(year + 1)[2:]}"
 
 
+# Picks published only after their game had kicked off, keyed (week, home).
+# They come from pre-game data alone, so the system's record keeps them, but
+# nobody could have bet them: week 1 of 2026 was set up on the Sunday
+# afternoon, and week 5's Thursday game was priced the day after because week
+# 4's turnovers arrived after it was played.
+LATE_PICKS = {
+    2026: {(1, "Jaguars"), (1, "Chargers"), (1, "Vikings"), (1, "Eagles"), (5, "Cowboys")},
+}
+
+
+def is_late(year: int, r) -> bool:
+    return (int(r.week), r.home) in LATE_PICKS.get(year, set())
+
+
+def late_pick_note(year: int, df: pd.DataFrame) -> str:
+    """How the record reads without the picks published after kick-off."""
+    if year not in LATE_PICKS:
+        return ""
+    late = df.apply(lambda r: is_late(year, r), axis=1)
+    s = season_stats(df[~late])
+    n = int(late.sum())
+    return (f" <b>&dagger;</b> {n} picks were published only after their game had "
+            f"kicked off (from pre-game data, so they count, but could not have been "
+            f"bet). Counting only picks published before kick-off: "
+            f"{s['wins']}&ndash;{s['losses']}, {s['profit']:+.1f}u.")
+
+
 def season_note(year: int) -> str | None:
     if year in PUBLISHED:
         return ("Parsed from Aaron Brown’s published report — the replication "
@@ -42,10 +69,6 @@ def season_note(year: int) -> str | None:
     if year == 2018:
         return base + (" The earliest season on file, so week 1 has no last-game "
                        "turnovers or power ratings to carry over.")
-    if year == 2025:
-        return base + (" Week 1 is seeded from the prior season (last-game turnovers "
-                       "and power), but 14 week-5 games have no line in the odds "
-                       "export (shown but not bettable).")
     if year == 2026:
         return base + (" <b>Season in progress.</b> Week 1 is seeded from 2025–26. "
                        "The table covers the weeks priced so far; a pick on a game "
@@ -231,7 +254,7 @@ def week_labels(year: int, weeks: pd.Series) -> dict[int, str]:
     return labels
 
 
-def game_row(r, week: str) -> str:
+def game_row(r, week: str, late: bool = False) -> str:
     is_bet = isinstance(r.system_bet, str)
     is_played = not (pd.isna(r.home_score) or pd.isna(r.away_score))
     if not is_bet:
@@ -261,7 +284,8 @@ def game_row(r, week: str) -> str:
         f"<td>{fmt_signed(r.away_stdc)}</td>"
         f"<td>{fmt_pts(r.away_power)}</td>"
         f"<td>{r.system_num:+d}</td>"
-        f'<td class="l">{team(r.system_bet) if is_bet else ""}</td>'
+        f'<td class="l">{team(r.system_bet) if is_bet else ""}'
+        f'{"&dagger;" if is_bet and late else ""}</td>'
         f"<td>{result}</td>"
         f"</tr>"
     )
@@ -271,8 +295,11 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
     s = season_stats(df)
     profit_cls = "pos" if s["profit"] >= 0 else "neg"
     graded = s["wins"] + s["losses"]
-    sub = (f'{s["pending"]} pending' if s["pending"]
-           else f'{s["pushes"]} push{"es" if s["pushes"] != 1 else ""}')
+    sub = ", ".join(
+        part for part in (
+            f'{s["pushes"]} push{"es" if s["pushes"] != 1 else ""}' if s["pushes"] else "",
+            f'{s["pending"]} pending' if s["pending"] else "",
+        ) if part) or "0 pushes"
     cards = f"""
     <div class="cards">
       <div class="card"><div class="num">{s["games"]}</div><div class="lbl">Games</div></div>
@@ -285,11 +312,12 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
         <div class="lbl">Profit at full juice</div></div>
     </div>"""
 
-    note = season_note(year)
-    note_html = f'\n    <p class="seasonnote">{note}</p>' if note else ""
     df = with_week(df)
+    note = (season_note(year) or "") + late_pick_note(year, df)
+    note_html = f'\n    <p class="seasonnote">{note}</p>' if note else ""
     labels = week_labels(year, df["week"])
-    rows = "\n".join(game_row(r, labels[int(r.week)]) for r in df.itertuples())
+    rows = "\n".join(game_row(r, labels[int(r.week)], is_late(year, r))
+                     for r in df.itertuples())
     return f"""
   <section class="panel{" active" if active else ""}" id="season-{year}">
     {cards}{note_html}
