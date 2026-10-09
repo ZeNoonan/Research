@@ -20,10 +20,19 @@ bet_id,placed,sport,competition,event_date,round_week,event,bet_type,selection,t
 19,,nfl,NFL,,,,Single,DAL Cowboys -...,DAL Cowboys,,1.8696,25,Won,46.74,21.74,"screenshots 2026-10-02, 3/5",line cut off on screen (a minus line)
 20,,nfl,NFL,,,,Single,SEA Seahawks -...,SEA Seahawks,,1.9524,25,Won,48.81,23.81,"screenshots 2026-10-02, 3/6",line cut off on screen (a minus line)
 21,,nfl,NFL,,,,Single,MIA Dolphins +1...,MIA Dolphins,,,25,Lost,0.0,-25.0,"screenshots 2026-10-02, 3/7",line cut off (+1...); a second identical-looking bet is in screenshot 4 - confirm both are real
-22,,nfl,NFL,,,,Single,TB Buccaneers ...,TB Buccaneers,,,25,Lost,0.0,-25.0,"screenshots 2026-10-02, 4/1",line cut off on screen
-23,,nfl,NFL,,,,Single,LA Chargers +7.5,LA Chargers,7.5,,25,Lost,0.0,-25.0,"screenshots 2026-10-02, 4/2",
-24,,nfl,NFL,,,,Single,MIA Dolphins +1...,MIA Dolphins,,,25,Lost,0.0,-25.0,"screenshots 2026-10-02, 4/3",line cut off (+1...); see the one in screenshot 3
-25,,nfl,NFL,,,,Single,DET Lions -6.5,DET Lions,-6.5,1.8696,25,Won,46.74,21.74,"screenshots 2026-10-02, 4/4",
+22,,nfl,NFL,,,,Single,TB Buccaneers ...,TB Buccaneers,,,25,Lost,0.0,-25.0,"screenshots 2026-10-02, 4/1","line cut off on screen; settled between 26 Sep and 2 Oct (order of the 7 Oct screenshot), so probably NFL week 3"
+23,,nfl,NFL,,,,Single,LA Chargers +7.5,LA Chargers,7.5,,25,Lost,0.0,-25.0,"screenshots 2026-10-02, 4/2","settled between 26 Sep and 2 Oct (order of the 7 Oct screenshot), so probably NFL week 3"
+24,,nfl,NFL,,,,Single,MIA Dolphins +1...,MIA Dolphins,,,25,Lost,0.0,-25.0,"screenshots 2026-10-02, 4/3","line cut off (+1...); see the one in screenshot 3; settled between 26 Sep and 2 Oct (order of the 7 Oct screenshot), so probably NFL week 3"
+25,,nfl,NFL,,,,Single,DET Lions -6.5,DET Lions,-6.5,1.8696,25,Won,46.74,21.74,"screenshots 2026-10-02, 4/4","settled between 26 Sep and 2 Oct (order of the 7 Oct screenshot), so probably NFL week 3"
 26,,rugby,URC,2026-09-26,R1,Munster v Glasgow,Single,Munster +2.5,Munster,2.5,,25,Lost,0.0,-25.0,"screenshots 2026-10-02, 4/5",
 27,,rugby,URC,2026-09-26,R1,Zebre v Bulls,Single,Bulls -8.5,Bulls,-8.5,1.9092,25,Won,47.73,22.73,"screenshots 2026-10-02, 4/6",
 28,,rugby,URC,2026-09-26,R1,Lions v Leinster,Single,Lions +6.5,Lions,6.5,1.7276,25,Won,43.19,18.19,"screenshots 2026-10-02, 4/7","URC Lions, not Detroit: no city prefix, and it settled on Lions 27-26 Leinster"
+29,,rugby,URC,2026-10-02,R2,Cardiff v Zebre,Single,Zebre Parma +17.0,Zebre,17.0,1.91,10,Won,19.1,9.1,"screenshots 2026-10-07, 1/1",
+30,,rugby,URC,2026-10-02,R2,Cardiff v Zebre,Single,Zebre Parma +2...,Zebre,,1.8,15,Won,27.0,12.0,"screenshots 2026-10-07, 1/2","line cut off on screen (+2...); probably +20.5, the closing line that week"
+31,,nfl,NFL,,,,Single,SEA Seah...,SEA Seahawks,,,25,Void,25.0,0.0,"screenshots 2026-10-07, 2/1","shown as Won EUR 25.00 on a EUR 25 stake: stake returned, i.e. a push; score box 23 / 30; settled after 3 Oct, so probably NFL week 4"
+32,,nfl,NFL,,,,Single,MIA Dolp...,MIA Dolphins,,1.8696,25,Won,46.74,21.74,"screenshots 2026-10-07, 2/2","line cut off on screen; score box 10 / 15; settled after 3 Oct, so probably NFL week 4"
+33,,nfl,NFL,,,,Single,TEN Titan...,TEN Titans,,1.9092,25,Won,47.73,22.73,"screenshots 2026-10-07, 2/3","line cut off on screen; score box 18 / 24; settled after 3 Oct, so probably NFL week 4"
+34,,rugby,URC,2026-10-03,R2,Glasgow v Ulster,Single,Ulster +13.0,Ulster,13.0,1.91,10,Won,19.1,9.1,"screenshots 2026-10-07, 2/4",
+35,,rugby,URC,2026-10-03,R2,Glasgow v Ulster,Single,Ulster +14.5,Ulster,14.5,1.8,15,Won,27.0,12.0,"screenshots 2026-10-07, 2/5",
+36,,rugby,URC,2026-10-03,R2,Dragons v Scarlets,Single,Scarlets +2.0,Scarlets,2.0,,10,Lost,0.0,-10.0,"screenshots 2026-10-07, 2/6",
+37,,rugby,URC,2026-10-03,R2,Dragons v Scarlets,Single,Scarlets +2.5,Scarlets,2.5,,15,Lost,0.0,-15.0,"screenshots 2026-10-07, 2/7",

@@ -810,11 +810,20 @@ def main() -> int:
              "team": "DET Lions", "line": -6.5, "stake_eur": 25, "result": "Won"},
             {"bet_id": 7, "sport": "rugby", "competition": "URC", "event_date": "2024-10-01",
              "team": dog, "line": 1.5, "stake_eur": 10, "result": "Won"},
+            # the rest of bet 1's stake, on a second slip whose line the screen cut off
+            {"bet_id": 8, "sport": "rugby", "competition": "URC", "event_date": picked["date"],
+             "team": picked["system_bet"], "selection": f"{picked['system_bet']} Rugby +2...",
+             "line": None, "decimal_odds": 1.8, "stake_eur": 15, "result": "Won",
+             "profit_eur": 12.0},
         ])
         bets, problems = my_bets.assess(log, rep, 2025)
         by = bets.set_index("bet_id")
         passed &= check("URC bets of the season are matched; NFL and other seasons are not",
-                        sorted(by.index) == [1, 2, 3], f"matched {sorted(by.index)}")
+                        sorted(by.index) == [1, 2, 3, 8], f"matched {sorted(by.index)}")
+        passed &= check("a bet whose line was cut off still counts, on its settlement",
+                        by.loc[8, "result"] == "Won" and by.loc[8, "profit"] == 12.0
+                        and pd.isna(by.loc[8, "line_value"])
+                        and by.loc[8, "bet"] == f"{picked['system_bet']} +2...", by.loc[8, "bet"])
         passed &= check("a bet on the system's side reads as a system pick",
                         by.loc[1, "system"] == "yes", by.loc[1, "system"])
         passed &= check("line v close: three points better reads +3",
@@ -834,6 +843,8 @@ def main() -> int:
         passed &= check("the system is counted over the same rounds as your bets",
                         (s["sys_won"], s["sys_lost"]) == (int((rounds["result"] == "W").sum()),
                                                           int((rounds["result"] == "L").sum())))
+        passed &= check("and staked like you stake a match, split slips added together",
+                        s["sys_stake"] == 27.5, f"{s['sys_stake']} (matches staked 35 and 20)")
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1
