@@ -73,9 +73,9 @@ header p.sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
   background: var(--accent); color: #fff; border-radius: 10px;
   padding: 12px 14px; font-size: 14px; margin-bottom: 16px;
 }
-.tabs { display: flex; gap: 8px; margin: 12px 0; }
+.tabs { display: flex; gap: 8px; margin: 12px 0; overflow-x: auto; }
 .tabs button {
-  flex: 1; padding: 10px; font-size: 16px; font-weight: 600; cursor: pointer;
+  flex: 1 0 auto; padding: 10px; font-size: 16px; font-weight: 600; cursor: pointer;
   border: 1px solid var(--border); border-radius: 8px; background: var(--card);
   color: var(--ink);
 }
@@ -216,7 +216,22 @@ def profit_chart(df: pd.DataFrame) -> str:
     )
 
 
-def game_row(r) -> str:
+PLAYOFF_ROUNDS = ["WC", "Div", "Conf", "SB"]
+
+
+def week_labels(year: int, weeks: pd.Series) -> dict[int, str]:
+    """Week number -> table label: regular weeks as numbers, playoff rounds by
+    name. The regular season ran 17 weeks until 2020 and 18 since; the weeks
+    after it are the playoff rounds in order (derived weeks for the published
+    seasons skip the Super Bowl's bye week, so order, not number, names them)."""
+    regular = 17 if year <= 2020 else 18
+    labels = {int(w): str(int(w)) for w in weeks.unique() if w <= regular}
+    playoff = sorted(int(w) for w in weeks.unique() if w > regular)
+    labels.update(zip(playoff, PLAYOFF_ROUNDS))
+    return labels
+
+
+def game_row(r, week: str) -> str:
     is_bet = isinstance(r.system_bet, str)
     is_played = not (pd.isna(r.home_score) or pd.isna(r.away_score))
     if not is_bet:
@@ -233,6 +248,7 @@ def game_row(r) -> str:
              else '<span class="pending">vs</span>')
     return (
         f'<tr class="{"bet" if is_bet else "nobet"}">'
+        f"<td>{week}</td>"
         f'<td class="l">{fmt_date(r.date)}</td>'
         f'<td class="l">{team(r.home)}</td>'
         f'<td class="l">{team(r.away)}</td>'
@@ -271,7 +287,9 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
 
     note = season_note(year)
     note_html = f'\n    <p class="seasonnote">{note}</p>' if note else ""
-    rows = "\n".join(game_row(r) for r in df.itertuples())
+    df = with_week(df)
+    labels = week_labels(year, df["week"])
+    rows = "\n".join(game_row(r, labels[int(r.week)]) for r in df.itertuples())
     return f"""
   <section class="panel{" active" if active else ""}" id="season-{year}">
     {cards}{note_html}
@@ -286,7 +304,7 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
     <div class="tablewrap">
       <table>
         <thead><tr>
-          <th class="l">Date</th><th class="l">Home</th><th class="l">Away</th>
+          <th>Wk</th><th class="l">Date</th><th class="l">Home</th><th class="l">Away</th>
           <th>Line</th><th>Score</th>
           <th>H&nbsp;LGT</th><th>H&nbsp;STDC</th><th>H&nbsp;Pwr</th>
           <th>A&nbsp;LGT</th><th>A&nbsp;STDC</th><th>A&nbsp;Pwr</th>
