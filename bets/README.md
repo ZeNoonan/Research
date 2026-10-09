@@ -11,14 +11,19 @@ included, can be read on GitHub, and the rugby site shows the URC bets.
 ## Adding bets
 
 Send a screenshot of the bet slip (open bets or settled, both work) and it is
-transcribed here, or add a row yourself. Open bets are worth sending: the slip
-shows the price, which a settled losing bet does not.
+transcribed here, or add a row yourself. The open-bets list shows the stake and
+line but no price (its figure is the cash-out value); the price comes from the
+settled slip of a win, or from the bet's own detail screen. A settled losing
+bet shows no price either.
 
 A URC bet only needs `sport`, `team`, `line`, `decimal_odds` and `stake_eur`,
 plus `event_date` or `round_week` to pin the match (a round number alone means
 the current season). The rugby app fills in everything else from its own data:
 the fixture, the closing line, and the result once the round is scraped. So a
-bet logged as `Pending` settles itself.
+bet logged as `Pending` settles itself. When the settled slip for an open bet
+arrives, it updates that bet's row (result, returns, price) rather than adding a
+second one; until then a win graded from the score has no profit, and is left
+out of the totals.
 
 ## Columns
 

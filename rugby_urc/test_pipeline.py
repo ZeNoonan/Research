@@ -810,6 +810,9 @@ def main() -> int:
              "team": "DET Lions", "line": -6.5, "stake_eur": 25, "result": "Won"},
             {"bet_id": 7, "sport": "rugby", "competition": "URC", "event_date": "2024-10-01",
              "team": dog, "line": 1.5, "stake_eur": 10, "result": "Won"},
+            # bet 2 again, logged from the open-bets screen: no price
+            {"bet_id": 9, "sport": "rugby", "competition": "URC", "event_date": other["date"],
+             "team": dog, "line": dog_line, "stake_eur": 10, "result": "Pending"},
             # the rest of bet 1's stake, on a second slip whose line the screen cut off
             {"bet_id": 8, "sport": "rugby", "competition": "URC", "event_date": picked["date"],
              "team": picked["system_bet"], "selection": f"{picked['system_bet']} Rugby +2...",
@@ -819,7 +822,7 @@ def main() -> int:
         bets, problems = my_bets.assess(log, rep, 2025)
         by = bets.set_index("bet_id")
         passed &= check("URC bets of the season are matched; NFL and other seasons are not",
-                        sorted(by.index) == [1, 2, 3, 8], f"matched {sorted(by.index)}")
+                        sorted(by.index) == [1, 2, 3, 8, 9], f"matched {sorted(by.index)}")
         passed &= check("a bet whose line was cut off still counts, on its settlement",
                         by.loc[8, "result"] == "Won" and by.loc[8, "profit"] == 12.0
                         and pd.isna(by.loc[8, "line_value"])
@@ -844,7 +847,14 @@ def main() -> int:
                         (s["sys_won"], s["sys_lost"]) == (int((rounds["result"] == "W").sum()),
                                                           int((rounds["result"] == "L").sum())))
         passed &= check("and staked like you stake a match, split slips added together",
-                        s["sys_stake"] == 27.5, f"{s['sys_stake']} (matches staked 35 and 20)")
+                        s["sys_stake"] == 32.5, f"{s['sys_stake']} (matches staked 35 and 30)")
+        won_unpriced = int(by.loc[9, "result"] == "Won")
+        settled = bets[bets["result"].isin(["Won", "Lost"]) & bets["profit"].notna()]
+        passed &= check("a win with no price is left out of staked and profit, and counted",
+                        s["unknown_profit"] == won_unpriced
+                        and s["staked"] == settled["stake"].sum()
+                        and pd.isna(by.loc[9, "profit"]) == bool(won_unpriced),
+                        f"{s['unknown_profit']} unpriced win(s), staked {s['staked']}")
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1
