@@ -47,23 +47,23 @@ Week,Day,Date,Time,Winner/tie,venue_marker,Loser/tie,Pts,Pts.1,TOW,TOL
 3,Sun,2026-09-27,4:25PM,Baltimore Ravens,@,Dallas Cowboys,34.0,31.0,0.0,1.0
 3,Sun,2026-09-27,8:20PM,Los Angeles Rams,@,Denver Broncos,26.0,30.0,2.0,1.0
 3,Mon,2026-09-28,8:15PM,Philadelphia Eagles,@,Chicago Bears,7.0,27.0,3.0,0.0
-4,Thu,2026-10-01,8:15PM,Cleveland Browns,,Pittsburgh Steelers,27.0,24.0,,
-4,Sun,2026-10-04,9:30AM,Indianapolis Colts,@,Washington Commanders,30.0,13.0,,
-4,Sun,2026-10-04,1:00PM,New York Giants,,Arizona Cardinals,36.0,24.0,,
-4,Sun,2026-10-04,1:00PM,Dallas Cowboys,@,Houston Texans,34.0,30.0,,
-4,Sun,2026-10-04,1:00PM,Green Bay Packers,@,Tampa Bay Buccaneers,17.0,14.0,,
-4,Sun,2026-10-04,1:00PM,Jacksonville Jaguars,@,Cincinnati Bengals,22.0,17.0,,
-4,Sun,2026-10-04,1:00PM,New England Patriots,@,Buffalo Bills,29.0,26.0,,
-4,Sun,2026-10-04,1:00PM,Chicago Bears,,New York Jets,23.0,12.0,,
-4,Sun,2026-10-04,1:00PM,Baltimore Ravens,,Tennessee Titans,24.0,18.0,,
-4,Sun,2026-10-04,1:00PM,Los Angeles Rams,@,Philadelphia Eagles,24.0,20.0,,
-4,Sun,2026-10-04,4:05PM,Minnesota Vikings,,Miami Dolphins,15.0,10.0,,
-4,Sun,2026-10-04,4:25PM,San Francisco 49ers,,Denver Broncos,24.0,14.0,,
-4,Sun,2026-10-04,4:25PM,Kansas City Chiefs,@,Las Vegas Raiders,30.0,27.0,,
-4,Sun,2026-10-04,4:25PM,Seattle Seahawks,,Los Angeles Chargers,30.0,23.0,,
-4,Sun,2026-10-04,8:20PM,Carolina Panthers,,Detroit Lions,32.0,26.0,,
-4,Mon,2026-10-05,8:15PM,Atlanta Falcons,@,New Orleans Saints,,,,
-5,Thu,2026-10-08,8:15PM,Tampa Bay Buccaneers,@,Dallas Cowboys,,,,
+4,Thu,2026-10-01,8:15PM,Cleveland Browns,,Pittsburgh Steelers,27.0,24.0,2.0,2.0
+4,Sun,2026-10-04,9:30AM,Indianapolis Colts,@,Washington Commanders,30.0,13.0,2.0,1.0
+4,Sun,2026-10-04,1:00PM,New York Giants,,Arizona Cardinals,36.0,24.0,3.0,3.0
+4,Sun,2026-10-04,1:00PM,Dallas Cowboys,@,Houston Texans,34.0,30.0,0.0,0.0
+4,Sun,2026-10-04,1:00PM,Green Bay Packers,@,Tampa Bay Buccaneers,17.0,14.0,2.0,2.0
+4,Sun,2026-10-04,1:00PM,Jacksonville Jaguars,@,Cincinnati Bengals,22.0,17.0,0.0,2.0
+4,Sun,2026-10-04,1:00PM,New England Patriots,@,Buffalo Bills,29.0,26.0,2.0,2.0
+4,Sun,2026-10-04,1:00PM,Chicago Bears,,New York Jets,23.0,12.0,2.0,0.0
+4,Sun,2026-10-04,1:00PM,Baltimore Ravens,,Tennessee Titans,24.0,18.0,0.0,2.0
+4,Sun,2026-10-04,1:00PM,Los Angeles Rams,@,Philadelphia Eagles,24.0,20.0,2.0,0.0
+4,Sun,2026-10-04,4:05PM,Minnesota Vikings,,Miami Dolphins,15.0,10.0,0.0,1.0
+4,Sun,2026-10-04,4:25PM,San Francisco 49ers,,Denver Broncos,24.0,14.0,0.0,1.0
+4,Sun,2026-10-04,4:25PM,Kansas City Chiefs,@,Las Vegas Raiders,30.0,27.0,0.0,2.0
+4,Sun,2026-10-04,4:25PM,Seattle Seahawks,,Los Angeles Chargers,30.0,23.0,1.0,4.0
+4,Sun,2026-10-04,8:20PM,Carolina Panthers,,Detroit Lions,32.0,26.0,0.0,0.0
+4,Mon,2026-10-05,8:15PM,Atlanta Falcons,@,New Orleans Saints,45.0,24.0,0.0,1.0
+5,Thu,2026-10-08,8:15PM,Tampa Bay Buccaneers,@,Dallas Cowboys,24.0,16.0,0.0,3.0
 5,Sun,2026-10-11,9:30AM,Philadelphia Eagles,@,Jacksonville Jaguars,,,,
 5,Sun,2026-10-11,1:00PM,Cincinnati Bengals,@,Miami Dolphins,,,,
 5,Sun,2026-10-11,1:00PM,Cleveland Browns,@,New York Jets,,,,
