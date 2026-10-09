@@ -4,17 +4,18 @@
 
 *Anything I'm waiting on lives here, newest first. Nothing is urgent unless marked.*
 
-### ⚠️ Needed now — before Thursday 8 Oct (Buccaneers @ Cowboys)
+### ⚠️ Needed now
 
-1. **Week 4's pro-football-reference rows, all 16 games, with `TOW`/`TOL`** —
-   including Monday night's Falcons @ Saints (5 Oct) once it's played. The 5 Oct
-   paste stopped at week 3 (those rows matched what's on file exactly), so week 4
-   is graded from the nflverse scores but carries no turnovers. Every team played
-   in week 4, so **no week-5 game can be picked until these arrive**.
-2. **A fresh nflverse export after Monday night**, as late as practical before
-   Thursday's kick-off: week-5 lines only import once Falcons @ Saints has a
-   score. If week-5 rows show a System # before the turnovers are in, it is
-   provisional and no bet is made.
+1. **Before Sunday 11 Oct's first kick-off** (Eagles @ Jaguars in London,
+   9:30am ET), if you can: **a fresh nflverse export**. Week-5 lines keep
+   tracking the market until kick-off, and the **Saints pick is marginal**: at
+   Saints +2 or shorter it drops out, while Seahawks v 49ers becomes a Seahawks
+   pick if they move to −2.5.
+2. **After Monday's Bills @ Rams, before Thursday 15 Oct** (Seahawks @ Broncos,
+   8:15pm ET): **week 5's pro-football-reference rows, all 15 games, with
+   `TOW`/`TOL`, plus a fresh nflverse export.** That lets week 6's Thursday game
+   be picked before kick-off — week 5's was only priced the day after, because
+   week 4's turnovers came in after it was played.
 
 ### Every week, to keep 2026–27 running
 
@@ -215,8 +216,10 @@ with **zero score disagreements across ~1,900 games**, and its spreads land
 within a point of ours 94% of the time (it is a different book, so exact
 agreement is only ~59%).
 
-`enrich_odds.py` uses it to repair two specific gaps, and **never overwrites a
-line we already have**, so each season keeps the book it was built on:
+`enrich_odds.py` uses it to repair two specific gaps, and **never overwrites the
+line of a game that has been played**, so each season keeps the book it was built
+on (for the season in progress it also imports and refreshes the lines of games
+still to be played — see *Updating the season in progress*):
 
 - **Missing lines** — 14 games of 2025 (all of week 5) had neither a closing nor
   an opening line and so could never be bet. All 14 are now filled.
@@ -309,9 +312,6 @@ slimmed into `data/`, and are worth knowing if you refresh them:
   swapped and the line stays with the home slot. Every one of the other 271
   games matches the odds export exactly on (date, home, away).
 
-Remaining data gap: the 2025 odds export has **no lines for the 14 week-5
-games** — they appear in the report but recommend no bet.
-
 ## View on a phone
 
 `index.html` is a self-contained, mobile-friendly page with the season
@@ -359,17 +359,21 @@ streamlit run app.py      # browse the replicated reports
 
 ### Updating the season in progress
 
-Each week, refresh the two 2026 inputs and re-run — no code changes needed:
+Each week, refresh the 2026 inputs and re-run — no code changes needed. **Order
+matters:** results go in before the odds refresh, because a game's line is frozen
+only once the results file shows it played.
 
 1. **`data/results_2026.csv`** — paste the new rows from pro-football-reference
    over the matching fixtures, filling `Pts`, `Pts.1`, `TOW`, `TOL`. Leave the
    rest of the schedule in place with those four columns blank.
-2. **`data/odds_2026.csv`** — add each newly-priced game's spread in
-   `Home Line Close` (negative = home favoured). Check whether the source still
-   puts spreads in the `Home Odds Close` column, and whether any row's team
-   labels are transposed relative to pro-football-reference.
-3. `python season_report.py && python build_site.py`.
-4. `python ledger.py`, then load `build/ledger_games_2026.json` into the private
+2. **`data/schedule_lines.csv`** — the latest nflverse `games` export, cut to
+   seasons from 2018 and the file's existing columns.
+3. `python enrich_odds.py` — imports and refreshes `odds_2026.csv` lines from it
+   (unplayed games only, up to the next pickable week). Check new international
+   games carry `Neutral Venue? = Y`: nflverse occasionally marks one `Home`
+   (week 5's Eagles @ Jaguars at Tottenham, flagged by hand).
+4. `python season_report.py && python build_site.py`.
+5. `python ledger.py`, then load `build/ledger_games_2026.json` into the private
    ledger's `seasons/2026` document so its scores, lines and picks catch up.
 
 The report grows a week at a time: newly-played games get graded, newly-priced
@@ -414,6 +418,6 @@ derived from the date for the published 2015/2016 reports.
 3. ~~**Power ratings** — weighted (1, ½, ¼, ⅛) least-squares fit to the last four
    weeks of lines.~~ ✅ Verified against the published 2016 lines (0.999 corr).
 4. ~~**Prior-season carryover** — week-1 LGT and early-week power seeded from the
-   previous season.~~ ✅ Done for 2020–2025.
-5. **Add the 2018 file** so 2019 also gets a seeded week 1.
-6. **Fill the missing week-5 lines** in the 2025 odds export.
+   previous season.~~ ✅ Done for 2019–2026.
+5. ~~**Add the 2018 file** so 2019 also gets a seeded week 1.~~ ✅
+6. ~~**Fill the missing week-5 lines** in the 2025 odds export.~~ ✅ From nflverse.
