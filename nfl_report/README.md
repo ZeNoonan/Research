@@ -339,10 +339,10 @@ this repo or the public site.
 - **Grading.** A spread bet left on *Auto* settles from the final score at the
   line you got; a win pays at your decimal odds (−110, i.e. 1.91, if you left
   them blank). Bet builders are settled by hand. You can override any result.
-- **You vs the system.** The system is every pick at your median stake and −110.
-  The difference is split four ways that add up exactly: system picks you
-  skipped, bets against the system, bets on the same side (your line, odds and
-  stake against the system's), and bets the system didn't make.
+- **System first, your bets beside it.** The page leads with the system's own
+  record (every pick at your median stake and −110), then your spread bets as a
+  separate tally, and a week-by-week table of the two side by side — a sense
+  check, not a judgement on each bet.
 
 ## Run
 
