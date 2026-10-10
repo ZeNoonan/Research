@@ -1,117 +1,68 @@
 # URC Report — the five-factor system, ported to rugby
 
 A port of [`nfl_report`](../nfl_report/) to the **United Rugby Championship**,
-set up and ready for the **2026-27 season**. Same engine, same five binary
-factors, same betting rule; the inputs are rugby's.
+running live on the **2026-27 season**. Same engine, same five binary factors,
+same betting rule; the inputs are rugby's.
 
 The NFL project exists to *replicate* Aaron Brown's published sheets, and it
 does — seven seasons, 98.8% of his System # values, every figure in his
 published factor table. **This project cannot do that**, because there is no
 published rugby report to replicate. What it inherits is the machinery and the
 discipline; whether the system's three intuitions survive the move to rugby is
-an open question, and the season is the test. Nothing here should be read as a
-finding yet.
+an open question, and this season is the test. Nothing here should be read as
+a finding yet.
+
+**Live site: <https://zenoonan.github.io/Research/rugby_urc/>** — this week's
+picks, the season's record, your bets beside the system's, and the shadow
+factors, rebuilt every round. This README explains how it all works and records
+the one-off findings; the running numbers live on the site.
 
 ---
 
-## 📋 What I need from you
+## Each week
 
-*The pipeline is built and tested and the full fixture list is in. What is left
-is the numbers. This environment's network policy blocks Wikipedia,
-oddsportal.com and stats.unitedrugby.com, so handicaps are typed in, and scores
-and turnovers come from the scrapers run on your machine.*
+Each round needs four things from you. The scraper runs on your machine: the
+cloud environment this is built in cannot reach the match centre or oddsportal.
 
-### Nothing needed for these
+| when | what to send | what it does |
+|---|---|---|
+| early in the week | the round's **opening lines**, typed into `opening_line` in `entry/urc_2026_entry.xlsx` | provisional picks |
+| once the teams are named | the **closing lines** in `closing_line`, or a screenshot of the bookmaker's handicap page | the picks of record: the model runs on the close |
+| when you bet | the **bet slips**, open or settled | added to the bet log; see *Your bets* |
+| after the round | **`urc_202601_roundNN.csv`** from `streamlit run urc_scraper.py` (pick the round, press *Fetch*) | scores and turnovers in, bets graded, the next round pickable |
 
-- **The 2026-27 fixture list** — **loaded in full**: all 144 matches, 18 rounds,
-  every round pairing all 16 clubs exactly once, every club 9 home and 9 away.
-  Imported from your paste with `import_fixtures.py`; the shape checks pass
-  clean. Re-run that command if the URC moves a fixture.
-- **Round 1's eight handicaps, opening and closing** — **received and loaded**.
-  Four lines moved once the teams were named, and two of those moves change
-  the picks; see *The line the model runs on*.
-- **The whole 2025-26 season** — **received and loaded**: all 151 matches (144
-  regular, 7 playoff) from `urc_season_scraper.py`, with the feed's scores and
-  turnover counts, and a handicap on every one: your 14 quoted lines kept, the
-  other 137 inferred from your oddsportal odds. The feed's scores agree with
-  oddsportal's on all 151. See *How it did on 2025-26*.
+**The scrape is the blocker.** Two of the five factors read each club's
+turnover margin from its last match, so until a round's turnover counts are in,
+the next round cannot be picked at all.
 
-**A correction.** The turnover sheet you sent earlier for the 2025-26 run-in
-had a "lost" column that was already a **net** figure — turnovers conceded
-minus turnovers won, in all 30 club-matches (Cardiff's −1 against the Stormers
-is 7 − 8). I loaded it as a raw count, which was my error. Those 15 matches now
-carry the feed's own counts, and `import_season.py` listed every value it
-replaced. With the error fixed, the full season also showed that the turnover
-definition this project had switched to could not work — see *A turnover is
-not a giveaway*. Between them, they swap one of round 1's picks; see *The line
-the model runs on*.
-
-### 1. Ten handicaps that would firm up the backtest (optional)
-
-Of the 45 graded 2025-26 bets, **10 covered or missed their inferred line by
-less than that line is good for**: about a point and a half, or three for a
-heavy favourite quoted near 1.01. On those ten the W or L rests on the estimate
-rather than the result, and seven of them are wins, so they are worth checking.
-
-| date | match | inferred | bet | result | by |
-|---|---|---|---|---|---|
-| 2025-10-03 | Dragons v Sharks | +1.0 | Dragons | W | 1.0 |
-| 2025-10-05 | Zebre v Lions | −2.5 | Lions | W | 0.5 |
-| 2025-10-17 | Connacht v Bulls | 0.0 | Bulls | W | 1.0 |
-| 2025-10-17 | Dragons v Cardiff | +8.0 | Dragons | W | 1.0 |
-| 2025-10-24 | Glasgow v Bulls | −9.5 | Bulls | W | 0.5 |
-| 2025-10-25 | Leinster v Zebre | −22.5 | Leinster | W | 1.5 |
-| 2025-12-27 | Munster v Leinster | +5.5 | Munster | W | 0.5 |
-| 2026-01-24 | Cardiff v Benetton | −7.5 | Benetton | L | −1.5 |
-| 2026-03-28 | Stormers v Edinburgh | −17.5 | Edinburgh | L | −1.5 |
-| 2026-05-16 | Bulls v Benetton | −25.5 | Benetton | L | −0.5 |
-
-They are in **`entry/urc_2025_close_calls.xlsx`**. The number wanted is the
-home handicap from oddsportal's handicap tab, negative when the home side is
-favoured, typed into `actual_line`. Then:
+What runs, in order:
 
 ```bash
-python line_check.py apply --season 2025 && python season_report.py && python build_site.py
+python import_turnovers.py entry/scraped/urc_202601_roundNN.csv --season 2026  # scores, turnovers, every stat
+python entry_sheet.py import --season 2026 --file urc_2026_entry.xlsx         # lines
+python season_report.py && python build_site.py                               # picks, grades, the site
+python entry_sheet.py export --season 2026                                    # a fresh sheet to type into
 ```
 
-They land marked as quoted, so no later import overwrites them. None of this
-touches the 2026-27 picks: it only says how far to trust the backtest. The four
-other heavy-favourite lines asked for earlier
-(`entry/urc_2025_coarse_lines.xlsx`) are lower priority still; `apply` reads
-both sheets.
+**An older copy of the entry sheet is safe to send.** A blank cell never
+erases anything, and once a match has a result its stored lines are frozen: a
+different line in the sheet is listed and left out (`--relines` applies it, for
+a genuine correction). Round 2's matchday lines were nearly overwritten with
+Thursday's that way.
 
-### 2. Monitoring home advantage
+## Open items
 
-`HOME_ADVANTAGE` is a **provisional 5.0**. The NFL system uses a well-established
-3-point home field; the URC has no settled equivalent and its handicaps are
-wider. `python calibrate.py` reports two things, and the difference between them
-matters:
-
-- **The fitted estimate** — a least-squares fit of the home term and the
-  Europe ↔ South Africa travel term alongside club ratings. This is the number
-  to adopt, and it is **withheld below 40 priced matches**, because with less
-  than that the home term and the club ratings are not separable.
-- **An early read**, printed from the first handicap onwards — the mean of
-  `-line`, split into domestic and long-haul trips. This measures venue *only
-  once club strengths cancel*, which happens when every club has played as often
-  at home as away. It prints how far from that the sample is, so it reads as a
-  direction of travel rather than a measurement.
-
-With the whole of 2025-26 loaded, `calibrate.py` pools 159 priced matches. It
-fits **+5.3** for home advantage, close to the provisional 5.0, and **+3.3**
-for a long-haul trip, a term currently switched off. The early read is **+5.4
-over 101 domestic matches** and **+8.5 over 58 long-haul ones**.
-
-**Not adopted, for now.** 137 of those lines are inferred rather than quoted,
-and one set of ratings is fitted across a whole season, where the model refits
-every week. More to the point, adopting either number did not help the
-backtest: 5.3 did slightly worse than 5.0, and adding the long-haul term did
-clearly worse (below). Revisit around round 5, when this season's own quoted
-lines carry the fit.
+1. **Home advantage** is a provisional 5.0, to revisit around round 5. See
+   *Home advantage*.
+2. **Ten close-call lines from 2025-26** (optional) would firm up the backtest.
+   See *Ten close calls*.
+3. **Your local `urc_scraper.py`** (optional) is an older copy: its CSVs carry a
+   junk `home_date = 2026` column. That is harmless, since the importers skip
+   it, but the copy in the repo no longer writes it.
 
 ## How it did on 2025-26
 
-The whole season, run through the system exactly as 2026-27 will be:
+The whole season, run through the system exactly as 2026-27 is:
 
 | | bets | record | win rate | units at −110 |
 |---|---|---|---|---|
@@ -157,10 +108,10 @@ curve-fitting the NFL project was careful to avoid.
 **How good are the inferred lines?** A fair line should see the home side
 cover about half the time, and across the 151 matches it covered 77, failed 71
 and pushed 3. The inference is not leaning either way. What it cannot do is
-settle a bet decided by a point, hence the ten above.
+settle a bet decided by a point, hence the ten close calls below.
 
 **The turnover definition, varied.** For the record, since it changed on this
-data (next section), the season under each candidate. None was chosen for its
+data (see *A turnover is not a giveaway*), the season under each candidate. None was chosen for its
 number, because with 45 bets a gap of 6 wins is noise.
 
 | turnover margin | record | units |
@@ -173,35 +124,80 @@ number, because with 45 bets a gap of 6 wins is noise.
 The last row has the best win rate, but its two turnover factors cancelled
 each other on 81% of matches, so it is really a three-factor system.
 
+### Ten close calls
+
+Of the 45 graded 2025-26 bets, **10 covered or missed their inferred line by
+less than that line is good for**: about a point and a half, or three for a
+heavy favourite quoted near 1.01. On those ten the W or L rests on the estimate
+rather than the result, and seven of them are wins, so they are worth checking.
+
+| date | match | inferred | bet | result | by |
+|---|---|---|---|---|---|
+| 2025-10-03 | Dragons v Sharks | +1.0 | Dragons | W | 1.0 |
+| 2025-10-05 | Zebre v Lions | −2.5 | Lions | W | 0.5 |
+| 2025-10-17 | Connacht v Bulls | 0.0 | Bulls | W | 1.0 |
+| 2025-10-17 | Dragons v Cardiff | +8.0 | Dragons | W | 1.0 |
+| 2025-10-24 | Glasgow v Bulls | −9.5 | Bulls | W | 0.5 |
+| 2025-10-25 | Leinster v Zebre | −22.5 | Leinster | W | 1.5 |
+| 2025-12-27 | Munster v Leinster | +5.5 | Munster | W | 0.5 |
+| 2026-01-24 | Cardiff v Benetton | −7.5 | Benetton | L | −1.5 |
+| 2026-03-28 | Stormers v Edinburgh | −17.5 | Edinburgh | L | −1.5 |
+| 2026-05-16 | Bulls v Benetton | −25.5 | Benetton | L | −0.5 |
+
+They are in **`entry/urc_2025_close_calls.xlsx`**. The number wanted is the
+home handicap from oddsportal's handicap tab, negative when the home side is
+favoured, typed into `actual_line`. Then:
+
+```bash
+python line_check.py apply --season 2025 && python season_report.py && python build_site.py
+```
+
+They land marked as quoted, so no later import overwrites them. None of this
+touches the 2026-27 picks: it only says how far to trust the backtest. The four
+other heavy-favourite lines asked for earlier
+(`entry/urc_2025_coarse_lines.xlsx`) are lower priority still; `apply` reads
+both sheets.
+
 ## Your bets
 
-Your actual bets live in [`../bets/bet_log.csv`](../bets/), one log for every
-sport so `nfl_report/` can read the same file. `my_bets.py` takes the URC rows
-of a season and matches each to its fixture by the club backed and the match
-date (or the round). On the site and in the app, each season then gets a
-**Your bets** section beside the system's record:
+Your actual bets are in [`../bets/bet_log.csv`](../bets/): every sport, one row
+per bet, transcribed from the bet-slip screenshots you send (`bets/README.md`
+lists the columns). `my_bets.py` takes the URC rows of a season and matches each
+to its fixture by the club backed and the match date, or the round. The site
+and the app then show a **Your bets** section beside the system's record:
 
 - **Line v close.** Your handicap minus the closing one, from your side: +14
   means you got 14 points more than the close offered. Over a season this is
   the best single test of whether bets are being placed well, because it does
-  not wait for the results to even out.
+  not wait for results to even out.
 - **System.** Whether the System # backed your side at the line you took, and
   at the close where that differs. Round 1's Lions +6.5 reads *yes, no at
   close*: a pick at your number, dropped once the line moved on team news.
 - **Result and profit.** The bookmaker's settlement where the log has one.
   Otherwise the bet is graded from the score at your own line, so a bet logged
-  as `Pending` settles itself once the round is scraped. A settlement the score
+  as `Pending` settles itself once the round is scraped; a settlement the score
   contradicts is flagged.
-- **The system, same rounds.** The system's picks in the rounds you bet,
-  staked like yours (your median stake) at the standard 1.91, so the two
-  profits compare like with like.
+- **The system, same rounds.** The system's picks in the rounds you bet, staked
+  as you stake a match (your median total per match, since a pick is sometimes
+  split across two slips) at the standard 1.91, so the two profits compare like
+  with like.
 
-**The repository is public**, so the log, stakes and returns included, is
-readable on GitHub, and the site shows the URC bets.
+Two gaps the screenshots leave, and how they are handled:
 
-To add bets, send the bet slips (open or settled) and they are added to the
-log, or add rows yourself; `bets/README.md` lists the columns. Run
-`python my_bets.py` for the table in the terminal.
+- **Prices.** The open-bets screen shows the cash-out value, not the price, and
+  a settled losing slip shows none either. A win graded from the score has no
+  profit until its settled slip arrives, so until then it is left out of staked
+  and profit alike, and the site says so. The settled slip then updates the
+  same row rather than adding a new one.
+- **Cut-off lines.** A line the screen cut off (`Zebre Parma +2...`) is logged
+  blank: the bet counts on its settlement, without a line comparison.
+
+**The repository is public**, so the log, stakes and returns included, can be
+read on GitHub, and the site shows the URC bets. The NFL report does not read
+this file: it keeps its own private ledger (`nfl_report/ledger.html`), whose
+bets never reach the repository.
+
+Run `python my_bets.py` for the table in the terminal.
 
 ## Shadow factors: nine candidates, tracked but not bet
 
@@ -435,6 +431,35 @@ previous season's last weeks are just the previous weeks, with no special case.
 `test_pipeline.py` check 9 pins this down: it builds a season with a deliberately
 displaced round and asserts every club's LGT is its previous match **by date**.
 
+### Home advantage
+
+`HOME_ADVANTAGE` is a **provisional 5.0**. The NFL system uses a well-established
+3-point home field; the URC has no settled equivalent and its handicaps are
+wider. `python calibrate.py` reports two things, and the difference between them
+matters:
+
+- **The fitted estimate** — a least-squares fit of the home term and the
+  Europe ↔ South Africa travel term alongside club ratings. This is the number
+  to adopt, and it is **withheld below 40 priced matches**, because with less
+  than that the home term and the club ratings are not separable.
+- **An early read**, printed from the first handicap onwards — the mean of
+  `-line`, split into domestic and long-haul trips. This measures venue *only
+  once club strengths cancel*, which happens when every club has played as often
+  at home as away. It prints how far from that the sample is, so it reads as a
+  direction of travel rather than a measurement.
+
+With 2025-26 and the first rounds of 2026-27 loaded, `calibrate.py` pools 175
+priced matches. It fits **+5.4** for home advantage, close to the provisional
+5.0, and **+3.2** for a long-haul trip, a term currently switched off. The early
+read is +5.7 over 113 domestic matches and +8.3 over 62 long-haul ones.
+
+**Not adopted yet.** Most of those lines are 2025-26's, inferred rather than
+quoted, and one set of ratings is fitted across them all where the model refits
+every week. Adopting either number also did not help the 2025-26 backtest: 5.3
+did slightly worse than 5.0, and adding the long-haul term did clearly worse.
+Revisit around round 5, when this season's own quoted lines carry more of the
+fit.
+
 ## A turnover is not a giveaway
 
 The NFL system's turnover factor reads `giveaways − takeaways`: how much ball a
@@ -452,9 +477,10 @@ original, so in every match one side lost the count and the other won it.
 differential. It then switched to reading the NFL definition literally, as
 **own conceded − own won**, on the evidence of the first 15 matches of
 match-centre data, in which one side's "conceded" never matched the other's
-"won". That evidence was mislabelled, since the sheet's "conceded" column was
-already net of turnovers won (see *A correction*, above), though the point
-itself survives on the feed's counts: they match in only 4 of 302
+"won". That evidence was mislabelled: the sheet's "lost" column was already
+net of turnovers won (Cardiff's −1 against the Stormers is 7 − 8), and was
+loaded as a raw count; the feed's own counts have since replaced it. The point
+itself survives on the feed's counts, though: they match in only 4 of 302
 club-matches. What the switch missed is the thing a full season makes
 obvious:
 
@@ -572,9 +598,10 @@ Note what this did to the headline error. Overall bias across the 14 checked
 matches was **−0.04 points**, which looks like near-perfect calibration and is
 nothing of the sort — it is a −0.46 bias on the readable quotes cancelling a
 +2.50 bias on the coarse ones. `line_check.py` therefore reports the two
-groups separately and never quotes the combined figure on its own. `tick_sensitivity` reports it per match, `is_coarse` flags it,
-and `import_oddsportal.py --skip-coarse` will leave those rows unpriced rather
-than fill them with a number that cannot bear the weight.
+groups separately and never quotes the combined figure on its own.
+`tick_sensitivity` reports it per match, `is_coarse` flags it, and
+`import_oddsportal.py --skip-coarse` will leave those rows unpriced rather than
+fill them with a number that cannot bear the weight.
 
 Every derived line is written with `line_source = inferred-1x2`, so it is never
 mistaken later for a handicap that was actually quoted.
@@ -583,17 +610,18 @@ mistaken later for a handicap that was actually quoted.
 
 | | `nfl_report` | here |
 |---|---|---|
-| **Raw inputs** | two machine-generated exports (pro-football-reference, nflverse), joined on team pair ± 1 day | **one hand-keyed file per season** |
+| **Raw inputs** | two machine-generated exports (pro-football-reference, nflverse), joined on team pair ± 1 day | **lines typed in** (inferred from 1X2 odds for 2025-26) and **results scraped** from the match-centre feed, kept in **one file per season** |
 | **Turnovers** | `home_giveaways − away_giveaways` | **the same differential, on turnovers conceded** |
 | **Home edge** | 3.0 points, well established | **5.0, provisional**, plus an optional long-haul term |
 | **Heatmap scale** | red-yellow-green | **blue ↔ grey ↔ red** |
 | **Validation** | 7 published seasons | none — generated-data tests only |
 
-**One file per season.** Both rugby inputs are read off web pages by hand, so
-joining two hand-keyed tables would turn every typo into a silently dropped
-match. `data/season_<year>.csv` carries the fixture, the opening and closing
-handicaps, the score and the turnover counts in one row, and `entry_sheet.py`
-keeps the typing in a spreadsheet rather than in the CSV.
+**One file per season.** Lines are typed in early in the week and results are
+scraped after it, so the two arrive at different times from different places.
+Keeping both in one row per match, in `data/season_<year>.csv`, means nothing
+has to be joined later (a join on two separately keyed tables turns every
+misspelt club into a silently dropped match), and `entry_sheet.py` keeps the
+typing in a spreadsheet rather than in the CSV.
 
 **Turnovers: the conceded differential.** The NFL computation with turnovers
 conceded in place of giveaways. It went to own conceded − own won and back; see
@@ -610,38 +638,40 @@ checked with a validator in both light and dark mode.
 rugby_urc/
 ├── README.md
 ├── requirements.txt
-├── teams.py            # the 16 clubs + every sponsor spelling the sources use
-├── model.py            # the five-factor engine
-├── import_fixtures.py  # pasted fixture text -> data/season_<year>.csv
-├── import_oddsportal.py # pasted results+odds -> season file, handicaps inferred
-├── spread_from_odds.py # 1X2 decimal odds -> a handicap (Shin de-vig + normal)
-├── line_check.py       # check inferred handicaps against real ones, re-fit sigma,
-│                       #   and list the bets a line error could flip
-├── import_turnovers.py # match-centre turnover sheet -> season file (scores too)
-├── import_season.py    # a whole scraped past season + its odds -> season file
-├── match_stats.py      # every scraped stat per match -> data/stats_<year>.csv
-├── shadow_factors.py   # nine candidate factors, tracked but not bet
-├── my_bets.py          # your bets from ../bets/bet_log.csv, beside the system
-├── urc_scraper.py      # Streamlit: a round's turnovers + scores from the feed
+├── teams.py              # the 16 clubs + every sponsor spelling the sources use
+├── model.py              # the five-factor engine
+├── season_report.py      # season files -> data/report_<year>.csv
+├── entry_sheet.py        # export a sheet to type lines into, and read it back
+├── urc_scraper.py        # Streamlit: a round's scores, turnovers and every stat
+├── import_turnovers.py   # a scraped round -> season file + stats file
 ├── urc_season_scraper.py # Streamlit: a whole past season, for backtesting
-├── test_scraper.py     # scraper checks, incl. the app run headless
+├── import_season.py      # a whole scraped season + its odds -> season file
+├── import_fixtures.py    # pasted fixture text -> data/season_<year>.csv
+├── import_oddsportal.py  # pasted results + odds -> season file, lines inferred
+├── spread_from_odds.py   # 1X2 decimal odds -> a handicap (Shin de-vig + normal)
+├── line_check.py         # inferred lines against real ones; the close calls
+├── match_stats.py        # every scraped stat per match -> data/stats_<year>.csv
+├── shadow_factors.py     # nine candidate factors, tracked but not bet
+├── my_bets.py            # your bets from ../bets/bet_log.csv, beside the system
+├── calibrate.py          # fit HOME_ADVANTAGE from the handicaps
+├── factor_analysis.py    # marginal contribution + standalone success
+├── heatmaps.py           # club x round diverging heatmaps
+├── build_site.py         # data -> index.html
+├── app.py                # Streamlit viewer
+├── test_pipeline.py      # end-to-end checks on generated data
+├── test_scraper.py       # scraper checks, incl. the app run headless
 ├── test_season_scraper.py # season-scraper checks: playoff rounds, retries, reruns
-├── entry_sheet.py      # export a sheet to type into, and read it back
-├── season_report.py    # season files -> data/report_<year>.csv
-├── calibrate.py        # fit HOME_ADVANTAGE from the handicaps
-├── factor_analysis.py  # marginal contribution + standalone success
-├── heatmaps.py         # club x round diverging heatmaps
-├── build_site.py       # data -> index.html
-├── app.py              # Streamlit viewer
-├── test_pipeline.py    # end-to-end checks on generated data
 ├── data/
-│   ├── season_2026.csv   # 2026-27: all 144 fixtures; round 1 priced, open and close
+│   ├── season_2026.csv   # 2026-27: all 144 fixtures, lines and results as they come
 │   ├── season_2025.csv   # 2025-26 in full: 151 matches, priced at the close
 │   ├── stats_<year>.csv  # every scraped stat, one row per match
-│   ├── shadow_<year>.csv # generated: each match's shadow-factor votes
-│   └── report_<year>.csv # generated
+│   ├── report_<year>.csv # generated: factors, System #, picks, results
+│   └── shadow_<year>.csv # generated: each match's shadow-factor votes
 └── entry/
-    └── urc_<year>_entry.{xlsx,csv}   # the sheets to type into
+    ├── urc_2026_entry.{xlsx,csv}   # the sheet to type lines into
+    ├── scraped/                    # the scraper's CSVs: one per round, 2025-26 whole
+    └── urc_2025_*                  # 2025-26: odds, line checks, close calls
+../bets/bet_log.csv                 # your actual bets, every sport
 ```
 
 ## How the pieces gate each other
@@ -652,7 +682,7 @@ and the report says which:
 1. **No handicap** — nothing to bet against.
 2. **No power ratings** — fewer than one prior round of handicaps exists.
 3. **`lgt_unknown`** — a side's previous match is on the schedule but has no
-   turnover count, because it has not been played or has not been typed in.
+   turnover count, because it has not been played or not yet scraped.
    Two of the five factors read that number, so treating it as neutral would be
    a bet on dead inputs. Having *no* previous match is different, and is
    legitimately 0.
@@ -662,11 +692,30 @@ priced before the turnovers arrived produced four picks resting on two dead
 factors, and one held-back match came back at +5 rather than the +3 it would
 have shown.
 
-## Replication status
+### Data-entry safeguards
 
-There is none, and there cannot be — no published rugby reports exist. What
-there is instead is `test_pipeline.py`, which generates handicaps from **known**
-power ratings and turnover counts and asserts the pipeline recovers them:
+The numbers arrive in pieces, from more than one place, so every import is
+written to refuse silent damage rather than trust its input:
+
+- **A blank cell never erases.** A sheet exported before the latest results
+  were loaded keeps them, cell by cell.
+- **A played match's lines are frozen.** An older copy of the sheet cannot
+  change them; `--relines` overrides, for a genuine correction.
+- **A sheet missing a played match is refused**, since dropping the row would
+  drop its result.
+- **Odd turnover counts are flagged**, such as a negative one (most likely a
+  net figure); `--strict` refuses them.
+- **Each scraped round is reconciled before it is loaded**: every side's points
+  against its tries, conversions and kicks.
+- **A bookmaker settlement the score contradicts is flagged** in *Your bets*.
+
+## Tests
+
+There is no replication, and there cannot be — no published rugby reports
+exist. What there is instead is `test_pipeline.py`, which generates handicaps
+from **known** power ratings and turnover counts and asserts the pipeline
+recovers them, plus `test_scraper.py` and `test_season_scraper.py` for the
+scrapers:
 
 | Check | result |
 |---|---|
@@ -689,6 +738,8 @@ power ratings and turnover counts and asserts the pipeline recovers them:
 | Each shadow factor votes as its rule is written, on a hand-built case | pass |
 | Shadow factors end to end: stats stored and reloaded, a reversed direction swaps a record | pass |
 | Your bets are matched, graded at your own line, and a contradicted settlement is flagged | pass |
+| A win with no price stays out of the totals until its settled slip arrives | pass |
+| An older copy of the entry sheet cannot change a played match's line | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.
 
@@ -698,42 +749,45 @@ That is a test of the plumbing, not evidence the system works on rugby.
 pip install -r requirements.txt
 
 python test_pipeline.py                            # the checks above
-python import_fixtures.py paste.txt --season 2026  # fixture text -> season file
-python entry_sheet.py export --season 2026         # -> entry/urc_2026_entry.xlsx
-python entry_sheet.py import --season 2026         # filled sheet -> data/
 python season_report.py                            # -> data/report_<year>.csv
+python build_site.py                               # -> index.html
+streamlit run app.py                               # browse it
 python calibrate.py                                # fit the home-advantage terms
 python factor_analysis.py                          # per-factor diagnostics
 python shadow_factors.py                           # the nine candidate factors
 python my_bets.py                                  # your bets beside the system
-python build_site.py                               # -> index.html
-streamlit run app.py                               # browse it
+python import_fixtures.py paste.txt --season 2026  # fixture text -> season file (once a season)
 ```
 
-### Each week, once the season is running
+The weekly steps are under *Each week*.
 
-1. **Handicaps** for the coming round: `opening_line` when the round is first
-   priced, and `closing_line` once the teams are named, as late as practical
-   before kick-off. Picks made on the opening line alone are provisional. In
-   round 1 the close changed two of them.
-2. **Scores and turnovers** for the round just played — scraped, not typed:
+## The scrapers
 
-   ```bash
-   streamlit run urc_scraper.py
-   ```
+The match centre is a JavaScript page; its numbers come from a JSON feed
+(`rugby-union-feeds.incrowdsports.com`, data from RugbyViz). `urc_scraper.py`
+reads that feed directly with `requests` — the same approach as reading the FPL
+API rather than the FPL website. Both endpoints it uses, the season's match
+list and a single match, are documented by working code in the public
+[transientlunatic/Rugby-Data](https://github.com/transientlunatic/Rugby-Data)
+project, including the URC's competition id (1068).
 
-   Pick the round (it defaults to the latest one played) and press *Fetch*. It
-   writes `entry/scraped/urc_202601_roundNN.csv`, then:
+Where the team stats sit inside a match response is not documented anywhere,
+so rather than hard-code a guessed path the scraper walks the whole response,
+collects every stat carrying a home and an away value, and picks turnovers won
+and conceded out by name: an exact name first, so a lookalike such as
+`home_ruck_turnovers_won` can never be read in their place, and a player's
+count can never pass as the team's.
 
-   ```bash
-   python import_turnovers.py entry/scraped/urc_202601_round01.csv --season 2026
-   ```
+**It has been right on every real match it has read**: all 151 of 2025-26 and
+every 2026-27 round loaded so far. Each score agrees across the three places
+the feed reports it, and every side's points reconcile with its tries,
+conversions, penalties and drop goals. The first live run turned up one bug,
+since fixed: the leading digits of a timestamp were read as a stat
+(`home_date = 2026`).
 
-   **Turnovers are the blocker**: without them the next round cannot be picked
-   at all.
-3. `python entry_sheet.py import --season 2026 && python season_report.py && python build_site.py`
-   — the shadow factors update with the site; `python shadow_factors.py`
-   prints them in full.
+**It saves every stat**, about 100 home/away pairs per match, in the round's
+CSV; `import_turnovers.py` keeps them in `data/stats_<year>.csv` for the shadow
+factors.
 
 ### A whole past season: `urc_season_scraper.py`
 
@@ -765,90 +819,36 @@ file holds the same statistic the live season is scraped with. It reports any
 match with no odds, any quote that matched no match, and any score that
 disagrees.
 
-### The scraper, and what it cannot yet be sure of
-
-The match centre is a JavaScript page; its numbers come from a JSON feed
-(`rugby-union-feeds.incrowdsports.com`, data from RugbyViz). `urc_scraper.py`
-reads that feed directly with `requests` — the same approach as reading the FPL
-API rather than the FPL website. Both endpoints it uses, the season's match
-list and a single match, are documented by working code in the public
-[transientlunatic/Rugby-Data](https://github.com/transientlunatic/Rugby-Data)
-project, including the URC's competition id (1068).
-
-**What is not documented anywhere is where the team stats sit inside a match
-response**, and the feed is blocked from the environment this was written in,
-so the scraper has not yet read a real match. Rather than hard-code a guessed
-path, it walks the whole response and collects every stat carrying a home and
-an away value, then picks turnovers won and conceded out by name. It is tested
-against the four layouts team stats are usually published in, and against a
-player carrying the same stat names with an impossible value — a player's count
-must never pass as the team's.
-
-**It saves every stat, not just turnovers.** The same search that finds the
-turnovers finds everything else carrying a home and an away value — tackles,
-possession, carries, whatever the feed publishes — and each becomes a
-`home_`/`away_` column pair in the round's CSV, after the columns the report
-reads. `import_turnovers.py` takes only its own columns from that file, and
-takes them by exact name first, so a lookalike such as `home_ruck_turnovers_won`
-can never be read in their place whatever order the columns are in. A stat the
-feed happened to label "Score" cannot overwrite the real score either.
-
-**First real run (round 1, Friday's three matches).** Turnovers were found for
-all three, and the reading is internally consistent: each score agrees across
-the three places the feed reports it, and every team's points reconcile
-exactly with its tries, conversions, penalties and drop goals — 6 of 6. That
-rules out reading player-level stats or crossing home and away. It turned up
-one bug, since fixed: the team objects carry a date, and the leading digits of
-`"2026-09-25T…"` were read as a stat (`home_date = 2026`). A string now counts
-as a number only when the whole of it is one.
-
-So the first real run is the real test. If it cannot find turnovers it says
-which match, and two panels make the fix quick: **Every stat found** shows what
-the feed calls things, and **Raw JSON** downloads the response to send over,
-after which the extraction can be pinned to the real path. Two cases it will
-deliberately refuse to guess: a bare "Turnovers" label (it could mean either),
-and a match missing one of the two counts.
-
 ## View on a phone
-
-`index.html` is self-contained and mobile-friendly — season tabs, the record,
-the cumulative-profit curve, every match, and the club × round heatmaps, in
-light and dark. Regenerate it with `build_site.py` after the data changes.
 
 **<https://zenoonan.github.io/Research/rugby_urc/>**
 
-That is the permanent home. GitHub Pages is enabled on this repository and
-serves the repository root from the **default branch** — the same setup that
-puts `kelly_sim/` and `nfl_report/` on the same host — so the page appears
-there as soon as this work is merged, and every later `build_site.py` run
-updates it on the next push. No third-party host is involved and the URL never
-changes.
-
-Before the merge that path returns a 404, because Pages only ever builds the
-default branch. For that window only, the branch renders through
-[raw.githack](https://raw.githack.com/ZeNoonan/Research/claude/beautiful-planck-uh4wot/rugby_urc/index.html).
+`index.html` is self-contained and phone-friendly: season tabs, the record and
+profit curve, your bets, every match, the club × round heatmaps and the shadow
+factors, in light and dark. GitHub Pages serves it from the repository's
+default branch, so it updates each time a week's changes are merged.
 
 ## Roadmap
 
-1. ~~Port the engine, the pipeline and the viewer.~~ ✅
-2. ~~Fixture importer with URC shape checks.~~ ✅
-3. ~~Spreadsheet data entry with club validation.~~ ✅
-4. ~~Load the 2026-27 fixture list.~~ ✅ all 144 matches, shape checks clean
-5. ~~Handle a round whose matches are months apart.~~ ✅ date ordering + match-week
-   rating windows
-6. ~~Enter round 1's eight handicaps.~~ ✅
-7. ~~Derive the 2025-26 handicaps from 1X2 odds.~~ ✅ all 151 matches, Shin +
-   sigma 13.75, 14 quoted lines kept
-8. ~~Enter the 2025-26 turnovers so round 1 is pickable.~~ ✅ the whole season,
-   from the feed
-9. ~~Revisit the turnover definition once a season of match-centre data is
-   in.~~ ✅ back to the conceded differential, the NFL computation; own
-   conceded − own won does not vary enough to vote
-10. ~~Check the inferred handicaps against real ones and re-fit `sigma`.~~ ✅
-    13.75, from 12 quoted lines; the tail shown to be un-inferable
-11. ~~Record opening and closing lines, and run on the close.~~ ✅ round 1 in
-    both
-12. ~~Backtest 2025-26.~~ ✅ 22–23, −3.3u; see *How it did on 2025-26*
-13. **Calibrate `HOME_ADVANTAGE`** on this season's own quoted lines, about
-    round 5. 2025-26's inferred lines fit 5.3, not adopted.
-14. Firm up the backtest with the ten close-call lines (optional).
+Done:
+
+- The engine, pipeline, viewer, fixture importer and entry sheet, ported from
+  `nfl_report`.
+- The 2026-27 fixture list, with split rounds ordered by date and rated by
+  match-week.
+- 2025-26 loaded in full and backtested: 22–23, −3.3u.
+- `sigma` measured against real lines (13.75), and the far tail shown to be
+  un-inferable.
+- The turnover definition settled on the conceded differential.
+- Opening and closing lines recorded, with the model running on the close.
+- Nine shadow factors, their rules fixed before any results; first look on
+  2025-26.
+- Your actual bets tracked beside the system, on the site and in the app.
+- Older copies of the entry sheet barred from changing a played match's lines.
+
+Next:
+
+1. **Calibrate `HOME_ADVANTAGE`** on this season's quoted lines, around round 5.
+2. **Judge the shadow factors** at the end of 2026-27, both seasons pooled. The
+   line-move factor gets its first look this season.
+3. Firm up the backtest with the ten close-call lines (optional).

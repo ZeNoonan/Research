@@ -179,8 +179,12 @@ def summary(bets: pd.DataFrame, report: pd.DataFrame) -> dict:
     """
     settled = bets[bets["result"].isin(["Won", "Lost"])]
     w, l = int((settled["result"] == "Won").sum()), int((settled["result"] == "Lost").sum())
-    staked = float(settled["stake"].sum())
-    profit = float(settled["profit"].sum(min_count=1)) if len(settled) else 0.0
+    # A win logged without a price (an open bet, graded from the score) has no
+    # profit yet; it stays out of staked and profit alike, so the return is not
+    # dragged down by a stake whose winnings are missing.
+    priced = settled[settled["profit"].notna()]
+    staked = float(priced["stake"].sum())
+    profit = float(priced["profit"].sum()) if len(priced) else 0.0
     stake = (float(bets.groupby(["date", "match"])["stake"].sum().median())
              if len(bets) else 25.0)
     rounds = report[report["round"].isin(set(bets["round"])) & report["result"].notna()]

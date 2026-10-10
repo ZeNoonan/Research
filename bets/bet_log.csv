@@ -36,3 +36,10 @@ bet_id,placed,sport,competition,event_date,round_week,event,bet_type,selection,t
 35,,rugby,URC,2026-10-03,R2,Glasgow v Ulster,Single,Ulster +14.5,Ulster,14.5,1.8,15,Won,27.0,12.0,"screenshots 2026-10-07, 2/5",
 36,,rugby,URC,2026-10-03,R2,Dragons v Scarlets,Single,Scarlets +2.0,Scarlets,2.0,,10,Lost,0.0,-10.0,"screenshots 2026-10-07, 2/6",
 37,,rugby,URC,2026-10-03,R2,Dragons v Scarlets,Single,Scarlets +2.5,Scarlets,2.5,,15,Lost,0.0,-15.0,"screenshots 2026-10-07, 2/7",
+38,2026-10-09,nfl,NFL,,,,Single,NO Saints +2.5,NO Saints,2.5,,25,Pending,,,"screenshot 2026-10-09 (open bets), 1","open bet: the open-bets screen shows no price; open on 9 Oct, so probably NFL week 5"
+39,2026-10-09,nfl,NFL,,,,Single,PHI Eagles +7.5,PHI Eagles,7.5,,25,Pending,,,"screenshot 2026-10-09 (open bets), 2","open bet: the open-bets screen shows no price; open on 9 Oct, so probably NFL week 5"
+40,2026-10-09,rugby,URC,2026-10-09,R3,Dragons v Ospreys,Single,Ospreys +2.5,Ospreys,2.5,,15,Pending,,,"screenshot 2026-10-09 (open bets), 3",open bet: the open-bets screen shows no price
+41,2026-10-09,nfl,NFL,,,,Single,SEA Seahawks -2.5,SEA Seahawks,-2.5,,10,Pending,,,"screenshot 2026-10-09 (open bets), 4","open bet: the open-bets screen shows no price; open on 9 Oct, so probably NFL week 5"
+42,2026-10-09,nfl,NFL,,,,Single,TEN Titans +6.5,TEN Titans,6.5,,10,Pending,,,"screenshot 2026-10-09 (open bets), 5","open bet: the open-bets screen shows no price; open on 9 Oct, so probably NFL week 5"
+43,2026-10-09,nfl,NFL,,,,Single,MIA Dolphins +7.5,MIA Dolphins,7.5,,10,Pending,,,"screenshot 2026-10-09 (open bets), 6","open bet: the open-bets screen shows no price; open on 9 Oct, so probably NFL week 5"
+44,2026-10-09,rugby,URC,2026-10-09,R3,Dragons v Ospreys,Single,Ospreys +2.5,Ospreys,2.5,,10,Pending,,,"screenshot 2026-10-09 (open bets), 7",open bet: the open-bets screen shows no price

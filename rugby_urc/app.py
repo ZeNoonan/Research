@@ -143,6 +143,9 @@ def main() -> None:
              hide_index=True)
         for flag in [c for c in bets["check"] if c] + problems:
             st.warning(flag)
+        if mine["unknown_profit"]:
+            st.info(f"{mine['unknown_profit']} winning bet(s) have no price logged yet, so "
+                    f"they are left out of staked and profit until the settled slip is in.")
 
     st.subheader("Factor diagnostics")
     marginal, standalone = factor_analysis.build_tables()

@@ -415,6 +415,10 @@ def your_bets(year: int) -> str:
             "took (and at the close, where that differs)?'>System</th>"
             "<th>Result</th></tr>")
     flags = [c for c in bets["check"] if c] + problems
+    if s["unknown_profit"]:
+        flags.append(f"{s['unknown_profit']} winning bet(s) have no price logged yet, so "
+                     f"they are left out of staked and profit until the settled slip "
+                     f"is in")
     flag_html = ("<ul class='todo'>" + "".join(f"<li>{esc(f)}</li>" for f in flags)
                  + "</ul>") if flags else ""
     note = (f"<p class='sub'>Your actual bets, from <code>bets/bet_log.csv</code>. "
