@@ -1,8 +1,8 @@
 # CLAUDE.md - AI Assistant Guide for Research Repository
 
 **Repository**: Research
-**Last Updated**: 2026-01-22
-**Status**: Initial Setup
+**Last Updated**: 2026-10-10
+**Status**: Active — several independent research projects
 
 ## Table of Contents
 - [Repository Overview](#repository-overview)
@@ -21,7 +21,7 @@
 This is a research repository for experimental projects, proof-of-concepts, and learning exercises. The repository is designed to be flexible and accommodate various types of research work.
 
 ### Current State
-- **Status**: Empty repository, ready for initial setup
+- **Status**: Holds several self-contained project folders (see Directory Layout)
 - **Branch Strategy**: Feature branches prefixed with `claude/`
 - **Main Branch**: To be determined (typically `main` or `master`)
 
@@ -32,19 +32,27 @@ This is a research repository for experimental projects, proof-of-concepts, and 
 ### Directory Layout
 ```
 Research/
-├── CLAUDE.md           # This file - AI assistant guidelines
-├── README.md           # Project documentation (to be created)
-├── .gitignore          # Git ignore patterns (to be created)
-├── docs/               # Documentation directory (to be created)
-├── src/                # Source code (to be created)
-├── tests/              # Test files (to be created)
-└── scripts/            # Utility scripts (to be created)
+├── CLAUDE.md                 # This file - AI assistant guidelines
+├── README.md                 # Repository readme
+├── index.html                # Root landing page
+├── .gitignore
+├── baseball_var/             # Project folder
+├── golf/                     # Project folder
+├── hurling/                  # GAA hurling Team/Hurler of the Week app (see below)
+├── kelly_sim/                # Project folder
+├── march_madness/            # Project folder
+├── nfl_report/               # Project folder
+└── premier_league_handicap/  # Project folder
 ```
 
 **Note**: As the repository grows, update this section to reflect the actual structure.
 
 ### Key Directories
-_To be documented as the codebase develops_
+- **`hurling/`** — static, mobile-first app for the 2026 GAA.ie Hurling Team of the Week and
+  Hurler of the Week. Data lives in `hurling/data/*.json`; `index.html` renders it.
+  After any data or `index.html` change, run `python3 build_standalone.py` inside `hurling/`
+  to regenerate `standalone.html` (the copy behind the shareable link). See `hurling/README.md`.
+- _Other project folders: document here when they are next worked on._
 
 ---
 
@@ -375,6 +383,10 @@ _To be documented: How to get help, who to contact for specific areas_
 ---
 
 ## Changelog
+
+### 2026-10-10 - Reflect actual repository layout
+- Replaced the placeholder directory layout with the real top-level folders
+- Documented `hurling/` and its `build_standalone.py` regeneration step
 
 ### 2026-01-22 - Initial Creation
 - Created comprehensive CLAUDE.md template
