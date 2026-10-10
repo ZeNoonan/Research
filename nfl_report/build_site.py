@@ -15,10 +15,12 @@ import html
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 import factor_analysis
 import heatmaps
+import ledger
 
 HERE = Path(__file__).parent
 # Display order, most recent first. 2010-2016 are Brown's published reports.
@@ -145,6 +147,12 @@ table.heat th { background: var(--card); color: var(--muted); }
 table.heat td.l, table.heat th.l { text-align: left; white-space: nowrap; font-size: 12px; }
 table.heat td.hm { color: #1c2733; min-width: 26px; }
 table.heat td.hm.na { background: #f4f6f8; }
+table.mybets td.pos { color: var(--win); font-weight: 600; }
+table.mybets td.neg { color: var(--loss); font-weight: 600; }
+table.mybets td.note { color: var(--muted); font-size: 12px; }
+table.mybets tfoot td { font-weight: 700; }
+.seasonnote + .tablewrap { margin-top: 10px; }
+h3 { font-size: 15px; margin: 18px 0 8px; }
 footer { color: var(--muted); font-size: 12px; margin: 24px 0; }
 """
 
@@ -326,6 +334,7 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
       <div class="cap">Cumulative units over the season&rsquo;s {s["wins"] + s["losses"]} graded bets
       (win +1, loss &minus;{JUICE}). Dashed line is break-even.</div>
     </div>
+    {my_bets_block(year, df)}
     <h2>Game by game &mdash; {season_label(year)}</h2>
     <label class="toggle"><input type="checkbox" checked onchange="toggleBets(this)">
       Show only games the system bet</label>
@@ -345,6 +354,122 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
     </div>
     {heatmaps_block(df)}
   </section>"""
+
+
+LEDGER_URL = "https://claude.ai/artifact/VdSjxhm3iL73Db3LMdmmz6"
+
+
+def money(x: float) -> str:
+    c = round(x * 100)
+    return "&euro;0.00" if c == 0 else f'{"+" if c > 0 else "&minus;"}&euro;{abs(c) / 100:.2f}'
+
+
+def euros(x: float) -> str:
+    return f"&euro;{x:.2f}" if round(x * 100) % 100 else f"&euro;{x:.0f}"
+
+
+def money_cell(x) -> str:
+    if x is None or pd.isna(x):
+        return '<td class="pending">&mdash;</td>'
+    return f'<td class="{"pos" if x > 0.005 else "neg" if x < -0.005 else ""}">{money(x)}</td>'
+
+
+def tally(res: pd.Series, pnl: pd.Series, stake: pd.Series) -> dict:
+    done = res.notna()
+    t = {k: int((res == k).sum()) for k in ("W", "L", "P")}
+    return {**t, "settled": int(done.sum()), "open": int((~done).sum()),
+            "pnl": float(pnl[done].sum()), "staked": float(stake[done].sum())}
+
+
+def record(t: dict) -> str:
+    if not t["settled"]:
+        return "&mdash;"
+    return f'{t["W"]}&ndash;{t["L"]}' + (f'&ndash;{t["P"]}' if t["P"] else "")
+
+
+def my_bets_block(year: int, df: pd.DataFrame) -> str:
+    """The season's real bets (from the bet ledger) beside the system's record."""
+    bets = ledger.load_bets(year)
+    if bets is None or bets.empty:
+        return ""
+    bets = ledger.settle(bets, df)
+    singles = bets[bets.kind == "single"]
+    builders = bets[bets.kind == "builder"]
+    stake = float(singles.stake.median()) if len(singles) else 25.0
+
+    # The system: every pick at that stake, at -110. A played pick with no
+    # result is a push; an unplayed one is pending.
+    picks = df[df.system_bet.notna()].copy()
+    done = picks.home_score.notna() & picks.away_score.notna()
+    picks["res"] = np.where(picks.result.isin(["W", "L"]), picks.result,
+                            np.where(done, "P", None))
+    picks["pnl"] = picks.res.map({"W": stake * (ledger.STD_ODDS - 1), "L": -stake, "P": 0.0})
+    picks["stake"] = stake
+
+    sys_t = tally(picks.res, picks.pnl, picks.stake)
+    mine_t = tally(singles.res, singles.pnl, singles.stake)
+    bld_t = tally(builders.res, builders.pnl, builders.stake)
+    roi = lambda t: (f'{t["pnl"] / t["staked"]:+.1%}'.replace("-", "&minus;")
+                     if t["staked"] else "&mdash;")
+    summary = f"""
+    <div class="tablewrap"><table class="mybets">
+      <thead><tr><th class="l"></th><th>System picks</th><th>My spread bets</th></tr></thead>
+      <tbody>
+        <tr><td class="l">Record</td><td>{record(sys_t)}</td><td>{record(mine_t)}</td></tr>
+        <tr><td class="l">Profit</td>{money_cell(sys_t["pnl"] if sys_t["settled"] else None)}{money_cell(mine_t["pnl"] if mine_t["settled"] else None)}</tr>
+        <tr><td class="l">Staked</td><td>{euros(sys_t["staked"])}</td><td>{euros(mine_t["staked"])}</td></tr>
+        <tr><td class="l">Return</td><td>{roi(sys_t)}</td><td>{roi(mine_t)}</td></tr>
+        <tr><td class="l">Open</td><td>{f'{sys_t["open"]} pending' if sys_t["open"] else "&mdash;"}</td><td>{f'{mine_t["open"]} open' if mine_t["open"] else "&mdash;"}</td></tr>
+      </tbody>
+    </table></div>"""
+    builders_note = (f' Bet builders {record(bld_t)}, {money(bld_t["pnl"])} on {euros(bld_t["staked"])};'
+                     f' all my NFL bets {money(mine_t["pnl"] + bld_t["pnl"])}.' if len(builders) else "")
+
+    labels = week_labels(year, df["week"])
+    weeks = sorted(set(picks.loc[picks.res.notna(), "week"]) | set(bets.loc[bets.res.notna() & (bets.kind == "single"), "week"]))
+    def cells(rows: pd.DataFrame) -> str:
+        t = tally(rows.res, rows.pnl, rows.stake)
+        return f'<td>{record(t)}</td>{money_cell(t["pnl"] if t["settled"] else None)}'
+
+    week_rows = "\n".join(
+        f'<tr><td>{labels.get(int(w), w)}</td>{cells(picks[picks.week == w])}'
+        f'{cells(singles[singles.week == w])}</tr>' for w in weeks)
+
+    def bet_row(b) -> str:
+        what = (f"Bet builder ({team(b.side)})" if b.kind == "builder"
+                else f"{team(b.side)} {fmt_pts(b.line)}")
+        chip = (f'<span class="chip {b.res}">{b.res}</span>' if b.res
+                else '<span class="chip N">&middot;</span>')
+        odds = f"{b.odds:.2f}" if not pd.isna(b.odds) else "&mdash;"
+        note = html.escape(b.note) if isinstance(b.note, str) else ""
+        return (f'<tr><td>{labels.get(int(b.week), b.week)}</td>'
+                f'<td class="l">{team(b.away)} @ {team(b.home)}</td><td class="l">{what}</td>'
+                f'<td>{odds}</td><td>{euros(b.stake)}</td><td>{chip}</td>{money_cell(b.pnl)}'
+                f'<td class="l note">{note}</td></tr>')
+
+    return f"""
+    <h2>My bets &mdash; {season_label(year)}</h2>
+    <p class="seasonnote">The bets I actually placed, beside the system&rsquo;s own record. The
+    system column is every pick at {euros(stake)} (my usual stake) at &minus;110. Bets are logged in a
+    <a href="{LEDGER_URL}">private tracker</a> and copied here with each weekly update; a spread bet
+    settles from the final score at the line I got.{builders_note}</p>
+    {summary}
+    <h3>Week by week</h3>
+    <div class="tablewrap"><table class="mybets">
+      <thead><tr><th>Wk</th><th>System</th><th>Profit</th><th>Me</th><th>Profit</th></tr></thead>
+      <tbody>
+{week_rows}
+      </tbody>
+      <tfoot><tr><td>Total</td><td>{record(sys_t)}</td>{money_cell(sys_t["pnl"])}<td>{record(mine_t)}</td>{money_cell(mine_t["pnl"])}</tr></tfoot>
+    </table></div>
+    <h3>Every bet</h3>
+    <div class="tablewrap"><table class="mybets">
+      <thead><tr><th>Wk</th><th class="l">Game</th><th class="l">Bet</th><th>Odds</th><th>Stake</th>
+        <th>Res</th><th>Profit</th><th class="l">Note</th></tr></thead>
+      <tbody>
+{"".join(bet_row(b) for b in bets.itertuples())}
+      </tbody>
+    </table></div>"""
 
 
 def with_week(df: pd.DataFrame) -> pd.DataFrame:

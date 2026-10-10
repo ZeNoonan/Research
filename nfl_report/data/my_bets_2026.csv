@@ -1,0 +1,18 @@
+week,home,away,kind,side,line,odds,stake,result,note,created,id
+1,Chiefs,Broncos,builder,Broncos,,,5,L,,2026-10-03T08:00:02.000Z,log02
+1,Seahawks,Patriots,builder,Patriots,,,5,L,,2026-10-03T08:00:03.000Z,log03
+2,Broncos,Jaguars,single,Broncos,-2.5,1.8696,25,W,,2026-10-03T08:00:08.000Z,log08
+2,Jets,Packers,single,Packers,-4.5,,25,L,,2026-10-03T08:00:09.000Z,log09
+2,Texans,Bengals,single,Texans,-2.5,,25,L,,2026-10-03T08:00:10.000Z,log10
+2,Patriots,Steelers,single,Patriots,-5.5,1.9524,25,W,,2026-10-03T08:00:11.000Z,log11
+2,Ravens,Saints,single,Saints,8.5,1.9092,25,W,,2026-10-03T08:00:12.000Z,log12
+2,Bills,Lions,single,Lions,3.5,,25,L,,2026-10-03T08:00:13.000Z,log13
+2,Bills,Lions,builder,Lions,,3.0,5,W,,2026-10-03T08:00:14.000Z,log14
+2,Chiefs,Colts,single,Chiefs,-6.5,,25,L,,2026-10-03T08:00:18.000Z,log18
+2,Cowboys,Commanders,single,Cowboys,-4.5,1.8696,25,W,Line cut off on the slip; market −4.5 used,2026-10-03T08:00:19.000Z,log19
+2,Cardinals,Seahawks,single,Seahawks,-4.5,1.9524,25,W,Line cut off on the slip; market −4.5 used,2026-10-03T08:00:20.000Z,log20
+2,49ers,Dolphins,single,Dolphins,12.5,,25,L,Line cut off on the slip; market +12.5 used,2026-10-03T08:00:21.000Z,log21
+3,Buccaneers,Vikings,single,Buccaneers,1.5,,25,L,Line cut off on the slip; market +1.5 used,2026-10-03T08:00:22.000Z,log22
+3,Bills,Chargers,single,Chargers,7.5,,25,L,,2026-10-03T08:00:23.000Z,log23
+3,Dolphins,Chiefs,single,Dolphins,10.5,,25,L,Line cut off on the slip; market +10.5 used,2026-10-03T08:00:24.000Z,log24
+3,Lions,Jets,single,Lions,-6.5,1.8696,25,W,,2026-10-03T08:00:25.000Z,log25
