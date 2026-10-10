@@ -99,6 +99,11 @@
   .pill.P  { background: color-mix(in srgb, var(--muted) 18%, transparent); }
   .heat .cell.wide { width: 31px; min-width: 31px; }
   td.line { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .heat .cell.money { width: 35px; min-width: 35px; }
+  .heat tr.total td { padding-top: 6px; }
+  .heat tr.total .team-cell { font-weight: 600; }
+  .heat tr.total .cell { font-weight: 600; color: var(--ink); background: transparent;
+    border-top: 1px solid var(--baseline); border-radius: 0; }
   .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 
   .card {
@@ -247,7 +252,7 @@
       added to its season total, biggest for the sides expected to struggle. {{INTRO}}
     </p>
     <nav class="jump" id="jump" aria-label="On this page">
-      <a href="#table">Adjusted table</a><a href="#race">The race</a><a href="#grids">Grids</a><a href="#asian">Asian handicap</a><a href="#games">Game by game</a>
+      <a href="#table">Adjusted table</a><a href="#race">The race</a><a href="#grids">Grids</a><a href="#asian">Asian handicap</a><a href="#wd">Win &amp; draw bets</a><a href="#games">Game by game</a>
     </nav>
   </header>
 
@@ -357,7 +362,9 @@
       <strong>Asian handicap</strong> is the market&rsquo;s line for each match, re-set every week as
       bookmakers re-rate every club. So the tables ask different questions: the one above, who is
       beating what was expected in August; the ones below, who has beaten the market&rsquo;s line
-      match by match &mdash; a line that, unlike August&rsquo;s handicap, is re-set before every game.</p>
+      match by match &mdash; a line that, unlike August&rsquo;s handicap, is re-set before every game.
+      <span id="part-wd">Further down, the same market&rsquo;s win and draw prices answer a plainer
+      question: what a simple bet on every club would have returned.</span></p>
   </div>
 
   <section class="card" data-needs-ah>
@@ -394,6 +401,24 @@
       explanation. Hover a cell for the game behind it.</p>
     <div class="heat-scroll" id="stdc-grid"></div>
     <div class="heat-legend" id="stdc-legend"></div>
+  </section>
+
+  <section class="card" id="wd" data-needs-wd>
+    <h2 id="wd-title">A win bet and a draw bet on every club</h2>
+    <p class="desc" id="wd-desc"></p>
+    <div class="tbl-scroll"><table id="wd-table" aria-label="Returns from a win bet and a draw bet on every club"></table></div>
+    <p class="note" id="wd-note"></p>
+  </section>
+
+  <section class="card" data-needs-wd>
+    <h2>Win-and-draw returns &mdash; full grid</h2>
+    <p class="desc" id="wd-grid-desc"></p>
+    <div class="chip-row" id="wd-toggle" role="group" aria-label="Grid view">
+      <button class="chip" type="button" data-mode="running" aria-pressed="true">Running total</button>
+      <button class="chip" type="button" data-mode="each" aria-pressed="false">Each game</button>
+    </div>
+    <div class="heat-scroll" id="wd-grid"></div>
+    <div class="heat-legend" id="wd-legend"></div>
   </section>
 
   <section class="card" id="games" data-needs-results>
@@ -450,6 +475,14 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
                   "-0.5": ["HL", "½L", "half lost"], "-1": ["L", "L", "lost"] };
   const coverOf = (c) => COVER[String(c)];
   const ahRowOf = (name) => (AH ? AH.rows.find((r) => r.name === name) : null);
+  const WD = D.wd;
+  const wdRowOf = (name) => (WD ? WD.rows.find((r) => r.name === name) : null);
+  // money: "+€12.40", "−€8.00", "€0.00"; cells drop the cents and the symbol: "+12", "−8"
+  const eur = (v, dp = 2) => (Math.abs(v) < 0.005 ? "€" + (0).toFixed(dp)
+    : (v > 0 ? "+" : MINUS) + "€" + Math.abs(v).toLocaleString("en-GB",
+        { minimumFractionDigits: dp, maximumFractionDigits: dp }));
+  const eurCell = (v) => { const r = Math.round(v); return r === 0 ? "0" : (r > 0 ? "+" : MINUS) + Math.abs(r); };
+  const pct = (v, dp = 1) => (v > 0 ? "+" : v < 0 ? MINUS : "") + Math.abs(v * 100).toFixed(dp) + "%";
   const isDark = () => document.documentElement.dataset.theme === "dark"
     || (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
 
@@ -1098,6 +1131,8 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       const ar = ahRowOf(t.name);
       if (ar) sum.append(" · ", b(`STDC ${stdcText(ar.stdc)}`),
         ` against the Asian handicap (${ordinal(ar.rank)})`);
+      const wr = wdRowOf(t.name);
+      if (wr) sum.append(" · ", b(`${eur(wr.profit)}`), ` from the win-and-draw bets (${ordinal(wr.rank)})`);
 
       const table = document.getElementById("gbg-table");
       table.textContent = "";
@@ -1105,6 +1140,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       const hr = el("tr", {}, thead);
       const heads = ["#", "Date", "Opponent", "Score", "Result",
         ...(AH ? ["AH line", "vs line"] : []),
+        ...(WD ? ["Win / draw odds", "W+D bet"] : []),
         "Base pts", "+ Handicap", "Game total", "Running actual", "Running adjusted"];
       for (const h of heads)
         el("th", { text: h, cls: (h === "Date" || h === "Opponent" ? "txt " : "") + "nosort" }, hr);
@@ -1125,6 +1161,15 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
             el("td", { cls: "line", text: signed(gm.ahl) }, tr);
             const [key, label] = coverOf(gm.ahc);
             el("span", { cls: `pill ${key}`, text: label }, el("td", {}, tr));
+          } else {
+            el("td", { cls: "dim", text: "\u2013" }, tr);
+            el("td", { cls: "dim", text: "\u2013" }, tr);
+          }
+        }
+        if (WD) {
+          if ("wdp" in gm) {
+            el("td", { cls: "line", text: `${gm.ow.toFixed(2)} / ${gm.od.toFixed(2)}` }, tr);
+            el("td", { cls: gm.wdp > 0 ? "delta-up" : gm.wdp < 0 ? "delta-down" : "", text: eur(gm.wdp) }, tr);
           } else {
             el("td", { cls: "dim", text: "\u2013" }, tr);
             el("td", { cls: "dim", text: "\u2013" }, tr);
@@ -1345,6 +1390,185 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
     legend.appendChild(document.createTextNode(`${stdcText(maxAbs)} net covers`));
   }
 
+  /* ---------- win-and-draw bets: the table ---------- */
+  function renderWDTable() {
+    const stake = WD.stake, sym = "€";
+    document.getElementById("wd-title").textContent =
+      `A ${sym}${fmt(stake)} win bet and a ${sym}${fmt(stake)} draw bet on every club`;
+    document.getElementById("wd-desc").textContent =
+      `Every game, ${sym}${fmt(stake)} on the club to win and ${sym}${fmt(stake)} on the draw — `
+      + `${sym}${fmt(2 * stake)} staked — at the ${WD.source} pre-closing odds. A win returns `
+      + `${sym}${fmt(stake)} × the win odds, a draw ${sym}${fmt(stake)} × the draw odds, and a `
+      + `defeat loses both stakes. Profit is net of stakes; ROI is profit as a share of everything staked. `
+      + `Sorted by profit. Click a column heading to re-sort.`;
+
+    const table = document.getElementById("wd-table");
+    const money = (v) => eur(v);
+    const cols = [
+      { k: "rank", h: "Pos", pos: true },
+      { k: "name", h: "Team", txt: true },
+      { k: "played", h: "P", dim: true },
+      { k: "w", h: "W", dim: true }, { k: "d", h: "D", dim: true }, { k: "l", h: "L", dim: true },
+      { k: "staked", h: "Staked", dim: true, show: (v) => sym + fmt(v, 2) },
+      { k: "returned", h: "Returned", show: (v) => sym + fmt(v, 2) },
+      { k: "profit", h: "Profit", emph: true, show: money, tone: true },
+      { k: "roi", h: "ROI", show: (v) => pct(v), tone: true },
+    ];
+    let sortKey = "rank", sortDir = 1;
+    function render() {
+      table.textContent = "";
+      const hr = el("tr", {}, el("thead", {}, table));
+      for (const c of cols) {
+        const th = el("th", { text: c.h, cls: c.txt ? "txt" : "" }, hr);
+        if (c.k === sortKey) {
+          el("span", { cls: "arr", text: sortDir === -1 ? "▼" : "▲" }, th);
+          th.setAttribute("aria-sort", sortDir === -1 ? "descending" : "ascending");
+        }
+        sortableHeader(th, table, c.k, () => {
+          if (sortKey === c.k) sortDir = -sortDir;
+          else { sortKey = c.k; sortDir = (c.txt || c.pos) ? 1 : -1; }
+          render();
+        });
+      }
+      const rows = [...WD.rows].sort((a, b) => {
+        const av = a[sortKey], bv = b[sortKey];
+        const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+        return cmp !== 0 ? cmp * sortDir : a.rank - b.rank;
+      });
+      const tbody = el("tbody", {}, table);
+      for (const r of rows) {
+        const tr = el("tr", { cls: r.rank === 1 ? "champ" : "" }, tbody);
+        for (const c of cols) {
+          const v = r[c.k];
+          let cls = (c.txt ? "txt " : "") + (c.dim ? "dim " : "") + (c.emph ? "emph " : "");
+          if (c.tone) cls += v > 0.004 ? "delta-up" : v < -0.004 ? "delta-down" : "";
+          el("td", { cls, text: c.show ? c.show(v) : v }, tr);
+        }
+      }
+    }
+    render();
+
+    // the notes: every figure computed from this season's data
+    const C = WD.chance, parts = [];
+    const nClubs = WD.rows.length;
+    parts.push(`Across all ${nClubs} clubs: ${sym}${fmt(WD.staked, 2)} staked, ${eur(WD.profit)} profit `
+      + `(ROI ${pct(WD.roi)}).`);
+    parts.push(`The three prices in a match imply ${fmt(C.book * 100, 1)}% on average rather than 100% — `
+      + `the bookmaker’s margin — so at these prices the strategy should expect to lose about `
+      + `${fmt(-C.expected_roi * 100, 1)}% of its stakes.`);
+    parts.push(`Done for every club, each match backs both clubs to win and the draw twice, so the league `
+      + `total rides on the draws: more than the prices implied lifts it, fewer drag it down. There were `
+      + `${C.draws} draws in ${WD.matches} matches against ${fmt(C.draws_implied, 1)} implied by the draw prices.`);
+    const wide = C.spread_observed > C.spread_chance * 1.15;
+    const best = WD.rows[0];
+    const oneIn = C.best_of_field > 0 ? Math.round(1 / C.best_of_field) : null;
+    parts.push(`Across clubs, profits are spread ${wide ? "somewhat wider than" : "about as widely as"} chance `
+      + `alone would spread them under the market’s own prices (standard deviation ${sym}${fmt(C.spread_observed, 1)} `
+      + `against ${sym}${fmt(C.spread_chance, 1)}).`
+      + (best.profit > 0 && oneIn
+        ? ` ${best.short}’s ${eur(best.profit)} is ${C.best_of_field >= 0.05
+            ? `the kind of result the luckiest of ${nClubs} clubs reaches about one season in ${oneIn}, so it is not in itself proof the market mis-priced them`
+            : `rarer than the luckiest of ${nClubs} clubs would usually reach (about one season in ${oneIn}), so the market may genuinely have under-rated them`}.`
+        : ""));
+    if (WD.alternatives.length) {
+      parts.push("The price used matters. The same bets at other prices: " + WD.alternatives.map((a) =>
+        `${a.label} ${eur(a.profit)} (${pct(a.roi)})`).join(", ")
+        + " \u2014 best available meaning the top price on offer across bookmakers for every bet.");
+    }
+    if (WD.noOdds) parts.push(`${WD.noOdds} match${WD.noOdds === 1 ? " has" : "es have"} no prices and `
+      + `${WD.noOdds === 1 ? "is" : "are"} left out.`);
+    const resultsGames = TEAMS.reduce((n, t) => n + t.played, 0) / 2;
+    if (resultsGames !== WD.matches) parts.push(`The results above cover ${resultsGames} matches and the `
+      + `prices ${WD.matches}, so the two are not yet level.`);
+    if (!D.complete) parts.push(`After ${MAXP} games one result can swing a club’s total by ${sym}${fmt(2 * stake)} or more.`);
+    parts.push(`Prices from football-data.co.uk, read from ${WD.file}.`);
+    document.getElementById("wd-note").textContent = parts.join(" ");
+  }
+
+  /* ---------- win-and-draw bets: the grid ---------- */
+  let wdMode = "running";
+  function renderWDGrid() {
+    const host = document.getElementById("wd-grid");
+    host.textContent = "";
+    const sym = "€", running = wdMode === "running";
+    const series = running ? WD.running : WD.each;
+    const league = running ? WD.leagueRunning : WD.leagueEach;
+    document.getElementById("wd-grid-desc").textContent = (running
+      ? `Running profit after each game from the ${sym}${fmt(WD.stake)} win plus ${sym}${fmt(WD.stake)} draw bet, `
+        + `rows in the order of the table above — the same idea as the covers grid, in euros.`
+      : `Profit from each game on its own: a defeat is always ${eur(-2 * WD.stake)}, a draw or a win `
+        + `pays according to its odds.`)
+      + ` Blue is profit, red a loss, and the deeper the colour the bigger the sum. The bottom row adds `
+      + `every club together: the strategy run across the whole league. Hover a cell for the game behind it.`;
+
+    const width = Math.max(...WD.rows.map((r) => series[r.name].length));
+    const maxAbs = Math.max(1, ...WD.rows.flatMap((r) => series[r.name].map(Math.abs)));
+    const table = el("table", { cls: "heat", "aria-label": running
+      ? "Running profit from the win-and-draw bet, per team per game"
+      : "Profit from the win-and-draw bet in each game, per team" }, host);
+    const hr = el("tr", {}, el("thead", {}, table));
+    el("th", { cls: "team-cell", text: "" }, hr);
+    for (let g = 1; g <= width; g++) el("th", { text: g }, hr);
+    const tbody = el("tbody", {}, table);
+    for (const r of WD.rows) {
+      const tr = el("tr", {}, tbody);
+      el("td", { cls: "team-cell", text: r.short }, tr);
+      const t = TEAMS.find((q) => q.name === r.name);
+      const priced = t ? t.games.filter((g) => "wdp" in g) : [];
+      series[r.name].forEach((v, gi) => {
+        const td = el("td", {}, tr);
+        const c = divColorT(v / maxAbs);
+        const cell = el("div", { cls: "cell money", text: eurCell(v) }, td);
+        cell.style.background = c.bg;
+        cell.style.color = c.ink;
+        td.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+          tipTitle(p, `${r.name} · game ${gi + 1}`);
+          tipRow(p, c.bg, eur(v), running ? "running profit" : "profit this game");
+          const gm = priced[gi];
+          if (gm) {
+            const res = gm.gf > gm.ga ? "W" : gm.gf === gm.ga ? "D" : "L";
+            tipRow(p, "transparent", `${res} ${gm.gf}–${gm.ga}`, `${gm.v === "H" ? "vs" : "at"} ${gm.o}, ${gm.d}`);
+            tipRow(p, "transparent", `${gm.ow.toFixed(2)} / ${gm.od.toFixed(2)}`, "win / draw odds");
+            if (running) tipRow(p, "transparent", eur(gm.wdp), "this game");
+          }
+        }));
+        td.addEventListener("pointerleave", tipHide);
+      });
+    }
+    // the whole league, uncoloured so its larger sums do not swamp the scale
+    const tr = el("tr", { cls: "total" }, tbody);
+    el("td", { cls: "team-cell", text: "All clubs" }, tr);
+    league.forEach((v, gi) => {
+      const td = el("td", {}, tr);
+      el("div", { cls: "cell money", text: eurCell(v) }, td);
+      td.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
+        tipTitle(p, `All ${WD.rows.length} clubs · game ${gi + 1}`);
+        tipRow(p, "transparent", eur(v), running ? "running profit, whole league" : "profit this game, whole league");
+        const staked = 2 * WD.stake * WD.rows.length * (running ? gi + 1 : 1);
+        tipRow(p, "transparent", sym + fmt(staked, 0), running ? "staked so far" : "staked this game");
+      }));
+      td.addEventListener("pointerleave", tipHide);
+    });
+
+    const legend = document.getElementById("wd-legend");
+    legend.textContent = "";
+    legend.appendChild(document.createTextNode(eur(-maxAbs, 0)));
+    const bar = el("span", { cls: "bar" }, legend);
+    bar.style.background = `linear-gradient(to right, ${divColorT(-1).bg}, ${divColorT(0).bg}, ${divColorT(1).bg})`;
+    legend.appendChild(document.createTextNode(`${eur(maxAbs, 0)} ${running ? "running profit" : "profit in the game"}`));
+  }
+  function wireWDToggle() {
+    const group = document.getElementById("wd-toggle");
+    for (const btn of group.querySelectorAll("button")) {
+      btn.addEventListener("click", () => {
+        wdMode = btn.dataset.mode;
+        for (const b of group.querySelectorAll("button"))
+          b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+        renderWDGrid();
+      });
+    }
+  }
+
   /* ---------- diverging bar: vs handicap expectation ---------- */
   function renderDiv() {
     document.getElementById("mean-adj").textContent = fmt(MEAN, 1);
@@ -1459,7 +1683,8 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
   }
   function renderGrids() {
     if (D.hasResults) { renderHeat(); renderRankGrid(); }
-    if (AH) renderStdcGrid();
+    if (AH && D.hasResults) renderStdcGrid();
+    if (WD && D.hasResults) renderWDGrid();
   }
   if (D.hasResults) {
     raceDefaults();
@@ -1469,6 +1694,11 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
   }
   if (AH && D.hasResults) renderAHTable();
   else document.querySelectorAll("[data-needs-ah]").forEach((n) => { n.hidden = true; });
+  if (WD && D.hasResults) { renderWDTable(); wireWDToggle(); }
+  else {
+    document.querySelectorAll("[data-needs-wd]").forEach((n) => { n.hidden = true; });
+    document.getElementById("part-wd").hidden = true;
+  }
   // drop jump links whose section is hidden this season; drop the row if none are left
   const jump = document.getElementById("jump");
   for (const a of [...jump.querySelectorAll("a")]) {

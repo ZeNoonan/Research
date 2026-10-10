@@ -118,6 +118,42 @@ states the typical price and the break-even cover rate it implies (about 1.87
 and 53.5% in 2026/27), since a side with an even record against its lines has
 lost money for anyone backing it.
 
+## A win bet and a draw bet on every club
+
+A plainer question from the same football-data file: what would a simple bet
+on every club have returned? Each game, €10 on the club to win and €10 on the
+draw (€20 staked) at the **market-average pre-closing prices** (`AvgH`,
+`AvgD`, `AvgA` — the same snapshot as the `AHh` line). A win returns
+€10 × the win odds, a draw €10 × the draw odds, a defeat loses both stakes.
+The page shows a sortable table (staked, returned, profit, ROI) and a grid of
+each club's running profit — or, toggled, its profit game by game — with a
+bottom row adding every club together. Game-by-game also shows each game's
+prices and the bet's profit.
+
+What to read into it — the page computes and states each of these every build:
+
+- **The expected return is the bookmaker's margin.** The three prices in a
+  match imply about 106% rather than 100%, so at fair-share probabilities the
+  strategy should expect to lose about 5.5–5.8% of its stakes.
+- **Done for every club, it is mostly a bet on draws.** Each match backs both
+  clubs to win and the draw twice, so more draws than priced lift the league
+  total and fewer drag it down. Draws ran hot in both seasons (16 in 50 against
+  12.1 implied in 2026/27; 104 in 380 against 93.2 in 2025/26), which is why
+  2026/27 is ahead (+6.2%) and 2025/26 lost only 1.7%.
+- **Favourites lose even when they win.** At short prices a win returns less
+  than the €20 staked, because the draw stake is lost: Man City won all five
+  of their first 2026/27 games and the bet still lost €23.20.
+- **How much is chance.** Outcomes are simulated 5,000 times from the
+  market's own (margin-free) probabilities — one outcome per match, so both
+  clubs in a fixture share it — and the strategy re-settled each time (fixed
+  seed, so every build agrees). The page compares the spread of club profits
+  with that, and says how often the luckiest of 20 clubs would reach the top
+  club's figure: Bournemouth's +€302.70 in 2025/26, about one season in 17.
+- **The price matters.** The same bets at the best available price, at
+  Bet365 and at closing market-average prices are totalled for comparison
+  (2026/27: +11.3%, +6.9%, +7.1%). Best available means taking the top price
+  across bookmakers for every bet, which few bettors manage.
+
 ## Build
 
 ```bash
@@ -151,7 +187,8 @@ premier_league_handicap/
 A season becomes buildable as soon as it has a `season_handicap.csv`: with no
 results yet the page shows the handicaps and the odds market, and the table,
 race and grids appear once `results.csv` lands. The Asian handicap part appears
-once there are results and a lines file.
+once there are results and a lines file, and the win-and-draw part once that
+file also carries `AvgH`/`AvgD`/`AvgA` prices.
 
 **Weekly update:** refresh `results.csv` and `football_data.csv`, then run
 `python build_site.py`. If the two files disagree on any fixture the build

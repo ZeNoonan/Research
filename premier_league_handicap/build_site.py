@@ -14,9 +14,10 @@ import math
 import sys
 from pathlib import Path
 
-from analysis import (GAMES_PER_SEASON, SEASONS, ah_price_summary, ah_source, has_ah,
-                      has_results, load_ah, load_all, load_handicaps, market_view,
-                      season_dir)
+from analysis import (GAMES_PER_SEASON, PRICE_SOURCES, SEASONS, WD_STAKE,
+                      ah_price_summary, ah_source, has_1x2, has_ah, has_results,
+                      load_ah, load_all, load_handicaps, load_wd, market_view,
+                      season_dir, wd_chance)
 
 HERE = Path(__file__).parent
 TEMPLATE = HERE / "template.html"
@@ -156,9 +157,83 @@ def ah_payload(season: str):
     return block, lookup
 
 
+def wd_payload(season: str):
+    """Win-and-draw bet: table, running and per-game profits, chance check.
+
+    Returns (block, lookup) like ``ah_payload``; ``lookup`` maps
+    (team, opponent, venue) to (win odds, draw odds, profit) for the
+    game-by-game explorer.
+    """
+    odds, games, table = load_wd(season)
+    rows = [
+        {
+            "name": r.team,
+            "short": SHORT_NAMES.get(r.team, r.team),
+            "rank": int(r.wd_rank),
+            "played": int(r.played),
+            "w": int(r.w), "d": int(r.d), "l": int(r.l),
+            "staked": round(float(r.staked), 2),
+            "returned": round(float(r.returned), 2),
+            "profit": round(float(r.profit), 2),
+            # 6 places: the page rounds to 1 decimal of a percent, and rounding twice misreports
+            "roi": round(float(r.roi), 6),
+        }
+        for r in table.itertuples()
+    ]
+    ordered = {team: grp.sort_values("wd_no") for team, grp in games.groupby("team")}
+    each = {team: [round(float(v), 2) for v in g["profit"]] for team, g in ordered.items()}
+    running = {team: [round(float(v), 2) for v in g["cum_profit"]] for team, g in ordered.items()}
+    # every club's k-th game summed: the league-wide return of the strategy, game by game
+    by_game = games.groupby("wd_no")["profit"].sum()
+    league_each = [round(float(v), 2) for v in by_game]
+    league_running = [round(float(v), 2) for v in by_game.cumsum()]
+
+    chance = wd_chance(odds, table)
+    staked = float(table["staked"].sum()); profit = float(table["profit"].sum())
+    alternatives = []
+    for src, label in PRICE_SOURCES.items():
+        if src == "Avg" or not has_1x2(season, src):
+            continue
+        _, _, alt = load_wd(season, src)
+        alt_profit = float(alt["profit"].sum())
+        alternatives.append({"label": label, "profit": round(alt_profit, 2),
+                             "roi": round(alt_profit / float(alt["staked"].sum()), 6)})
+    lookup = {
+        (g.team, g.opponent, g.venue): (float(g.win_odds), float(g.draw_odds), float(g.profit))
+        for g in games.itertuples()
+    }
+    block = {
+        "stake": WD_STAKE,
+        "source": PRICE_SOURCES["Avg"],
+        "file": ah_source(season).name,
+        "matches": int(len(odds)),
+        "noOdds": int(odds.attrs["no_odds"]),
+        "staked": round(staked, 2),
+        "profit": round(profit, 2),
+        "roi": round(profit / staked, 6),
+        "rows": rows,
+        "each": each,
+        "running": running,
+        "leagueEach": league_each,
+        "leagueRunning": league_running,
+        "chance": {k: round(v, 4) if isinstance(v, float) else v for k, v in chance.items()},
+        "alternatives": alternatives,
+    }
+    return block, lookup
+
+
+def wd_fields(found):
+    """Per-game win and draw prices and the bet's profit, when the game has prices."""
+    if found is None:
+        return {}
+    win_odds, draw_odds, profit = found
+    return {"ow": win_odds, "od": draw_odds, "wdp": round(profit, 2)}
+
+
 def build_payload(season: str) -> dict:
     handicaps, results, games, standings = load_all(season)
     ah_block, ah_lookup = ah_payload(season) if has_ah(season) else (None, {})
+    wd_block, wd_lookup = wd_payload(season) if has_1x2(season) else (None, {})
     max_played = int(standings["played"].max())
     complete = bool((standings["played"] == GAMES_PER_SEASON).all())
 
@@ -192,6 +267,7 @@ def build_payload(season: str) -> dict:
                     "ga": int(g["ga"]),
                     "p": int(g["base_points"]),
                     **ah_fields(ah_lookup.get((name, g["opponent"], g["venue"]))),
+                    **wd_fields(wd_lookup.get((name, g["opponent"], g["venue"]))),
                 }
                 for _, g in tg.iterrows()
             ],
@@ -223,6 +299,7 @@ def build_payload(season: str) -> dict:
         "teams": teams,
         "market": market_payload(handicaps),
         "ah": ah_block,
+        "wd": wd_block,
     }
 
 

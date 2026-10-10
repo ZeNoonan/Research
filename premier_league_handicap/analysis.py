@@ -14,6 +14,7 @@ For a completed season played == 38, so this reduces to actual + handicap.
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -547,6 +548,177 @@ def load_ah(season: str):
     games = build_ah_games(ah, handicaps)
     _, _, _, standings = load_all(season)
     return ah, games, build_ah_table(games, standings)
+
+
+# --- Win-and-draw bets (1X2 market) -----------------------------------------
+#
+# A simple strategy, applied to every club in every game: a stake on the club
+# to win and the same stake on the draw. A win returns stake x win odds, a draw
+# stake x draw odds, a defeat loses both stakes. Prices come from the same
+# football-data.co.uk file as the Asian handicap lines.
+
+WD_STAKE = 10.0
+
+# football-data column prefix -> how the page names it. "Avg" is the default:
+# the market average of the pre-closing prices, matching the AHh line used for
+# the Asian handicap.
+PRICE_SOURCES = {
+    "Avg": "market-average",
+    "Max": "best available",
+    "B365": "Bet365",
+    "AvgC": "closing market-average",
+}
+
+
+def has_1x2(season: str, source: str = "Avg") -> bool:
+    path = ah_source(season)
+    if path is None:
+        return False
+    header = pd.read_csv(path, nrows=0, encoding="utf-8-sig").columns
+    return {source + "H", source + "D", source + "A"}.issubset(header)
+
+
+def load_1x2(season: str, source: str = "Avg") -> pd.DataFrame:
+    """One row per match with prices: date, clubs, score, home/draw/away odds.
+
+    A match missing any of the three prices is dropped and counted in
+    ``attrs["no_odds"]``.
+    """
+    df = pd.read_csv(ah_source(season), encoding="utf-8-sig")
+    df = df.dropna(subset=["HomeTeam", "AwayTeam", "FTHG", "FTAG"])
+    df = df[df["HomeTeam"].astype(str).str.strip() != ""]
+    cols = [source + "H", source + "D", source + "A"]
+    out = pd.DataFrame(
+        {
+            "Date": _parse_dates(df["Date"]),
+            "HomeTeam": df["HomeTeam"].map(canonical_team),
+            "AwayTeam": df["AwayTeam"].map(canonical_team),
+            "FTHG": df["FTHG"].astype(int),
+            "FTAG": df["FTAG"].astype(int),
+            "oh": df[cols[0]].astype(float),
+            "od": df[cols[1]].astype(float),
+            "oa": df[cols[2]].astype(float),
+        }
+    )
+    no_odds = int(out[["oh", "od", "oa"]].isna().any(axis=1).sum())
+    out = out.dropna(subset=["oh", "od", "oa"]).sort_values("Date").reset_index(drop=True)
+    out.attrs["no_odds"] = no_odds
+    return out
+
+
+def settle_win_draw(goals_for: int, goals_against: int, win_odds: float,
+                    draw_odds: float, stake: float = WD_STAKE) -> float:
+    """Profit, net of both stakes, from a win bet plus a draw bet on one side."""
+    if goals_for > goals_against:
+        returned = stake * win_odds
+    elif goals_for == goals_against:
+        returned = stake * draw_odds
+    else:
+        returned = 0.0
+    return returned - 2 * stake
+
+
+def build_wd_games(odds: pd.DataFrame, handicaps: pd.DataFrame,
+                   stake: float = WD_STAKE) -> pd.DataFrame:
+    """One row per team per match: its win and draw prices and the bet's profit."""
+    display = dict(zip(handicaps["club"], handicaps["team"]))
+    rows = []
+    for m in odds.itertuples():
+        for club, opp, gf, ga, venue, win_odds in (
+            (m.HomeTeam, m.AwayTeam, m.FTHG, m.FTAG, "Home", m.oh),
+            (m.AwayTeam, m.HomeTeam, m.FTAG, m.FTHG, "Away", m.oa),
+        ):
+            profit = settle_win_draw(gf, ga, win_odds, m.od, stake)
+            rows.append(
+                {
+                    "team": display[club],
+                    "date": m.Date,
+                    "venue": venue,
+                    "opponent": display[opp],
+                    "gf": gf,
+                    "ga": ga,
+                    "win_odds": win_odds,
+                    "draw_odds": m.od,
+                    "result": "W" if gf > ga else "D" if gf == ga else "L",
+                    "profit": profit,
+                }
+            )
+    games = pd.DataFrame(rows).sort_values(["team", "date"]).reset_index(drop=True)
+    games["wd_no"] = games.groupby("team").cumcount() + 1
+    games["cum_profit"] = games.groupby("team")["profit"].cumsum()
+    return games
+
+
+def build_wd_table(games: pd.DataFrame, stake: float = WD_STAKE) -> pd.DataFrame:
+    """Season-to-date returns from the win-and-draw bet, one row per team."""
+    count = lambda v: ("result", lambda s: int((s == v).sum()))
+    table = (
+        games.groupby("team")
+        .agg(played=("profit", "size"), w=count("W"), d=count("D"), l=count("L"),
+             profit=("profit", "sum"))
+        .reset_index()
+    )
+    table["staked"] = table["played"] * 2 * stake
+    table["returned"] = table["staked"] + table["profit"]
+    table["roi"] = table["profit"] / table["staked"]
+    table = table.sort_values(["profit", "team"], ascending=[False, True]).reset_index(drop=True)
+    table.insert(0, "wd_rank", table.index + 1)
+    return table
+
+
+def wd_chance(odds: pd.DataFrame, table: pd.DataFrame, stake: float = WD_STAKE,
+              sims: int = 5000, seed: int = 2026) -> dict:
+    """How the season's returns compare with chance under the market's own prices.
+
+    The market's fair probabilities are the implied ones (1 / odds) scaled so
+    each match's three sum to 1. Outcomes are simulated from them -- one draw
+    per match, so both clubs in a fixture share it -- and the strategy is
+    re-settled on every simulated season. The seed is fixed so each build gives
+    the same figures.
+    """
+    prices = odds[["oh", "od", "oa"]].to_numpy(float)
+    implied = 1.0 / prices
+    book = implied.sum(axis=1)
+    fair = implied / book[:, None]
+    actual = np.select([odds.FTHG > odds.FTAG, odds.FTHG == odds.FTAG], [0, 1], 2)
+
+    # profit to each side of each match, for outcome home win / draw / away win
+    n = len(odds)
+    home_pnl = np.column_stack([stake * prices[:, 0], stake * prices[:, 1], np.zeros(n)]) - 2 * stake
+    away_pnl = np.column_stack([np.zeros(n), stake * prices[:, 1], stake * prices[:, 2]]) - 2 * stake
+
+    clubs = sorted(set(odds.HomeTeam) | set(odds.AwayTeam))
+    idx = {c: i for i, c in enumerate(clubs)}
+    home_of = np.zeros((len(clubs), n)); away_of = np.zeros((len(clubs), n))
+    home_of[odds.HomeTeam.map(idx).to_numpy(), np.arange(n)] = 1
+    away_of[odds.AwayTeam.map(idx).to_numpy(), np.arange(n)] = 1
+
+    rng = np.random.default_rng(seed)
+    outcome = (rng.random((sims, n))[:, :, None] > fair.cumsum(axis=1)[None, :, :-1]).sum(axis=2)
+    pick = lambda pnl: np.take_along_axis(np.broadcast_to(pnl, (sims, n, 3)), outcome[:, :, None], 2)[:, :, 0]
+    club_totals = pick(home_pnl) @ home_of.T + pick(away_pnl) @ away_of.T   # sims x clubs
+
+    best = table.iloc[0]
+    return {
+        "expected_roi": float(np.mean(1.0 / book) - 1.0),
+        "book": float(book.mean()),
+        "draws": int((actual == 1).sum()),
+        "draws_implied": float(fair[:, 1].sum()),
+        "spread_observed": float(table["profit"].std(ddof=0)),
+        "spread_chance": float(club_totals.std(axis=1).mean()),
+        "league_percentile": float((club_totals.sum(axis=1) <= table["profit"].sum()).mean()),
+        "best_of_field": float((club_totals.max(axis=1) >= best["profit"]).mean()),
+    }
+
+
+def load_wd(season: str, source: str = "Avg"):
+    """Win-and-draw bet: prices, per-team games and table for a season."""
+    handicaps = load_handicaps(season)
+    odds = load_1x2(season, source)
+    if has_results(season) and ah_source(season) != season_dir(season) / "results.csv":
+        check_ah_against_results(odds, load_results(season))
+    games = build_wd_games(odds, handicaps)
+    return odds, games, build_wd_table(games)
 
 
 def load_all(season: str = "2025_2026"):
