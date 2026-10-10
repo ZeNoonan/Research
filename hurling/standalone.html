@@ -15,6 +15,8 @@
     --muted: #667;
   }
   * { box-sizing: border-box; }
+  /* The phone card layout sets display:block on tables, which would otherwise beat the [hidden] attribute. */
+  [hidden] { display: none !important; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
@@ -55,16 +57,20 @@
   main { padding: 12px; max-width: 1100px; margin: 0 auto; }
 
   /* Wide-screen table */
-  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  /* No overflow:hidden here: it turns the table into the sticky container and breaks the sticky header. */
+  table { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   thead th {
     background: var(--green); color: #fff; text-align: left;
-    padding: 10px 12px; font-size: 13px; position: sticky; top: 58px;
+    padding: 10px 12px; font-size: 13px; position: sticky; top: var(--controls-h, 58px); z-index: 4;
   }
+  thead th:first-child { border-top-left-radius: 10px; }
+  thead th:last-child { border-top-right-radius: 10px; }
   tbody td { padding: 10px 12px; border-top: 1px solid var(--line); font-size: 14px; vertical-align: top; }
   tbody tr:nth-child(even) { background: #fafbfa; }
   .pos-no { display:inline-block; min-width: 22px; text-align:center; background: var(--green); color:#fff; border-radius: 6px; padding: 1px 4px; font-size: 12px; font-weight: 700; }
   .hotw-badge { background: var(--accent); color:#222; font-size: 11px; font-weight:700; padding: 1px 6px; border-radius: 6px; margin-left: 6px; }
-  .week-head { background: var(--green-dark); color:#fff; }
+  /* Must out-rank the even-row stripe above, or headings on even rows (e.g. when filtered) go white-on-grey. */
+  tbody tr.week-head { background: var(--green-dark); color:#fff; }
   .week-head td { font-weight: 700; font-size: 14px; padding: 10px 12px; }
   .week-head .sub { font-weight: 400; opacity: 0.85; font-size: 12px; }
 
@@ -80,14 +86,17 @@
       content: attr(data-label);
       display: inline-block; width: 90px; color: var(--muted); font-size: 12px; font-weight: 600;
     }
-    .week-head { display: block; background: var(--green-dark); border-radius: 8px; margin: 14px 0 8px; }
+    .cards tbody tr.week-head { background: var(--green-dark); border: none; border-radius: 8px; margin: 14px 0 8px; }
     .week-head td { display:block; color:#fff; }
-    .week-head td::before { content: none; }
+    .cards tbody tr.week-head td::before { content: none; }
+    /* Skip empty fields (e.g. no club recorded) so cards stay compact. */
+    .cards tbody td:empty { display: none; }
   }
   .empty { text-align:center; color: var(--muted); padding: 40px 16px; line-height: 1.6; }
   footer { text-align:center; color: var(--muted); font-size: 12px; padding: 20px; }
-  .banner { background: #fff7e6; border: 1px solid #f0c36d; color: #5a4500; font-size: 12px; line-height: 1.5; padding: 10px 14px; margin: 12px; border-radius: 8px; }
-  .banner b { color: #7a3b00; }
+  .banner { background: #fff7e6; border: 1px solid #f0c36d; color: #5a4500; font-size: 12px; line-height: 1.5; padding: 8px 14px; margin: 12px; border-radius: 8px; }
+  .banner summary { cursor: pointer; font-weight: 700; color: #7a3b00; }
+  .banner p { margin: 6px 0 2px; }
   .src a { color: var(--green-dark); text-decoration: none; font-size: 12px; }
   .src a:hover { text-decoration: underline; }
   .conf { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
@@ -98,10 +107,11 @@
   .opp { color: var(--muted); }
   .rank { display:inline-block; min-width: 22px; text-align:center; background: var(--green-dark); color:#fff; border-radius: 6px; padding: 1px 6px; font-size: 12px; font-weight: 700; }
   /* Matrix / dataframe view */
-  .matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-  #matrix { width: auto; min-width: 100%; border-collapse: collapse; border-radius: 0; box-shadow: none; overflow: visible; }
-  #matrix th, #matrix td { border: 1px solid var(--line); padding: 6px 8px; font-size: 13px; text-align: center; white-space: nowrap; vertical-align: middle; }
-  #matrix thead th { background: var(--green); color:#fff; position: sticky; top: 0; z-index: 2; }
+  /* The grid scrolls inside its own pane so the week headings and player column stay pinned. */
+  .matrix-wrap { overflow: auto; -webkit-overflow-scrolling: touch; max-height: calc(100vh - var(--controls-h, 80px) - 24px); min-height: 280px; background:#fff; border: 1px solid var(--line); border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  #matrix { width: auto; min-width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 0; box-shadow: none; }
+  #matrix th, #matrix td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); border-top: 0; padding: 6px 8px; font-size: 13px; text-align: center; white-space: nowrap; vertical-align: middle; }
+  #matrix thead th { background: var(--green); color:#fff; position: sticky; top: 0; z-index: 2; border-radius: 0; }
   #matrix th.player, #matrix td.player { text-align: left; position: sticky; left: 0; background:#fff; font-weight: 600; z-index: 1; }
   #matrix tbody tr:nth-child(even) td { background: #fafbfa; }
   #matrix tbody tr:nth-child(even) td.player { background: #fafbfa; }
@@ -118,12 +128,15 @@
 <body>
 <header>
   <h1>🏑 Hurling Team of the Week — 2026</h1>
-  <p id="subtitle">GAA.ie weekly selections</p>
+  <p id="subtitle">GAA.ie Team of the Week &amp; Hurler of the Week — 2026 Championship</p>
 </header>
-<div class="banner" id="banner" hidden></div>
+<details class="banner" id="banner" hidden>
+  <summary>ℹ About this data</summary>
+  <div id="bannerText"></div>
+</details>
 
 <div class="controls">
-  <select id="viewMode">
+  <select id="viewMode" aria-label="View">
     <option value="matrix">Teams: grid (player × week)</option>
     <option value="week">Teams: by week</option>
     <option value="leader">Teams: most selected</option>
@@ -131,14 +144,14 @@
     <option value="hotwGrid">Hurler of the Week: nominations grid</option>
     <option value="hotwLead">Hurler of the Week: most awards</option>
   </select>
-  <select id="weekFilter"><option value="">All weeks</option></select>
-  <select id="countyFilter"><option value="">All counties</option></select>
-  <input id="search" type="search" placeholder="Search player / club…">
+  <select id="weekFilter" aria-label="Week"><option value="">All weeks</option></select>
+  <select id="countyFilter" aria-label="County"><option value="">All counties</option></select>
+  <input id="search" type="search" placeholder="Search player…" aria-label="Search player">
   <div class="count" id="count"></div>
 </div>
 
 <main>
-  <table id="tbl" class="cards">
+  <table id="tbl" class="cards" hidden>
     <thead>
       <tr>
         <th>Pos</th><th>Position</th><th>Player</th><th>Club</th><th>County</th><th>Opponent</th><th>Week</th><th>Round / notes</th>
@@ -191,18 +204,35 @@ function flatten(data) {
         weekLabel: w.label || w.date || w.id,
         date: w.date || '',
         round: w.round || w.competition || '',
+        abbr: w.abbr || '',
         no: p.no, position: p.position || '',
         player: p.player || '', club: p.club || '', county: p.county || '',
         opponent: p.opponent || '',
         notes: p.notes || '',
         source: p.source || w.source_url || '',
         confidence: p.confidence || '',
-        hotw: (w.hurler_of_the_week && (w.hurler_of_the_week.player === p.player)) || false
+        // County must match too: there are two Brian Hayes (Cork and Dublin).
+        hotw: !!(w.hurler_of_the_week && w.hurler_of_the_week.player === p.player &&
+                 (w.hurler_of_the_week.county || '') === (p.county || ''))
       });
     });
   });
   return rows;
 }
+
+// The Hurler of the Week file is the source of truth for winners, so team rows take their
+// badge from it: a team week matches the HotW week dated within two days of it.
+function markHotw() {
+  const wins = ((HOTW && HOTW.weeks) || []).filter(w => w.player);
+  const DAY = 86400000;
+  ROWS.forEach(r => {
+    const t = Date.parse(r.date);
+    const w = wins.find(x => Math.abs(Date.parse(x.date) - t) <= 2 * DAY);
+    if (w) r.hotw = (w.player === r.player && (w.county || '') === r.county);
+  });
+}
+
+function isUrl(s) { return /^https?:\/\//.test(s || ''); }
 
 function populateFilters() {
   const wf = document.getElementById('weekFilter');
@@ -230,16 +260,25 @@ function hideAllViews() {
   ['tbl','lead','matrixWrap','hotw','hotwLead'].forEach(id => { document.getElementById(id).hidden = true; });
 }
 
+let lastMode = null;
+
 function render() {
   const mode = document.getElementById('viewMode').value;
   document.getElementById('weekFilter').disabled = (mode !== 'week');
   hideAllViews();
+  if (mode !== lastMode) {
+    // Both grids share one scroll pane; start each view from its top-left corner.
+    const wrap = document.getElementById('matrixWrap');
+    wrap.scrollTop = 0; wrap.scrollLeft = 0;
+    lastMode = mode;
+  }
   if (mode === 'leader') renderLeader();
   else if (mode === 'matrix') renderMatrix();
   else if (mode === 'hotw') renderHotw();
   else if (mode === 'hotwGrid') renderHotwGrid();
   else if (mode === 'hotwLead') renderHotwLead();
   else renderWeek();
+  syncControlsHeight();
 }
 
 function renderWeek() {
@@ -285,9 +324,9 @@ function renderWeek() {
       <td data-label="Player">${r.player}${r.hotw ? '<span class="hotw-badge">Hurler of the Week</span>' : ''}</td>
       <td data-label="Club">${r.club}</td>
       <td data-label="County">${r.county}</td>
-      <td data-label="Opponent"><span class="opp">${r.opponent ? 'v ' + r.opponent : ''}</span></td>
-      <td data-label="Week">${r.weekLabel}</td>
-      <td data-label="Notes">${[r.notes].filter(Boolean).join(' · ')}${(r.confidence && r.confidence !== 'confirmed') ? ` <span class="conf ${r.confidence}">${r.confidence}</span>` : ''}${r.source ? ` <span class="src"><a href="${r.source}" target="_blank" rel="noopener">source ↗</a></span>` : ''}</td>`;
+      <td data-label="Opponent">${r.opponent ? '<span class="opp">v ' + r.opponent + '</span>' : ''}</td>
+      <td data-label="Week">${fmtDate(r.date) || r.weekLabel}${r.abbr ? ' · ' + r.abbr : ''}</td>
+      <td data-label="Notes">${r.notes}${(r.confidence && r.confidence !== 'confirmed') ? ` <span class="conf ${r.confidence}">${r.confidence}</span>` : ''}${isUrl(r.source) ? ` <span class="src"><a href="${r.source}" target="_blank" rel="noopener">source ↗</a></span>` : ''}</td>`;
     body.appendChild(tr);
   });
 }
@@ -477,7 +516,7 @@ function renderHotw() {
       <td data-label="Week">${fmtDate(w.date) || w.label || w.id}</td>
       <td data-label="Hurler of the Week"><strong>${w.player || ''}</strong><span class="hotw-badge">HotW</span>${nominees}</td>
       <td data-label="County">${w.county || ''}</td>
-      <td data-label="Opponent"><span class="opp">${w.opponent ? 'v ' + w.opponent : ''}</span></td>
+      <td data-label="Opponent">${w.opponent ? '<span class="opp">v ' + w.opponent + '</span>' : ''}</td>
       <td data-label="Notes">${notes}${(w.confidence && w.confidence !== 'confirmed') ? ` <span class="conf unconfirmed">${w.confidence}</span>` : ''}</td>`;
     body.appendChild(tr);
   });
@@ -527,17 +566,27 @@ function renderHotwLead() {
   });
 }
 
+// Sticky table headers sit just under the controls bar, whose height changes as it wraps.
+function syncControlsHeight() {
+  const h = document.querySelector('.controls').offsetHeight;
+  document.documentElement.style.setProperty('--controls-h', h + 'px');
+}
+
 function boot(d, h) {
   DATA = d; ROWS = flatten(d);
   HOTW = h || { weeks: [] };
-  document.getElementById('subtitle').textContent = d.competition || 'GAA.ie weekly selections';
-  document.getElementById('updated').textContent = 'updated ' + (d.last_updated || '');
-  if (d.data_status) {
-    const b = document.getElementById('banner');
-    b.hidden = false;
-    b.innerHTML = '<b>ℹ Data note.</b> ' + d.data_status;
+  markHotw();
+  const updated = [d.last_updated, HOTW.last_updated].filter(Boolean).sort().pop();
+  document.getElementById('updated').textContent = updated ? 'updated ' + updated : '';
+  const notes = [d.data_status, HOTW.data_status].filter(Boolean);
+  if (notes.length) {
+    const text = document.getElementById('bannerText');
+    notes.forEach(n => { const p = document.createElement('p'); p.textContent = n; text.appendChild(p); });
+    document.getElementById('banner').hidden = false;
   }
   populateFilters();
+  syncControlsHeight();
+  window.addEventListener('resize', syncControlsHeight);
   render();
 }
 
@@ -545,8 +594,8 @@ const d = {
   "season": 2026,
   "competition": "GAA.ie Hurling Team of the Week — 2026 Championship",
   "source": "Official GAA.ie 'Hurling Team of the Week' graphics (uploaded screenshots)",
-  "last_updated": "2026-06-24",
-  "data_status": "Built from the official GAA.ie 'Hurling Team of the Week' graphics supplied as screenshots (championship weeks only). Player names are transcribed directly from each graphic. Counties confirmed by the user are set; counties that could not be read from the small on-graphic crest are left blank and flagged 'unconfirmed'. Each player's 'opponent' is the county their team played that weekend, taken from the Munster/Leinster SHC and All-Ireland QF results. Tier-2 players (Joe McDonagh Cup / Christy Ring) have a blank opponent where the fixture could not be verified.",
+  "last_updated": "2026-10-10",
+  "data_status": "Team of the Week: transcribed from the official GAA.ie graphics (championship weeks only), with every county confirmed. 'Opponent' is the county the player's team faced that weekend. Six tier-2 selections (Joe McDonagh Cup / Christy Ring) have no opponent recorded yet. No graphic yet for 5 May or for the final.",
   "notes": "Each week the GAA name a 15-player Hurling Team of the Week plus a Hurler of the Week. Positions follow standard hurling numbering 1-15. 'opponent' = the team the player's county faced in the round that earned the selection.",
   "positions": [
     { "no": 1, "name": "Goalkeeper" },
@@ -573,7 +622,7 @@ const d = {
       "round": "Championship Round 1",
       "abbr": "Rd 1",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Stephen Bennett", "county": "Waterford" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (20 Apr 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Billy Nolan", "club": "", "county": "Waterford", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
@@ -600,7 +649,7 @@ const d = {
       "round": "Championship Round 2",
       "abbr": "Rd 2",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Darragh Fitzgibbon", "county": "Cork" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (27 Apr 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Liam Hoare", "club": "", "county": "Offaly", "opponent": "Galway", "notes": "", "confidence": "confirmed", "source": "" },
@@ -627,7 +676,7 @@ const d = {
       "round": "Championship Round 3",
       "abbr": "Rd 3",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Brian Hayes", "county": "Cork" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (11 May 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Patrick Collins", "club": "", "county": "Cork", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
@@ -654,7 +703,7 @@ const d = {
       "round": "Championship Round 4",
       "abbr": "Rd 4",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Diarmuid Stritch", "county": "Clare" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (18 May 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Sean Kelly", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "", "confidence": "confirmed", "source": "" },
@@ -681,7 +730,7 @@ const d = {
       "round": "Championship Round 5",
       "abbr": "Rd 5",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Shane Barrett", "county": "Cork" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (25 May 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Patrick Collins", "club": "", "county": "Cork", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
@@ -754,6 +803,33 @@ const d = {
         { "no": 14, "position": "Full-forward", "player": "Brian Hayes", "club": "", "county": "Cork", "opponent": "Offaly", "notes": "Voted GAA.ie Hurler of the Week.", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Alan Walsh", "club": "", "county": "Cork", "opponent": "Offaly", "notes": "", "confidence": "confirmed", "source": "" }
       ]
+    },
+    {
+      "id": "ai-shc-sf",
+      "label": "All-Ireland SHC Semi-Finals (6 Jul 2026)",
+      "date": "2026-07-06",
+      "round": "All-Ireland SHC Semi-Finals",
+      "abbr": "Semi-F",
+      "confirmed": true,
+      "hurler_of_the_week": null,
+      "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (6 Jul 2026)",
+      "players": [
+        { "no": 1, "position": "Goalkeeper", "player": "Darach Fahy", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 2, "position": "Right corner-back", "player": "Darragh Lohan", "club": "", "county": "Clare", "opponent": "Limerick", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 3, "position": "Full-back", "player": "Cillian Trayers", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 4, "position": "Left corner-back", "player": "Darren Morrissey", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 5, "position": "Right half-back", "player": "Diarmuid Ryan", "club": "", "county": "Clare", "opponent": "Limerick", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 6, "position": "Centre half-back", "player": "William O'Donoghue", "club": "", "county": "Limerick", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 7, "position": "Left half-back", "player": "Ronan Glennon", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 8, "position": "Midfield", "player": "Adam English", "club": "", "county": "Limerick", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 9, "position": "Midfield", "player": "Gavin Lee", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 10, "position": "Right half-forward", "player": "Gearóid Hegarty", "club": "", "county": "Limerick", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 11, "position": "Centre half-forward", "player": "Peter Duggan", "club": "", "county": "Clare", "opponent": "Limerick", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Cathal O'Neill", "club": "", "county": "Limerick", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 13, "position": "Right corner-forward", "player": "Tony Kelly", "club": "", "county": "Clare", "opponent": "Limerick", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 14, "position": "Full-forward", "player": "Jason Rabbitte", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 15, "position": "Left corner-forward", "player": "Brian Hayes", "club": "", "county": "Cork", "opponent": "Galway", "notes": "", "confidence": "confirmed", "source": "" }
+      ]
     }
   ]
 };
@@ -761,8 +837,8 @@ const h = {
   "season": 2026,
   "competition": "GAA.ie Hurler of the Week — 2026 Championship",
   "source": "Official GAA.ie 'Hurler of the Week' graphics (uploaded screenshots)",
-  "last_updated": "2026-06-29",
-  "data_status": "One winner per week with the three nominees, for every championship week from 20 Apr to the 21 Jun quarter-finals. Winners and nominees supplied by the user.",
+  "last_updated": "2026-10-10",
+  "data_status": "Hurler of the Week: the winner and three nominees for every week from 20 Apr to the 21 Jun quarter-finals, as supplied by the user. The semi-final (6 Jul) and final weeks are still to add.",
   "weeks": [
     {
       "id": "hotw-2026-04-20",

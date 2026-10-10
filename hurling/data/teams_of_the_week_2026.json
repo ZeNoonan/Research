@@ -2,8 +2,8 @@
   "season": 2026,
   "competition": "GAA.ie Hurling Team of the Week — 2026 Championship",
   "source": "Official GAA.ie 'Hurling Team of the Week' graphics (uploaded screenshots)",
-  "last_updated": "2026-06-24",
-  "data_status": "Built from the official GAA.ie 'Hurling Team of the Week' graphics supplied as screenshots (championship weeks only). Player names are transcribed directly from each graphic. Counties confirmed by the user are set; counties that could not be read from the small on-graphic crest are left blank and flagged 'unconfirmed'. Each player's 'opponent' is the county their team played that weekend, taken from the Munster/Leinster SHC and All-Ireland QF results. Tier-2 players (Joe McDonagh Cup / Christy Ring) have a blank opponent where the fixture could not be verified.",
+  "last_updated": "2026-10-10",
+  "data_status": "Team of the Week: transcribed from the official GAA.ie graphics (championship weeks only), with every county confirmed. 'Opponent' is the county the player's team faced that weekend. Six tier-2 selections (Joe McDonagh Cup / Christy Ring) have no opponent recorded yet. No graphic yet for 5 May or for the final.",
   "notes": "Each week the GAA name a 15-player Hurling Team of the Week plus a Hurler of the Week. Positions follow standard hurling numbering 1-15. 'opponent' = the team the player's county faced in the round that earned the selection.",
   "positions": [
     { "no": 1, "name": "Goalkeeper" },
@@ -30,7 +30,7 @@
       "round": "Championship Round 1",
       "abbr": "Rd 1",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Stephen Bennett", "county": "Waterford" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (20 Apr 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Billy Nolan", "club": "", "county": "Waterford", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
@@ -57,7 +57,7 @@
       "round": "Championship Round 2",
       "abbr": "Rd 2",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Darragh Fitzgibbon", "county": "Cork" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (27 Apr 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Liam Hoare", "club": "", "county": "Offaly", "opponent": "Galway", "notes": "", "confidence": "confirmed", "source": "" },
@@ -84,7 +84,7 @@
       "round": "Championship Round 3",
       "abbr": "Rd 3",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Brian Hayes", "county": "Cork" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (11 May 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Patrick Collins", "club": "", "county": "Cork", "opponent": "Waterford", "notes": "", "confidence": "confirmed", "source": "" },
@@ -111,7 +111,7 @@
       "round": "Championship Round 4",
       "abbr": "Rd 4",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Diarmuid Stritch", "county": "Clare" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (18 May 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Sean Kelly", "club": "", "county": "Galway", "opponent": "Dublin", "notes": "", "confidence": "confirmed", "source": "" },
@@ -138,7 +138,7 @@
       "round": "Championship Round 5",
       "abbr": "Rd 5",
       "confirmed": true,
-      "hurler_of_the_week": null,
+      "hurler_of_the_week": { "player": "Shane Barrett", "county": "Cork" },
       "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (25 May 2026)",
       "players": [
         { "no": 1, "position": "Goalkeeper", "player": "Patrick Collins", "club": "", "county": "Cork", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
@@ -210,6 +210,33 @@
         { "no": 13, "position": "Right corner-forward", "player": "Shane O'Donnell", "club": "", "county": "Clare", "opponent": "Dublin", "notes": "", "confidence": "confirmed", "source": "" },
         { "no": 14, "position": "Full-forward", "player": "Brian Hayes", "club": "", "county": "Cork", "opponent": "Offaly", "notes": "Voted GAA.ie Hurler of the Week.", "confidence": "confirmed", "source": "" },
         { "no": 15, "position": "Left corner-forward", "player": "Alan Walsh", "club": "", "county": "Cork", "opponent": "Offaly", "notes": "", "confidence": "confirmed", "source": "" }
+      ]
+    },
+    {
+      "id": "ai-shc-sf",
+      "label": "All-Ireland SHC Semi-Finals (6 Jul 2026)",
+      "date": "2026-07-06",
+      "round": "All-Ireland SHC Semi-Finals",
+      "abbr": "Semi-F",
+      "confirmed": true,
+      "hurler_of_the_week": null,
+      "source_url": "Uploaded GAA.ie Hurling Team of the Week graphic (6 Jul 2026)",
+      "players": [
+        { "no": 1, "position": "Goalkeeper", "player": "Darach Fahy", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 2, "position": "Right corner-back", "player": "Darragh Lohan", "club": "", "county": "Clare", "opponent": "Limerick", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 3, "position": "Full-back", "player": "Cillian Trayers", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 4, "position": "Left corner-back", "player": "Darren Morrissey", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 5, "position": "Right half-back", "player": "Diarmuid Ryan", "club": "", "county": "Clare", "opponent": "Limerick", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 6, "position": "Centre half-back", "player": "William O'Donoghue", "club": "", "county": "Limerick", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 7, "position": "Left half-back", "player": "Ronan Glennon", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 8, "position": "Midfield", "player": "Adam English", "club": "", "county": "Limerick", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 9, "position": "Midfield", "player": "Gavin Lee", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 10, "position": "Right half-forward", "player": "Gearóid Hegarty", "club": "", "county": "Limerick", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 11, "position": "Centre half-forward", "player": "Peter Duggan", "club": "", "county": "Clare", "opponent": "Limerick", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 12, "position": "Left half-forward", "player": "Cathal O'Neill", "club": "", "county": "Limerick", "opponent": "Clare", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 13, "position": "Right corner-forward", "player": "Tony Kelly", "club": "", "county": "Clare", "opponent": "Limerick", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 14, "position": "Full-forward", "player": "Jason Rabbitte", "club": "", "county": "Galway", "opponent": "Cork", "notes": "", "confidence": "confirmed", "source": "" },
+        { "no": 15, "position": "Left corner-forward", "player": "Brian Hayes", "club": "", "county": "Cork", "opponent": "Galway", "notes": "", "confidence": "confirmed", "source": "" }
       ]
     }
   ]
