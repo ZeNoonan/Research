@@ -17,7 +17,7 @@ from pathlib import Path
 from analysis import (GAMES_PER_SEASON, PRICE_SOURCES, SEASONS, WD_STAKE,
                       ah_price_summary, ah_source, has_1x2, has_ah, has_results,
                       load_ah, load_all, load_handicaps, load_wd, market_view,
-                      season_dir, wd_chance)
+                      price_set_quality, season_dir, wd_chance, wd_columns)
 
 HERE = Path(__file__).parent
 TEMPLATE = HERE / "template.html"
@@ -194,10 +194,13 @@ def wd_payload(season: str):
     for src, label in PRICE_SOURCES.items():
         if src == "Avg" or not has_1x2(season, src):
             continue
-        _, _, alt = load_wd(season, src)
+        alt_odds, _, alt = load_wd(season, src)
         alt_profit = float(alt["profit"].sum())
+        quality = price_set_quality(alt_odds)
         alternatives.append({"label": label, "profit": round(alt_profit, 2),
-                             "roi": round(alt_profit / float(alt["staked"].sum()), 6)})
+                             "roi": round(alt_profit / float(alt["staked"].sum()), 6),
+                             "expected": round(quality["expected_roi"], 6),
+                             "arbs": quality["arbs"], "matches": int(len(alt_odds))})
     lookup = {
         (g.team, g.opponent, g.venue): (float(g.win_odds), float(g.draw_odds), float(g.profit))
         for g in games.itertuples()
@@ -217,6 +220,7 @@ def wd_payload(season: str):
         "leagueEach": league_each,
         "leagueRunning": league_running,
         "chance": {k: round(v, 4) if isinstance(v, float) else v for k, v in chance.items()},
+        "columns": wd_columns(games),
         "alternatives": alternatives,
     }
     return block, lookup

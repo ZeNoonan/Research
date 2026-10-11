@@ -1459,21 +1459,38 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
     parts.push(`Done for every club, each match backs both clubs to win and the draw twice, so the league `
       + `total rides on the draws: more than the prices implied lifts it, fewer drag it down. There were `
       + `${C.draws} draws in ${WD.matches} matches against ${fmt(C.draws_implied, 1)} implied by the draw prices.`);
-    const wide = C.spread_observed > C.spread_chance * 1.15;
+    const tenths = (p) => Math.max(1, Math.round(p * 10));
+    const oneIn = (p) => Math.max(2, Math.round(1 / p));
+    const runs = D.complete ? "chance seasons" : `chance runs of these ${MAXP} games`;
+    const over = D.complete ? "over a season" : `over these ${MAXP} games`;
+    if (WD.profit > WD.staked * C.expected_roi) {
+      parts.push(`Chance alone gives a league total this good or better about one time in `
+        + `${oneIn(C.league_at_least)} ${over} at these prices, so it is not a sign the strategy works.`);
+    }
+    parts.push(C.spread_p < 0.05
+      ? `Across clubs, profits are spread wider than chance alone would usually spread them under the `
+        + `market’s own prices (standard deviation ${sym}${fmt(C.spread_observed, 1)}; fewer than 1 in 20 `
+        + `${runs} are spread as wide), so some clubs may genuinely have been mis-priced.`
+      : `Across clubs, profits are spread within what chance produces under the market’s own prices `
+        + `(standard deviation ${sym}${fmt(C.spread_observed, 1)}; about ${tenths(C.spread_p)} in 10 `
+        + `${runs} are spread this wide or wider).`);
     const best = WD.rows[0];
-    const oneIn = C.best_of_field > 0 ? Math.round(1 / C.best_of_field) : null;
-    parts.push(`Across clubs, profits are spread ${wide ? "somewhat wider than" : "about as widely as"} chance `
-      + `alone would spread them under the market’s own prices (standard deviation ${sym}${fmt(C.spread_observed, 1)} `
-      + `against ${sym}${fmt(C.spread_chance, 1)}).`
-      + (best.profit > 0 && oneIn
-        ? ` ${best.short}’s ${eur(best.profit)} is ${C.best_of_field >= 0.05
-            ? `the kind of result the luckiest of ${nClubs} clubs reaches about one season in ${oneIn}, so it is not in itself proof the market mis-priced them`
-            : `rarer than the luckiest of ${nClubs} clubs would usually reach (about one season in ${oneIn}), so the market may genuinely have under-rated them`}.`
-        : ""));
+    if (best.profit > 0 && C.best_of_field > 0) {
+      const when = D.complete ? `about one season in ${oneIn(C.best_of_field)}`
+        : `about one time in ${oneIn(C.best_of_field)} over these first ${MAXP} games`;
+      parts.push(`${best.short}’s ${eur(best.profit)} is ` + (C.best_of_field >= 0.05
+        ? `the kind of result the luckiest of ${nClubs} clubs reaches ${when}, so it is not in itself proof the market mis-priced them.`
+        : `rarer than the luckiest of ${nClubs} clubs would usually manage (${when}), so the market may genuinely have under-rated them.`));
+    }
     if (WD.alternatives.length) {
-      parts.push("The price used matters. The same bets at other prices: " + WD.alternatives.map((a) =>
-        `${a.label} ${eur(a.profit)} (${pct(a.roi)})`).join(", ")
-        + " \u2014 best available meaning the top price on offer across bookmakers for every bet.");
+      parts.push("The same bets at other prices: " + WD.alternatives.map((a) =>
+        `${a.label} ${eur(a.profit)} (${pct(a.roi)}, against about ${pct(a.expected)} expected at those prices)`).join("; ") + ".");
+      const best = WD.alternatives.find((a) => a.label === "best available");
+      if (best) parts.push(`Best available takes the single highest quote for every outcome, which is often `
+        + `stale, a mistake, or from a bookmaker that limits winning accounts`
+        + (best.arbs ? ` — in ${best.arbs} of ${best.matches} matches the best prices add up to under 100%, `
+          + `a guaranteed profit no bettor could actually take` : "")
+        + `. Treat it as an upper bound, not a price you could get.`);
     }
     if (WD.noOdds) parts.push(`${WD.noOdds} match${WD.noOdds === 1 ? " has" : "es have"} no prices and `
       + `${WD.noOdds === 1 ? "is" : "are"} left out.`);
@@ -1499,7 +1516,12 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       : `Profit from each game on its own: a defeat is always ${eur(-2 * WD.stake)}, a draw or a win `
         + `pays according to its odds.`)
       + ` Blue is profit, red a loss, and the deeper the colour the bigger the sum. The bottom row adds `
-      + `every club together: the strategy run across the whole league. Hover a cell for the game behind it.`;
+      + `every club together: the strategy run across the whole league. `
+      + (WD.columns.out_of_step
+        ? `Each column is every club’s k-th game, which is not quite a gameweek: ${WD.columns.out_of_step} `
+          + `fixtures were played out of step, so some columns mix dates. `
+        : `Every club has played in step, so each column is a gameweek. `)
+      + `Hover a cell for the game behind it.`;
 
     const width = Math.max(...WD.rows.map((r) => series[r.name].length));
     const maxAbs = Math.max(1, ...WD.rows.flatMap((r) => series[r.name].map(Math.abs)));
@@ -1544,7 +1566,8 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       td.addEventListener("pointermove", (e) => tipShow(e.clientX, e.clientY, (p) => {
         tipTitle(p, `All ${WD.rows.length} clubs · game ${gi + 1}`);
         tipRow(p, "transparent", eur(v), running ? "running profit, whole league" : "profit this game, whole league");
-        const staked = 2 * WD.stake * WD.rows.length * (running ? gi + 1 : 1);
+        const bets = WD.columns.bets;
+        const staked = 2 * WD.stake * (running ? bets.slice(0, gi + 1).reduce((a, b) => a + b, 0) : bets[gi]);
         tipRow(p, "transparent", sym + fmt(staked, 0), running ? "staked so far" : "staked this game");
       }));
       td.addEventListener("pointerleave", tipHide);

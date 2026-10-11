@@ -130,29 +130,43 @@ each club's running profit — or, toggled, its profit game by game — with a
 bottom row adding every club together. Game-by-game also shows each game's
 prices and the bet's profit.
 
-What to read into it — the page computes and states each of these every build:
+What to read into it. The page computes each of these afresh on every build;
+the figures quoted here are as of 2026/27 game 5 (20 September 2026) and for
+the complete 2025/26 season, so check the page for current values.
 
-- **The expected return is the bookmaker's margin.** The three prices in a
-  match imply about 106% rather than 100%, so at fair-share probabilities the
-  strategy should expect to lose about 5.5–5.8% of its stakes.
+- **The expected loss is roughly the bookmaker's margin** (1/book − 1). The
+  three prices in a match add up to about 106% rather than 100%, so at
+  margin-free probabilities the strategy should expect to lose about 5.5–5.8%
+  of its stakes.
 - **Done for every club, it is mostly a bet on draws.** Each match backs both
   clubs to win and the draw twice, so more draws than priced lift the league
   total and fewer drag it down. Draws ran hot in both seasons (16 in 50 against
   12.1 implied in 2026/27; 104 in 380 against 93.2 in 2025/26), which is why
   2026/27 is ahead (+6.2%) and 2025/26 lost only 1.7%.
-- **Favourites lose even when they win.** At short prices a win returns less
-  than the €20 staked, because the draw stake is lost: Man City won all five
-  of their first 2026/27 games and the bet still lost €23.20.
+- **Short-priced favourites lose even when they win.** Below odds of 2.00 a win
+  returns less than the €20 staked, because the draw stake is lost: Man City
+  won all five of their first 2026/27 games, mostly at short prices, and the
+  bet still lost €23.20. At 2.00 or longer a win is profitable.
 - **How much is chance.** Outcomes are simulated 5,000 times from the
-  market's own (margin-free) probabilities — one outcome per match, so both
+  market's own margin-free probabilities — one outcome per match, so both
   clubs in a fixture share it — and the strategy re-settled each time (fixed
-  seed, so every build agrees). The page compares the spread of club profits
-  with that, and says how often the luckiest of 20 clubs would reach the top
-  club's figure: Bournemouth's +€302.70 in 2025/26, about one season in 17.
-- **The price matters.** The same bets at the best available price, at
-  Bet365 and at closing market-average prices are totalled for comparison
-  (2026/27: +11.3%, +6.9%, +7.1%). Best available means taking the top price
-  across bookmakers for every bet, which few bettors manage.
+  seed, so every build agrees). From that the page says how often chance gives
+  a league total as good as the real one (about 1 in 9 for 2026/27 so far,
+  1 in 7 for 2025/26); whether clubs' profits are spread wider than chance,
+  judged by the share of simulated seasons spread at least as wide (only
+  under 1 in 20 counts as wider; both seasons so far are within chance); and
+  how often the luckiest of 20 clubs reaches the top club's figure
+  (Bournemouth's +€302.70 in 2025/26, about one season in 17).
+- **The price matters, and "best available" flatters.** The same bets are
+  totalled at the best available price, at Bet365 and at closing
+  market-average prices, each beside its expected return at those prices.
+  Best available takes the single highest quote for every outcome, which is
+  often stale or mistaken: in 9 of the first 50 2026/27 matches the best
+  prices add up to under 100%, a guaranteed profit nobody could actually take.
+  It is an upper bound, not a price you could get.
+- **Columns are each club's k-th game.** Usually that is a gameweek, but
+  rearranged fixtures put 18 of 2025/26's matches out of step, so some of
+  that season's columns mix dates. The page says which applies.
 
 ## Build
 

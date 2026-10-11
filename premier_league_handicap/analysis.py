@@ -699,15 +699,44 @@ def wd_chance(odds: pd.DataFrame, table: pd.DataFrame, stake: float = WD_STAKE,
     club_totals = pick(home_pnl) @ home_of.T + pick(away_pnl) @ away_of.T   # sims x clubs
 
     best = table.iloc[0]
+    spreads = club_totals.std(axis=1)
     return {
         "expected_roi": float(np.mean(1.0 / book) - 1.0),
         "book": float(book.mean()),
         "draws": int((actual == 1).sum()),
         "draws_implied": float(fair[:, 1].sum()),
         "spread_observed": float(table["profit"].std(ddof=0)),
-        "spread_chance": float(club_totals.std(axis=1).mean()),
+        "spread_chance": float(spreads.mean()),
+        # share of chance seasons spread at least this wide: the honest test,
+        # rather than comparing with a multiple of the average spread
+        "spread_p": float((spreads >= table["profit"].std(ddof=0)).mean()),
         "league_percentile": float((club_totals.sum(axis=1) <= table["profit"].sum()).mean()),
+        "league_at_least": float((club_totals.sum(axis=1) >= table["profit"].sum()).mean()),
         "best_of_field": float((club_totals.max(axis=1) >= best["profit"]).mean()),
+    }
+
+
+def price_set_quality(odds: pd.DataFrame) -> dict:
+    """Expected return of the bet at a price set, and how many of its matches
+    are priced below 100% -- an arbitrage, which means stale or mistaken quotes."""
+    book = 1.0 / odds["oh"] + 1.0 / odds["od"] + 1.0 / odds["oa"]
+    return {"expected_roi": float((1.0 / book).mean() - 1.0), "arbs": int((book < 1.0).sum())}
+
+
+def wd_columns(games: pd.DataFrame) -> dict:
+    """How the grid's game columns line up with real rounds of matches.
+
+    Column k holds each club's k-th game. When fixtures are rearranged the two
+    clubs in a match can sit in different columns, so a column mixes dates.
+    """
+    col = {(r.team, r.date, r.opponent): r.wd_no for r in games.itertuples()}
+    home = games[games["venue"] == "Home"]
+    out_of_step = sum(
+        1 for r in home.itertuples() if col[(r.team, r.date, r.opponent)] != col[(r.opponent, r.date, r.team)]
+    )
+    return {
+        "out_of_step": int(out_of_step),
+        "bets": [int(v) for v in games.groupby("wd_no").size()],
     }
 
 
