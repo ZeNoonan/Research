@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Research Repository
 
 **Repository**: Research
-**Last Updated**: 2026-10-10
+**Last Updated**: 2026-10-11
 **Status**: Active — several independent research projects
 
 ## Table of Contents
@@ -37,6 +37,7 @@ Research/
 ├── index.html                # Root landing page
 ├── .gitignore
 ├── baseball_var/             # Project folder
+├── expense/                  # Personal cash-flow Streamlit app on bank exports (see below)
 ├── golf/                     # Project folder
 ├── hurling/                  # GAA hurling Team/Hurler of the Week app (see below)
 ├── kelly_sim/                # Project folder
@@ -52,6 +53,11 @@ Research/
   Hurler of the Week. Data lives in `hurling/data/*.json`; `index.html` renders it.
   After any data or `index.html` change, run `python3 build_standalone.py` inside `hurling/`
   to regenerate `standalone.html` (the copy behind the shareable link). See `hurling/README.md`.
+- **`expense/`** — Streamlit app (`finance_cash.py`) analysing Visa and current account bank
+  exports. The repo is public, so **never commit real bank data**: the user's exports, mapping and
+  balances live outside the repo, and only the generated `sample_data/` is tracked (`.gitignore`
+  enforces this). Regenerate sample data with `python3 generate_sample_data.py`; run
+  `pytest test_finance.py` inside `expense/`. See `expense/README.md`.
 - _Other project folders: document here when they are next worked on._
 
 ---
@@ -383,6 +389,9 @@ _To be documented: How to get help, who to contact for specific areas_
 ---
 
 ## Changelog
+
+### 2026-10-11 - Add expense/
+- Documented `expense/` and its rule that no real bank data is committed
 
 ### 2026-10-10 - Reflect actual repository layout
 - Replaced the placeholder directory layout with the real top-level folders
