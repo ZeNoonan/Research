@@ -1,0 +1,6 @@
+# This repo is public: real bank exports, mappings and balances must never be committed.
+# Only the made-up files in sample_data/ are tracked.
+*.csv
+*.xlsx
+finance_config.json
+!sample_data/**
