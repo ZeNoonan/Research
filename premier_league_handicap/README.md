@@ -118,6 +118,56 @@ states the typical price and the break-even cover rate it implies (about 1.87
 and 53.5% in 2026/27), since a side with an even record against its lines has
 lost money for anyone backing it.
 
+## A win bet and a draw bet on every club
+
+A plainer question from the same football-data file: what would a simple bet
+on every club have returned? Each game, €10 on the club to win and €10 on the
+draw (€20 staked) at the **market-average pre-closing prices** (`AvgH`,
+`AvgD`, `AvgA` — the same snapshot as the `AHh` line). A win returns
+€10 × the win odds, a draw €10 × the draw odds, a defeat loses both stakes.
+The page shows a sortable table (staked, returned, profit, ROI) and a grid of
+each club's running profit — or, toggled, its profit game by game — with a
+bottom row adding every club together. Game-by-game also shows each game's
+prices and the bet's profit.
+
+What to read into it. The page computes each of these afresh on every build;
+the figures quoted here are as of 2026/27 game 5 (20 September 2026) and for
+the complete 2025/26 season, so check the page for current values.
+
+- **The expected loss is roughly the bookmaker's margin** (1/book − 1). The
+  three prices in a match add up to about 106% rather than 100%, so at
+  margin-free probabilities the strategy should expect to lose about 5.5–5.8%
+  of its stakes.
+- **Done for every club, it is mostly a bet on draws.** Each match backs both
+  clubs to win and the draw twice, so more draws than priced lift the league
+  total and fewer drag it down. Draws ran hot in both seasons (16 in 50 against
+  12.1 implied in 2026/27; 104 in 380 against 93.2 in 2025/26), which is why
+  2026/27 is ahead (+6.2%) and 2025/26 lost only 1.7%.
+- **Short-priced favourites lose even when they win.** Below odds of 2.00 a win
+  returns less than the €20 staked, because the draw stake is lost: Man City
+  won all five of their first 2026/27 games, mostly at short prices, and the
+  bet still lost €23.20. At 2.00 or longer a win is profitable.
+- **How much is chance.** Outcomes are simulated 5,000 times from the
+  market's own margin-free probabilities — one outcome per match, so both
+  clubs in a fixture share it — and the strategy re-settled each time (fixed
+  seed, so every build agrees). From that the page says how often chance gives
+  a league total as good as the real one (about 1 in 9 for 2026/27 so far,
+  1 in 7 for 2025/26); whether clubs' profits are spread wider than chance,
+  judged by the share of simulated seasons spread at least as wide (only
+  under 1 in 20 counts as wider; both seasons so far are within chance); and
+  how often the luckiest of 20 clubs reaches the top club's figure
+  (Bournemouth's +€302.70 in 2025/26, about one season in 17).
+- **The price matters, and "best available" flatters.** The same bets are
+  totalled at the best available price, at Bet365 and at closing
+  market-average prices, each beside its expected return at those prices.
+  Best available takes the single highest quote for every outcome, which is
+  often stale or mistaken: in 9 of the first 50 2026/27 matches the best
+  prices add up to under 100%, a guaranteed profit nobody could actually take.
+  It is an upper bound, not a price you could get.
+- **Columns are each club's k-th game.** Usually that is a gameweek, but
+  rearranged fixtures put 18 of 2025/26's matches out of step, so some of
+  that season's columns mix dates. The page says which applies.
+
 ## Build
 
 ```bash
@@ -151,7 +201,8 @@ premier_league_handicap/
 A season becomes buildable as soon as it has a `season_handicap.csv`: with no
 results yet the page shows the handicaps and the odds market, and the table,
 race and grids appear once `results.csv` lands. The Asian handicap part appears
-once there are results and a lines file.
+once there are results and a lines file, and the win-and-draw part once that
+file also carries `AvgH`/`AvgD`/`AvgA` prices.
 
 **Weekly update:** refresh `results.csv` and `football_data.csv`, then run
 `python build_site.py`. If the two files disagree on any fixture the build
