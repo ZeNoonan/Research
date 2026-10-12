@@ -606,20 +606,48 @@ def load_1x2(season: str, source: str = "Avg") -> pd.DataFrame:
     return out
 
 
+# How the 2 x stake is divided between the win and the draw:
+#   "even"  -- the same stake on each (EUR10 + EUR10);
+#   "equal" -- split so a win and a draw pay out the same amount. That puts
+#              total x draw odds / (win odds + draw odds) on the win and the rest
+#              on the draw, and either result returns
+#              total x win odds x draw odds / (win odds + draw odds) -- the same
+#              as one "win or draw" (double chance) bet at those combined odds.
+WD_SPLITS = ("even", "equal")
+
+
+def win_draw_stakes(win_odds, draw_odds, stake: float = WD_STAKE, split: str = "even"):
+    """(stake on the win, stake on the draw); works on floats or numpy arrays."""
+    total = 2 * stake
+    if split == "even":
+        return stake + 0 * win_odds, stake + 0 * draw_odds
+    if split == "equal":
+        on_win = total * draw_odds / (win_odds + draw_odds)
+        return on_win, total - on_win
+    raise ValueError(f"Unknown split {split!r}; expected one of {WD_SPLITS}")
+
+
+def win_draw_returns(win_odds, draw_odds, stake: float = WD_STAKE, split: str = "even"):
+    """(amount returned if the side wins, amount returned if it draws)."""
+    on_win, on_draw = win_draw_stakes(win_odds, draw_odds, stake, split)
+    return on_win * win_odds, on_draw * draw_odds
+
+
 def settle_win_draw(goals_for: int, goals_against: int, win_odds: float,
-                    draw_odds: float, stake: float = WD_STAKE) -> float:
-    """Profit, net of both stakes, from a win bet plus a draw bet on one side."""
+                    draw_odds: float, stake: float = WD_STAKE, split: str = "even") -> float:
+    """Profit, net of the whole 2 x stake, from a win bet plus a draw bet on one side."""
+    if_win, if_draw = win_draw_returns(win_odds, draw_odds, stake, split)
     if goals_for > goals_against:
-        returned = stake * win_odds
+        returned = if_win
     elif goals_for == goals_against:
-        returned = stake * draw_odds
+        returned = if_draw
     else:
         returned = 0.0
     return returned - 2 * stake
 
 
 def build_wd_games(odds: pd.DataFrame, handicaps: pd.DataFrame,
-                   stake: float = WD_STAKE) -> pd.DataFrame:
+                   stake: float = WD_STAKE, split: str = "even") -> pd.DataFrame:
     """One row per team per match: its win and draw prices and the bet's profit."""
     display = dict(zip(handicaps["club"], handicaps["team"]))
     rows = []
@@ -628,7 +656,8 @@ def build_wd_games(odds: pd.DataFrame, handicaps: pd.DataFrame,
             (m.HomeTeam, m.AwayTeam, m.FTHG, m.FTAG, "Home", m.oh),
             (m.AwayTeam, m.HomeTeam, m.FTAG, m.FTHG, "Away", m.oa),
         ):
-            profit = settle_win_draw(gf, ga, win_odds, m.od, stake)
+            profit = settle_win_draw(gf, ga, win_odds, m.od, stake, split)
+            on_win, _ = win_draw_stakes(win_odds, m.od, stake, split)
             rows.append(
                 {
                     "team": display[club],
@@ -640,6 +669,7 @@ def build_wd_games(odds: pd.DataFrame, handicaps: pd.DataFrame,
                     "win_odds": win_odds,
                     "draw_odds": m.od,
                     "result": "W" if gf > ga else "D" if gf == ga else "L",
+                    "stake_win": on_win,
                     "profit": profit,
                 }
             )
@@ -667,7 +697,7 @@ def build_wd_table(games: pd.DataFrame, stake: float = WD_STAKE) -> pd.DataFrame
 
 
 def wd_chance(odds: pd.DataFrame, table: pd.DataFrame, stake: float = WD_STAKE,
-              sims: int = 5000, seed: int = 2026) -> dict:
+              sims: int = 5000, seed: int = 2026, split: str = "even") -> dict:
     """How the season's returns compare with chance under the market's own prices.
 
     The market's fair probabilities are the implied ones (1 / odds) scaled so
@@ -684,8 +714,10 @@ def wd_chance(odds: pd.DataFrame, table: pd.DataFrame, stake: float = WD_STAKE,
 
     # profit to each side of each match, for outcome home win / draw / away win
     n = len(odds)
-    home_pnl = np.column_stack([stake * prices[:, 0], stake * prices[:, 1], np.zeros(n)]) - 2 * stake
-    away_pnl = np.column_stack([np.zeros(n), stake * prices[:, 1], stake * prices[:, 2]]) - 2 * stake
+    home_win, home_draw = win_draw_returns(prices[:, 0], prices[:, 1], stake, split)
+    away_win, away_draw = win_draw_returns(prices[:, 2], prices[:, 1], stake, split)
+    home_pnl = np.column_stack([home_win, home_draw, np.zeros(n)]) - 2 * stake
+    away_pnl = np.column_stack([np.zeros(n), away_draw, away_win]) - 2 * stake
 
     clubs = sorted(set(odds.HomeTeam) | set(odds.AwayTeam))
     idx = {c: i for i, c in enumerate(clubs)}
@@ -740,13 +772,13 @@ def wd_columns(games: pd.DataFrame) -> dict:
     }
 
 
-def load_wd(season: str, source: str = "Avg"):
+def load_wd(season: str, source: str = "Avg", split: str = "even"):
     """Win-and-draw bet: prices, per-team games and table for a season."""
     handicaps = load_handicaps(season)
     odds = load_1x2(season, source)
     if has_results(season) and ah_source(season) != season_dir(season) / "results.csv":
         check_ah_against_results(odds, load_results(season))
-    games = build_wd_games(odds, handicaps)
+    games = build_wd_games(odds, handicaps, split=split)
     return odds, games, build_wd_table(games)
 
 

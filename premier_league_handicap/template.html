@@ -252,7 +252,7 @@
       added to its season total, biggest for the sides expected to struggle. {{INTRO}}
     </p>
     <nav class="jump" id="jump" aria-label="On this page">
-      <a href="#table">Adjusted table</a><a href="#race">The race</a><a href="#grids">Grids</a><a href="#asian">Asian handicap</a><a href="#wd">Win &amp; draw bets</a><a href="#games">Game by game</a>
+      <a href="#table">Adjusted table</a><a href="#race">The race</a><a href="#grids">Grids</a><a href="#asian">Asian handicap</a><a href="#wd">Win &amp; draw bets</a><a href="#wde">Equal-payout bets</a><a href="#games">Game by game</a>
     </nav>
   </header>
 
@@ -419,6 +419,24 @@
     </div>
     <div class="heat-scroll" id="wd-grid"></div>
     <div class="heat-legend" id="wd-legend"></div>
+  </section>
+
+  <section class="card" id="wde" data-needs-wde>
+    <h2 id="wde-title">The same stake, split so a win and a draw pay the same</h2>
+    <p class="desc" id="wde-desc"></p>
+    <div class="tbl-scroll"><table id="wde-table" aria-label="Returns when the stake is split so a win and a draw pay the same"></table></div>
+    <p class="note" id="wde-note"></p>
+  </section>
+
+  <section class="card" data-needs-wde>
+    <h2>Equal-payout returns &mdash; full grid</h2>
+    <p class="desc" id="wde-grid-desc"></p>
+    <div class="chip-row" id="wde-toggle" role="group" aria-label="Grid view">
+      <button class="chip" type="button" data-mode="running" aria-pressed="true">Running total</button>
+      <button class="chip" type="button" data-mode="each" aria-pressed="false">Each game</button>
+    </div>
+    <div class="heat-scroll" id="wde-grid"></div>
+    <div class="heat-legend" id="wde-legend"></div>
   </section>
 
   <section class="card" id="games" data-needs-results>
@@ -1133,6 +1151,8 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
         ` against the Asian handicap (${ordinal(ar.rank)})`);
       const wr = wdRowOf(t.name);
       if (wr) sum.append(" · ", b(`${eur(wr.profit)}`), ` from the win-and-draw bets (${ordinal(wr.rank)})`);
+      const er = D.wde ? D.wde.rows.find((r) => r.name === t.name) : null;
+      if (er) sum.append(", ", b(`${eur(er.profit)}`), ` with the equal-payout split (${ordinal(er.rank)})`);
 
       const table = document.getElementById("gbg-table");
       table.textContent = "";
@@ -1141,6 +1161,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       const heads = ["#", "Date", "Opponent", "Score", "Result",
         ...(AH ? ["AH line", "vs line"] : []),
         ...(WD ? ["Win / draw odds", "W+D bet"] : []),
+        ...(D.wde ? ["Equal stakes W / D", "Equal split"] : []),
         "Base pts", "+ Handicap", "Game total", "Running actual", "Running adjusted"];
       for (const h of heads)
         el("th", { text: h, cls: (h === "Date" || h === "Opponent" ? "txt " : "") + "nosort" }, hr);
@@ -1170,6 +1191,16 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
           if ("wdp" in gm) {
             el("td", { cls: "line", text: `${gm.ow.toFixed(2)} / ${gm.od.toFixed(2)}` }, tr);
             el("td", { cls: gm.wdp > 0 ? "delta-up" : gm.wdp < 0 ? "delta-down" : "", text: eur(gm.wdp) }, tr);
+          } else {
+            el("td", { cls: "dim", text: "\u2013" }, tr);
+            el("td", { cls: "dim", text: "\u2013" }, tr);
+          }
+        }
+        if (D.wde) {
+          if ("ewp" in gm) {
+            const tot = 2 * D.wde.stake;
+            el("td", { cls: "line", text: `\u20ac${fmt(gm.ews, 2)} / \u20ac${fmt(tot - gm.ews, 2)}` }, tr);
+            el("td", { cls: gm.ewp > 0 ? "delta-up" : gm.ewp < 0 ? "delta-down" : "", text: eur(gm.ewp) }, tr);
           } else {
             el("td", { cls: "dim", text: "\u2013" }, tr);
             el("td", { cls: "dim", text: "\u2013" }, tr);
@@ -1391,18 +1422,30 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
   }
 
   /* ---------- win-and-draw bets: the table ---------- */
-  function renderWDTable() {
-    const stake = WD.stake, sym = "€";
-    document.getElementById("wd-title").textContent =
-      `A ${sym}${fmt(stake)} win bet and a ${sym}${fmt(stake)} draw bet on every club`;
-    document.getElementById("wd-desc").textContent =
-      `Every game, ${sym}${fmt(stake)} on the club to win and ${sym}${fmt(stake)} on the draw — `
-      + `${sym}${fmt(2 * stake)} staked — at the ${WD.source} pre-closing odds. A win returns `
-      + `${sym}${fmt(stake)} × the win odds, a draw ${sym}${fmt(stake)} × the draw odds, and a `
-      + `defeat loses both stakes. Profit is net of stakes; ROI is profit as a share of everything staked. `
+  // Both win-and-draw sections share this code: WD is the data block, P the id prefix.
+  function renderWDTable(WD, P) {
+    const stake = WD.stake, sym = "€", equal = WD.split === "equal";
+    const total = `${sym}${fmt(2 * stake)}`;
+    document.getElementById(P + "-title").textContent = equal
+      ? `The same ${total}, split so a win and a draw pay the same`
+      : `A ${sym}${fmt(stake)} win bet and a ${sym}${fmt(stake)} draw bet on every club`;
+    document.getElementById(P + "-desc").textContent = (equal
+      ? `The same ${total} every game, now divided so that a win and a draw return the same amount: `
+        + `${total} × draw odds ÷ (win odds + draw odds) on the win, the rest on the draw. A favourite gets `
+        + `most of the money on its win, an outsider most on the draw. Either result returns ${total} × win odds `
+        + `× draw odds ÷ (win odds + draw odds) — the same as one \u201cwin or draw\u201d (double chance) bet at `
+        + `those combined odds — and a defeat loses the ${total}. Same ${WD.source} pre-closing odds. `
+        + `The last column compares each club with the ${sym}${fmt(stake)} + ${sym}${fmt(stake)} split above. `
+      : `Every game, ${sym}${fmt(stake)} on the club to win and ${sym}${fmt(stake)} on the draw — `
+        + `${total} staked — at the ${WD.source} pre-closing odds. A win returns `
+        + `${sym}${fmt(stake)} × the win odds, a draw ${sym}${fmt(stake)} × the draw odds, and a `
+        + `defeat loses both stakes. `)
+      + `Profit is net of stakes; ROI is profit as a share of everything staked. `
       + `Sorted by profit. Click a column heading to re-sort.`;
+    const even = D.wd ? Object.fromEntries(D.wd.rows.map((r) => [r.name, r.profit])) : {};
+    const data = WD.rows.map((r) => ({ ...r, vsEven: r.profit - (even[r.name] ?? r.profit) }));
 
-    const table = document.getElementById("wd-table");
+    const table = document.getElementById(P + "-table");
     const money = (v) => eur(v);
     const cols = [
       { k: "rank", h: "Pos", pos: true },
@@ -1413,6 +1456,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       { k: "returned", h: "Returned", show: (v) => sym + fmt(v, 2) },
       { k: "profit", h: "Profit", emph: true, show: money, tone: true },
       { k: "roi", h: "ROI", show: (v) => pct(v), tone: true },
+      ...(equal && D.wd ? [{ k: "vsEven", h: `vs ${sym}${fmt(stake)} + ${sym}${fmt(stake)}`, show: money, tone: true }] : []),
     ];
     let sortKey = "rank", sortDir = 1;
     function render() {
@@ -1430,7 +1474,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
           render();
         });
       }
-      const rows = [...WD.rows].sort((a, b) => {
+      const rows = [...data].sort((a, b) => {
         const av = a[sortKey], bv = b[sortKey];
         const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
         return cmp !== 0 ? cmp * sortDir : a.rank - b.rank;
@@ -1456,9 +1500,28 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
     parts.push(`The three prices in a match imply ${fmt(C.book * 100, 1)}% on average rather than 100% — `
       + `the bookmaker’s margin — so at these prices the strategy should expect to lose about `
       + `${fmt(-C.expected_roi * 100, 1)}% of its stakes.`);
-    parts.push(`Done for every club, each match backs both clubs to win and the draw twice, so the league `
-      + `total rides on the draws: more than the prices implied lifts it, fewer drag it down. There were `
-      + `${C.draws} draws in ${WD.matches} matches against ${fmt(C.draws_implied, 1)} implied by the draw prices.`);
+    if (!equal) {
+      parts.push(`Done for every club, each match backs both clubs to win and the draw twice, so the league `
+        + `total rides on the draws: more than the prices implied lifts it, fewer drag it down. There were `
+        + `${C.draws} draws in ${WD.matches} matches against ${fmt(C.draws_implied, 1)} implied by the draw prices.`);
+    } else if (D.wd) {
+      const E = D.wd;
+      parts.push(`How the ${total} is split makes no difference to the expected return — about `
+        + `${fmt(-C.expected_roi * 100, 1)}% lost either way at margin-free prices — only to which results carry it. `
+        + `Every match has a favourite, so splitting for an equal payout moves money off the draw and onto the win: `
+        + `${fmt(WD.drawShare * 100, 0)}% of the money went on draws, against ${fmt(E.drawShare * 100, 0)}% with `
+        + `${sym}${fmt(stake)} + ${sym}${fmt(stake)}. A defeat costs ${total} whichever way it is split, so the `
+        + `difference is all in how wins and draws pay: wins made ${eur(WD.byResult.W || 0)} here against `
+        + `${eur(E.byResult.W || 0)}, draws ${eur(WD.byResult.D || 0)} against ${eur(E.byResult.D || 0)}. `
+        + `There were ${C.draws} draws in ${WD.matches} matches against ${fmt(C.draws_implied, 1)} implied, `
+        + (() => {
+          const hot = C.draws > C.draws_implied, evenAhead = E.profit > WD.profit;
+          const evenName = `the ${sym}${fmt(stake)} + ${sym}${fmt(stake)} split`;
+          if (hot && evenAhead) return `so draws ran hot, and ${evenName} had more riding on them, so it came out ahead.`;
+          if (!hot && !evenAhead) return `so draws came in below the prices, and this split had less riding on them, so it came out ahead.`;
+          return `and ${evenAhead ? evenName : "this split"} came out ahead, though the draw count alone does not explain it.`;
+        })());
+    }
     const tenths = (p) => Math.max(1, Math.round(p * 10));
     const oneIn = (p) => Math.max(2, Math.round(1 / p));
     const runs = D.complete ? "chance seasons" : `chance runs of these ${MAXP} games`;
@@ -1499,22 +1562,26 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       + `prices ${WD.matches}, so the two are not yet level.`);
     if (!D.complete) parts.push(`After ${MAXP} games one result can swing a club’s total by ${sym}${fmt(2 * stake)} or more.`);
     parts.push(`Prices from football-data.co.uk, read from ${WD.file}.`);
-    document.getElementById("wd-note").textContent = parts.join(" ");
+    document.getElementById(P + "-note").textContent = parts.join(" ");
   }
 
   /* ---------- win-and-draw bets: the grid ---------- */
-  let wdMode = "running";
-  function renderWDGrid() {
-    const host = document.getElementById("wd-grid");
+  const wdModes = {};
+  function renderWDGrid(WD, P) {
+    const equal = WD.split === "equal", pk = equal ? "ewp" : "wdp";
+    const host = document.getElementById(P + "-grid");
     host.textContent = "";
-    const sym = "€", running = wdMode === "running";
+    const sym = "€", running = (wdModes[P] || "running") === "running";
     const series = running ? WD.running : WD.each;
     const league = running ? WD.leagueRunning : WD.leagueEach;
-    document.getElementById("wd-grid-desc").textContent = (running
-      ? `Running profit after each game from the ${sym}${fmt(WD.stake)} win plus ${sym}${fmt(WD.stake)} draw bet, `
-        + `rows in the order of the table above — the same idea as the covers grid, in euros.`
-      : `Profit from each game on its own: a defeat is always ${eur(-2 * WD.stake)}, a draw or a win `
-        + `pays according to its odds.`)
+    document.getElementById(P + "-grid-desc").textContent = (running
+      ? `Running profit after each game from ` + (equal
+          ? `the ${sym}${fmt(2 * WD.stake)} split for an equal payout`
+          : `the ${sym}${fmt(WD.stake)} win plus ${sym}${fmt(WD.stake)} draw bet`)
+        + `, rows in the order of the table above — the same idea as the covers grid, in euros.`
+      : `Profit from each game on its own: a defeat is always ${eur(-2 * WD.stake)}, ` + (equal
+          ? `and a win or a draw pays the same amount, set by the combined odds.`
+          : `a draw or a win pays according to its odds.`))
       + ` Blue is profit, red a loss, and the deeper the colour the bigger the sum. The bottom row adds `
       + `every club together: the strategy run across the whole league. `
       + (WD.columns.out_of_step
@@ -1536,7 +1603,7 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       const tr = el("tr", {}, tbody);
       el("td", { cls: "team-cell", text: r.short }, tr);
       const t = TEAMS.find((q) => q.name === r.name);
-      const priced = t ? t.games.filter((g) => "wdp" in g) : [];
+      const priced = t ? t.games.filter((g) => pk in g) : [];
       series[r.name].forEach((v, gi) => {
         const td = el("td", {}, tr);
         const c = divColorT(v / maxAbs);
@@ -1551,7 +1618,9 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
             const res = gm.gf > gm.ga ? "W" : gm.gf === gm.ga ? "D" : "L";
             tipRow(p, "transparent", `${res} ${gm.gf}–${gm.ga}`, `${gm.v === "H" ? "vs" : "at"} ${gm.o}, ${gm.d}`);
             tipRow(p, "transparent", `${gm.ow.toFixed(2)} / ${gm.od.toFixed(2)}`, "win / draw odds");
-            if (running) tipRow(p, "transparent", eur(gm.wdp), "this game");
+            if (equal) tipRow(p, "transparent", `${sym}${fmt(gm.ews, 2)} / ${sym}${fmt(2 * WD.stake - gm.ews, 2)}`,
+              "staked on win / draw");
+            if (running) tipRow(p, "transparent", eur(gm[pk]), "this game");
           }
         }));
         td.addEventListener("pointerleave", tipHide);
@@ -1573,21 +1642,21 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
       td.addEventListener("pointerleave", tipHide);
     });
 
-    const legend = document.getElementById("wd-legend");
+    const legend = document.getElementById(P + "-legend");
     legend.textContent = "";
     legend.appendChild(document.createTextNode(eur(-maxAbs, 0)));
     const bar = el("span", { cls: "bar" }, legend);
     bar.style.background = `linear-gradient(to right, ${divColorT(-1).bg}, ${divColorT(0).bg}, ${divColorT(1).bg})`;
     legend.appendChild(document.createTextNode(`${eur(maxAbs, 0)} ${running ? "running profit" : "profit in the game"}`));
   }
-  function wireWDToggle() {
-    const group = document.getElementById("wd-toggle");
+  function wireWDToggle(WD, P) {
+    const group = document.getElementById(P + "-toggle");
     for (const btn of group.querySelectorAll("button")) {
       btn.addEventListener("click", () => {
-        wdMode = btn.dataset.mode;
+        wdModes[P] = btn.dataset.mode;
         for (const b of group.querySelectorAll("button"))
           b.setAttribute("aria-pressed", b === btn ? "true" : "false");
-        renderWDGrid();
+        renderWDGrid(WD, P);
       });
     }
   }
@@ -1707,7 +1776,8 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
   function renderGrids() {
     if (D.hasResults) { renderHeat(); renderRankGrid(); }
     if (AH && D.hasResults) renderStdcGrid();
-    if (WD && D.hasResults) renderWDGrid();
+    if (WD && D.hasResults) renderWDGrid(WD, "wd");
+    if (D.wde && D.hasResults) renderWDGrid(D.wde, "wde");
   }
   if (D.hasResults) {
     raceDefaults();
@@ -1717,8 +1787,11 @@ window.PLH_DATA = /*__DATA__*/null/*__END_DATA__*/;
   }
   if (AH && D.hasResults) renderAHTable();
   else document.querySelectorAll("[data-needs-ah]").forEach((n) => { n.hidden = true; });
-  if (WD && D.hasResults) { renderWDTable(); wireWDToggle(); }
-  else {
+  const WDE = D.wde;
+  if (WD && D.hasResults) { renderWDTable(WD, "wd"); wireWDToggle(WD, "wd"); }
+  if (WDE && D.hasResults) { renderWDTable(WDE, "wde"); wireWDToggle(WDE, "wde"); }
+  else document.querySelectorAll("[data-needs-wde]").forEach((n) => { n.hidden = true; });
+  if (!(WD && D.hasResults)) {
     document.querySelectorAll("[data-needs-wd]").forEach((n) => { n.hidden = true; });
     document.getElementById("part-wd").hidden = true;
   }

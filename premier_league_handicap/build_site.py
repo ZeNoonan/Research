@@ -157,14 +157,14 @@ def ah_payload(season: str):
     return block, lookup
 
 
-def wd_payload(season: str):
+def wd_payload(season: str, split: str = "even"):
     """Win-and-draw bet: table, running and per-game profits, chance check.
 
     Returns (block, lookup) like ``ah_payload``; ``lookup`` maps
     (team, opponent, venue) to (win odds, draw odds, profit) for the
     game-by-game explorer.
     """
-    odds, games, table = load_wd(season)
+    odds, games, table = load_wd(season, split=split)
     rows = [
         {
             "name": r.team,
@@ -188,13 +188,13 @@ def wd_payload(season: str):
     league_each = [round(float(v), 2) for v in by_game]
     league_running = [round(float(v), 2) for v in by_game.cumsum()]
 
-    chance = wd_chance(odds, table)
+    chance = wd_chance(odds, table, split=split)
     staked = float(table["staked"].sum()); profit = float(table["profit"].sum())
     alternatives = []
     for src, label in PRICE_SOURCES.items():
         if src == "Avg" or not has_1x2(season, src):
             continue
-        alt_odds, _, alt = load_wd(season, src)
+        alt_odds, _, alt = load_wd(season, src, split)
         alt_profit = float(alt["profit"].sum())
         quality = price_set_quality(alt_odds)
         alternatives.append({"label": label, "profit": round(alt_profit, 2),
@@ -202,10 +202,12 @@ def wd_payload(season: str):
                              "expected": round(quality["expected_roi"], 6),
                              "arbs": quality["arbs"], "matches": int(len(alt_odds))})
     lookup = {
-        (g.team, g.opponent, g.venue): (float(g.win_odds), float(g.draw_odds), float(g.profit))
+        (g.team, g.opponent, g.venue):
+            (float(g.win_odds), float(g.draw_odds), float(g.profit), float(g.stake_win))
         for g in games.itertuples()
     }
     block = {
+        "split": split,
         "stake": WD_STAKE,
         "source": PRICE_SOURCES["Avg"],
         "file": ah_source(season).name,
@@ -222,6 +224,10 @@ def wd_payload(season: str):
         "chance": {k: round(v, 4) if isinstance(v, float) else v for k, v in chance.items()},
         "columns": wd_columns(games),
         "alternatives": alternatives,
+        # share of all the money that went on draws, and profit split by result
+        "drawShare": round(float((2 * WD_STAKE - games["stake_win"]).sum()
+                                 / (2 * WD_STAKE * len(games))), 6),
+        "byResult": {k: round(float(v), 2) for k, v in games.groupby("result")["profit"].sum().items()},
     }
     return block, lookup
 
@@ -230,14 +236,23 @@ def wd_fields(found):
     """Per-game win and draw prices and the bet's profit, when the game has prices."""
     if found is None:
         return {}
-    win_odds, draw_odds, profit = found
+    win_odds, draw_odds, profit, _ = found
     return {"ow": win_odds, "od": draw_odds, "wdp": round(profit, 2)}
+
+
+def wde_fields(found):
+    """Per-game stake on the win and profit for the equal-payout split."""
+    if found is None:
+        return {}
+    _, _, profit, stake_win = found
+    return {"ews": round(stake_win, 2), "ewp": round(profit, 2)}
 
 
 def build_payload(season: str) -> dict:
     handicaps, results, games, standings = load_all(season)
     ah_block, ah_lookup = ah_payload(season) if has_ah(season) else (None, {})
     wd_block, wd_lookup = wd_payload(season) if has_1x2(season) else (None, {})
+    wde_block, wde_lookup = wd_payload(season, "equal") if has_1x2(season) else (None, {})
     max_played = int(standings["played"].max())
     complete = bool((standings["played"] == GAMES_PER_SEASON).all())
 
@@ -272,6 +287,7 @@ def build_payload(season: str) -> dict:
                     "p": int(g["base_points"]),
                     **ah_fields(ah_lookup.get((name, g["opponent"], g["venue"]))),
                     **wd_fields(wd_lookup.get((name, g["opponent"], g["venue"]))),
+                    **wde_fields(wde_lookup.get((name, g["opponent"], g["venue"]))),
                 }
                 for _, g in tg.iterrows()
             ],
@@ -304,6 +320,7 @@ def build_payload(season: str) -> dict:
         "market": market_payload(handicaps),
         "ah": ah_block,
         "wd": wd_block,
+        "wde": wde_block,
     }
 
 
