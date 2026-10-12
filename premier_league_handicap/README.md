@@ -168,6 +168,34 @@ the complete 2025/26 season, so check the page for current values.
   rearranged fixtures put 18 of 2025/26's matches out of step, so some of
   that season's columns mix dates. The page says which applies.
 
+## The same stake, split so a win and a draw pay the same
+
+A variation on the bet above: still €20 a game on every club, but divided so
+that a win and a draw return the same amount. That puts
+€20 × draw odds ÷ (win odds + draw odds) on the win and the rest on the draw,
+and either result returns €20 × win odds × draw odds ÷ (win odds + draw odds)
+— the same as one "win or draw" (double chance) bet at those combined odds. A
+favourite gets most of the money on its win (Man City at 1.45 / 4.72: €15.30
+on the win, €4.70 on the draw, €22.18 back either way); an outsider most on
+the draw. The page has its own table — with a column comparing each club to
+the €10 + €10 split — and its own grid, and game-by-game shows each game's two
+stakes and profit. The code shares `settle_win_draw` with the even split
+through a `split` argument (`"even"` or `"equal"`).
+
+What it shows (as of 2026/27 game 5 and the complete 2025/26 season):
+
+- **The split does not change the expected return.** At margin-free
+  probabilities any division of the €20 between win and draw expects to lose
+  the same 1/book − 1 (about 5.8% and 5.5%). The split only changes which
+  results carry the outcome.
+- **Equal payout moves money off the draw.** Every match has a favourite, so
+  42–43% of the money went on draws, against 50% with €10 + €10. A defeat
+  costs €20 either way, so the whole difference is in how wins and draws pay.
+- **So it did worse in two seasons of hot draws**: +2.1% against +6.2% in
+  2026/27, −2.9% against −1.7% in 2025/26. It helps short-priced favourites —
+  Man City's five straight wins turn a €23.20 loss into a €13.89 profit.
+- The same chance checks apply, computed for this split.
+
 ## Build
 
 ```bash
