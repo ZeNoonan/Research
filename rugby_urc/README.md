@@ -13,8 +13,8 @@ an open question, and this season is the test. Nothing here should be read as
 a finding yet.
 
 **Live site: <https://zenoonan.github.io/Research/rugby_urc/>** — this week's
-picks, the season's record, your bets beside the system's, and the shadow
-factors, rebuilt every round. This README explains how it all works and records
+picks, the system's record and the shadow factors, with your own bet tracker in
+a separate section at the foot of the page, rebuilt every round. This README explains how it all works and records
 the one-off findings; the running numbers live on the site.
 
 ---
@@ -163,8 +163,15 @@ both sheets.
 Your actual bets are in [`../bets/bet_log.csv`](../bets/): every sport, one row
 per bet, transcribed from the bet-slip screenshots you send (`bets/README.md`
 lists the columns). `my_bets.py` takes the URC rows of a season and matches each
-to its fixture by the club backed and the match date, or the round. The site
-and the app then show a **Your bets** section beside the system's record:
+to its fixture by the club backed and the match date, or the round.
+
+**The bet tracker is kept apart from the system.** The season tabs, and the top
+of the app, are the system: its own picks, graded at the closing line and a
+standard 1.91. Your bets are a different record (your stakes, your prices,
+your timing), so they get their own **Your bet tracker** section at the foot of
+the site and of the app, below everything about the system, with a link to it
+from the top of the page. Closely related, so the tracker sets the two side by
+side; separate, so neither is read as the other. It shows:
 
 - **Line v close.** Your handicap minus the closing one, from your side: +14
   means you got 14 points more than the close offered. Over a season this is
@@ -823,9 +830,10 @@ disagrees.
 
 **<https://zenoonan.github.io/Research/rugby_urc/>**
 
-`index.html` is self-contained and phone-friendly: season tabs, the record and
-profit curve, your bets, every match, the club × round heatmaps and the shadow
-factors, in light and dark. GitHub Pages serves it from the repository's
+`index.html` is self-contained and phone-friendly: season tabs with the
+system's record and profit curve, every match, the club × round heatmaps and
+the shadow factors; then, in its own section at the foot of the page, your bet
+tracker. Light and dark both work. GitHub Pages serves it from the repository's
 default branch, so it updates each time a week's changes are merged.
 
 ## Roadmap
