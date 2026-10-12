@@ -72,6 +72,50 @@ def betting_summary(df: pd.DataFrame) -> dict:
     }
 
 
+def bet_tracker(year: int) -> None:
+    """Your actual bets, apart from the system: their own section, foot of the page.
+
+    Everything above is the system - its own picks, graded at the close and a
+    standard price. This is a different record: your stakes, prices and timing.
+    """
+    got = my_bets.season(year)
+    if got is None:
+        return
+    bets, problems, mine = got
+    st.divider()
+    st.header("Your bet tracker")
+    st.write(f"Your actual bets for {season_report.season_label(year)}, from "
+             "`bets/bet_log.csv`: your stakes, your prices, your timing. A separate "
+             "record from the system above, which is the system's own picks graded at "
+             "the closing line and a standard 1.91.")
+    st.caption("*v close* is how many points better than the closing line you got; "
+               "*System* says whether the System # backed your side at your line. "
+               "*System, same rounds* is the system's own picks in the rounds you bet, "
+               f"staked like yours (€{mine['sys_stake']:.0f} a match) at 1.91.")
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Record", f"{mine['won']}–{mine['lost']}"
+              + (f" (+{mine['pending']} pending)" if mine["pending"] else ""))
+    c2.metric("Staked", f"€{mine['staked']:.0f}")
+    c3.metric("Profit", euros(mine["profit"]),
+              delta=None if mine["roi"] is None else f"{mine['roi']:+.0%}")
+    c4.metric("Line v close", "—" if mine["line_value"] is None
+              else f"{mine['line_value']:+.1f}")
+    c5.metric("System, same rounds", f"{mine['sys_won']}–{mine['sys_lost']}",
+              delta=euros(mine["sys_profit"]))
+    wide(st, bets[["round", "bet", "match", "odds", "stake", "close", "line_value",
+                   "system", "result", "profit"]].rename(columns={
+                       "round": "Rd", "bet": "Your bet", "match": "Match",
+                       "odds": "Price", "stake": "Stake", "close": "Close",
+                       "line_value": "v close", "system": "System",
+                       "result": "Result", "profit": "Profit"}),
+         hide_index=True)
+    for flag in [c for c in bets["check"] if c] + problems:
+        st.warning(flag)
+    if mine["unknown_profit"]:
+        st.info(f"{mine['unknown_profit']} winning bet(s) have no price logged yet, so "
+                f"they are left out of staked and profit until the settled slip is in.")
+
+
 def main() -> None:
     st.set_page_config(page_title="URC Report", layout="wide")
     st.title("🏉 URC Report")
@@ -116,37 +160,6 @@ def main() -> None:
     wide(st, view[list(DISPLAY_COLUMNS)].rename(columns=DISPLAY_COLUMNS),
          hide_index=True, height=560)
 
-    got = my_bets.season(year)
-    if got is not None:
-        bets, problems, mine = got
-        st.subheader("Your bets")
-        st.caption("Your actual URC bets, from `bets/bet_log.csv`. *v close* is how many "
-                   "points better than the closing line you got; *System* says whether "
-                   "the System # backed your side at your line. The system's picks in the "
-                   f"same rounds are staked like yours (€{mine['sys_stake']:.0f}) at 1.91.")
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Record", f"{mine['won']}–{mine['lost']}"
-                  + (f" (+{mine['pending']} pending)" if mine["pending"] else ""))
-        c2.metric("Staked", f"€{mine['staked']:.0f}")
-        c3.metric("Profit", euros(mine["profit"]),
-                  delta=None if mine["roi"] is None else f"{mine['roi']:+.0%}")
-        c4.metric("Line v close", "—" if mine["line_value"] is None
-                  else f"{mine['line_value']:+.1f}")
-        c5.metric("System, same rounds", f"{mine['sys_won']}–{mine['sys_lost']}",
-                  delta=euros(mine["sys_profit"]))
-        wide(st, bets[["round", "bet", "match", "odds", "stake", "close", "line_value",
-                       "system", "result", "profit"]].rename(columns={
-                           "round": "Rd", "bet": "Your bet", "match": "Match",
-                           "odds": "Price", "stake": "Stake", "close": "Close",
-                           "line_value": "v close", "system": "System",
-                           "result": "Result", "profit": "Profit"}),
-             hide_index=True)
-        for flag in [c for c in bets["check"] if c] + problems:
-            st.warning(flag)
-        if mine["unknown_profit"]:
-            st.info(f"{mine['unknown_profit']} winning bet(s) have no price logged yet, so "
-                    f"they are left out of staked and profit until the settled slip is in.")
-
     st.subheader("Factor diagnostics")
     marginal, standalone = factor_analysis.build_tables()
     if marginal.empty:
@@ -164,6 +177,8 @@ def main() -> None:
 
     with st.expander("How the system works"):
         st.markdown(model.__doc__)
+
+    bet_tracker(year)
 
 
 if __name__ == "__main__":

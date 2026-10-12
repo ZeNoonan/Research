@@ -78,6 +78,10 @@ tbody tr:hover{background:var(--surface-2)}
 .res-w{color:var(--pos);font-weight:650}.res-l{color:var(--neg);font-weight:650}
 .pending{color:var(--text-muted)}
 .compact th,.compact td{padding:6px 3px}
+.tracker{margin-top:44px;padding-top:6px;border-top:3px solid var(--accent)}
+.tracker h2{margin-top:18px}
+.jump{font-size:.85rem;margin:6px 0 0}
+a{color:var(--series-1)}
 .heat table{font-size:.72rem}
 .heat td{padding:3px 5px;text-align:center;border:1px solid var(--surface-1);
  background:var(--lbg);color:var(--lfg)}
@@ -376,7 +380,7 @@ def euros(x) -> str:
 
 
 def your_bets(year: int) -> str:
-    """Your actual URC bets for a season, from the shared bet log."""
+    """One season of your actual URC bets, for the tracker at the foot of the page."""
     got = my_bets.season(year)
     if got is None:
         return ""
@@ -421,15 +425,33 @@ def your_bets(year: int) -> str:
                      f"is in")
     flag_html = ("<ul class='todo'>" + "".join(f"<li>{esc(f)}</li>" for f in flags)
                  + "</ul>") if flags else ""
-    note = (f"<p class='sub'>Your actual bets, from <code>bets/bet_log.csv</code>. "
-            f"<em>v close</em> is how many points better than the closing line you got. "
-            f"<em>System</em> says whether the System # backed your side at your line. "
-            f"The system's own picks in the same rounds are staked like yours "
-            f"(€{s['sys_stake']:.0f}) at the standard 1.91. A bet logged as pending is "
-            f"graded from the score once the round is in.</p>")
-    return (f"<h3>Your bets</h3>{note}{tiles_html}<div class='scroll'>"
-            f"<table class='compact'><thead>{head}</thead><tbody>{''.join(rows)}"
-            f"</tbody></table></div>{flag_html}")
+    note = (f"<p class='sub'><em>v close</em> is how many points better than the "
+            f"closing line you got. <em>System</em> says whether the System # backed "
+            f"your side at your line. <em>System, same rounds</em> is the system's own "
+            f"picks in the rounds you bet, staked like yours (€{s['sys_stake']:.0f} a "
+            f"match) at the standard 1.91. A bet logged as pending is graded from the "
+            f"score once the round is in.</p>")
+    return (f"<h3>{season_report.season_label(year)}</h3>{tiles_html}{note}"
+            f"<div class='scroll'><table class='compact'><thead>{head}</thead>"
+            f"<tbody>{''.join(rows)}</tbody></table></div>{flag_html}")
+
+
+def bet_tracker(years: list[int]) -> str:
+    """Your actual bets, kept apart from the system: its own section, foot of the page.
+
+    The season tabs above are the system - its own picks, graded at the close
+    and a standard price. This is a different record: your stakes, your prices,
+    your timing. Closely related, so it sets the two side by side, but kept
+    separate so neither is read as the other.
+    """
+    seasons = "".join(your_bets(y) for y in sorted(years, reverse=True))
+    if not seasons:
+        return ""
+    return ('<section class="tracker" id="tracker"><h2>Your bet tracker</h2>'
+            '<p class="sub">Your actual bets, from <code>bets/bet_log.csv</code>: your '
+            'stakes, your prices, your timing. This is a separate record from the '
+            'system above, which is the system\'s own picks graded at the closing line '
+            'and a standard 1.91.</p>' + seasons + "</section>")
 
 
 def provenance_note(season: pd.DataFrame | None) -> str:
@@ -466,7 +488,7 @@ def build() -> Path:
         report = reports.get(year)
         if report is not None and len(report):
             body = (provenance_note(seasons.get(year)) + tiles(stats(report))
-                    + profit_chart(report) + your_bets(year)
+                    + profit_chart(report)
                     + f"<h3>Every match</h3>{report_table(report)}"
                     + "<h3>Season to date cover, club × round</h3>"
                     + heatmaps.heatmap_html(heatmaps.club_round_pivot(report, "stdc"),
@@ -485,6 +507,10 @@ def build() -> Path:
         panels.append(f'<section class="panel" id="s{year}" '
                       f'{"" if i == 0 else "hidden"}>{body}</section>')
 
+    tracker = bet_tracker(listed)
+    jump = ('<p class="jump"><a href="#tracker">Your bet tracker ↓</a></p>'
+            if tracker else "")
+
     page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -495,12 +521,13 @@ def build() -> Path:
 <header><h1>🏉 URC Report</h1>
 <p class="sub">The five-factor against-the-spread system, ported from
 <code>nfl_report</code> to the United Rugby Championship. Nothing here is
-validated on rugby yet — that is what the season is for.</p></header>
+validated on rugby yet — that is what the season is for.</p>{jump}</header>
 {status_panel(seasons)}
 <div class="tabs" role="tablist">{''.join(tabs)}</div>
 {''.join(panels)}
 {FACTOR_LEGEND}
 {shadow_legend()}
+{tracker}
 <footer>Built by <code>build_site.py</code> from the CSVs in <code>data/</code>.
 Handicaps are from the home side's point of view: negative means home favoured.
 {len(teams.TEAMS)} clubs, {season_report.REGULAR_ROUNDS} regular rounds.<br>
