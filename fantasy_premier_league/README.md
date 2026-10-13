@@ -1565,13 +1565,13 @@ season fills in.
 **Net is a difference, not a sum of the other two boards.** Adding the
 attack and defence composite ranks would throw away the margins twice; the
 differences keep them, so a club that outshoots its opponent by ten ranks
-above one that edges it by two. Through GW5 the three sides are led by
+above one that edges it by two. Through GW6 the three sides are led by
 Brighton (attack), Arsenal (defence) and Man City (net).
 
 ### The fixture ticker
 
-At the foot of the team board: every club's remaining fixtures, GW6 to
-GW38, one column a gameweek, each cell shaded by the **opponent's season
+At the foot of the team board: every club's remaining fixtures — GW7 to
+GW38 as of the GW6 update — one column a gameweek, each cell shaded by the **opponent's season
 rank on the Defence composite** — the same ramp as the boards above, so the
 leakiest defence so far is deep green and the meanest deep red. Under each
 opponent's three-letter code is H or A and that defence rank. **Next 6**
@@ -1604,7 +1604,7 @@ both fixtures in the one cell.
   a player at home was on the home team, and the home team is the opponent
   named by anyone who played away in the same fixture.
 * **Goals — the handicap app's results file**, not fbref. fbref's `Gls`
-  counts goals by players, so it misses own goals: seven through GW5, and
+  counts goals by players, so it misses own goals: seven through GW6, and
   each accounts for exactly one of the seven team-games where fbref and the
   score disagree.
 
@@ -1626,11 +1626,11 @@ The audit runs on every build and is on the page, verdict first:
 
 ```
 verdict: clean (0 rows to check)
-gameweeks ranked: GW1, GW2, GW3, GW4, GW5
-matches: 50 in the results file, 50 found in FPL's fixtures
-scores agree with FPL: 50 of 50
-FPL round agrees with the results gameweek: 50 of 50
-clubs per gameweek: GW1 20, GW2 20, GW3 20, GW4 20, GW5 20
+gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6
+matches: 60 in the results file, 60 found in FPL's fixtures
+scores agree with FPL: 60 of 60
+FPL round agrees with the results gameweek: 60 of 60
+clubs per gameweek: GW1 20, GW2 20, GW3 20, GW4 20, GW5 20, GW6 20
 club shots add up to the league's every week: yes
 doubles (shots conceded left blank): 0
 player-weeks whose xG goes to the club he played for, not FPL's current club: 6
