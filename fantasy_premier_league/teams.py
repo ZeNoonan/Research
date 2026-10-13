@@ -160,11 +160,11 @@ def fbref_team_weeks(path: str | Path = DATA / "fbref_shots.xlsx") -> pd.DataFra
     Summed by club **inside** each sheet, then differenced: a mover's rows
     stay with the club they were earned at.
     """
-    cum = {}
-    for gw, sheet in S.gameweek_sheets(path):
-        d = pd.read_excel(path, sheet_name=sheet)
-        d["Squad"] = d["Squad"].map(_club)
-        cum[gw] = d.groupby("Squad")[["Sh", "PKatt"]].sum()
+    # The player boards' reader, so a spell fbref drops from a sheet is
+    # carried forward here too — otherwise the club would silently lose that
+    # player's season shots from its weekly difference.
+    sheets, _ = S.read_sheets(path)
+    cum = {gw: d.groupby("Squad")[["Sh", "PKatt"]].sum() for gw, d in sheets.items()}
     rows, prev = [], None
     for gw in sorted(cum):
         cur = cum[gw]

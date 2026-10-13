@@ -141,6 +141,72 @@ FBREF_ID = ["Player", "Nation", "Born"]
 FBREF_SUMS = ["90s", "Sh", "PKatt", "Gls"]
 
 
+def read_sheets(path: str | Path) -> tuple[dict, list]:
+    """Each ``GW<n>`` sheet as rows of ``Player, Nation, Born, Squad`` + sums.
+
+    A spell present in one sheet and **missing from the next** is carried
+    forward unchanged. A cumulative sheet should only ever add players, but
+    fbref occasionally drops one — Jair Cunha, four 90s and two shots into
+    the season, is absent from the GW6 export and from no other club's. His
+    season did not un-happen, so his last totals stand: differencing then
+    gives him a zero week, which is right when he did not play and is
+    flagged by ``report_join`` when FPL says he did.
+
+    Before carrying anything, a vanished spell is checked for a **rename**:
+    fbref relabelled "Jair Cunha" as plain "Jair" in the GW6 export. A new
+    row with the same nationality, birth year and club, whose totals are all
+    at least the vanished row's, and the only such row, is the same man —
+    the earlier sheets are relabelled to his new name so he stays one
+    player. Carrying him forward instead would count him twice, the second
+    time as a debutant with two shots in a week he did not play.
+
+    Returns ``(sheets, carried)`` — ``{gw: rows}`` and a list of
+    ``(gw, player, nation, born, squad)`` for every spell carried. The
+    renames are on ``read_sheets.renames`` after a call, as
+    ``(gw, old name, new name, squad)``.
+    """
+    key = FBREF_ID + ["Squad"]
+    sheets, carried, renames, prev = {}, [], [], None
+    for gw, sheet in gameweek_sheets(path):
+        d = pd.read_excel(path, sheet_name=sheet)
+        d = d[key + FBREF_SUMS].copy()
+        d["Squad"] = d["Squad"].map(lambda s: SQUAD_ALIASES.get(s, s))
+        dup = d.duplicated(key)
+        if dup.any():
+            raise ValueError(
+                f"{sheet} names the same player at the same club twice: "
+                + ", ".join(d.loc[dup, "Player"]))
+        if prev is not None:
+            had = set(map(tuple, prev[key].values))
+            have = set(map(tuple, d[key].values))
+            gone = prev[[tuple(k) not in have for k in prev[key].values]]
+            new = d[[tuple(k) not in had for k in d[key].values]]
+            keep = []
+            # iterrows, not itertuples: "90s" is not a valid attribute name.
+            for _, g in gone.iterrows():
+                twins = new[(new["Nation"] == g["Nation"]) & (new["Born"] == g["Born"])
+                            & (new["Squad"] == g["Squad"])
+                            & (new[FBREF_SUMS] >= g[FBREF_SUMS].astype(float).values)
+                            .all(axis=1)]
+                if len(twins) == 1:
+                    to = twins["Player"].iloc[0]
+                    renames.append((gw, g["Player"], to, g["Squad"]))
+                    for s in sheets.values():
+                        hit = ((s["Player"] == g["Player"]) & (s["Nation"] == g["Nation"])
+                               & (s["Born"] == g["Born"]) & (s["Squad"] == g["Squad"]))
+                        s.loc[hit, "Player"] = to
+                else:
+                    keep.append(g)
+            if keep:
+                gone = pd.DataFrame(keep)[prev.columns]
+                carried += [(gw, *k) for k in gone[key].itertuples(index=False)]
+                d = pd.concat([d, gone], ignore_index=True)
+        sheets[gw] = d
+        prev = d
+    read_sheets.renames = renames
+    return sheets, carried
+
+
 def load_fbref(path: str | Path) -> pd.DataFrame:
     """Read the cumulative sheets and difference them into weekly rows.
 
@@ -155,15 +221,8 @@ def load_fbref(path: str | Path) -> pd.DataFrame:
     the cumulative total for the man, and differencing that gives his week.
     """
     frames, clubs = {}, {}
-    for gw, sheet in gameweek_sheets(path):
-        d = pd.read_excel(path, sheet_name=sheet)
-        d = d[FBREF_ID + ["Squad"] + FBREF_SUMS].copy()
-        d["Squad"] = d["Squad"].map(lambda s: SQUAD_ALIASES.get(s, s))
-        dup = d.duplicated(FBREF_ID + ["Squad"])
-        if dup.any():
-            raise ValueError(
-                f"{sheet} names the same player at the same club twice: "
-                + ", ".join(d.loc[dup, "Player"]))
+    sheets, carried = read_sheets(path)
+    for gw, d in sheets.items():
         for r in d.itertuples(index=False):
             # First sheet a spell shows up in orders the clubs chronologically,
             # so a mover's clubs read old to new rather than alphabetically.
@@ -199,8 +258,11 @@ def load_fbref(path: str | Path) -> pd.DataFrame:
     out["squads"] = [tuple(sorted(clubs[k], key=lambda s: (clubs[k][s], s)))
                      for k in zip(out["Player"], out["Nation"], out["Born"])]
     out["Squad"] = out["squads"].map(" / ".join)
-    return out[FBREF_ID + ["Squad", "squads", "round", "shots", "pkatt",
-                           "goals", "fb_minutes"]]
+    out = out[FBREF_ID + ["Squad", "squads", "round", "shots", "pkatt",
+                          "goals", "fb_minutes"]]
+    out.attrs["carried"] = carried
+    out.attrs["renames"] = list(read_sheets.renames)
+    return out
 
 
 def load_fpl(path: str | Path) -> pd.DataFrame:
@@ -338,6 +400,7 @@ def weekly(data_dir: str | Path = HERE / "data" / "2026-27") -> pd.DataFrame:
     """
     data_dir = Path(data_dir)
     fb_weekly = load_fbref(data_dir / "fbref_shots.xlsx")
+    carried, renames = fb_weekly.attrs["carried"], fb_weekly.attrs["renames"]
     fpl_weekly = load_fpl(data_dir / "all_gws.csv")
 
     # Rank only the gameweeks **both** sources cover. A round FPL has but
@@ -393,6 +456,8 @@ def weekly(data_dir: str | Path = HERE / "data" / "2026-27") -> pd.DataFrame:
     out = out.sort_values(["element", "round"]).reset_index(drop=True)
     out.attrs["join"] = join
     out.attrs["gameweeks"] = gameweeks
+    out.attrs["carried"] = [c for c in carried if c[0] in gameweeks]
+    out.attrs["renames"] = renames
     out.attrs["fbref_only"] = sorted(fb_gws - fpl_gws)
     out.attrs["fpl_only"] = sorted(fpl_gws - fb_gws)
     return out
@@ -565,7 +630,19 @@ def report_join(week: pd.DataFrame) -> str:
     seen = set(join.loc[join["element"].notna(), "element"])
     missing = sorted(set(week.loc[week["played"], "element"]) - seen)
 
-    trouble = len(bad) + len(unmatched) + len(missing)
+    # Spells fbref dropped from a sheet and the board carried forward. Only
+    # a problem if the player was on the pitch that week: then his shots for
+    # it are genuinely missing, not zero.
+    key = join.set_index(FBREF_ID)["element"]
+    mins = week.set_index(["element", "round"])["minutes"]
+    carried = []
+    for gw, player, nation, born, squad in week.attrs.get("carried", []):
+        el = key.get((player, nation, born))
+        played_mins = mins.get((el, gw), 0) if pd.notna(el) else 0
+        carried.append((gw, player, squad, played_mins))
+    carried_played = [c for c in carried if c[3] > 0]
+
+    trouble = len(bad) + len(unmatched) + len(missing) + len(carried_played)
     lines = [f"verdict: {'clean' if not trouble else 'NEEDS A LOOK'} "
              f"({trouble} row{'' if trouble == 1 else 's'} to check)",
              "gameweeks ranked: "
@@ -587,6 +664,18 @@ def report_join(week: pd.DataFrame) -> str:
                    for r in bad.itertuples()], "disagreeing on minutes")
     _named(lines, [f"  UNMATCHED {r.Player} ({r.Squad}) — no shots for him"
                    for r in unmatched.itertuples()], "unmatched")
+
+    for gw, was, now, squad in week.attrs.get("renames", []):
+        lines.append(f"renamed by fbref in GW{gw}: {was!r} -> {now!r} ({squad}) "
+                     "— same nationality, birth year, club and totals; one player")
+    lines.append(f"dropped from an fbref sheet, totals carried forward: "
+                 f"{len(carried)}"
+                 + (f" — {len(carried_played)} of them played that week"
+                    if carried else ""))
+    for gw, player, squad, m in carried:
+        lines.append(f"  {'?' if m > 0 else '-'} GW{gw} {player} ({squad}): "
+                     + (f"FPL says {m:.0f} min — his shots that week are MISSING"
+                        if m > 0 else "0 min per FPL, so a zero week is right"))
 
     lines.append(f"played but absent from fbref: {len(missing)}")
     if missing:
