@@ -1363,7 +1363,7 @@ penalties rather than who is getting shots away. Left in, one spot kick
 outranks four good chances in the same week. So every attempt fbref records
 costs its taker **`PENALTY_XG = 0.75`** in that gameweek, subtracted from
 the *weekly* count so a penalty is charged once, in its own week. Through
-GW6 that is ten kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
+GW7 that is eleven kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
 the check that the constant is the right size.
 
 ### Ranking
@@ -1399,8 +1399,8 @@ Sorting on the average has one failure mode, and the page says so rather
 than hiding it: **one cameo ranked well is an average of one number**, and
 it lands near the top. Through GW5 the shots board had five one-gameweek
 players inside the top twenty — Tyler Dibling was 2nd off 24 minutes; by
-GW6, as more weeks fill in, it is down to one (Jack Hinshelwood, 11th off
-63 minutes). So a
+GW6, as more weeks filled in, it was down to one (Jack Hinshelwood, 11th
+off 63 minutes), and by GW7 none — the highest is Rico Lewis, 61st. So a
 **gameweeks played** filter sits with the search and position controls, and
 Total, which already charges absence, is one click on its heading away.
 Nothing is filtered by default: the board opens showing everyone.
@@ -1430,30 +1430,31 @@ Leftovers are settled on **minutes**: a club he has played for, and accepted
 only when exactly one unclaimed candidate is within `MINUTES_TOL = 10`. That
 is what catches the nicknames no string match will — fbref's *Beto* is FPL's
 *norberto bercique gomes betuncal*, its *Costinha* is *joão pedro loureiro
-da costa*, its *Chema* is *josé maría andrés baixauli*. All three check out
-on minutes to within five.
+da costa*, its *Chema* is *josé maría andrés baixauli*, and its *Timur
+Tuterov* is FPL's *Tymur Tutierov* — the same Ukrainian name transliterated
+two ways. All four agree on minutes within the 10-minute tolerance.
 
 Minutes then **audit** every pair, and this is what makes the join
 believable rather than plausible:
 
 ```
 verdict: clean (0 rows to check)
-gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6
-fbref players: 436
-matched: exact 367, partial 54, surname 9, minutes 3, token 3
-minutes agree within 10: 436 of 436
+gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7
+fbref players: 449
+matched: exact 379, partial 54, surname 9, minutes 4, token 3
+minutes agree within 10: 449 of 449
 renamed by fbref in GW6: 'Jair Cunha' -> 'Jair' (Nott'm Forest) — same nationality, birth year, club and totals; one player
 dropped from an fbref sheet, totals carried forward: 0
 played but absent from fbref: 0
 ```
 
 Two sources that counted the same minutes independently agreeing on **all
-436** players is the evidence. The residual disagreement is fbref quoting
+449** players is the evidence. The residual disagreement is fbref quoting
 `90s` to one decimal — 9-minute steps — plus the two disagreeing on
-stoppage time. And 436 is not a coincidence either: FPL says 310 played GW1,
-312 GW2, 307 GW3, 307 GW4, 302 GW5 and 315 GW6; fbref's cumulative GW1 sheet
-has exactly 310 rows, and its GW6 sheet's 441 rows are those 436 people plus
-the five movers counted twice. The two sources agree on *who has played*,
+stoppage time. And 449 is not a coincidence either: FPL says 310 played GW1,
+312 GW2, 307 GW3, 307 GW4, 302 GW5, 315 GW6 and 305 GW7; fbref's cumulative
+GW1 sheet has exactly 310 rows, and its GW7 sheet's 454 rows are those 449
+people plus the five movers counted twice. The two sources agree on *who has played*,
 not just on how long.
 
 The audit earned its place on the GW3 update: fbref's per-club split was new
@@ -1505,18 +1506,18 @@ midfielder** — so the raw count and the reward do not line up: a midfielder's
 count includes recoveries and needs two more of them. Rather than distort
 the ranking to patch that, the threshold is displayed: a cell that cleared
 it carries a green ✓, and a **DC pts** column counts the gameweeks a player
-has done it. Through GW6 that is defenders 131 of 640 player-gameweeks (20%),
-midfielders 73 of 878 (8%).
+has done it. Through GW7 that is defenders 156 of 744 player-gameweeks (21%),
+midfielders 79 of 1,023 (8%).
 
 **Three of the four categories are attacking**, so the aggregate leans that
-way — 44 of the top 50 are midfielders, and the first defender is 20th.
+way — 44 of the top 50 are midfielders, and the first defender is 21st.
 That is the honest consequence of the categories asked for, not a bug, and
 there are two ways round it on the page: the position filter reads it as a
 defenders' board, and the **Defensive contributions** tab opens on the
-season total, which reads it as a purely defensive one. John Egan has 65
-defensive actions and three weeks over the bar but sits 181st on the
+season total, which reads it as a purely defensive one. John Egan has 77
+defensive actions and four weeks over the bar but sits 192nd on the
 aggregate — a good illustration of how far apart the two questions are.
-Vitaly Janelt, who leads the tab on 78, is 49th, because he also gets
+Vitaly Janelt, who leads the tab on 89, is 50th, because he also gets
 forward.
 
 ### Keeping it current
