@@ -4,13 +4,16 @@
 
 *Anything I'm waiting on lives here, newest first. Nothing is urgent unless marked.*
 
-### ⚠️ Needed now — before Thursday 15 Oct (Seahawks @ Broncos, 8:15pm ET)
+### ⚠️ Needed now
 
-1. **Monday night's Bills @ Rams pro-football-reference row, with `TOW`/`TOL`**,
-   once it's played — week 6's lines only import once week 5 is complete, and
-   the Bills and Rams turnovers feed week 6.
-2. **A fresh nflverse export after Monday night**, as late as practical before
-   Thursday's kick-off, so week 6 can be priced and picked before it starts.
+1. **Before Sunday 25 Oct's kick-offs** (first: Steelers @ Saints in Paris,
+   9:30am ET), if you can: **a fresh nflverse export**. Week-7 lines keep
+   tracking the market until kick-off, and the **Cardinals pick is marginal**:
+   at Cardinals +4 or shorter it drops out, while Seahawks v Chiefs becomes a
+   Seahawks pick if it moves to Seahawks −1.
+2. **After Monday 26 Oct's Cowboys @ Eagles, before Thursday 29 Oct:** week 7's
+   pro-football-reference rows, all 14 games, with `TOW`/`TOL`, plus a fresh
+   nflverse export, so week 8 can be picked before its Thursday game.
 
 ### Every week, to keep 2026–27 running
 
