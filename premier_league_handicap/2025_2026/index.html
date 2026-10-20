@@ -1517,8 +1517,8 @@ window.PLH_DATA = /*__DATA__*/{"season":"2025-2026","hasResults":true,"complete"
         + (() => {
           const hot = C.draws > C.draws_implied, evenAhead = E.profit > WD.profit;
           const evenName = `the ${sym}${fmt(stake)} + ${sym}${fmt(stake)} split`;
-          if (hot && evenAhead) return `so draws ran hot, and ${evenName} had more riding on them, so it came out ahead.`;
-          if (!hot && !evenAhead) return `so draws came in below the prices, and this split had less riding on them, so it came out ahead.`;
+          if (hot && evenAhead) return `so draws ran hot; ${evenName} had more riding on them and came out ahead.`;
+          if (!hot && !evenAhead) return `so draws came in below the prices; this split had less riding on them and came out ahead.`;
           return `and ${evenAhead ? evenName : "this split"} came out ahead, though the draw count alone does not explain it.`;
         })());
     }
