@@ -63,9 +63,11 @@ class Board:
     positions: tuple | None = None
 
     def views(self):
-        """(key, tab label, cell heading, format) — the aggregate, then each
-        category in the order they are summed."""
-        return [("rank", "Aggregate ranking", None, None)] + [
+        """(key, tab label, cell heading, format) — the aggregate, the
+        aggregate with each player's worst weeks dropped, then each category
+        in the order they are summed."""
+        return [("rank", "Aggregate ranking", None, None),
+                ("drop", "Aggregate, worst weeks dropped", None, None)] + [
             (c, *VIEW_SPEC[c]) for c in self.categories]
 
     @property
@@ -117,6 +119,10 @@ td.gw { text-align: right; font-variant-numeric: tabular-nums; }
 td.gw.r1 { background: rgba(0, 160, 90, .18); font-weight: 700; }
 td.gw.r2 { background: rgba(0, 160, 90, .08); }
 td.dnp { color: var(--border); text-align: right; }
+/* Left out of the worst-weeks-dropped average. Amber, so it cannot be
+   mistaken for the green top-10/top-30 shading, and struck through. */
+td.gw.drop { background: rgba(230, 145, 0, .30); color: var(--muted);
+  text-decoration: line-through; }
 td.pen::after { content: "p"; font-size: 9px; vertical-align: super;
   color: #b3372f; margin-left: 2px; font-weight: 700; }
 /* The week's defensive count cleared FPL's 2-point bar. */
@@ -136,6 +142,7 @@ pre.audit { overflow: auto; max-height: 340px; font-size: 13px;
   table.board tbody tr:hover td { background: rgba(255, 255, 255, .05); }
   td.gw.r1 { background: rgba(76, 195, 138, .22); }
   td.gw.r2 { background: rgba(76, 195, 138, .10); }
+  td.gw.drop { background: rgba(240, 170, 60, .28); }
   td.pen::after { color: #ef7a72; }
   td.hit::after, td.hitcount { color: #4cc38a; }
 }
@@ -213,14 +220,24 @@ showView('rank');
 """
 
 
-def rank_cell(row, gw: int, note: str) -> str:
-    """One gameweek cell of the ranking table: the rank, or a blank."""
+def rank_cell(row, gw: int, note: str, show_drop: bool = False) -> str:
+    """One gameweek cell of the ranking table: the rank, or a blank.
+
+    With ``show_drop``, a week left out of the worst-weeks-dropped average
+    is coloured as such in place of its top-10/top-30 shade, so the reader
+    can see exactly which numbers the average is not built from.
+    """
     v = row.get(f"gw{gw}")
     if pd.isna(v):
         return ('<td class="dnp" data-v="" title="No minutes played in '
                 f'GW{gw}">&mdash;</td>')
     v = int(v)
     tier = " r1" if v <= 10 else (" r2" if v <= 30 else "")
+    if show_drop and row.get(f"drop_gw{gw}"):
+        tier = " drop"
+        k, n = int(row["dropped"]), int(row["played"])
+        worst = "his worst" if k == 1 else f"one of his {k} worst"
+        note = f"Left out of Avg: {worst} of {n} gameweeks played. " + note
     pen = " pen" if row.get(f"pen_gw{gw}") else ""
     return (f'<td class="gw{tier}{pen}" data-v="{v}" title="{esc(note)}">'
             f'{v}</td>')
@@ -272,10 +289,13 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
     the arrow to say so.
     """
     key, label, head, fmt = next(v for v in board.views() if v[0] == view)
+    ranking = view in ("rank", "drop")
     if view == "rank":
         # Opens on the average — how good he is when he plays — with the
         # total, which counts turning up, as the tie-break.
         table = table.sort_values(["average", "total"])
+    elif view == "drop":
+        table = table.sort_values(["best_average", "total"])
     else:
         table = table.sort_values(f"{key}_total", ascending=False)
 
@@ -291,9 +311,12 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
     if show_dc_weeks:
         heads += ['<th class="num" title="Gameweeks he cleared FPL\'s '
                   'defensive-contribution bar">DC pts</th>']
-    if view == "rank":
+    if ranking:
+        avg_note = ("" if view == "rank" else
+                    f' title="Mean rank over the gameweeks played, leaving '
+                    f'out the worst one in every {S.DROP_EVERY}"')
         heads += ['<th class="num">Total</th>',
-                  '<th class="num" data-dir="asc">Avg</th>']
+                  f'<th class="num" data-dir="asc"{avg_note}>Avg</th>']
     else:
         heads += [f'<th class="num" data-dir="desc">{esc(head)} total</th>']
 
@@ -305,8 +328,8 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
                  f'<td data-v="{esc(r["position"])}">{esc(r["position"])}</td>']
         for g in gameweeks:
             note = notes.get((r["element"], g), "")
-            cells.append(rank_cell(r, g, note) if view == "rank"
-                         else value_cell(r, key, g, fmt, note))
+            cells.append(rank_cell(r, g, note, show_drop=view == "drop")
+                         if ranking else value_cell(r, key, g, fmt, note))
         cells.append(f'<td class="num tot" data-v="{r["minutes"]}">'
                      f'{r["minutes"]:,.0f}</td>')
         cells.append(f'<td class="num" data-v="{r["played"]}">'
@@ -315,11 +338,12 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
             wk = int(r["dc_weeks"])
             cells.append(f'<td class="num{" hitcount" if wk else ""}" '
                          f'data-v="{wk}">{wk}</td>')
-        if view == "rank":
+        if ranking:
+            avg = r["best_average" if view == "drop" else "average"]
             cells.append(f'<td class="num" data-v="{r["total"]:.0f}">'
                          f'{r["total"]:.0f}</td>')
-            cells.append(f'<td class="num" data-v="{r["average"]:.2f}">'
-                         f'{r["average"]:.1f}</td>')
+            cells.append(f'<td class="num" data-v="{avg:.2f}">'
+                         f'{avg:.1f}</td>')
         else:
             total = r[f"{key}_total"]
             cells.append(f'<td class="num" data-v="{total:.4f}">'
@@ -592,6 +616,7 @@ def build(board: Board, data_dir: Path, out: Path) -> None:
     # stated on the page rather than left for the reader to discover.
     opening = table.sort_values(["average", "total"])
     cameo_top20 = int((opening.head(20)["played"] == 1).sum())
+    n_dropping = int((table["dropped"] > 0).sum())
     n_gws = len(gameweeks)
 
     n_cats = len(board.categories)
@@ -662,6 +687,17 @@ charges a missed gameweek that week's last place, so turning up counts
 &mdash; it asks <i>who has been most useful so far</i>. Sorting is on any
 column; blanks always sink.</p>
 
+<p class="note"><b>Aggregate, worst weeks dropped</b> is the same ranking
+with the odd bad week forgiven. For every {S.DROP_EVERY} gameweeks a player
+has played, his worst rank is left out of <b>Avg</b> &mdash; one of 5, two
+of 10, three of 15 &mdash; and that tab opens sorted on it. Under
+{S.DROP_EVERY} gameweeks nothing is dropped; through {n_gws} gameweeks
+{n_dropping} of the {len(table)} players have a week left out. The week
+left out is shown <span style="background:rgba(230,145,0,.30);
+padding:0 3px;border-radius:3px">amber and struck through</span>, so you can
+see exactly what the average is not built from; where two weeks tie for his
+worst, the earlier one goes. <b>Total</b> still counts every week.</p>
+
 <p class="note"><b>The average is only as good as the weeks behind it.</b>
 One cameo ranked well is an average of one number, and it will sit near the
 top: through {n_gws} gameweeks this board has {cameo_top20} such
@@ -704,7 +740,9 @@ ignored.</p>
 <p class="legend"><span class="key" style="background:rgba(0,160,90,.18)">
 </span>top 10 that gameweek &nbsp;
 <span class="key" style="background:rgba(0,160,90,.08)"></span>top 30 &nbsp;
-&mdash; no minutes &nbsp; <b style="color:#b3372f">p</b> penalty charged that
+&mdash; no minutes &nbsp; <span class="key"
+style="background:rgba(230,145,0,.30)"></span>left out of Avg (worst weeks
+dropped tab) &nbsp; <b style="color:#b3372f">p</b> penalty charged that
 week{' &nbsp; <b style="color:#1e7d46">&#10003;</b> cleared the 2-point '
       'defensive bar that week' if "dc" in board.categories else ''}</p>
 <p class="legend">On the {tab_names} tabs a cell reads

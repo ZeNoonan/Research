@@ -1395,6 +1395,22 @@ total, so:
 * **GWs** and **Mins** sit beside them, because the two answers diverge and
   you need to see which you are reading.
 
+**Aggregate, worst weeks dropped** is a second version of the ranking tab.
+Under this rule one bad afternoon should not sink a season. For every 5
+gameweeks a player has played, his worst rank is left out of **Avg**: one of
+5, two of 10, three of 15. The tab opens sorted on that Avg. A player with
+fewer than 5 keeps every week. The dropped week stays on the row, **amber
+and struck through**, so you can see what the average is not built from.
+Where two weeks tie for his worst, the earlier one goes. **Total** still
+counts every week. The rule is `DROP_EVERY = 5` in `shots.py`.
+
+Through GW7, 270 of the 449 players have a week left out, and the top of the
+board moves:
+* Saka goes from 5th to 1st (15.7) once his blank GW7, ranked 142nd, is
+  set aside.
+* Mbeumo, 1st on the full average, is 2nd.
+* Enciso climbs from 16th to 3rd.
+
 Sorting on the average has one failure mode, and the page says so rather
 than hiding it: **one cameo ranked well is an average of one number**, and
 it lands near the top. Through GW5 the shots board had five one-gameweek
@@ -1486,7 +1502,9 @@ like a broken join — but it never passes unnoticed.
 
 `defcon.html`, built by the same command, is the same board narrowed and
 widened at once: **defenders and midfielders only**, on the same three
-categories **plus FPL's defensive contributions**.
+categories **plus FPL's defensive contributions**. It has the same tabs,
+including the worst-weeks-dropped aggregate. There Dewsbury-Hall leads
+(11.3), up from 3rd, once his GW7 is dropped.
 
 **Ranked against each other.** The population is cut *before* the ranking,
 not after, so a defender's three shots are ranked against other defenders
