@@ -10,7 +10,9 @@
    9:30am ET), if you can: **a fresh nflverse export**. Week-7 lines keep
    tracking the market until kick-off, and the **Cardinals pick is marginal**:
    at Cardinals +4 or shorter it drops out, while Seahawks v Chiefs becomes a
-   Seahawks pick if it moves to Seahawks −1.
+   Seahawks pick if it moves to Seahawks −1. (Week 7 opens Thursday 22 Oct
+   with Patriots +3 at Bears, which holds unless the Patriots become
+   favourites, so no export is needed for it.)
 2. **After Monday 26 Oct's Cowboys @ Eagles, before Thursday 29 Oct:** week 7's
    pro-football-reference rows, all 14 games, with `TOW`/`TOL`, plus a fresh
    nflverse export, so week 8 can be picked before its Thursday game.
