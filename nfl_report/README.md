@@ -6,16 +6,16 @@
 
 ### ⚠️ Needed now
 
-1. **Before Sunday 25 Oct's kick-offs** (first: Steelers @ Saints in Paris,
-   9:30am ET), if you can: **a fresh nflverse export**. Week-7 lines keep
-   tracking the market until kick-off, and the **Cardinals pick is marginal**:
-   at Cardinals +4 or shorter it drops out, while Seahawks v Chiefs becomes a
-   Seahawks pick if it moves to Seahawks −1. (Week 7 opens Thursday 22 Oct
-   with Patriots +3 at Bears, which holds unless the Patriots become
-   favourites, so no export is needed for it.)
+1. **If you can, one more nflverse export on Sunday 25 Oct before the first
+   kick-off** (Steelers @ Saints in Paris, 9:30am ET). The 23 Oct export moved
+   nothing that matters, but the **Cardinals pick is marginal**: at Cardinals +4
+   or shorter it drops out, while Seahawks v Chiefs becomes a Seahawks pick if it
+   moves to Seahawks −1.
 2. **After Monday 26 Oct's Cowboys @ Eagles, before Thursday 29 Oct:** week 7's
-   pro-football-reference rows, all 14 games, with `TOW`/`TOL`, plus a fresh
-   nflverse export, so week 8 can be picked before its Thursday game.
+   pro-football-reference rows, **all 14 games including Thursday's Patriots @
+   Bears**, with `TOW`/`TOL`, plus a fresh nflverse export. Thursday's score is
+   in from nflverse (Bears 30–24) but its turnovers are not, and week 8 needs
+   them.
 
 ### Every week, to keep 2026–27 running
 
