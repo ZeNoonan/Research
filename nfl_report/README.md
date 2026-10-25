@@ -9,8 +9,8 @@
 1. **If you can, one more nflverse export on Sunday 25 Oct before the first
    kick-off** (Steelers @ Saints in Paris, 9:30am ET). The 23 Oct export moved
    nothing that matters, but the **Cardinals pick is marginal**: at Cardinals +4
-   or shorter it drops out, while Seahawks v Chiefs becomes a Seahawks pick if it
-   moves to Seahawks −1.
+   or shorter it drops out. Two games become picks on a 2-point move: Seahawks v
+   Chiefs at Seahawks −1, and Falcons v 49ers at Falcons +4.5.
 2. **After Monday 26 Oct's Cowboys @ Eagles, before Thursday 29 Oct:** week 7's
    pro-football-reference rows, **all 14 games including Thursday's Patriots @
    Bears**, with `TOW`/`TOL`, plus a fresh nflverse export. Thursday's score is

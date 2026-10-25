@@ -438,7 +438,9 @@ def my_bets_block(year: int, df: pd.DataFrame) -> str:
     def bet_row(b) -> str:
         what = (f"Bet builder ({team(b.side)})" if b.kind == "builder"
                 else f"{team(b.side)} {fmt_pts(b.line)}")
-        chip = (f'<span class="chip {b.res}">{b.res}</span>' if b.res
+        # An open bet's result is missing (NaN once pandas stores the column),
+        # and NaN is truthy, so test for a string, not truthiness.
+        chip = (f'<span class="chip {b.res}">{b.res}</span>' if isinstance(b.res, str)
                 else '<span class="chip N">&middot;</span>')
         odds = f"{b.odds:.2f}" if not pd.isna(b.odds) else "&mdash;"
         note = html.escape(b.note) if isinstance(b.note, str) else ""
