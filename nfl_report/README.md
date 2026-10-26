@@ -4,18 +4,14 @@
 
 *Anything I'm waiting on lives here, newest first. Nothing is urgent unless marked.*
 
-### ⚠️ Needed now
+### ⚠️ Needed now — before Thursday 29 Oct (Panthers @ Packers, 8:15pm ET)
 
-1. **If you can, one more nflverse export on Sunday 25 Oct before the first
-   kick-off** (Steelers @ Saints in Paris, 9:30am ET). The 23 Oct export moved
-   nothing that matters, but the **Cardinals pick is marginal**: at Cardinals +4
-   or shorter it drops out. Two games become picks on a 2-point move: Seahawks v
-   Chiefs at Seahawks −1, and Falcons v 49ers at Falcons +4.5.
-2. **After Monday 26 Oct's Cowboys @ Eagles, before Thursday 29 Oct:** week 7's
-   pro-football-reference rows, **all 14 games including Thursday's Patriots @
-   Bears**, with `TOW`/`TOL`, plus a fresh nflverse export. Thursday's score is
-   in from nflverse (Bears 30–24) but its turnovers are not, and week 8 needs
-   them.
+1. **Monday night's Cowboys @ Eagles pro-football-reference row, with
+   `TOW`/`TOL`**, once it's played — week 8's lines only import once week 7 is
+   complete, and the Eagles' turnovers decide whether Eagles @ Commanders is a
+   pick.
+2. **A fresh nflverse export after Monday night**, as late as practical before
+   Thursday's kick-off (Thursday's game is not a pick in the draft).
 
 ### Every week, to keep 2026–27 running
 
