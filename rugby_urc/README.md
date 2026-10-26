@@ -388,8 +388,9 @@ the bookmaker may price only a three-way handicap: home, away, and a tie at a
 whole-number handicap. With both sides at the same price, that number is the
 bookmaker's 50/50 point for the margin, so it is the two-way line itself:
 Connacht +3 v Leinster, both sides at 1.90 and the tie at 17.00, is a line of
-+3. The whole number is used as it is. Round 5's opening lines were read this
-way.
++3. The whole number is used as it is. Round 5 was first read this way, on the
+Monday. When the two-way market opened, seven of its eight lines were within
+half a point of those readings, with the favourite giving the extra half.
 
 Round 1 shows how much that matters. Four of the eight lines moved on team news:
 
