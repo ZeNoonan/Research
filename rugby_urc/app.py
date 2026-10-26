@@ -147,16 +147,19 @@ def main() -> None:
     c4.metric("Win rate", "—" if s["win_rate"] is None else f"{s['win_rate']:.1%}")
     c5.metric("Profit (units, full juice)", f"{s['profit']:+.1f}")
 
-    held = int(df["system_bet"].isna().sum() - df["line"].isna().sum())
+    held = int(df["lgt_unknown"].sum())
     if held > 0:
         st.info(
-            f"{held} priced match(es) made no pick. The system declines when a "
-            f"side's previous match has no turnover count yet — two of the five "
-            f"factors read it, so a guess would be a bet on dead inputs."
+            f"{held} priced match(es) held back, with no System # yet. The system "
+            f"declines when a side's previous match has no turnover count yet — two "
+            f"of the five factors read it, so a guess would be a bet on dead inputs."
         )
 
     only_bets = st.checkbox("Show only matches the system bet", value=False)
     view = df[df["system_bet"].notna()] if only_bets else df
+    # A held-back System # is built on placeholder turnover votes: blank it.
+    view = view.assign(system_num=view["system_num"].astype("Int64")
+                       .mask(view["lgt_unknown"]))
     wide(st, view[list(DISPLAY_COLUMNS)].rename(columns=DISPLAY_COLUMNS),
          hide_index=True, height=560)
 

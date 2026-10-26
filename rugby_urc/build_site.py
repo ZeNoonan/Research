@@ -28,6 +28,8 @@ import teams
 HERE = Path(__file__).parent
 DATA_DIR = HERE / "data"
 JUICE = 1.1  # units lost per losing bet at full 10% juice
+HELD = ("a side's previous match has no turnover count yet, and two of the five "
+        "factors read it, so there is no System # until that round is scraped")
 # Permanent home: GitHub Pages serves the repo root from the default branch.
 PAGES_URL = "https://zenoonan.github.io/Research/rugby_urc/"
 
@@ -243,11 +245,15 @@ def report_table(df: pd.DataFrame) -> str:
             res = "<td></td>"
         score = (f"{int(r.home_score)}–{int(r.away_score)}"
                  if pd.notna(r.home_score) else '<span class="pending">—</span>')
-        # A System # of 0 with no power ratings means "not evaluated", not "the
-        # factors cancelled out": show it as pending rather than as a score.
-        rated = pd.notna(r.home_power) and pd.notna(r.away_power)
-        system = (f"<strong>{int(r.system_num):+d}</strong>" if rated
-                  else '<span class="pending" title="no power ratings yet">—</span>')
+        # A System # with no power ratings, or held back for a missing turnover
+        # count, is "not evaluated" rather than a score: show it as pending.
+        if r.lgt_unknown:
+            system = f'<span class="pending" title="{HELD}">—</span>'
+        elif pd.notna(r.home_power) and pd.notna(r.away_power):
+            system = f"<strong>{int(r.system_num):+d}</strong>"
+        else:
+            system = '<span class="pending" title="no power ratings yet">—</span>'
+        bet = '<span class="pending">held</span>' if r.lgt_unknown else esc(r.system_bet)
         opening = f"<td>{fmt_signed(r.opening_line)}</td>" if has_open else ""
         rows.append(
             f"<tr><td class='l'>{esc(r.date)}</td><td>{int(r.round)}</td>"
@@ -257,7 +263,7 @@ def report_table(df: pd.DataFrame) -> str:
             f"<td>{fmt_signed(r.home_power)}</td>"
             f"<td>{fmt_signed(r.away_lgt, 0)}</td><td>{fmt_signed(r.away_stdc, 0)}</td>"
             f"<td>{fmt_signed(r.away_power)}</td><td>{system}</td>"
-            f"<td class='l bet'>{esc(r.system_bet)}</td>{res}</tr>")
+            f"<td class='l bet'>{bet}</td>{res}</tr>")
     opening_head = ("<th title='The handicap when first priced. The system "
                     "picks on Line, the close.'>Open</th>" if has_open else "")
     head = ("<tr><th class='l'>Date</th><th>Rd</th><th class='l'>Home</th>"
@@ -265,7 +271,10 @@ def report_table(df: pd.DataFrame) -> str:
             "<th>H LGT</th><th>H STDC</th><th>H Pow</th>"
             "<th>A LGT</th><th>A STDC</th><th>A Pow</th>"
             "<th>Sys #</th><th class='l'>Bet</th><th>Res</th></tr>")
-    return (f'<div class="scroll"><table><thead>{head}</thead>'
+    held = int(df["lgt_unknown"].sum())
+    note = (f'<p class="sub">{held} match{"" if held == 1 else "es"} held back: '
+            f"{HELD}.</p>" if held else "")
+    return (f'{note}<div class="scroll"><table><thead>{head}</thead>'
             f"<tbody>{''.join(rows)}</tbody></table></div>")
 
 

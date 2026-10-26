@@ -383,6 +383,15 @@ record of how the market moved. This is `nfl_report`'s rule, whose model is
 defined on the closing line, and the reason carries over: the close knows
 things the open does not. In the URC that mostly means the team sheets.
 
+**A three-way handicap can stand in for the opening line.** Early in the week
+the bookmaker may price only a three-way handicap: home, away, and a tie at a
+whole-number handicap. With both sides at the same price, that number is the
+bookmaker's 50/50 point for the margin, so it is the two-way line itself:
+Connacht +3 v Leinster, both sides at 1.90 and the tie at 17.00, is a line of
++3. The whole number is used as it is. Round 5 was first read this way, on the
+Monday. When the two-way market opened, seven of its eight lines were within
+half a point of those readings, with the favourite giving the extra half.
+
 Round 1 shows how much that matters. Four of the eight lines moved on team news:
 
 | match | open | close | System # |
@@ -692,7 +701,10 @@ and the report says which:
    turnover count, because it has not been played or not yet scraped.
    Two of the five factors read that number, so treating it as neutral would be
    a bet on dead inputs. Having *no* previous match is different, and is
-   legitimately 0.
+   legitimately 0. The site and the app show such a match as **held**, with no
+   System #: the number the factors would give rests on placeholder votes of 0.
+   Round 5 of 2026-27 was the first time it came up, with its lines in before
+   round 4's scrape.
 
 This is inherited from the NFL project, where it was not hypothetical: a week
 priced before the turnovers arrived produced four picks resting on two dead

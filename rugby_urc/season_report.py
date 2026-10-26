@@ -360,7 +360,10 @@ def main() -> None:
         wr = f"{w / (w + l):.1%}" if (w + l) else "n/a"
         held = int(report["lgt_unknown"].sum())
         out = DATA_DIR / f"report_{year}.csv"
-        report.drop(columns=["lgt_unknown"]).to_csv(out, index=False)
+        # lgt_unknown is written out so the site, the app and the bet tracker can
+        # show a held-back match as not yet evaluated: its System # is built on
+        # placeholder turnover votes of 0, and is not the system's view.
+        report.to_csv(out, index=False)
         print(f"{season_label(year)}: {len(report):3d} matches | {bets:2d} bets | "
               f"{w:2d}-{l:2d} ({wr}) | {w - 1.1 * l:+5.1f}u"
               + (f" | {held} held back for missing turnovers" if held else ""))

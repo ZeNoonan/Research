@@ -15,7 +15,8 @@ Send a screenshot of the bet slip (open bets or settled, both work) and it is
 transcribed here, or add a row yourself. The open-bets list shows the stake and
 line but no price (its figure is the cash-out value); the price comes from the
 settled slip of a win, or from the bet's own detail screen. A settled losing
-bet shows no price either.
+bet shows no price either. Special offers, such as a promoted player bet, are
+left out.
 
 A URC bet only needs `sport`, `team`, `line`, `decimal_odds` and `stake_eur`,
 plus `event_date` or `round_week` to pin the match (a round number alone means
