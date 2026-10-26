@@ -1363,7 +1363,7 @@ penalties rather than who is getting shots away. Left in, one spot kick
 outranks four good chances in the same week. So every attempt fbref records
 costs its taker **`PENALTY_XG = 0.75`** in that gameweek, subtracted from
 the *weekly* count so a penalty is charged once, in its own week. Through
-GW7 that is eleven kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
+GW8 that is twelve kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
 the check that the constant is the right size.
 
 ### Ranking
@@ -1404,19 +1404,20 @@ and struck through**, so you can see what the average is not built from.
 Where two weeks tie for his worst, the earlier one goes. **Total** still
 counts every week. The rule is `DROP_EVERY = 5` in `shots.py`.
 
-Through GW7, 270 of the 449 players have a week left out, and the top of the
+Through GW8, 294 of the 451 players have a week left out, and the top of the
 board moves:
 * Saka goes from 5th to 1st (15.7) once his blank GW7, ranked 142nd, is
   set aside.
-* Mbeumo, 1st on the full average, is 2nd.
-* Enciso climbs from 16th to 3rd.
+* Enciso climbs from 12th to 2nd.
+* Mbeumo, 1st on the full average, is 3rd.
 
 Sorting on the average has one failure mode, and the page says so rather
 than hiding it: **one cameo ranked well is an average of one number**, and
 it lands near the top. Through GW5 the shots board had five one-gameweek
 players inside the top twenty — Tyler Dibling was 2nd off 24 minutes; by
 GW6, as more weeks filled in, it was down to one (Jack Hinshelwood, 11th
-off 63 minutes), and by GW7 none — the highest is Rico Lewis, 61st. So a
+off 63 minutes), and by GW7 none. Through GW8 the highest is Fábio
+Carvalho, 131st off 3 minutes. So a
 **gameweeks played** filter sits with the search and position controls, and
 Total, which already charges absence, is one click on its heading away.
 Nothing is filtered by default: the board opens showing everyone.
@@ -1439,8 +1440,8 @@ the first would keep only one spell, the second would split him into two
 people. The key is **name + nationality + birth year**, and his spells are
 summed *before* the sheets are differenced — his club totals are each
 cumulative, so their sum is the cumulative total for the man, and
-differencing that gives his week. Four players have two fbref rows through
-GW6; the page lists them, oldest club first.
+differencing that gives his week. Five players have two fbref rows through
+GW8; the page lists them, oldest club first.
 
 Leftovers are settled on **minutes**: a club he has played for, and accepted
 only when exactly one unclaimed candidate is within `MINUTES_TOL = 10`. That
@@ -1455,22 +1456,22 @@ believable rather than plausible:
 
 ```
 verdict: clean (0 rows to check)
-gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7
-fbref players: 449
-matched: exact 379, partial 54, surname 9, minutes 4, token 3
-minutes agree within 10: 449 of 449
+gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7, GW8
+fbref players: 451
+matched: exact 380, partial 55, surname 9, minutes 4, token 3
+minutes agree within 10: 451 of 451
 renamed by fbref in GW6: 'Jair Cunha' -> 'Jair' (Nott'm Forest) — same nationality, birth year, club and totals; one player
 dropped from an fbref sheet, totals carried forward: 0
 played but absent from fbref: 0
 ```
 
 Two sources that counted the same minutes independently agreeing on **all
-449** players is the evidence. The residual disagreement is fbref quoting
+451** players is the evidence. The residual disagreement is fbref quoting
 `90s` to one decimal — 9-minute steps — plus the two disagreeing on
-stoppage time. And 449 is not a coincidence either: FPL says 310 played GW1,
-312 GW2, 307 GW3, 307 GW4, 302 GW5, 315 GW6 and 305 GW7; fbref's cumulative
-GW1 sheet has exactly 310 rows, and its GW7 sheet's 454 rows are those 449
-people plus the five movers counted twice. The two sources agree on *who has played*,
+stoppage time. And 451 is not a coincidence either: FPL says 310 played GW1,
+312 GW2, 307 GW3, 307 GW4, 302 GW5, 315 GW6, 305 GW7 and 303 GW8; fbref's
+cumulative GW1 sheet has exactly 310 rows, and its GW8 sheet's 456 rows are
+those 451 people plus the five movers counted twice. The two sources agree on *who has played*,
 not just on how long.
 
 The audit earned its place on the GW3 update: fbref's per-club split was new
@@ -1503,8 +1504,9 @@ like a broken join — but it never passes unnoticed.
 `defcon.html`, built by the same command, is the same board narrowed and
 widened at once: **defenders and midfielders only**, on the same three
 categories **plus FPL's defensive contributions**. It has the same tabs,
-including the worst-weeks-dropped aggregate. There Dewsbury-Hall leads
-(11.3), up from 3rd, once his GW7 is dropped.
+including the worst-weeks-dropped aggregate. There Szoboszlai leads (14.6)
+once his GW5 is dropped, and Alex Scott climbs from 16th to 3rd once his GW1
+is set aside.
 
 **Ranked against each other.** The population is cut *before* the ranking,
 not after, so a defender's three shots are ranked against other defenders
@@ -1524,18 +1526,19 @@ midfielder** — so the raw count and the reward do not line up: a midfielder's
 count includes recoveries and needs two more of them. Rather than distort
 the ranking to patch that, the threshold is displayed: a cell that cleared
 it carries a green ✓, and a **DC pts** column counts the gameweeks a player
-has done it. Through GW7 that is defenders 156 of 744 player-gameweeks (21%),
-midfielders 79 of 1,023 (8%).
+has done it. Through GW8 that is defenders 181 of 842 player-gameweeks (21%),
+midfielders 97 of 1,173 (8%).
 
 **Three of the four categories are attacking**, so the aggregate leans that
 way — 44 of the top 50 are midfielders, and the first defender is 21st.
 That is the honest consequence of the categories asked for, not a bug, and
 there are two ways round it on the page: the position filter reads it as a
 defenders' board, and the **Defensive contributions** tab opens on the
-season total, which reads it as a purely defensive one. John Egan has 77
-defensive actions and four weeks over the bar but sits 192nd on the
-aggregate — a good illustration of how far apart the two questions are.
-Vitaly Janelt, who leads the tab on 89, is 50th, because he also gets
+season total, which reads it as a purely defensive one. James Hill leads
+that tab on 92 defensive actions, with five weeks over the bar, but sits
+161st on the aggregate. John Egan has 87 and also five weeks over the bar,
+and sits 180th. Both are good illustrations of how far apart the two
+questions are. Vitaly Janelt, on 89, is 48th, because he also gets
 forward.
 
 ### Keeping it current
