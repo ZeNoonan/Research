@@ -1587,13 +1587,13 @@ season fills in.
 **Net is a difference, not a sum of the other two boards.** Adding the
 attack and defence composite ranks would throw away the margins twice; the
 differences keep them, so a club that outshoots its opponent by ten ranks
-above one that edges it by two. Through GW7 the three sides are led by
+above one that edges it by two. Through GW8 the three sides are led by
 Brighton (attack), Arsenal (defence) and Man City (net).
 
 ### The fixture ticker
 
-At the foot of the team board: every club's remaining fixtures — GW8 to
-GW38 as of the GW7 update — one column a gameweek, each cell shaded by the **opponent's season
+At the foot of the team board: every club's remaining fixtures — GW9 to
+GW38 as of the GW8 update — one column a gameweek, each cell shaded by the **opponent's season
 rank on the Defence composite** — the same ramp as the boards above, so the
 leakiest defence so far is deep green and the meanest deep red. Under each
 opponent's three-letter code is H or A and that defence rank. **Next 6**
@@ -1626,8 +1626,8 @@ both fixtures in the one cell.
   a player at home was on the home team, and the home team is the opponent
   named by anyone who played away in the same fixture.
 * **Goals — the handicap app's results file**, not fbref. fbref's `Gls`
-  counts goals by players, so it misses own goals: eight through GW7, and
-  each accounts for exactly one of the eight team-games where fbref and the
+  counts goals by players, so it misses own goals: ten through GW8, and
+  each accounts for exactly one of the ten team-games where fbref and the
   score disagree.
 
 Penalties follow the player boards' rule: every attempt costs the attacking
@@ -1648,22 +1648,22 @@ The audit runs on every build and is on the page, verdict first:
 
 ```
 verdict: clean (0 rows to check)
-gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7
-matches: 70 in the results file, 70 found in FPL's fixtures
-scores agree with FPL: 70 of 70
-FPL round agrees with the results gameweek: 70 of 70
-clubs per gameweek: GW1 20, GW2 20, GW3 20, GW4 20, GW5 20, GW6 20, GW7 20
+gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7, GW8
+matches: 80 in the results file, 80 found in FPL's fixtures
+scores agree with FPL: 80 of 80
+FPL round agrees with the results gameweek: 80 of 80
+clubs per gameweek: GW1 20, GW2 20, GW3 20, GW4 20, GW5 20, GW6 20, GW7 20, GW8 20
 club shots add up to the league's every week: yes
 doubles (shots conceded left blank): 0
 player-weeks whose xG goes to the club he played for, not FPL's current club: 6
-own goals (in the results, missed by fbref's Gls): 8
+own goals (in the results, missed by fbref's Gls): 10
 ```
 
 Beyond those lines the board is **conserved**: every shot, xG, goal and
 penalty counted *for* one club is counted *against* its opponent, to the
 last hundredth, and the three differences sum to zero across the league
 every week. Club xG sums exactly to FPL's per-round total, and club
-penalties to the nine the player boards charge.
+penalties to the twelve the player boards charge.
 
 ## Roadmap
 
