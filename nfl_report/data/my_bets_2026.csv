@@ -16,6 +16,11 @@ week,home,away,kind,side,line,odds,stake,result,note,created,id
 3,Bills,Chargers,single,Chargers,7.5,,25,L,,2026-10-03T08:00:23.000Z,log23
 3,Dolphins,Chiefs,single,Dolphins,10.5,,25,L,Line cut off on the slip; market +10.5 used,2026-10-03T08:00:24.000Z,log24
 3,Lions,Jets,single,Lions,-6.5,1.8696,25,W,,2026-10-03T08:00:25.000Z,log25
+5,Dolphins,Bengals,single,Dolphins,7.5,1.834,10,W,,2026-10-05T21:00:53.000Z,w05-dolphins
+5,Titans,Texans,single,Titans,6.5,2.0,10,L,,2026-10-05T21:00:59.000Z,w05-titans
+5,Seahawks,49ers,single,Seahawks,-2.5,1.83,10,L,,2026-10-05T21:01:14.000Z,w05-seahawks
+5,Jaguars,Eagles,single,Eagles,7.5,1.9092,25,W,,2026-10-09T15:46:16.000Z,w05-eagles
+5,Saints,Vikings,single,Saints,2.5,1.9,25,L,,2026-10-09T15:46:31.000Z,w05-saints
 6,Broncos,Seahawks,single,Seahawks,-2.5,,25,L,Line cut off on the slip; closing −2.5 used,2026-10-20T12:00:01.000Z,w06-seahawks
 6,Giants,Saints,single,Saints,-1.5,2.01,25,W,Line cut off on the slip; closing −1.5 used,2026-10-20T12:00:02.000Z,w06-saints
 6,Colts,Titans,single,Titans,6.5,1.8772,25,W,Line cut off on the slip; closing +6.5 used,2026-10-20T12:00:03.000Z,w06-titans
