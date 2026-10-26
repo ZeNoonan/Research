@@ -1,13 +1,10 @@
 week,home,away,kind,side,line,odds,stake,result,note,created,id
-1,Chiefs,Broncos,builder,Broncos,,,5,L,,2026-10-03T08:00:02.000Z,log02
-1,Seahawks,Patriots,builder,Patriots,,,5,L,,2026-10-03T08:00:03.000Z,log03
 2,Broncos,Jaguars,single,Broncos,-2.5,1.8696,25,W,,2026-10-03T08:00:08.000Z,log08
 2,Jets,Packers,single,Packers,-4.5,1.95,25,L,,2026-10-03T08:00:09.000Z,log09
 2,Texans,Bengals,single,Texans,-2.5,1.83,25,L,,2026-10-03T08:00:10.000Z,log10
 2,Patriots,Steelers,single,Patriots,-5.5,1.9524,25,W,,2026-10-03T08:00:11.000Z,log11
 2,Ravens,Saints,single,Saints,8.5,1.9092,25,W,,2026-10-03T08:00:12.000Z,log12
 2,Bills,Lions,single,Lions,3.5,1.95,25,L,,2026-10-03T08:00:13.000Z,log13
-2,Bills,Lions,builder,Lions,,3.0,5,W,,2026-10-03T08:00:14.000Z,log14
 2,Chiefs,Colts,single,Chiefs,-6.5,1.83,25,L,,2026-10-03T08:00:18.000Z,log18
 2,Cowboys,Commanders,single,Cowboys,-3.5,1.8696,25,W,,2026-10-03T08:00:19.000Z,log19
 2,Cardinals,Seahawks,single,Seahawks,-4.5,1.9524,25,W,,2026-10-03T08:00:20.000Z,log20
