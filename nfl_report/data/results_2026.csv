@@ -92,19 +92,19 @@ Week,Day,Date,Time,Winner/tie,venue_marker,Loser/tie,Pts,Pts.1,TOW,TOL
 6,Sun,2026-10-18,4:25PM,Kansas City Chiefs,,Los Angeles Chargers,22.0,6.0,2.0,2.0
 6,Sun,2026-10-18,8:20PM,Green Bay Packers,,Dallas Cowboys,23.0,13.0,1.0,2.0
 6,Mon,2026-10-19,8:15PM,San Francisco 49ers,,Washington Commanders,23.0,17.0,1.0,0.0
-7,Thu,2026-10-22,8:15PM,Chicago Bears,,New England Patriots,30.0,24.0,,
-7,Sun,2026-10-25,9:30AM,Pittsburgh Steelers,@,New Orleans Saints,,,,
-7,Sun,2026-10-25,1:00PM,Cincinnati Bengals,@,Baltimore Ravens,,,,
-7,Sun,2026-10-25,1:00PM,Cleveland Browns,@,Tennessee Titans,,,,
-7,Sun,2026-10-25,1:00PM,Indianapolis Colts,@,Minnesota Vikings,,,,
-7,Sun,2026-10-25,1:00PM,Miami Dolphins,@,New York Jets,,,,
-7,Sun,2026-10-25,1:00PM,New York Giants,@,Houston Texans,,,,
-7,Sun,2026-10-25,1:00PM,San Francisco 49ers,@,Atlanta Falcons,,,,
-7,Sun,2026-10-25,1:00PM,Tampa Bay Buccaneers,@,Carolina Panthers,,,,
-7,Sun,2026-10-25,4:05PM,Denver Broncos,@,Arizona Cardinals,,,,
-7,Sun,2026-10-25,4:25PM,Green Bay Packers,@,Detroit Lions,,,,
-7,Sun,2026-10-25,4:25PM,Los Angeles Rams,@,Las Vegas Raiders,,,,
-7,Sun,2026-10-25,8:20PM,Kansas City Chiefs,@,Seattle Seahawks,,,,
+7,Thu,2026-10-22,8:15PM,Chicago Bears,,New England Patriots,30.0,24.0,0.0,1.0
+7,Sun,2026-10-25,9:30AM,Pittsburgh Steelers,@,New Orleans Saints,16.0,10.0,0.0,1.0
+7,Sun,2026-10-25,1:00PM,Cincinnati Bengals,@,Baltimore Ravens,35.0,13.0,0.0,1.0
+7,Sun,2026-10-25,1:00PM,Cleveland Browns,@,Tennessee Titans,27.0,24.0,2.0,2.0
+7,Sun,2026-10-25,1:00PM,Minnesota Vikings,,Indianapolis Colts,16.0,10.0,0.0,1.0
+7,Sun,2026-10-25,1:00PM,Miami Dolphins,@,New York Jets,28.0,25.0,0.0,1.0
+7,Sun,2026-10-25,1:00PM,New York Giants,@,Houston Texans,27.0,21.0,0.0,0.0
+7,Sun,2026-10-25,1:00PM,Atlanta Falcons,,San Francisco 49ers,29.0,20.0,0.0,4.0
+7,Sun,2026-10-25,1:00PM,Tampa Bay Buccaneers,@,Carolina Panthers,43.0,13.0,0.0,4.0
+7,Sun,2026-10-25,4:05PM,Denver Broncos,@,Arizona Cardinals,30.0,16.0,0.0,0.0
+7,Sun,2026-10-25,4:25PM,Detroit Lions,,Green Bay Packers,20.0,17.0,2.0,1.0
+7,Sun,2026-10-25,4:25PM,Los Angeles Rams,@,Las Vegas Raiders,35.0,21.0,2.0,0.0
+7,Sun,2026-10-25,8:20PM,Seattle Seahawks,,Kansas City Chiefs,20.0,3.0,1.0,1.0
 7,Mon,2026-10-26,8:15PM,Dallas Cowboys,@,Philadelphia Eagles,,,,
 8,Thu,2026-10-29,8:15PM,Carolina Panthers,@,Green Bay Packers,,,,
 8,Sun,2026-11-01,1:00PM,Atlanta Falcons,@,Tampa Bay Buccaneers,,,,
