@@ -121,7 +121,10 @@ def assess(log: pd.DataFrame, report: pd.DataFrame, year: int, current: bool = T
         line = pd.to_numeric(b.get("line"), errors="coerce")
         known = pd.notna(line)
         close = m["line"] if home_side else -m["line"]
-        rated = pd.notna(m["home_power"]) and pd.notna(m["away_power"])
+        # A held-back match (a side's last turnover count missing) has no
+        # System # yet, so the system has no view of the bet either way.
+        rated = (pd.notna(m["home_power"]) and pd.notna(m["away_power"])
+                 and not m.get("lgt_unknown", False))
         at_line = (model.system_number(m["home_lgt"], m["home_stdc"], m["home_power"],
                                        m["away_lgt"], m["away_stdc"], m["away_power"],
                                        line if home_side else -line)

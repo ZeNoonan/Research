@@ -10,7 +10,8 @@ depends on hold:
 1. the pipeline runs and reports both seasons;
 2. the weighted fit recovers the ratings that generated the handicaps;
 3. LGT carries across the season boundary, and resets nowhere else;
-4. a missing turnover count blocks a pick rather than counting as neutral;
+4. a missing turnover count blocks a pick rather than counting as neutral, and
+   the site and the bet tracker show the match as held, with no System #;
 5. STDC resets each season and tracks net covers;
 6. System #, pick and grade agree with a hand computation;
 7. an unpriced round produces no report rows;
@@ -42,12 +43,15 @@ Run: ``python test_pipeline.py``
 
 from __future__ import annotations
 
+import contextlib
+import io
 import tempfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+import build_site
 import calibrate
 import entry_sheet
 import import_oddsportal
@@ -178,6 +182,27 @@ def main() -> int:
         passed &= check("round 2 is flagged lgt_unknown", r2["lgt_unknown"].all())
         passed &= check("round 1 is not blocked (turnovers carried in)",
                         not r1["lgt_unknown"].any())
+        # The flag reaches the report file, so the site, the app and the bet
+        # tracker can show a held-back match as not yet evaluated.
+        with contextlib.redirect_stdout(io.StringIO()):
+            season_report.main()
+        written = pd.read_csv(data / "report_2026.csv")
+        passed &= check("the report file carries the flag",
+                        "lgt_unknown" in written
+                        and written.loc[written["round"] == 2, "lgt_unknown"].all()
+                        and not written.loc[written["round"] == 1, "lgt_unknown"].any())
+        site = build_site.report_table(r2)
+        passed &= check("the site shows round 2 as held, with no System #",
+                        "held back" in site and "<strong>" not in site)
+        on_held = pd.DataFrame([{
+            "bet_id": 1, "sport": "rugby", "competition": "URC",
+            "event_date": r2["date"].iloc[0], "round_week": "", "team": r2["home"].iloc[0],
+            "line": r2["line"].iloc[0], "decimal_odds": 1.9, "stake_eur": 10,
+            "result": "Pending", "profit_eur": np.nan, "placed": "", "source": ""}])
+        held_bets, _ = my_bets.assess(on_held, r2, 2026)
+        passed &= check("and the bet tracker gives no system view of a bet on it",
+                        held_bets["system"].tolist() == ["?"],
+                        str(held_bets["system"].tolist()))
 
         print("\n5. STDC resets each season and tracks covers")
         passed &= check("round 1 STDC is zero", (r1["home_stdc"] == 0).all())
