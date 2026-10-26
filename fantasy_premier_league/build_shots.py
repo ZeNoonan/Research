@@ -314,7 +314,7 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
     if ranking:
         avg_note = ("" if view == "rank" else
                     f' title="Mean rank over the gameweeks played, leaving '
-                    f'out the worst one in every {S.DROP_EVERY}"')
+                    f'out the worst {S.DROP_COUNT} in every {S.DROP_EVERY}"')
         heads += ['<th class="num">Total</th>',
                   f'<th class="num" data-dir="asc"{avg_note}>Avg</th>']
     else:
@@ -617,6 +617,8 @@ def build(board: Board, data_dir: Path, out: Path) -> None:
     opening = table.sort_values(["average", "total"])
     cameo_top20 = int((opening.head(20)["played"] == 1).sum())
     n_dropping = int((table["dropped"] > 0).sum())
+    drop_examples = ", ".join(f"{n * S.DROP_COUNT} of {n * S.DROP_EVERY}"
+                              for n in (1, 2, 3))
     n_gws = len(gameweeks)
 
     n_cats = len(board.categories)
@@ -688,15 +690,15 @@ charges a missed gameweek that week's last place, so turning up counts
 column; blanks always sink.</p>
 
 <p class="note"><b>Aggregate, worst weeks dropped</b> is the same ranking
-with the odd bad week forgiven. For every {S.DROP_EVERY} gameweeks a player
-has played, his worst rank is left out of <b>Avg</b> &mdash; one of 5, two
-of 10, three of 15 &mdash; and that tab opens sorted on it. Under
+with a player's worst weeks forgiven. For every {S.DROP_EVERY} gameweeks he
+has played, his {S.DROP_COUNT} worst ranks are left out of <b>Avg</b>
+&mdash; {drop_examples} &mdash; and that tab opens sorted on it. Under
 {S.DROP_EVERY} gameweeks nothing is dropped; through {n_gws} gameweeks
-{n_dropping} of the {len(table)} players have a week left out. The week
-left out is shown <span style="background:rgba(230,145,0,.30);
+{n_dropping} of the {len(table)} players have weeks left out. The weeks
+left out are shown <span style="background:rgba(230,145,0,.30);
 padding:0 3px;border-radius:3px">amber and struck through</span>, so you can
-see exactly what the average is not built from; where two weeks tie for his
-worst, the earlier one goes. <b>Total</b> still counts every week.</p>
+see exactly what the average is not built from; where weeks tie at the
+cut-off, the earlier one goes. <b>Total</b> still counts every week.</p>
 
 <p class="note"><b>The average is only as good as the weeks behind it.</b>
 One cameo ranked well is an average of one number, and it will sit near the
