@@ -1396,20 +1396,25 @@ total, so:
   you need to see which you are reading.
 
 **Aggregate, worst weeks dropped** is a second version of the ranking tab.
-Under this rule one bad afternoon should not sink a season. For every 5
-gameweeks a player has played, his worst rank is left out of **Avg**: one of
-5, two of 10, three of 15. The tab opens sorted on that Avg. A player with
-fewer than 5 keeps every week. The dropped week stays on the row, **amber
-and struck through**, so you can see what the average is not built from.
-Where two weeks tie for his worst, the earlier one goes. **Total** still
-counts every week. The rule is `DROP_EVERY = 5` in `shots.py`.
+Under this rule a couple of bad afternoons should not sink a season. For
+every 5 gameweeks a player has played, his **two** worst ranks are left out
+of **Avg**: two of 5, four of 10, six of 15. The tab opens sorted on that
+Avg. A player with fewer than 5 keeps every week. The dropped weeks stay on
+the row, **amber and struck through**, so you can see what the average is
+not built from. Where weeks tie at the cut-off, the earlier one goes.
+**Total** still counts every week. The rule is `DROP_EVERY = 5` and
+`DROP_COUNT = 2` in `shots.py`. It began as one week per 5 and was doubled
+after GW8.
 
-Through GW8, 294 of the 451 players have a week left out, and the top of the
-board moves:
-* Saka goes from 5th to 1st (15.7) once his blank GW7, ranked 142nd, is
-  set aside.
-* Enciso climbs from 12th to 2nd.
-* Mbeumo, 1st on the full average, is 3rd.
+Through GW8, 294 of the 451 players have two weeks left out, and the top of
+the board moves a long way:
+* Manzambi is 1st (6.3), up from 35th. He has played only five gameweeks,
+  so his Avg is his best three (2nd, 6th and 11th), with 168th and 136th
+  dropped. At five gameweeks a player is judged on three, so the **GWs**
+  column matters here.
+* Saka is 2nd (11.6), up from 5th, without his 36th in GW2 and his 142nd
+  in GW7.
+* Mbeumo, 1st on the full average, is 3rd (13.7).
 
 Sorting on the average has one failure mode, and the page says so rather
 than hiding it: **one cameo ranked well is an average of one number**, and
@@ -1504,9 +1509,9 @@ like a broken join — but it never passes unnoticed.
 `defcon.html`, built by the same command, is the same board narrowed and
 widened at once: **defenders and midfielders only**, on the same three
 categories **plus FPL's defensive contributions**. It has the same tabs,
-including the worst-weeks-dropped aggregate. There Szoboszlai leads (14.6)
-once his GW5 is dropped, and Alex Scott climbs from 16th to 3rd once his GW1
-is set aside.
+including the worst-weeks-dropped aggregate. There Tavernier leads (8.3),
+up from 17th, once his 150th and 159th in GW5 and GW6 are set aside.
+Szoboszlai, 1st on the full average, is 2nd.
 
 **Ranked against each other.** The population is cut *before* the ranking,
 not after, so a defender's three shots are ranked against other defenders

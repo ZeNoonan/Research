@@ -58,9 +58,9 @@ the total asks who has been most useful so far, the average asks who is
 best when he plays.
 
 A third measure forgives the odd bad week: the **worst-weeks-dropped
-average** leaves out a player's worst gameweek rank for every
-``DROP_EVERY`` (5) he has played — one of 5, two of 10 — and is otherwise
-the same average.
+average** leaves out a player's ``DROP_COUNT`` (2) worst gameweek ranks for
+every ``DROP_EVERY`` (5) he has played — two of 5, four of 10 — and is
+otherwise the same average.
 """
 
 from __future__ import annotations
@@ -116,11 +116,12 @@ CATEGORY_NAMES = {"shots": "Shots", "xg": "xG (pen-adj)", "xa": "xA",
 # tackles, every MD and FW row equals that plus recoveries, every GK is 0.
 DC_THRESHOLD = {"DF": 10, "MD": 12, "FW": 12}
 
-# The worst-weeks-dropped average leaves out a player's worst gameweek for
-# every this-many he has played: one of 5, two of 10, three of 15. The
-# user's rule — one bad afternoon should not sink a season, but a player
-# with only a few weeks behind him has none to spare.
+# The worst-weeks-dropped average leaves out a player's DROP_COUNT worst
+# gameweeks for every DROP_EVERY he has played: two of 5, four of 10, six of
+# 15. The user's rule — a couple of bad afternoons should not sink a season,
+# but a player with fewer than DROP_EVERY weeks behind him has none to spare.
 DROP_EVERY = 5
+DROP_COUNT = 2
 
 
 # --- loading -----------------------------------------------------------------
@@ -544,7 +545,8 @@ def board(ranked: pd.DataFrame, categories=None) -> pd.DataFrame:
       week's last place**, so that missing one cannot flatter the total;
     * ``average``— the mean rank over the gameweeks he played;
     * ``best_average`` — the same with his ``dropped`` worst weeks left
-      out, one per ``DROP_EVERY`` played, ``drop_gw<n>`` saying which;
+      out, ``DROP_COUNT`` per ``DROP_EVERY`` played, ``drop_gw<n>`` saying
+      which;
     * ``dc_weeks``— gameweeks he cleared FPL's defensive-contribution bar,
       with ``dc_hit_gw<n>`` saying which.
 
@@ -578,13 +580,13 @@ def board(ranked: pd.DataFrame, categories=None) -> pd.DataFrame:
     out["total"] = charged.sum(axis=1)
     out["average"] = ranks.mean(axis=1)
 
-    # Worst weeks dropped: one per DROP_EVERY played. Ranking each row from
-    # its worst with method="first" puts the earlier of two equal worst weeks
-    # first, so a tie drops the older one — same average either way, but the
-    # page has to highlight one. Missed weeks are NA, never ranked, never
-    # dropped: the average already leaves them out.
+    # Worst weeks dropped: DROP_COUNT per DROP_EVERY played. Ranking each row
+    # from its worst with method="first" puts the earlier of two equal weeks
+    # first, so where weeks tie at the cut the older one goes — same average
+    # either way, but the page has to highlight one. Missed weeks are NA,
+    # never ranked, never dropped: the average already leaves them out.
     worst_first = ranks.rank(axis=1, method="first", ascending=False)
-    out["dropped"] = ranks.notna().sum(axis=1) // DROP_EVERY
+    out["dropped"] = ranks.notna().sum(axis=1) // DROP_EVERY * DROP_COUNT
     drop = worst_first.le(out["dropped"], axis=0)
     out["best_average"] = ranks.where(~drop).mean(axis=1)
     for gw in gameweeks:
