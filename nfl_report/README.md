@@ -4,14 +4,15 @@
 
 *Anything I'm waiting on lives here, newest first. Nothing is urgent unless marked.*
 
-### ⚠️ Needed now — before Thursday 29 Oct (Panthers @ Packers, 8:15pm ET)
+### ⚠️ Needed now
 
-1. **Monday night's Cowboys @ Eagles pro-football-reference row, with
-   `TOW`/`TOL`**, once it's played — week 8's lines only import once week 7 is
-   complete, and the Eagles' turnovers decide whether Eagles @ Commanders is a
-   pick.
-2. **A fresh nflverse export after Monday night**, as late as practical before
-   Thursday's kick-off (Thursday's game is not a pick in the draft).
+1. **If you can, a fresh nflverse export before Sunday 1 Nov's kick-offs.**
+   Thursday's Panthers @ Packers is not a pick at any line. The **Seahawks pick
+   (Monday 2 Nov) is fragile**: at Seahawks −3.5 it drops out. Two games become
+   picks on a small move: Titans at Bengals −10.5, and Cardinals at Cowboys −8.5.
+2. **After Monday 2 Nov's Bears @ Seahawks, before Thursday 5 Nov:** week 8's
+   pro-football-reference rows, all 14 games, with `TOW`/`TOL`, plus a fresh
+   nflverse export.
 
 ### Every week, to keep 2026–27 running
 
