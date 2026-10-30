@@ -54,21 +54,30 @@ td.gw.top { font-weight: 700; }
 .legend.heatkey { margin: 0 0 10px; }
 .ramp { display: inline-block; width: 140px; height: 12px; border-radius: 3px;
   vertical-align: -1px; border: 1px solid var(--border); }
-/* The fixture ticker: 30-odd gameweek columns, so the club stays pinned
-   while the fixtures scroll under it. */
+/* The club stays pinned while the gameweeks scroll under it, on the three
+   boards and the fixture ticker alike. The # column is held at 30px so the
+   club column can sit exactly beside it. */
+table.board .pin { position: sticky; background: var(--card); z-index: 1; }
+table.board .pin0 { left: 0; min-width: 30px; padding-left: 6px;
+  padding-right: 6px; }
+table.board .pin1 { left: 30px; min-width: 118px;
+  box-shadow: 1px 0 0 var(--border); }
+/* The row highlight is translucent, which on a pinned cell would let the
+   numbers scrolling underneath show through: lay it over the card colour. */
+table.board tbody tr:hover td.pin { background: linear-gradient(
+  rgba(56, 0, 60, .06), rgba(56, 0, 60, .06)), var(--card); }
+/* The fixture ticker: 30-odd gameweek columns, tighter cells. */
 table.ticker th, table.ticker td { padding: 5px 6px; }
 table.ticker td.fx { text-align: center; font-weight: 700; font-size: 13px;
   min-width: 52px; font-variant-numeric: tabular-nums; }
 table.ticker th.gwh { text-align: center; }
 table.ticker th.gwh small { display: block; font-weight: 400; font-size: 10px;
   text-transform: none; letter-spacing: 0; }
-table.ticker .pin { position: sticky; background: var(--card); z-index: 1; }
-table.ticker .pin0 { left: 0; min-width: 30px; }
-table.ticker .pin1 { left: 30px; min-width: 118px;
-  box-shadow: 1px 0 0 var(--border); }
 table.ticker td.fx .opp { font-weight: 400; }
 @media (prefers-color-scheme: dark) {
   td.gw.rb { background: rgba(239, 122, 114, .14); }
+  table.board tbody tr:hover td.pin { background: linear-gradient(
+    rgba(255, 255, 255, .05), rgba(255, 255, 255, .05)), var(--card); }
 }
 """
 
@@ -275,14 +284,15 @@ def table_html(side: str, table: pd.DataFrame, view: str, gameweeks: list,
         arrow = "asc" if direction < 0 else "desc"
         heads_tail = [f'<th class="num tot" data-dir="{arrow}">Season</th>']
 
-    heads = ['<th class="nosort">#</th>', '<th>Club</th>']
+    heads = ['<th class="nosort pin pin0">#</th>', '<th class="pin pin1">Club</th>']
     heads += [f'<th class="num">GW{g}</th>' for g in gameweeks]
     heads += heads_tail
 
     rows = []
     for n, r in enumerate(table.to_dict("records"), 1):
-        cells = [f'<td class="rowno">{n}</td>',
-                 f'<td data-v="{esc(r["team"])}"><b>{esc(r["team"])}</b></td>']
+        cells = [f'<td class="rowno pin pin0">{n}</td>',
+                 f'<td class="pin pin1" data-v="{esc(r["team"])}">'
+                 f'<b>{esc(r["team"])}</b></td>']
         for g in gameweeks:
             opp = r.get(f"opp_gw{g}")
             note = esc(notes.get((r["team"], g), "") + heat_note(opp))
