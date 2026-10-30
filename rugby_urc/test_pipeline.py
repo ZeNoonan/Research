@@ -36,7 +36,7 @@ depends on hold:
     factor reported, and a reversed direction swaps a record;
 19. your bets from the shared log are matched to fixtures, graded at your own
     line, checked against the bookmaker's settlement, and set beside the
-    system's picks in the same rounds.
+    system's picks in the same rounds; a cash-out stands at the amount paid.
 
 Run: ``python test_pipeline.py``
 """
@@ -880,6 +880,24 @@ def main() -> int:
                         and s["staked"] == settled["stake"].sum()
                         and pd.isna(by.loc[9, "profit"]) == bool(won_unpriced),
                         f"{s['unknown_profit']} unpriced win(s), staked {s['staked']}")
+        # A cash-out settles early, at the amount paid: on a played match the score
+        # must neither regrade it nor flag it.
+        cashed = pd.DataFrame([{
+            "bet_id": 10, "sport": "rugby", "competition": "URC",
+            "event_date": other["date"], "team": dog, "line": dog_line,
+            "decimal_odds": 1.9, "stake_eur": 25, "result": "Cashed out",
+            "profit_eur": -5.9}])
+        cb, _ = my_bets.assess(cashed, rep, 2025)
+        cs = my_bets.summary(cb, rep)
+        passed &= check("a cash-out stands at the amount paid, unflagged by the score",
+                        cb["result"].tolist() == [my_bets.CASHED_OUT]
+                        and not cb["check"].iloc[0],
+                        f"{cb['result'].tolist()} {cb['check'].tolist()}")
+        passed &= check("and its loss counts in staked and profit, not in the record",
+                        (cs["staked"], cs["profit"], cs["won"], cs["lost"], cs["cashed_out"])
+                        == (25.0, -5.9, 0, 0, 1),
+                        f"staked {cs['staked']}, profit {cs['profit']}, "
+                        f"{cs['won']}-{cs['lost']}, {cs['cashed_out']} cashed out")
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1

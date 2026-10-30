@@ -44,8 +44,8 @@ out of the totals.
 | `line` | the handicap taken, from the backed side's view: `+6.5` = receiving 6.5 points, `-8.5` = giving them |
 | `decimal_odds` | the price taken; blank if unknown |
 | `stake_eur` | stake in euros |
-| `result` | `Won`, `Lost`, `Void` or `Pending` |
-| `returns_eur` | total paid out (0 for a loss); blank while pending |
+| `result` | `Won`, `Lost`, `Void`, `Cashed out` or `Pending` |
+| `returns_eur` | total paid out (0 for a loss, the amount paid for a cash-out); blank while pending |
 | `profit_eur` | `returns_eur - stake_eur`; blank while pending |
 | `source` | where the row came from, e.g. `screenshots 2026-10-02, 4/7` (screenshot 4, 7th bet) |
 | `notes` | anything uncertain: a line cut off on screen, a guessed sport |

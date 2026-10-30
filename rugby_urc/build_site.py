@@ -411,7 +411,8 @@ def your_bets(year: int) -> str:
     rows = []
     for r in bets.itertuples():
         cls = "pos" if r.profit > 0 else "neg" if r.profit < 0 else ""
-        tag = {"Won": "W", "Lost": "L", "Void": "void"}.get(r.result, "pending")
+        tag = {"Won": "W", "Lost": "L", "Void": "void",
+               my_bets.CASHED_OUT: "cashed out"}.get(r.result, "pending")
         money = "" if pd.isna(r.profit) else f"<br>{euros(r.profit)}"
         odds = "" if pd.isna(r.odds) else f" · {r.odds:.2f}"
         opponent = r.match.replace(r.team, "").replace(" v ", "").strip()
