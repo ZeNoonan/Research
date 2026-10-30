@@ -183,7 +183,8 @@ side; separate, so neither is read as the other. It shows:
 - **Result and profit.** The bookmaker's settlement where the log has one.
   Otherwise the bet is graded from the score at your own line, so a bet logged
   as `Pending` settles itself once the round is scraped; a settlement the score
-  contradicts is flagged.
+  contradicts is flagged. A cash-out (`Cashed out`) stands at the amount paid:
+  it counts in staked and profit, though not as a win or a loss.
 - **The system, same rounds.** The system's picks in the rounds you bet, staked
   as you stake a match (your median total per match, since a pick is sometimes
   split across two slips) at the standard 1.91, so the two profits compare like
@@ -201,8 +202,8 @@ Two gaps the screenshots leave, and how they are handled:
 
 **The repository is public**, so the log, stakes and returns included, can be
 read on GitHub, and the site shows the URC bets. The NFL report does not read
-this file: it keeps its own private ledger (`nfl_report/ledger.html`), whose
-bets never reach the repository.
+this file: it keeps its own private ledger (`nfl_report/ledger.html`), which
+copies its bets into `nfl_report/data/my_bets_2026.csv`.
 
 Run `python my_bets.py` for the table in the terminal.
 
@@ -740,7 +741,7 @@ scrapers:
 |---|---|
 | Weighted fit recovers the generating ratings | max error **0.20 pts** |
 | LGT carries across the season boundary, and nowhere else | pass |
-| A missing turnover count blocks the pick | pass |
+| A missing turnover count blocks the pick, and the site and tracker show it as held | pass |
 | STDC resets each season | pass |
 | System #, pick and grade reproducible from the stored columns | pass |
 | `calibrate.py` recovers the edge terms that built the handicaps | **exact** |
@@ -758,6 +759,7 @@ scrapers:
 | Shadow factors end to end: stats stored and reloaded, a reversed direction swaps a record | pass |
 | Your bets are matched, graded at your own line, and a contradicted settlement is flagged | pass |
 | A win with no price stays out of the totals until its settled slip arrives | pass |
+| A cash-out stands at the amount paid: never regraded, its loss in the totals | pass |
 | An older copy of the entry sheet cannot change a played match's line | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.

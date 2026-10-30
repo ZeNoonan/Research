@@ -16,7 +16,7 @@ logged. For each bet it works out:
   graded from the score at your line, so a bet logged as Pending settles
   itself once the round is scraped. A settlement that disagrees with the score
   is flagged: either the line was logged wrong or the bookmaker graded it
-  differently.
+  differently. A cash-out stands at the amount paid, whatever the score.
 * **profit** at your price.
 
 Run: ``python my_bets.py`` -> each season's bets and totals.
@@ -36,7 +36,9 @@ import teams
 
 LOG = Path(__file__).resolve().parent.parent / "bets" / "bet_log.csv"
 STANDARD_ODDS = 1 + 1 / 1.1      # -110, the price the system's record is graded at
-SETTLED = ("Won", "Lost", "Void")
+CASHED_OUT = "Cashed Out"        # how ``.title()`` reads "Cashed out" in the log
+GRADED = ("Won", "Lost", "Void")  # settlements the final score can confirm
+SETTLED = GRADED + (CASHED_OUT,)
 
 COLUMNS = ["bet_id", "date", "round", "match", "bet", "team", "line", "odds", "stake",
            "close", "line_value", "system", "result", "profit", "check", "source"]
@@ -148,9 +150,10 @@ def assess(log: pd.DataFrame, report: pd.DataFrame, year: int, current: bool = T
         graded = _graded(margin, line)
         logged = str(b["result"]).strip().title() if pd.notna(b["result"]) else ""
         result = logged if logged in SETTLED else graded or "Pending"
+        # A cash-out settles before the result, so the score cannot contradict it.
         check = (f"settled {logged}, but {int(m['home_score'])}-{int(m['away_score'])} "
                  f"grades it {graded} at {line:+g}"
-                 if logged in SETTLED and graded and logged != graded else "")
+                 if logged in GRADED and graded and logged != graded else "")
 
         stake = float(b["stake_eur"])
         odds = float(b["decimal_odds"]) if pd.notna(b.get("decimal_odds")) else np.nan
@@ -184,8 +187,9 @@ def summary(bets: pd.DataFrame, report: pd.DataFrame) -> dict:
     w, l = int((settled["result"] == "Won").sum()), int((settled["result"] == "Lost").sum())
     # A win logged without a price (an open bet, graded from the score) has no
     # profit yet; it stays out of staked and profit alike, so the return is not
-    # dragged down by a stake whose winnings are missing.
-    priced = settled[settled["profit"].notna()]
+    # dragged down by a stake whose winnings are missing. A cash-out counts in
+    # both, at the amount paid, though it is neither a win nor a loss.
+    priced = bets[bets["result"].isin(["Won", "Lost", CASHED_OUT]) & bets["profit"].notna()]
     staked = float(priced["stake"].sum())
     profit = float(priced["profit"].sum()) if len(priced) else 0.0
     stake = (float(bets.groupby(["date", "match"])["stake"].sum().median())
@@ -194,6 +198,7 @@ def summary(bets: pd.DataFrame, report: pd.DataFrame) -> dict:
     sw, sl = int((rounds["result"] == "W").sum()), int((rounds["result"] == "L").sum())
     return {
         "bets": len(bets), "won": w, "lost": l,
+        "cashed_out": int((bets["result"] == CASHED_OUT).sum()),
         "pending": int((bets["result"] == "Pending").sum()),
         "staked": staked, "profit": profit,
         "roi": profit / staked if staked else None,
@@ -225,6 +230,7 @@ def main() -> None:
             continue
         bets, problems, s = got
         print(f"\n{season_report.season_label(year)}: {s['won']}-{s['lost']}"
+              + (f", {s['cashed_out']} cashed out" if s["cashed_out"] else "")
               + (f", {s['pending']} pending" if s["pending"] else "")
               + f" | staked EUR {s['staked']:.2f} | profit EUR {s['profit']:+.2f}"
               + (f" | line v close {s['line_value']:+.1f} a bet" if s["line_value"] is not None else ""))
