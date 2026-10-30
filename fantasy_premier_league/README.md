@@ -1572,7 +1572,9 @@ exactly as on the player boards, with tabs for each measure showing the
 value and its rank. Every cell carries the opponent and venue underneath,
 since a team week means little without knowing who it was against. Tables
 open on the average composite rank; with no blank gameweeks yet, Total gives
-the same order.
+the same order. The **#** and **Club** columns stay pinned at the left
+while the gameweeks scroll under them, as on the fixture ticker, so on a
+phone you can always see whose row you are reading.
 
 **The colours say who it was against.** On **Attack** each cell is shaded
 by the *opponent's* season rank on the **Defence** table, measure for
