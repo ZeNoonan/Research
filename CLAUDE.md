@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Research Repository
 
 **Repository**: Research
-**Last Updated**: 2026-10-11
+**Last Updated**: 2026-10-31
 **Status**: Active — several independent research projects
 
 ## Table of Contents
@@ -37,13 +37,15 @@ Research/
 ├── index.html                # Root landing page
 ├── .gitignore
 ├── baseball_var/             # Project folder
+├── bets/                     # Shared log of the user's actual bets, every sport (see below)
 ├── expense/                  # Personal cash-flow Streamlit app on bank exports (see below)
 ├── golf/                     # Project folder
 ├── hurling/                  # GAA hurling Team/Hurler of the Week app (see below)
 ├── kelly_sim/                # Project folder
 ├── march_madness/            # Project folder
 ├── nfl_report/               # Project folder
-└── premier_league_handicap/  # Project folder
+├── premier_league_handicap/  # Project folder
+└── rugby_urc/                # URC five-factor handicap system: site, app, weekly routine (see below)
 ```
 
 **Note**: As the repository grows, update this section to reflect the actual structure.
@@ -58,6 +60,14 @@ Research/
   balances live outside the repo, and only the generated `sample_data/` is tracked (`.gitignore`
   enforces this). Regenerate sample data with `python3 generate_sample_data.py`; run
   `pytest test_finance.py` inside `expense/`. See `expense/README.md`.
+- **`rugby_urc/`** — the URC five-factor against-the-spread system, run weekly through the
+  2026-27 season. Each week: reconcile and load the scraped round (`import_turnovers.py`), the
+  user's entry sheet (`entry_sheet.py import`), then run `season_report.py`, `shadow_factors.py`,
+  `spot_check.py draw`, `build_site.py` (the GitHub Pages `index.html`) and
+  `entry_sheet.py export`; run `python3 test_pipeline.py`. See `rugby_urc/README.md`, *Each week*.
+- **`bets/`** — `bet_log.csv`, the user's actual bets in every sport, one row per bet. Public, and
+  read by `rugby_urc/my_bets.py`. Ids are never reused; special offers are left out. See
+  `bets/README.md`.
 - _Other project folders: document here when they are next worked on._
 
 ---
@@ -389,6 +399,9 @@ _To be documented: How to get help, who to contact for specific areas_
 ---
 
 ## Changelog
+
+### 2026-10-31 - Add rugby_urc/ and bets/
+- Documented the URC system's weekly routine and the shared bet log
 
 ### 2026-10-11 - Add expense/
 - Documented `expense/` and its rule that no real bank data is committed
