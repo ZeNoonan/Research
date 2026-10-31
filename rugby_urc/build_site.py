@@ -23,6 +23,7 @@ import heatmaps
 import my_bets
 import season_report
 import shadow_factors
+import spot_check
 import teams
 
 HERE = Path(__file__).parent
@@ -305,11 +306,14 @@ System #; the system bets home at +3 or more and away at −3 or less, and passe
 </tbody></table></div></div>"""
 
 
-def shadow_table(table: pd.DataFrame, first_look: bool) -> str:
+def shadow_table(table: pd.DataFrame, first_look: bool,
+                 prior: pd.DataFrame | None = None, prior_label: str = "") -> str:
     """The nine candidate factors for one season: tracked, not bet.
 
     ``first_look`` marks the season the situational directions were chosen on.
+    ``prior``, the season before's table, adds its rate beside this one's.
     """
+    before = {} if prior is None else {r.key: r for r in prior.itertuples()}
     rows = []
     for r in table.itertuples():
         n = r.W + r.L
@@ -318,22 +322,141 @@ def shadow_table(table: pd.DataFrame, first_look: bool) -> str:
         mark = ("<sup title='direction chosen on this season'>†</sup>"
                 if first_look and r.group == "situational" else "")
         units = f"{r.sys_units:+.1f}"
+        last = ""
+        if prior is not None:
+            p = before.get(r.key)
+            seen = p is not None and p.W + p.L > 0
+            last = (f"<td title='{p.W}–{p.L}'>{p.rate:.0%}</td>" if seen
+                    else "<td class='pending'>—</td>")
         rows.append(
             f"<tr><td class='l' style='white-space:normal'>{esc(r.factor)}{mark}</td>"
-            f"<td>{r.votes}</td><td>{r.W}–{r.L}</td><td title='{band}'>{rate}</td>"
-            f"<td>{r.sys_W}–{r.sys_L} <span class='pending'>{units}</span></td></tr>")
+            f"<td>{r.votes}</td><td>{r.W}–{r.L}</td><td title='{band}'>{rate}</td>{last}"
+            f"<td>{r.sys_W}–{r.sys_L}<br><span class='pending'>{units}</span></td></tr>")
     note = ("<p class='sub'>Nine candidate factors, <strong>tracked but not bet</strong>. "
             "Their rules were fixed before any results were run. Voting about 100 times, "
             "a factor with no edge lands anywhere from about 40% to 60% by chance, so "
             "one season settles nothing: 2025-26 is the first look and 2026-27 the test."
             + (" † The direction of the four situational factors was chosen on this "
                "season, which flatters their rates here." if first_look else "")
+            + (f" <em>{prior_label}</em> is the same factor's rate over all of last "
+               f"season, to set this season's to-date rate against."
+               if prior is not None else "")
             + " <em>With it</em> is the system's record with the factor added as a "
             "sixth vote.</p>")
-    head = ("<tr><th class='l'>Shadow factor</th><th>Votes</th><th>W–L</th>"
-            "<th>Rate</th><th>With it</th></tr>")
+    prior_head = (f"<th title='The rate over all of {prior_label}'>{prior_label}</th>"
+                  if prior is not None else "")
+    head = ("<tr><th class='l' style='white-space:normal'>Shadow factor</th>"
+            "<th>Votes</th><th>W–L</th>"
+            f"<th>Rate</th>{prior_head}<th style='white-space:normal'>With it</th></tr>")
     return (f"<h3>Shadow factors</h3>{note}<div class='scroll'><table class='compact'><thead>{head}"
             f"</thead><tbody>{''.join(rows)}</tbody></table></div>")
+
+
+def _of(name: str) -> str:
+    """The possessive: Ulster's, Stormers'."""
+    return name + ("'" if name.endswith("s") else "'s")
+
+
+def _day(iso: str) -> str:
+    return f"{pd.Timestamp(iso).day} {pd.Timestamp(iso):%b}" if iso else ""
+
+
+def spot_check_section(year: int) -> str:
+    """The week's spot check - one club drawn at random, its inputs to check by
+    hand - and the log of every check so far."""
+    log = spot_check.load_log()
+    log = log[log["season"] == str(year)]
+    if log.empty:
+        return ""
+    latest = log.loc[log["round"].astype(int).idxmax()]
+    rnd, t = int(latest["round"]), latest["team"]
+    try:
+        c = spot_check.card(year, rnd, t)
+    except ValueError as e:
+        body = f"<p class='empty'>{esc(e)}</p>"
+    else:
+        opp, last = c["opponent"], c["last"]
+
+        def vote(v: int) -> str:
+            return (f"votes <strong>for {esc(t)}</strong>" if v > 0
+                    else f"votes <strong>against {esc(t)}</strong>" if v < 0
+                    else "casts <strong>no vote</strong>")
+
+        if last is None:
+            turn = "No previous match, so LGT is 0 by definition: no vote."
+        elif last["lgt"] is None:
+            turn = (f"Round {last['round']} v {esc(last['opponent'])} has no turnover "
+                    f"counts yet, so the pick is held back.")
+        else:
+            lost = ("lost the count" if last["lgt"] > 0 else "won the count"
+                    if last["lgt"] < 0 else "drew the count")
+            turn = (f"Round {last['round']}, {last['venue']} v {esc(last['opponent'])} "
+                    f"({last['score']}). Turnovers conceded, from the match centre's "
+                    f"stats: {esc(t)} {last['own']}, {esc(last['opponent'])} "
+                    f"{last['theirs']}. LGT = {last['own']} − {last['theirs']} = "
+                    f"<strong>{last['lgt']:+d}</strong>: {esc(t)} {lost}, so this "
+                    f"{vote(c['lgt_vote'])}.")
+            if last["lgt"] != c["lgt"]:
+                turn += (f" <span class='neg'>The report used {c['lgt']:+.0f}: these "
+                         f"disagree.</span>")
+        cover_rows = "".join(
+            f"<tr><td>{r['round']}</td><td class='l' style='white-space:normal'>"
+            f"{esc(r['opponent'])} "
+            f"({r['venue'][0]})</td><td>{r['line']:+g}</td>"
+            f"<td>{r['score'] or '—'}</td><td>{r['cover']:+d}</td></tr>"
+            for r in c["covers"])
+        covers = (f"<div class='scroll'><table class='compact'><thead><tr><th>Rd</th>"
+                  f"<th class='l'>v</th><th title='{esc(_of(t))} handicap'>Line</th>"
+                  f"<th>Score</th>"
+                  f"<th>Cover</th></tr></thead><tbody>{cover_rows}</tbody></table></div>"
+                  if cover_rows else "")
+        mood = ("covering" if c["stdc_calc"] > 0 else "hungry" if c["stdc_calc"] < 0
+                else "level")
+        stdc = (f"Each match so far against the closing line: +1 covered, −1 not. "
+                f"STDC = <strong>{c['stdc_calc']:+d}</strong>: {esc(t)} is {mood}, so "
+                f"this {vote(c['stdc_vote'])}.")
+        if c["stdc_calc"] != c["stdc"]:
+            stdc += (f" <span class='neg'>The report used {c['stdc']:+.0f}: these "
+                     f"disagree.</span>")
+        gap = c["home_line"] - c["implied"]
+        lean = (f"is {abs(gap):.1f} below it: the market rates {esc(c['home'])} "
+                f"{abs(gap):.1f} points higher than the ratings do" if gap < 0
+                else f"is {gap:.1f} above it: the market rates {esc(c['home'])} "
+                f"{gap:.1f} points lower than the ratings do" if gap > 0
+                else "matches it")
+        power = (f"{esc(c['home'])} {c['home_power']:.1f}, {esc(c['away'])} "
+                 f"{c['away_power']:.1f} (H Pow and A Pow in <em>Every match</em>). "
+                 f"Away − home = {c['away_power']:.1f} − {c['home_power']:.1f} = "
+                 f"{c['implied']:+.1f}. The line, {c['home_line']:+g}, {lean}, so the "
+                 f"power factor {vote(c['power_vote'])}.")
+        bet = (f": bet {esc(c['system_bet'])}" if isinstance(c["system_bet"], str)
+               else ": no bet")
+        body = (f"<ol class='todo'><li><strong>Turnovers in the last match.</strong> "
+                f"{turn}</li><li><strong>Covers so far.</strong> {stdc}{covers}</li>"
+                f"<li><strong>Power.</strong> {power}</li></ol>"
+                f"<p class='sub'>With {esc(_of(opp))} two votes, System # "
+                f"{c['system_num']:+.0f}{bet}.</p>")
+
+    def result(r: pd.Series) -> str:
+        if r["result"] == spot_check.AGREED:
+            return "<span class='pos'>✓ agreed</span>"
+        if r["result"] == spot_check.MISMATCH:
+            return f"<span class='neg'>✗ {esc(r['note'])}</span>"
+        return "<span class='pending'>to check</span>"
+
+    rows = "".join(
+        f"<tr><td>{r['round']}</td><td class='l'>{esc(r['team'])}</td>"
+        f"<td>{_day(r['drawn_on'])}</td><td>{_day(r['checked_on']) or '—'}</td>"
+        f"<td class='l' style='white-space:normal'>{result(r)}</td></tr>"
+        for _, r in log.sort_values("round", key=lambda s: s.astype(int)).iterrows())
+    return (f'<div class="card" id="spot-check"><h3>Spot check, round {rnd}: '
+            f"{esc(t)}</h3><p class='sub'>Each week one club is drawn at random, and you "
+            f"check its three inputs against their sources. Once you have, say so, "
+            f"and the log records it.</p>{body}"
+            f"<h3>Checks so far</h3><div class='scroll'><table class='compact'><thead>"
+            f"<tr><th>Rd</th><th class='l'>Club</th><th>Drawn</th><th>Checked</th>"
+            f"<th class='l'>Result</th></tr></thead><tbody>{rows}</tbody></table></div>"
+            f"</div>")
 
 
 def shadow_legend() -> str:
@@ -506,7 +629,8 @@ def build() -> Path:
                     + "<h3>Power rating, club × round</h3>"
                     + heatmaps.heatmap_html(heatmaps.club_round_pivot(report, "power"),
                                             decimals=1, caption="Blue = stronger")
-                    + (shadow_table(shadow[year], year == first_look)
+                    + (shadow_table(shadow[year], year == first_look, shadow.get(year - 1),
+                                    season_report.season_label(year - 1))
                        if year in shadow else ""))
         else:
             fixtures = seasons.get(year)
@@ -533,6 +657,7 @@ def build() -> Path:
 <code>nfl_report</code> to the United Rugby Championship. Nothing here is
 validated on rugby yet — that is what the season is for.</p>{jump}</header>
 {status_panel(seasons)}
+{spot_check_section(max(listed)) if listed else ""}
 <div class="tabs" role="tablist">{''.join(tabs)}</div>
 {''.join(panels)}
 {FACTOR_LEGEND}

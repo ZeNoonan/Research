@@ -21,7 +21,7 @@ the one-off findings; the running numbers live on the site.
 
 ## Each week
 
-Each round needs four things from you. The scraper runs on your machine: the
+Each round needs five things from you. The scraper runs on your machine: the
 cloud environment this is built in cannot reach the match centre or oddsportal.
 
 | when | what to send | what it does |
@@ -29,6 +29,7 @@ cloud environment this is built in cannot reach the match centre or oddsportal.
 | early in the week | the round's **opening lines**, typed into `opening_line` in `entry/urc_2026_entry.xlsx` | provisional picks |
 | once the teams are named | the **closing lines** in `closing_line`, or a screenshot of the bookmaker's handicap page | the picks of record: the model runs on the close |
 | when you bet | the **bet slips**, open or settled | added to the bet log; see *Your bets* |
+| during the week | a check of the **spot-check club** at the top of the site, and a word that you did | logged; see *Weekly spot check* |
 | after the round | **`urc_202601_roundNN.csv`** from `streamlit run urc_scraper.py` (pick the round, press *Fetch*) | scores and turnovers in, bets graded, the next round pickable |
 
 **The scrape is the blocker.** Two of the five factors read each club's
@@ -40,7 +41,9 @@ What runs, in order:
 ```bash
 python import_turnovers.py entry/scraped/urc_202601_roundNN.csv --season 2026  # scores, turnovers, every stat
 python entry_sheet.py import --season 2026 --file urc_2026_entry.xlsx         # lines
-python season_report.py && python build_site.py                               # picks, grades, the site
+python season_report.py                                                       # picks and grades
+python spot_check.py draw --season 2026 --round NN                            # the week's spot-check club
+python build_site.py                                                          # the site
 python entry_sheet.py export --season 2026                                    # a fresh sheet to type into
 ```
 
@@ -207,6 +210,33 @@ copies its bets into `nfl_report/data/my_bets_2026.csv`.
 
 Run `python my_bets.py` for the table in the terminal.
 
+## Weekly spot check
+
+Every pick rests on numbers the code builds: each club's turnover margin last
+time out, its season-to-date covers, and the power ratings. So once a round's
+picks are in, one club is drawn at random and you check its three inputs by
+hand. The site shows the club at the top of the page, with everything needed:
+
+1. **Turnovers in its last match.** The turnovers conceded by the club and by
+   its opponent, to check against the match centre's stats tab. LGT is the first
+   minus the second.
+2. **Covers so far.** Each earlier match's score against the closing line, +1
+   covered and −1 not. STDC is the sum.
+3. **Power.** The two clubs' ratings, as the *Every match* table shows them, and
+   the arithmetic: away − home, set against the line.
+
+Tell me once you have, and `python spot_check.py confirm --season 2026 --round
+NN` records it in `data/spot_checks.csv` (`--mismatch "..."` records what
+differed instead). The site lists every check: the club drawn, and when you
+confirmed it.
+
+The draw is random but reproducible. It is seeded by the season and round
+(`random.Random("2026-5")`), and made from the clubs playing that round that
+have not been drawn yet this season, so every club comes up once before any
+comes up twice. Rerunning it gives the same club. The card also works each
+number out again from the season files and sets it beside what the report
+used, so a disagreement between the two shows on the card before you check.
+
 ## Shadow factors: nine candidates, tracked but not bet
 
 Nine candidate factors run alongside the five in `shadow_factors.py`. Each
@@ -318,7 +348,9 @@ running record, season by season, under each season's tab.
 For each factor and season: how often it voted, its record on the matches it
 voted on (pushes excluded), a 95% band, and **the system's record with it
 added as a sixth vote**. That is the five-factor System # plus this vote,
-betting at the same ±3, and only where the system itself could bet.
+betting at the same ±3, and only where the system itself could bet. The
+current season's table also gives each factor's rate over all of last season,
+to set the rate to date against.
 
 The stats come from `data/stats_<year>.csv`, which holds every stat the
 scrapers fetch (about 100 per match). `import_season.py` writes it for a whole
@@ -670,6 +702,7 @@ rugby_urc/
 ├── match_stats.py        # every scraped stat per match -> data/stats_<year>.csv
 ├── shadow_factors.py     # nine candidate factors, tracked but not bet
 ├── my_bets.py            # your bets from ../bets/bet_log.csv, beside the system
+├── spot_check.py         # the weekly spot check: a club drawn, its inputs to check
 ├── calibrate.py          # fit HOME_ADVANTAGE from the handicaps
 ├── factor_analysis.py    # marginal contribution + standalone success
 ├── heatmaps.py           # club x round diverging heatmaps
@@ -683,6 +716,7 @@ rugby_urc/
 │   ├── season_2025.csv   # 2025-26 in full: 151 matches, priced at the close
 │   ├── stats_<year>.csv  # every scraped stat, one row per match
 │   ├── report_<year>.csv # generated: factors, System #, picks, results
+│   ├── spot_checks.csv   # every spot check: the club drawn, and when you confirmed it
 │   └── shadow_<year>.csv # generated: each match's shadow-factor votes
 └── entry/
     ├── urc_2026_entry.{xlsx,csv}   # the sheet to type lines into
@@ -760,6 +794,7 @@ scrapers:
 | Your bets are matched, graded at your own line, and a contradicted settlement is flagged | pass |
 | A win with no price stays out of the totals until its settled slip arrives | pass |
 | A cash-out stands at the amount paid: never regraded, its loss in the totals | pass |
+| The spot-check draw is reproducible and takes every club in turn; each card agrees with the report | pass |
 | An older copy of the entry sheet cannot change a played match's line | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.
@@ -777,6 +812,7 @@ python calibrate.py                                # fit the home-advantage term
 python factor_analysis.py                          # per-factor diagnostics
 python shadow_factors.py                           # the nine candidate factors
 python my_bets.py                                  # your bets beside the system
+python spot_check.py draw --season 2026 --round 5  # the week's spot-check club
 python import_fixtures.py paste.txt --season 2026  # fixture text -> season file (once a season)
 ```
 

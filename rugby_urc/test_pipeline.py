@@ -36,7 +36,9 @@ depends on hold:
     factor reported, and a reversed direction swaps a record;
 19. your bets from the shared log are matched to fixtures, graded at your own
     line, checked against the bookmaker's settlement, and set beside the
-    system's picks in the same rounds; a cash-out stands at the amount paid.
+    system's picks in the same rounds; a cash-out stands at the amount paid;
+20. the weekly spot check draws fairly - reproducibly, every club in turn -
+    its card agrees with the report, and each confirmation is logged.
 
 Run: ``python test_pipeline.py``
 """
@@ -63,6 +65,7 @@ import model
 import spread_from_odds as sfo
 import season_report
 import shadow_factors
+import spot_check
 import teams
 
 CLUBS = sorted(teams.TEAMS)
@@ -898,6 +901,45 @@ def main() -> int:
                         == (25.0, -5.9, 0, 0, 1),
                         f"staked {cs['staked']}, profit {cs['profit']}, "
                         f"{cs['won']}-{cs['lost']}, {cs['cashed_out']} cashed out")
+
+    print("\n20. the weekly spot check: a fair draw, a card that agrees, a log")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        season_report.DATA_DIR = data
+        make_season(2025, range(1, 19), start="2025-09-19").to_csv(
+            data / "season_2025.csv", index=False)
+        with contextlib.redirect_stdout(io.StringIO()):
+            season_report.main()
+        first = spot_check.draw(2025, 2, today="2025-09-30")
+        again = spot_check.draw(2025, 2, today="2025-10-01")
+        passed &= check("a round is drawn once, then read back",
+                        first == again and len(spot_check.load_log()) == 1, first)
+        (data / "spot_checks.csv").unlink()
+        passed &= check("and the draw is reproducible",
+                        spot_check.draw(2025, 2, today="2025-09-30") == first)
+        drawn = [spot_check.draw(2025, rnd, today="2025-12-01") for rnd in range(3, 18)]
+        passed &= check("every club comes up once before any comes up twice",
+                        len({first, *drawn}) == len(CLUBS),
+                        f"{len({first, *drawn})} different clubs in {len(drawn) + 1} draws")
+        cards = [spot_check.card(2025, rnd, team)
+                 for rnd, team in zip(range(2, 18), [first, *drawn])]
+        passed &= check("each card's turnovers and covers agree with the report",
+                        all(c["last"]["lgt"] == c["lgt"] and c["stdc_calc"] == c["stdc"]
+                            for c in cards))
+        spot_check.confirm(2025, 2, today="2025-10-02")
+        spot_check.confirm(2025, 3, mismatch="LGT 4, not 5", today="2025-10-09")
+        log = spot_check.load_log().set_index("round")
+        passed &= check("a confirmed check is logged with its date, and a mismatch "
+                        "with what differed",
+                        tuple(log.loc["2", ["checked_on", "result"]])
+                        == ("2025-10-02", "agreed")
+                        and tuple(log.loc["3", ["result", "note"]])
+                        == ("mismatch", "LGT 4, not 5"))
+        site = build_site.spot_check_section(2025)
+        passed &= check("the site shows the latest round's card and every check",
+                        "Spot check, round 17" in site and site.count("<tr><td>") == 16
+                        + len(cards[-1]["covers"]) and "✓ agreed" in site
+                        and "LGT 4, not 5" in site)
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1
