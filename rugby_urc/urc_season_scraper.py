@@ -88,7 +88,6 @@ def main() -> None:
     st.title("🏉 URC season scraper")
     st.caption("A whole past season from the match centre, for backtesting. "
                "Uses urc_scraper.py for the reading, and leaves it untouched.")
-    base.ask_for_app_id(st)
 
     @st.cache_data(ttl=12 * 3600, show_spinner=False)   # a finished season is final
     def cached_fixtures(season: str) -> pd.DataFrame:

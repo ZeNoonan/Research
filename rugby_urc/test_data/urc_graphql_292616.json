@@ -1,0 +1,909 @@
+{
+ "note": "Real replies from www.unitedrugby.com/graphql for match 292616 (Connacht 5-50 Leinster, 30 Oct 2026), from a HAR export of its match-centre page, trimmed: no players or substitutions, and the season's match list cut to round 5 and the play-off placeholders.",
+ "GetHomeTeamStatsQuery": {
+  "matchstats": [
+   {
+    "stats_data": {
+     "homeTeam": {
+      "teamStats": {
+       "attack": {
+        "offload": 5,
+        "defenderBeaten": 18,
+        "metresMade": 152,
+        "cleanBreak": 1,
+        "totalTurnovers": 18
+       },
+       "defence": {
+        "percentTackleMade": 81.39,
+        "totalSuccessfulTackles": 188,
+        "turnoverWon": 8,
+        "missedTackle": 27
+       },
+       "discipline": {
+        "penaltyConceded": 7,
+        "scrumOffence": 3,
+        "penaltyDefence": 6,
+        "yellowCard": 0,
+        "redCard": 0,
+        "penaltyOffence": 1
+       },
+       "kicking": {
+        "retainedKick": 0,
+        "kicksInPlay": 21,
+        "kickMetres": 551
+       },
+       "possession": {
+        "percentPossession": 42.7,
+        "percentTerritory": 39.08
+       },
+       "scoring": {
+        "tryScored": 1,
+        "points": 5,
+        "percentGoals": 0
+       },
+       "lineout": {
+        "lineoutThrowsWon": 11,
+        "lineoutThrowsLost": 2,
+        "percentLineoutsWon": 84.62,
+        "lineoutSteals": 1
+       },
+       "scrum": {
+        "percentScrumsWon": 100,
+        "scrumsLost": 0,
+        "scrumsWon": 4
+       }
+      }
+     }
+    }
+   }
+  ]
+ },
+ "GetAwayTeamStatsQuery": {
+  "matchstats": [
+   {
+    "stats_data": {
+     "awayTeam": {
+      "teamStats": {
+       "attack": {
+        "offload": 10,
+        "defenderBeaten": 27,
+        "metresMade": 582,
+        "cleanBreak": 15,
+        "totalTurnovers": 14
+       },
+       "defence": {
+        "percentTackleMade": 83.63,
+        "totalSuccessfulTackles": 143,
+        "turnoverWon": 6,
+        "missedTackle": 18
+       },
+       "discipline": {
+        "penaltyConceded": 6,
+        "scrumOffence": 2,
+        "penaltyDefence": 4,
+        "yellowCard": 0,
+        "redCard": 0,
+        "penaltyOffence": 2
+       },
+       "kicking": {
+        "retainedKick": 8,
+        "kicksInPlay": 29,
+        "kickMetres": 707
+       },
+       "possession": {
+        "percentPossession": 57.3,
+        "percentTerritory": 60.92
+       },
+       "scoring": {
+        "tryScored": 7,
+        "points": 50,
+        "percentGoals": 87.5
+       },
+       "lineout": {
+        "lineoutThrowsWon": 17,
+        "lineoutThrowsLost": 2,
+        "percentLineoutsWon": 89.47,
+        "lineoutSteals": 1
+       },
+       "scrum": {
+        "percentScrumsWon": 100,
+        "scrumsLost": 0,
+        "scrumsWon": 6
+       }
+      }
+     }
+    }
+   }
+  ]
+ },
+ "GetMatchEventsByTeamsQuery": {
+  "matchstats": [
+   {
+    "season_id": "202601",
+    "home_team_id": 5483,
+    "away_team_id": 5356,
+    "match_status": "result",
+    "stats_data": {
+     "dateTime": "2026-10-30T19:45:00.000Z",
+     "homeTeam": {
+      "team": {
+       "name": "Connacht Rugby"
+      },
+      "score": {
+       "currentScore": 5
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "Leinster Rugby"
+      },
+      "score": {
+       "currentScore": 50
+      }
+     },
+     "events": [
+      {
+       "display": "first half start",
+       "time": "0",
+       "period": {
+        "name": "first half"
+       },
+       "team": null,
+       "type": {
+        "name": "period"
+       }
+      },
+      {
+       "display": "try",
+       "time": "15",
+       "period": {
+        "name": "first half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "try"
+       }
+      },
+      {
+       "display": "conversion",
+       "time": "16",
+       "period": {
+        "name": "first half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "try",
+       "time": "24",
+       "period": {
+        "name": "first half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "try"
+       }
+      },
+      {
+       "display": "conversion",
+       "time": "25",
+       "period": {
+        "name": "first half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "try",
+       "time": "27",
+       "period": {
+        "name": "first half"
+       },
+       "team": {
+        "name": "Connacht Rugby"
+       },
+       "type": {
+        "name": "try"
+       }
+      },
+      {
+       "display": "missed conversion",
+       "time": "28",
+       "period": {
+        "name": "first half"
+       },
+       "team": {
+        "name": "Connacht Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "try",
+       "time": "31",
+       "period": {
+        "name": "first half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "try"
+       }
+      },
+      {
+       "display": "conversion",
+       "time": "32",
+       "period": {
+        "name": "first half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "first half end",
+       "time": "40",
+       "period": {
+        "name": "first half"
+       },
+       "team": null,
+       "type": {
+        "name": "period"
+       }
+      },
+      {
+       "display": "second half start",
+       "time": "40",
+       "period": {
+        "name": "second half"
+       },
+       "team": null,
+       "type": {
+        "name": "period"
+       }
+      },
+      {
+       "display": "penalty goal",
+       "time": "50",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "try",
+       "time": "51",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "try"
+       }
+      },
+      {
+       "display": "missed conversion",
+       "time": "52",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "try",
+       "time": "60",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "try"
+       }
+      },
+      {
+       "display": "conversion",
+       "time": "60",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "try",
+       "time": "72",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "try"
+       }
+      },
+      {
+       "display": "conversion",
+       "time": "73",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "try",
+       "time": "76",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "try"
+       }
+      },
+      {
+       "display": "conversion",
+       "time": "77",
+       "period": {
+        "name": "second half"
+       },
+       "team": {
+        "name": "Leinster Rugby"
+       },
+       "type": {
+        "name": "goal kick"
+       }
+      },
+      {
+       "display": "second half end",
+       "time": "80+1",
+       "period": {
+        "name": "second half"
+       },
+       "team": null,
+       "type": {
+        "name": "period"
+       }
+      },
+      {
+       "display": "match end",
+       "time": "80+2",
+       "period": {
+        "name": "post match"
+       },
+       "team": null,
+       "type": {
+        "name": "period"
+       }
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "GetRoundsData": {
+  "matchstats": [
+   {
+    "match_id": 292616,
+    "match_datetime": "2026-10-30 19:45:00",
+    "match_status": "result",
+    "match_period": "post match",
+    "stats_data": {
+     "tbc": 0,
+     "dateTime": "2026-10-30T19:45:00.000Z",
+     "matchWinner": 5356,
+     "round": 5,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "name": "Connacht Rugby"
+      },
+      "score": {
+       "currentScore": 5,
+       "finalScore": 5
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "Leinster Rugby"
+      },
+      "score": {
+       "currentScore": 50,
+       "finalScore": 50
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292617,
+    "match_datetime": "2026-10-30 19:45:00",
+    "match_status": "result",
+    "match_period": "post match",
+    "stats_data": {
+     "tbc": 0,
+     "dateTime": "2026-10-30T19:45:00.000Z",
+     "matchWinner": 3098,
+     "round": 5,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "name": "Glasgow Warriors"
+      },
+      "score": {
+       "currentScore": 29,
+       "finalScore": 29
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "10bet Lions"
+      },
+      "score": {
+       "currentScore": 20,
+       "finalScore": 20
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292618,
+    "match_datetime": "2026-10-31 12:45:00",
+    "match_status": "result",
+    "match_period": "post match",
+    "stats_data": {
+     "tbc": 0,
+     "dateTime": "2026-10-31T12:45:00.000Z",
+     "matchWinner": 3994,
+     "round": 5,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "name": "DHL Stormers"
+      },
+      "score": {
+       "currentScore": 33,
+       "finalScore": 33
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "Ulster Rugby"
+      },
+      "score": {
+       "currentScore": 7,
+       "finalScore": 7
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292619,
+    "match_datetime": "2026-10-31 15:00:00",
+    "match_status": "result",
+    "match_period": "post match",
+    "stats_data": {
+     "tbc": 0,
+     "dateTime": "2026-10-31T15:00:00.000Z",
+     "matchWinner": 5586,
+     "round": 5,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "name": "Vodacom Bulls"
+      },
+      "score": {
+       "currentScore": 54,
+       "finalScore": 54
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "Scarlets"
+      },
+      "score": {
+       "currentScore": 26,
+       "finalScore": 26
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292620,
+    "match_datetime": "2026-10-31 15:00:00",
+    "match_status": "result",
+    "match_period": "post match",
+    "stats_data": {
+     "tbc": 0,
+     "dateTime": "2026-10-31T15:00:00.000Z",
+     "matchWinner": 2019,
+     "round": 5,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "name": "Benetton Rugby"
+      },
+      "score": {
+       "currentScore": 31,
+       "finalScore": 31
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "Edinburgh Rugby"
+      },
+      "score": {
+       "currentScore": 12,
+       "finalScore": 12
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292621,
+    "match_datetime": "2026-10-31 17:30:00",
+    "match_status": "result",
+    "match_period": "post match",
+    "stats_data": {
+     "tbc": 0,
+     "dateTime": "2026-10-31T17:30:00.000Z",
+     "matchWinner": 1527,
+     "round": 5,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "name": "Munster Rugby"
+      },
+      "score": {
+       "currentScore": 3,
+       "finalScore": 3
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "Hollywoodbets Sharks"
+      },
+      "score": {
+       "currentScore": 15,
+       "finalScore": 15
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292622,
+    "match_datetime": "2026-10-31 17:30:00",
+    "match_status": "result",
+    "match_period": "post match",
+    "stats_data": {
+     "tbc": 0,
+     "dateTime": "2026-10-31T17:30:00.000Z",
+     "matchWinner": 3533,
+     "round": 5,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "name": "Dragons RFC"
+      },
+      "score": {
+       "currentScore": 35,
+       "finalScore": 35
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "Zebre Parma"
+      },
+      "score": {
+       "currentScore": 14,
+       "finalScore": 14
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292623,
+    "match_datetime": "2026-10-31 19:45:00",
+    "match_status": "result",
+    "match_period": "post match",
+    "stats_data": {
+     "tbc": 0,
+     "dateTime": "2026-10-31T19:45:00.000Z",
+     "matchWinner": 4471,
+     "round": 5,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "name": "Ospreys"
+      },
+      "score": {
+       "currentScore": 0,
+       "finalScore": 0
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "name": "Cardiff Rugby"
+      },
+      "score": {
+       "currentScore": 26,
+       "finalScore": 26
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292728,
+    "match_datetime": "2027-05-28 14:00:00",
+    "match_status": "fixture",
+    "match_period": "pre match",
+    "stats_data": {
+     "tbc": 1,
+     "dateTime": "2027-05-28T14:00:00.000Z",
+     "matchWinner": null,
+     "round": 19,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292729,
+    "match_datetime": "2027-05-28 14:00:00",
+    "match_status": "fixture",
+    "match_period": "pre match",
+    "stats_data": {
+     "tbc": 1,
+     "dateTime": "2027-05-28T14:00:00.000Z",
+     "matchWinner": null,
+     "round": 19,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292730,
+    "match_datetime": "2027-05-28 14:00:00",
+    "match_status": "fixture",
+    "match_period": "pre match",
+    "stats_data": {
+     "tbc": 1,
+     "dateTime": "2027-05-28T14:00:00.000Z",
+     "matchWinner": null,
+     "round": 19,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292731,
+    "match_datetime": "2027-05-28 14:00:00",
+    "match_status": "fixture",
+    "match_period": "pre match",
+    "stats_data": {
+     "tbc": 1,
+     "dateTime": "2027-05-28T14:00:00.000Z",
+     "matchWinner": null,
+     "round": 19,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292732,
+    "match_datetime": "2027-06-05 14:00:00",
+    "match_status": "fixture",
+    "match_period": "pre match",
+    "stats_data": {
+     "tbc": 1,
+     "dateTime": "2027-06-05T14:00:00.000Z",
+     "matchWinner": null,
+     "round": 20,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292733,
+    "match_datetime": "2027-06-05 14:00:00",
+    "match_status": "fixture",
+    "match_period": "pre match",
+    "stats_data": {
+     "tbc": 1,
+     "dateTime": "2027-06-05T14:00:00.000Z",
+     "matchWinner": null,
+     "round": 20,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     }
+    }
+   },
+   {
+    "match_id": 292734,
+    "match_datetime": "2027-06-19 14:00:00",
+    "match_status": "fixture",
+    "match_period": "pre match",
+    "stats_data": {
+     "tbc": 1,
+     "dateTime": "2027-06-19T14:00:00.000Z",
+     "matchWinner": null,
+     "round": 21,
+     "season": {},
+     "homeTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     },
+     "awayTeam": {
+      "team": {
+       "id": null,
+       "name": "TBD"
+      },
+      "score": {
+       "currentScore": null,
+       "finalScore": null
+      }
+     }
+    }
+   }
+  ]
+ }
+}

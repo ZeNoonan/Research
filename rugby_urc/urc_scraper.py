@@ -1,20 +1,26 @@
 """Scrape turnovers and scores from the URC match centre, a round at a time.
 
-The match centre at stats.unitedrugby.com is a JavaScript page; the numbers on
-it come from a JSON feed run by InCrowd Sports with data from RugbyViz. This
-reads that feed directly - the same approach as the FPL scraper, which reads
-the FPL API rather than the website - so it needs only ``requests``::
+The match centre at stats.unitedrugby.com is a JavaScript page. Since 2
+November 2026 its numbers have come from the URC website's own GraphQL API,
+which this calls the way the page does - a GET naming a stored ("persisted")
+query by its hash - so it needs only ``requests``::
 
-    match list:  {FEED}/matches?compId=1068&season=202601&provider=rugbyviz
-    one match:   {FEED}/matches/292584?season=202601&provider=rugbyviz
+    the season's matches:  GetRoundsData               {"seasonId": 202601}
+    each side's stats:     GetHomeTeamStatsQuery,
+                           GetAwayTeamStatsQuery       {"match_id": 292616}
+    the match's events:    GetMatchEventsByTeamsQuery  {"match_id": [292616]}
 
-Both endpoints are documented by working code in the public
-transientlunatic/Rugby-Data project. What is **not** documented anywhere is
-where the team stats sit inside a match response. So rather than hard-code a
-guessed path, ``find_stats`` walks the whole response and collects every stat
-that carries a home and an away value, and ``turnovers`` picks the turnover
-ones out by name. If the feed moves them, the "every stat found" panel and the
-raw-JSON download show where they went.
+Until then the numbers came from InCrowd Sports' feed, which that day began
+refusing outside requests. The queries and their hashes were read from a HAR
+export of a match page; if the site changes a query, its old hash stops working
+and the error says so, and a fresh HAR gives the new one for ``QUERIES``.
+
+A match's two team-stats replies and its events are put together in the shape
+the old feed had, each side's stats under ``homeTeam`` and ``awayTeam``, so
+finding the stats is unchanged: ``find_stats`` walks the whole response and
+collects every stat that carries a home and an away value, and ``turnovers``
+picks the turnover ones out by name. If a stat goes missing, the "every stat
+found" panel and the raw-JSON download show what came back.
 
 The CSV it writes is in the shape ``import_turnovers.py`` reads, scores
 included::
@@ -27,35 +33,50 @@ Run:  streamlit run urc_scraper.py
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
+from collections import Counter
 from pathlib import Path
+from urllib.parse import quote, urlencode
 
 import pandas as pd
 import requests
 
-FEED = "https://rugby-union-feeds.incrowdsports.com/v1"
-COMP_ID = 1068          # United Rugby Championship
-PROVIDER = "rugbyviz"
+API = "https://www.unitedrugby.com/graphql"
+# The match centre's persisted queries, by hash, from a HAR of a match page.
+QUERIES = {
+    "GetRoundsData": "4735fb2d10bd7bcd64b519813bf87de70abc5e6fe5f93b3aab2e6f68e3ee4e5b",
+    "GetHomeTeamStatsQuery": "85fbf002b26cc67da4b104635ef5bafa4baf957dd62ffc1a29d1d24e7c2be6ac",
+    "GetAwayTeamStatsQuery": "1ccb52a1604d9a5048940e723d0887fdb098487145185582b2c306b9ec8ab9ee",
+    "GetMatchEventsByTeamsQuery": "7db8fb3851b8d3c38462d248aad3846bc94699a6111ffe3255a66c6056b21f69",
+}
+REGULAR_ROUNDS = 18        # the site numbers the play-offs 19, 20 and 21
 DEFAULT_SEASON = "202601"  # the 2026-27 season, as the match-centre URLs spell it
-PAUSE = 0.4             # seconds between requests - one round is only 8 calls
+PAUSE = 0.4                # seconds between matches - three requests each
 
 OUT = Path(__file__).parent / "entry" / "scraped"
 
 HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                    "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"),
-    "Accept": "application/json",
+    "Accept": "*/*",
     "Origin": "https://stats.unitedrugby.com",
     "Referer": "https://stats.unitedrugby.com/",
 }
 
-# Since 2 Nov 2026 the feed refuses any request without an X-APP-ID header
-# ("Missing header"): the id the match centre's own pages send with every
-# request. It is kept out of this public repository - in APP_ID_FILE beside the
-# script, which git ignores, or in the URC_APP_ID environment variable.
-APP_ID_FILE = Path(__file__).parent / "urc_app_id.txt"
+# The team stats name some things differently from the old feed; these keep
+# the names the rest of the pipeline reads. "totalTurnovers" sits under attack -
+# the ball a side gave away - and is taken as the old "turnovers conceded": it
+# runs on the same scale, 13-18 a side against 6-8 turnovers won.
+RENAMED = {"totalTurnovers": "turnoversConceded", "turnoverWon": "turnoversWon",
+           "yellowCard": "yellowCards", "redCard": "redCards"}
+# The kicking and scoring detail the team stats no longer carry, counted from
+# the match events, which name the side.
+EVENT_COUNTS = {"conversion": "conversionGoals",
+                "missed conversion": "missedConversionGoals",
+                "penalty goal": "penaltyGoals", "missed penalty": "missedPenaltyGoals",
+                "drop goal": "dropGoalsConverted", "missed drop goal": "dropGoalMissed",
+                "penalty try": "penaltyTries"}
 
 # .../match-centre/202601/united-rugby-championship/benetton-...-2026-09-25/292584#tabs-stats
 URL_RE = re.compile(r"/match-centre/(\d{6})/(?:[^/?#]+/)*?(\d+)(?:[/?#]|$)")
@@ -69,7 +90,11 @@ COLUMNS = ["Date", "Round", "Home Team", "Away Team", "home_score", "away_score"
            "match_id", "status", "found_as"]
 
 
-# --- the feed ----------------------------------------------------------------
+# --- the site ----------------------------------------------------------------
+
+class FeedError(requests.RequestException):
+    """The site answered, but not with what was asked for."""
+
 
 def parse_match_url(text: str, season: str = DEFAULT_SEASON) -> tuple[str, str]:
     """A match-centre link (or a bare match id) -> (season, match id)."""
@@ -81,21 +106,12 @@ def parse_match_url(text: str, season: str = DEFAULT_SEASON) -> tuple[str, str]:
     raise ValueError(f"not a match-centre link or match id: {text!r}")
 
 
-def app_id() -> str:
-    """The feed's X-APP-ID: ``URC_APP_ID`` if set, else the saved file."""
-    if os.environ.get("URC_APP_ID", "").strip():
-        return os.environ["URC_APP_ID"].strip()
-    return APP_ID_FILE.read_text().strip() if APP_ID_FILE.exists() else ""
-
-
 def fetch_json(url: str) -> dict:
-    key = app_id()
-    response = requests.get(url, headers={**HEADERS, "X-APP-ID": key} if key else HEADERS,
-                            timeout=20)
+    response = requests.get(url, headers=HEADERS, timeout=20)
     try:
         response.raise_for_status()
     except requests.HTTPError as exc:
-        # "400 Bad Request" alone does not say what the feed objects to; its
+        # "400 Bad Request" alone does not say what the site objects to; its
         # own reply usually does, so it goes into the error shown.
         reply = (response.text or "").strip()[:300] or "(an empty reply)"
         raise requests.HTTPError(f"{exc} - the feed replied: {reply}",
@@ -103,25 +119,83 @@ def fetch_json(url: str) -> dict:
     return response.json()
 
 
+def graphql(operation: str, variables: dict) -> dict:
+    """One of the match centre's persisted queries, sent as its page sends it."""
+    compact = {"separators": (",", ":")}
+    extensions = {"persistedQuery": {"version": 1, "sha256Hash": QUERIES[operation]}}
+    body = fetch_json(API + "?" + urlencode(
+        {"operationName": operation, "variables": json.dumps(variables, **compact),
+         "extensions": json.dumps(extensions, **compact)}, quote_via=quote))
+    if body.get("errors"):
+        first = body["errors"][0]
+        raise FeedError(f"{operation}: {first.get('message', first)}. If the site has "
+                        f"changed its queries, a HAR export of a match page gives the "
+                        f"new hash for QUERIES.")
+    return body.get("data") or {}
+
+
+def _team_stats(stats: dict, events: list, name: str | None) -> dict:
+    """One side's team stats, flattened and renamed, with its events counted."""
+    flat: dict = {}
+    for group in (stats.get("teamStats") or {}).values():
+        if isinstance(group, dict):
+            flat.update({RENAMED.get(k, k): v for k, v in group.items()
+                         if k != "__typename"})
+    mine = Counter(e.get("display") for e in events
+                   if name and (e.get("team") or {}).get("name") == name)
+    flat.update({key: mine[shown] for shown, key in EVENT_COUNTS.items()})
+    flat["tries"] = mine["try"] + mine["penalty try"]
+    return flat
+
+
 def fetch_match(match_id: str, season: str) -> dict:
-    return fetch_json(f"{FEED}/matches/{match_id}?season={season}&provider={PROVIDER}")
+    """One match, in the old feed's shape: each side's stats under its team.
+
+    ``season`` is no longer needed, since a match id is unique, but is kept so
+    the callers are unchanged.
+    """
+    mid = int(match_id)
+
+    def stats_of(operation: str, key: str) -> dict:
+        rows = graphql(operation, {"match_id": mid}).get("matchstats") or [{}]
+        return (rows[0].get("stats_data") or {}).get(key) or {}
+
+    home_stats = stats_of("GetHomeTeamStatsQuery", "homeTeam")
+    away_stats = stats_of("GetAwayTeamStatsQuery", "awayTeam")
+    rows = graphql("GetMatchEventsByTeamsQuery", {"match_id": [mid]}).get("matchstats")
+    if not rows:
+        raise FeedError(f"match {match_id}: the site has nothing for it yet")
+    info = rows[0]
+    data = info.get("stats_data") or {}
+    events = data.get("events") or []
+    teams = {}
+    for key, stats in (("homeTeam", home_stats), ("awayTeam", away_stats)):
+        side = data.get(key) or {}
+        name = (side.get("team") or {}).get("name")
+        teams[key] = {"name": name, "score": (side.get("score") or {}).get("currentScore"),
+                      "stats": _team_stats(stats, events, name)}
+    # The events ride along for the raw-JSON download; find_stats skips them.
+    return {"data": {"id": mid, "date": data.get("dateTime"), "round": None,
+                     "status": info.get("match_status"), **teams, "events": events}}
 
 
 def fetch_fixtures(season: str) -> pd.DataFrame:
     """Every URC match in a season, played or not, one row each."""
-    body = fetch_json(f"{FEED}/matches?compId={COMP_ID}&season={season}"
-                      f"&provider={PROVIDER}")
     rows = []
-    for m in body.get("data", []):
-        home, away = m.get("homeTeam") or {}, m.get("awayTeam") or {}
+    for m in graphql("GetRoundsData", {"seasonId": int(season)}).get("matchstats") or []:
+        data = m.get("stats_data") or {}
+        home, away = data.get("homeTeam") or {}, data.get("awayTeam") or {}
+        rnd = data.get("round")
         rows.append({
-            "match_id": str(m.get("id")),
-            "date": str(m.get("date", ""))[:10],
-            "round": m.get("round"),
-            "round_type": "league" if m.get("roundTypeId") == 1 else "knockout",
-            "status": str(m.get("status") or ""),
-            "home": home.get("name"), "away": away.get("name"),
-            "home_score": home.get("score"), "away_score": away.get("score"),
+            "match_id": str(m.get("match_id")),
+            "date": str(data.get("dateTime") or m.get("match_datetime") or "")[:10],
+            "round": rnd,
+            "round_type": "knockout" if (rnd or 0) > REGULAR_ROUNDS else "league",
+            "status": str(m.get("match_status") or ""),
+            "home": (home.get("team") or {}).get("name"),
+            "away": (away.get("team") or {}).get("name"),
+            "home_score": (home.get("score") or {}).get("finalScore"),
+            "away_score": (away.get("score") or {}).get("finalScore"),
         })
     return pd.DataFrame(rows)
 
@@ -359,28 +433,6 @@ def complete(row: dict) -> bool:
 
 # --- the app -------------------------------------------------------------------
 
-def ask_for_app_id(st) -> None:
-    """Hold the page until the feed's X-APP-ID is saved, saying how to find it."""
-    if APP_ID_FILE.exists() and st.sidebar.button("Forget the saved X-APP-ID"):
-        APP_ID_FILE.unlink()
-        st.rerun()
-    if app_id():
-        return
-    st.warning(
-        "The feed now asks for the match centre's own id, an **X-APP-ID** header, "
-        "on every request. Copy it once from your browser:\n\n"
-        "1. Open any match on stats.unitedrugby.com.\n"
-        "2. Press F12, open the **Network** tab, and reload the page.\n"
-        "3. Type `incrowd` in the filter box and click any request listed.\n"
-        "4. Under **Request Headers**, copy the value of **x-app-id**.\n\n"
-        f"It is kept in `{APP_ID_FILE.name}` beside this script, which git ignores.")
-    typed = st.text_input("X-APP-ID").strip()
-    if not typed:
-        st.stop()
-    APP_ID_FILE.write_text(typed)
-    st.rerun()
-
-
 def wide(container, data, **kwargs):
     """``container.dataframe`` at full width, on old Streamlit and new.
 
@@ -402,7 +454,6 @@ def main() -> None:
     st.title("🏉 URC match-centre scraper")
     st.caption("Turnovers and scores for the URC report, straight from the feed "
                "behind stats.unitedrugby.com.")
-    ask_for_app_id(st)
 
     @st.cache_data(ttl=600, show_spinner=False)
     def cached_match(match_id: str, season: str) -> dict:

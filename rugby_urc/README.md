@@ -59,10 +59,9 @@ Thursday's that way.
    *Home advantage*.
 2. **Ten close-call lines from 2025-26** (optional) would firm up the backtest.
    See *Ten close calls*.
-3. **Your local `urc_scraper.py`** is an older copy. Replace it with the repo's,
-   which the feed now needs: it sends the feed's `X-APP-ID` (see *The
-   scrapers*). It also shows the feed's reply when a request fails, and no
-   longer writes the junk `home_date = 2026` column.
+3. **Your local `urc_scraper.py` and `urc_season_scraper.py`** are older
+   copies. Replace them with the repo's: the old feed no longer answers, and
+   these read the URC site's own API instead (see *The scrapers*).
 
 ## How it did on 2025-26
 
@@ -712,6 +711,7 @@ rugby_urc/
 ├── test_pipeline.py      # end-to-end checks on generated data
 ├── test_scraper.py       # scraper checks, incl. the app run headless
 ├── test_season_scraper.py # season-scraper checks: playoff rounds, retries, reruns
+├── test_data/            # real replies from the site's API, for test_scraper.py
 ├── data/
 │   ├── season_2026.csv   # 2026-27: all 144 fixtures, lines and results as they come
 │   ├── season_2025.csv   # 2025-26 in full: 151 matches, priced at the close
@@ -821,48 +821,57 @@ The weekly steps are under *Each week*.
 
 ## The scrapers
 
-The match centre is a JavaScript page; its numbers come from a JSON feed
-(`rugby-union-feeds.incrowdsports.com`, data from RugbyViz). `urc_scraper.py`
-reads that feed directly with `requests` — the same approach as reading the FPL
-API rather than the FPL website. Both endpoints it uses, the season's match
-list and a single match, are documented by working code in the public
-[transientlunatic/Rugby-Data](https://github.com/transientlunatic/Rugby-Data)
-project, including the URC's competition id (1068).
+The match centre is a JavaScript page. **Since 2 November 2026 its numbers come
+from the URC website's own GraphQL API** (`www.unitedrugby.com/graphql`), and
+`urc_scraper.py` calls it the way the page does, with `requests`. Each call is a
+GET naming one of the page's stored ("persisted") queries by its hash:
 
-Where the team stats sit inside a match response is not documented anywhere,
-so rather than hard-code a guessed path the scraper walks the whole response,
-collects every stat carrying a home and an away value, and picks turnovers won
-and conceded out by name: an exact name first, so a lookalike such as
-`home_ruck_turnovers_won` can never be read in their place, and a player's
-count can never pass as the team's.
+| query | variables | what it gives |
+|---|---|---|
+| `GetRoundsData` | `{"seasonId": 202601}` | the season's matches: id, date, round, teams, score, status |
+| `GetHomeTeamStatsQuery`, `GetAwayTeamStatsQuery` | `{"match_id": 292616}` | each side's team stats, turnovers included |
+| `GetMatchEventsByTeamsQuery` | `{"match_id": [292616]}` | the match's events, each with its side |
 
-**It has been right on every real match it has read**: all 151 of 2025-26 and
-every 2026-27 round loaded so far. Each score agrees across the three places
-the feed reports it, and every side's points reconcile with its tries,
-conversions, penalties and drop goals. The first live run turned up one bug,
-since fixed: the leading digits of a timestamp were read as a stat
-(`home_date = 2026`).
+The queries and hashes were read from a HAR export of a match page (DevTools,
+Network tab, Fetch/XHR, *Export HAR*). If the site changes a query, its old hash
+stops working, the error says so, and a fresh HAR gives the new one for
+`QUERIES` in `urc_scraper.py`. Until 2 November the numbers came from InCrowd
+Sports' feed (`rugby-union-feeds.incrowdsports.com`), which that day began
+refusing outside requests (`"X-APP-ID": "Missing header"`) as the site moved
+over.
 
-**It needs the feed's app id.** Since 2 November 2026 the feed has refused any
-request without an `X-APP-ID` header (`400 Bad Request`, `"X-APP-ID": "Missing
-header"`), the id the match centre's own pages send. Either scraper asks for it
-the first time it runs, with the steps: open a match on stats.unitedrugby.com,
-press F12, and copy `x-app-id` from the request headers of any call to
-`incrowd`. It is kept in `urc_app_id.txt` beside the script, which git ignores,
-so it never reaches this public repository; `URC_APP_ID`, if set, takes
-precedence. If the feed later refuses the saved one, the sidebar's *Forget the
-saved X-APP-ID* asks again. The feed's owner added the check on purpose, so it
-may change again: keep the requests to a round a week.
+**What the new source changes.** A match's replies are put together in the old
+feed's shape, so the rest of the scraper is unchanged: it walks the whole
+response, collects every stat carrying a home and an away value, and picks
+turnovers won and conceded out by name. The names the pipeline reads are kept:
 
-**When a request fails**, the error shows the feed's own reply, not just the
-status. If the fixture list alone will not load, *Paste match links* takes bare
-match ids, and the error page lists the next round's: the feed has numbered
-each round's matches as a block of eight (round 1 was 292584–292591), so they
+- **Turnovers won** is `defence.turnoverWon`. **Turnovers conceded** is
+  `attack.totalTurnovers`, the ball a side gave away. That is on the old
+  feed's scale, 13–18 a side against 6–8 won; round 4, scraped from both
+  sources, is the check that it is the same count.
+- **Tries, conversions, penalties, drop goals**, made and missed, are counted
+  from the events, so every side's points still reconcile, three ways: the
+  events, the team stats' `points`, and the score.
+- **Cards** come from the team stats' discipline counts.
+- **Visits to the 22 are gone**: the new team stats do not carry them, so the
+  *Scoring from the 22* shadow factor has no input from round 5 on.
+
+The new team stats are about 35 per side, against the old feed's 100.
+
+**The old feed was right on every real match it read**: all 151 of 2025-26
+and 2026-27's rounds 1–4. Each score agreed across the three places it
+reported it, and every side's points reconciled with its tries, conversions,
+penalties and drop goals. The new source agrees with all 32 of those 2026-27
+scores.
+
+**When a request fails**, the error shows the site's own reply, not just the
+status. If the season's match list alone will not load, *Paste match links*
+takes bare match ids, and the error page lists the next round's: each round's
+matches are numbered as a block of eight (round 1 was 292584–292591), so they
 follow the last round saved, and the fetched table's team names confirm them.
 
-**It saves every stat**, about 100 home/away pairs per match, in the round's
-CSV; `import_turnovers.py` keeps them in `data/stats_<year>.csv` for the shadow
-factors.
+**It saves every stat** in the round's CSV; `import_turnovers.py` keeps them in
+`data/stats_<year>.csv` for the shadow factors.
 
 ### A whole past season: `urc_season_scraper.py`
 

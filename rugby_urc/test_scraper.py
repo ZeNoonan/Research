@@ -1,10 +1,12 @@
-"""Checks on ``urc_scraper.py``, runnable without reaching the live feed.
+"""Checks on ``urc_scraper.py``, runnable without reaching the live site.
 
 The scraper cannot be tested against stats.unitedrugby.com from everywhere it
 is developed, and the one thing nobody documents - where the team stats sit in
 a match response - is exactly what it has to find. So these checks feed it the
 layouts team stats are usually published in and assert it finds the same
 numbers in each, and that it does not mistake a player's count for the team's.
+Since the match centre moved to the URC site's own GraphQL API, they also run
+it on that API's real replies for one match, kept in ``test_data/``.
 
 If Streamlit is installed, the app itself is also run headless: once against
 the real network (it must fail cleanly if the feed is unreachable) and once
@@ -18,11 +20,11 @@ Run: ``python test_scraper.py``
 
 from __future__ import annotations
 
-import os
-import re
+import json
 import shutil
 import tempfile
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import requests
@@ -163,9 +165,68 @@ def pure_checks() -> bool:
                     cols[:len(s.COLUMNS)] == s.COLUMNS
                     and {"home_tackles", "home_tackles_made"} <= set(cols))
 
-    # On 2 Nov 2026 the feed started answering 400 Bad Request to every request
-    # without an X-APP-ID header: {"X-APP-ID": "Missing header"}.
-    print("\n4. when the feed refuses")
+    # On 2 Nov 2026 the old feed began refusing outside requests, and the match
+    # centre moved to the URC site's own GraphQL API.
+    print("\n4. the site's GraphQL API, on its real replies")
+    real = json.loads((HERE / "test_data" / "urc_graphql_292616.json").read_text())
+    sent = []
+
+    def site(url, **_):
+        q = parse_qs(urlparse(url).query)
+        sent.append((q["operationName"][0], q["variables"][0],
+                     json.loads(q["extensions"][0])["persistedQuery"]["sha256Hash"]))
+        return Reply({"data": real[q["operationName"][0]]})
+
+    real_get = requests.get
+    requests.get = site
+    try:
+        row = s.match_row(s.fetch_match("292616", "202601"), "292616")
+        fixtures = s.fetch_fixtures("202601")
+    finally:
+        requests.get = real_get
+    asked = {(op, var) for op, var, _ in sent}
+    passed &= check("each query is sent as the page sends it: name, variables, hash",
+                    asked == {("GetHomeTeamStatsQuery", '{"match_id":292616}'),
+                              ("GetAwayTeamStatsQuery", '{"match_id":292616}'),
+                              ("GetMatchEventsByTeamsQuery", '{"match_id":[292616]}'),
+                              ("GetRoundsData", '{"seasonId":202601}')}
+                    and all(h == s.QUERIES[op] for op, _, h in sent), str(sorted(asked)))
+    got = (row["Home Team"], row["Away Team"], row["home_score"], row["away_score"],
+           row["home_turnovers_lost"], row["away_turnovers_lost"],
+           row["home_turnovers_won"], row["away_turnovers_won"])
+    passed &= check("Connacht 5-50 Leinster, with both sides' turnovers",
+                    got == ("Connacht Rugby", "Leinster Rugby", 5, 50, 18, 14, 8, 6), str(got))
+    kicks = {k: (row[f"home_{k}"], row[f"away_{k}"])
+             for k in ("tries", "conversion_goals", "missed_conversion_goals", "penalty_goals")}
+    passed &= check("tries and kicks counted from the events, side by side",
+                    kicks == {"tries": (1, 7), "conversion_goals": (0, 6),
+                              "missed_conversion_goals": (1, 1), "penalty_goals": (0, 1)},
+                    str(kicks))
+    points = [5 * (row[f"{x}_tries"] - row[f"{x}_penalty_tries"]) + 7 * row[f"{x}_penalty_tries"]
+              + 2 * row[f"{x}_conversion_goals"]
+              + 3 * (row[f"{x}_penalty_goals"] + row[f"{x}_drop_goals_converted"])
+              for x in ("home", "away")]
+    passed &= check("and they add up to the score and to the team stats' points",
+                    points == [row["home_score"], row["away_score"]]
+                    == [row["home_points"], row["away_points"]], str(points))
+    r5 = fixtures[fixtures["round"] == 5]
+    passed &= check("the season's matches: round 5 played, the play-offs knockouts",
+                    len(r5) == 8 and r5["status"].map(s.is_played).all()
+                    and set(r5["round_type"]) == {"league"}
+                    and set(fixtures.loc[fixtures["round"] > 18, "round_type"]) == {"knockout"})
+
+    requests.get = lambda url, **_: Reply({"errors": [{"message": "PersistedQueryNotFound"}]})
+    try:
+        s.graphql("GetRoundsData", {"seasonId": 202601})
+        said = ""
+    except s.FeedError as exc:
+        said = str(exc)
+    finally:
+        requests.get = real_get
+    passed &= check("a query the site no longer knows says so, and what to do",
+                    "PersistedQueryNotFound" in said and "HAR" in said, said[:70])
+
+    print("\n5. when the site refuses")
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)
         passed &= check("with no round saved, no ids are guessed",
@@ -176,56 +237,35 @@ def pure_checks() -> bool:
         passed &= check("the next round's ids follow the last round saved",
                         s.next_match_ids("202601", out)
                         == [str(i) for i in range(292616, 292624)])
-    real_get = requests.get
     requests.get = lambda url, **_: Refused()
     try:
-        s.fetch_json(f"{s.FEED}/matches?compId={s.COMP_ID}")
+        s.fetch_json(s.API)
         said = ""
     except requests.HTTPError as exc:
         said = str(exc)
     finally:
         requests.get = real_get
-    passed &= check("a refusal shows the feed's own reply, not just its status",
+    passed &= check("a refusal shows the site's own reply, not just its status",
                     "400 Client Error" in said and "Unknown season" in said, said)
-
-    sent = []
-
-    class Fine:
-        def raise_for_status(self):
-            pass
-
-        def json(self):
-            return {"data": []}
-
-    def capture(url, headers=None, **_):
-        sent.append((headers or {}).get("X-APP-ID"))
-        return Fine()
-
-    saved_file, saved_env = s.APP_ID_FILE, os.environ.pop("URC_APP_ID", None)
-    requests.get = capture
-    try:
-        with tempfile.TemporaryDirectory() as tmp:
-            s.APP_ID_FILE = Path(tmp) / "urc_app_id.txt"
-            s.fetch_json(s.FEED)                        # none saved: no header
-            s.APP_ID_FILE.write_text("abc-123\n")
-            s.fetch_json(s.FEED)                        # the saved one
-            os.environ["URC_APP_ID"] = "from-env"
-            s.fetch_json(s.FEED)                        # the variable wins
-    finally:
-        requests.get, s.APP_ID_FILE = real_get, saved_file
-        os.environ.pop("URC_APP_ID", None)
-        if saved_env is not None:
-            os.environ["URC_APP_ID"] = saved_env
-    passed &= check("the X-APP-ID header is sent once saved, and URC_APP_ID overrides it",
-                    sent == [None, "abc-123", "from-env"], str(sent))
     return passed
 
 
-APP_ID = "test-app-id"
+class Reply:
+    """A site answering 200 with a JSON body."""
+    status_code = 200
+
+    def __init__(self, body):
+        self.body, self.text = body, json.dumps(body)
+
+    def json(self):
+        return self.body
+
+    def raise_for_status(self):
+        pass
 
 
 class Refused:
-    """A feed that answers 400, with a reason in the body."""
+    """A site that answers 400, with a reason in the body."""
     status_code, text = 400, '{"message": "Unknown season"}'
 
     def raise_for_status(self):
@@ -256,7 +296,7 @@ def app_checks() -> bool:
     try:
         from streamlit.testing.v1 import AppTest
     except ImportError:
-        print("\n5. the app - skipped (streamlit not installed)")
+        print("\n6. the app - skipped (streamlit not installed)")
         return True
 
     passed = True
@@ -264,22 +304,10 @@ def app_checks() -> bool:
     shutil.copy(HERE / "urc_scraper.py", tmp / "urc_scraper.py")
     script = str(tmp / "urc_scraper.py")
     real_get = requests.get
-    saved_env = os.environ.pop("URC_APP_ID", None)
     try:
-        print("\n5. the app, headless")
-        at = AppTest.from_file(script, default_timeout=60).run()
-        asked = (not at.exception and bool(at.warning)
-                 and "X-APP-ID" in at.warning[0].value and len(at.text_input) == 1)
-        if asked:
-            at.text_input[0].set_value("abc-123").run()
-        kept = tmp / "urc_app_id.txt"
-        passed &= check("with no X-APP-ID saved, the app asks for one and keeps it",
-                        asked and not at.exception and kept.exists()
-                        and kept.read_text() == "abc-123")
-        kept.unlink(missing_ok=True)
-        os.environ["URC_APP_ID"] = APP_ID
+        print("\n6. the app, headless")
         try:
-            real_get(s.FEED, timeout=5)
+            real_get(s.API, timeout=5)
             reachable = True
         except requests.RequestException:
             reachable = False
@@ -293,34 +321,37 @@ def app_checks() -> bool:
                  ("Munster Rugby", "Glasgow Warriors"), ("Scarlets", "Cardiff Rugby"),
                  ("Hollywoodbets Sharks", "Ospreys"), ("Zebre Parma", "Vodacom Bulls")]
         fixtures = [{"id": 292584 + i, "date": "2026-09-26T15:00:00.000Z", "round": 1,
-                     "roundTypeId": 1, "status": "Result",
-                     "homeTeam": {"name": h, "score": 20 + i}, "awayTeam": {"name": a, "score": 15}}
+                     "status": "result", "home": h, "away": a, "scores": (20 + i, 15)}
                     for i, (h, a) in enumerate(clubs)]
         fixtures.append({"id": 292600, "date": "2026-10-02T18:45:00.000Z", "round": 2,
-                         "roundTypeId": 1, "status": "Fixture",
-                         "homeTeam": {"name": "Cardiff Rugby"}, "awayTeam": {"name": "Zebre Parma"}})
-        short = 292591  # this match's feed is missing the conceded stat
+                         "status": "fixture", "home": "Cardiff Rugby", "away": "Zebre Parma",
+                         "scores": (None, None)})
+        short = 292591  # this match's team stats are missing the conceded count
 
-        class Response:
-            def __init__(self, body):
-                self.body, self.status_code = body, 200
-            def json(self):
-                return self.body
-            def raise_for_status(self):
-                pass
+        def teams(f: dict, score: str) -> dict:
+            return {side: {"team": {"name": f[side[:4]]}, "score": {score: f["scores"][i]}}
+                    for i, side in enumerate(("homeTeam", "awayTeam"))}
 
-        def fake_get(url, headers=None, **_):
-            # The real feed refuses a request without the id, so this one does too.
-            assert (headers or {}).get("X-APP-ID") == APP_ID, "no X-APP-ID sent"
-            if m := re.search(r"/matches/(\d+)\?", url):
-                f = next(x for x in fixtures if x["id"] == int(m.group(1)))
-                stats = [{"name": "Tackles Made", "home": 140, "away": 131},
-                         {"name": "Turnovers Won", "home": 6, "away": 4},
-                         {"name": "Turnovers Conceded", "home": 9, "away": 11}]
-                return Response({"data": {**f, "stats": stats[:1] if f["id"] == short else stats}})
-            if "/matches?" in url:
-                return Response({"data": fixtures})
-            raise AssertionError(url)
+        def fake_get(url, **_):
+            """The site's GraphQL API, answering the four queries the scraper sends."""
+            q = parse_qs(urlparse(url).query)
+            op, var = q["operationName"][0], json.loads(q["variables"][0])
+            if op == "GetRoundsData":
+                return Reply({"data": {"matchstats": [
+                    {"match_id": f["id"], "match_status": f["status"],
+                     "stats_data": {"dateTime": f["date"], "round": f["round"],
+                                    **teams(f, "finalScore")}} for f in fixtures]}})
+            mid = var["match_id"][0] if isinstance(var["match_id"], list) else var["match_id"]
+            f = next(x for x in fixtures if x["id"] == mid)
+            if op == "GetMatchEventsByTeamsQuery":
+                return Reply({"data": {"matchstats": [{"match_status": f["status"], "stats_data": {
+                    "dateTime": f["date"], **teams(f, "currentScore"),
+                    "events": [{"display": "try", "team": {"name": f["home"]}}]}}]}})
+            side = {"GetHomeTeamStatsQuery": "homeTeam", "GetAwayTeamStatsQuery": "awayTeam"}[op]
+            attack = {"offload": 5, **({} if mid == short else {"totalTurnovers": 11})}
+            return Reply({"data": {"matchstats": [{"stats_data": {side: {"teamStats": {
+                "attack": attack,
+                "defence": {"turnoverWon": 6, "totalSuccessfulTackles": 140}}}}}]}})
 
         requests.get = fake_get
         at = AppTest.from_file(script, default_timeout=60).run()
@@ -342,7 +373,8 @@ def app_checks() -> bool:
             got = pd.read_csv(saved[0])
             passed &= check("with the report's columns first, then every stat",
                             list(got.columns[:len(s.COLUMNS)]) == s.COLUMNS
-                            and "home_tackles_made" in got.columns and len(got) == 8)
+                            and "home_total_successful_tackles" in got.columns
+                            and len(got) == 8)
             passed &= check("and import_turnovers.py reads the right columns from it",
                             import_turnovers_reads(saved[0]))
         passed &= check("both tables are drawn", len(at.dataframe) >= 3,
@@ -367,7 +399,7 @@ def app_checks() -> bool:
                         and ids == [str(i) for i in range(292592, 292600)],
                         f"ids {ids[:1]}..." if ids else "no ids shown")
 
-        print("\n6. the report viewer (app.py), headless")
+        print("\n7. the report viewer (app.py), headless")
         requests.get = real_get
         at = AppTest.from_file(str(HERE / "app.py"), default_timeout=60).run()
         if clean(at, "app.py renders"):
@@ -375,9 +407,6 @@ def app_checks() -> bool:
                             f"{len(at.dataframe)} table(s)")
     finally:
         requests.get = real_get
-        os.environ.pop("URC_APP_ID", None)
-        if saved_env is not None:
-            os.environ["URC_APP_ID"] = saved_env
         shutil.rmtree(tmp, ignore_errors=True)
     return passed
 
