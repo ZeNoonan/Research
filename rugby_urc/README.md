@@ -846,9 +846,9 @@ response, collects every stat carrying a home and an away value, and picks
 turnovers won and conceded out by name. The names the pipeline reads are kept:
 
 - **Turnovers won** is `defence.turnoverWon`. **Turnovers conceded** is
-  `attack.totalTurnovers`, the ball a side gave away. That is on the old
-  feed's scale, 13–18 a side against 6–8 won; round 4, scraped from both
-  sources, is the check that it is the same count.
+  `attack.totalTurnovers`, the ball a side gave away. Round 4, scraped from
+  both sources, confirms both: all 32 counts agree. So do the tries, kicks
+  made and missed, cards, points and scores.
 - **Tries, conversions, penalties, drop goals**, made and missed, are counted
   from the events, so every side's points still reconcile, three ways: the
   events, the team stats' `points`, and the score.

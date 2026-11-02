@@ -66,8 +66,9 @@ HEADERS = {
 
 # The team stats name some things differently from the old feed; these keep
 # the names the rest of the pipeline reads. "totalTurnovers" sits under attack -
-# the ball a side gave away - and is taken as the old "turnovers conceded": it
-# runs on the same scale, 13-18 a side against 6-8 turnovers won.
+# the ball a side gave away - and is the old "turnovers conceded": round 4,
+# scraped from both sources, gave the same count for all 16 sides, as did
+# "turnoverWon" for turnovers won.
 RENAMED = {"totalTurnovers": "turnoversConceded", "turnoverWon": "turnoversWon",
            "yellowCard": "yellowCards", "redCard": "redCards"}
 # The kicking and scoring detail the team stats no longer carry, counted from
