@@ -27,6 +27,7 @@ Run:  streamlit run urc_scraper.py
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -49,6 +50,12 @@ HEADERS = {
     "Origin": "https://stats.unitedrugby.com",
     "Referer": "https://stats.unitedrugby.com/",
 }
+
+# Since 2 Nov 2026 the feed refuses any request without an X-APP-ID header
+# ("Missing header"): the id the match centre's own pages send with every
+# request. It is kept out of this public repository - in APP_ID_FILE beside the
+# script, which git ignores, or in the URC_APP_ID environment variable.
+APP_ID_FILE = Path(__file__).parent / "urc_app_id.txt"
 
 # .../match-centre/202601/united-rugby-championship/benetton-...-2026-09-25/292584#tabs-stats
 URL_RE = re.compile(r"/match-centre/(\d{6})/(?:[^/?#]+/)*?(\d+)(?:[/?#]|$)")
@@ -74,8 +81,17 @@ def parse_match_url(text: str, season: str = DEFAULT_SEASON) -> tuple[str, str]:
     raise ValueError(f"not a match-centre link or match id: {text!r}")
 
 
+def app_id() -> str:
+    """The feed's X-APP-ID: ``URC_APP_ID`` if set, else the saved file."""
+    if os.environ.get("URC_APP_ID", "").strip():
+        return os.environ["URC_APP_ID"].strip()
+    return APP_ID_FILE.read_text().strip() if APP_ID_FILE.exists() else ""
+
+
 def fetch_json(url: str) -> dict:
-    response = requests.get(url, headers=HEADERS, timeout=20)
+    key = app_id()
+    response = requests.get(url, headers={**HEADERS, "X-APP-ID": key} if key else HEADERS,
+                            timeout=20)
     try:
         response.raise_for_status()
     except requests.HTTPError as exc:
@@ -343,6 +359,28 @@ def complete(row: dict) -> bool:
 
 # --- the app -------------------------------------------------------------------
 
+def ask_for_app_id(st) -> None:
+    """Hold the page until the feed's X-APP-ID is saved, saying how to find it."""
+    if APP_ID_FILE.exists() and st.sidebar.button("Forget the saved X-APP-ID"):
+        APP_ID_FILE.unlink()
+        st.rerun()
+    if app_id():
+        return
+    st.warning(
+        "The feed now asks for the match centre's own id, an **X-APP-ID** header, "
+        "on every request. Copy it once from your browser:\n\n"
+        "1. Open any match on stats.unitedrugby.com.\n"
+        "2. Press F12, open the **Network** tab, and reload the page.\n"
+        "3. Type `incrowd` in the filter box and click any request listed.\n"
+        "4. Under **Request Headers**, copy the value of **x-app-id**.\n\n"
+        f"It is kept in `{APP_ID_FILE.name}` beside this script, which git ignores.")
+    typed = st.text_input("X-APP-ID").strip()
+    if not typed:
+        st.stop()
+    APP_ID_FILE.write_text(typed)
+    st.rerun()
+
+
 def wide(container, data, **kwargs):
     """``container.dataframe`` at full width, on old Streamlit and new.
 
@@ -364,6 +402,7 @@ def main() -> None:
     st.title("🏉 URC match-centre scraper")
     st.caption("Turnovers and scores for the URC report, straight from the feed "
                "behind stats.unitedrugby.com.")
+    ask_for_app_id(st)
 
     @st.cache_data(ttl=600, show_spinner=False)
     def cached_match(match_id: str, season: str) -> dict:

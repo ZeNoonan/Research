@@ -18,6 +18,7 @@ Run: ``python test_scraper.py``
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import tempfile
@@ -162,8 +163,9 @@ def pure_checks() -> bool:
                     cols[:len(s.COLUMNS)] == s.COLUMNS
                     and {"home_tackles", "home_tackles_made"} <= set(cols))
 
-    # On 2 Nov 2026 the season's match list started answering 400 Bad Request.
-    print("\n4. when the fixture list will not load")
+    # On 2 Nov 2026 the feed started answering 400 Bad Request to every request
+    # without an X-APP-ID header: {"X-APP-ID": "Missing header"}.
+    print("\n4. when the feed refuses")
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)
         passed &= check("with no round saved, no ids are guessed",
@@ -185,7 +187,41 @@ def pure_checks() -> bool:
         requests.get = real_get
     passed &= check("a refusal shows the feed's own reply, not just its status",
                     "400 Client Error" in said and "Unknown season" in said, said)
+
+    sent = []
+
+    class Fine:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"data": []}
+
+    def capture(url, headers=None, **_):
+        sent.append((headers or {}).get("X-APP-ID"))
+        return Fine()
+
+    saved_file, saved_env = s.APP_ID_FILE, os.environ.pop("URC_APP_ID", None)
+    requests.get = capture
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            s.APP_ID_FILE = Path(tmp) / "urc_app_id.txt"
+            s.fetch_json(s.FEED)                        # none saved: no header
+            s.APP_ID_FILE.write_text("abc-123\n")
+            s.fetch_json(s.FEED)                        # the saved one
+            os.environ["URC_APP_ID"] = "from-env"
+            s.fetch_json(s.FEED)                        # the variable wins
+    finally:
+        requests.get, s.APP_ID_FILE = real_get, saved_file
+        os.environ.pop("URC_APP_ID", None)
+        if saved_env is not None:
+            os.environ["URC_APP_ID"] = saved_env
+    passed &= check("the X-APP-ID header is sent once saved, and URC_APP_ID overrides it",
+                    sent == [None, "abc-123", "from-env"], str(sent))
     return passed
+
+
+APP_ID = "test-app-id"
 
 
 class Refused:
@@ -228,8 +264,20 @@ def app_checks() -> bool:
     shutil.copy(HERE / "urc_scraper.py", tmp / "urc_scraper.py")
     script = str(tmp / "urc_scraper.py")
     real_get = requests.get
+    saved_env = os.environ.pop("URC_APP_ID", None)
     try:
         print("\n5. the app, headless")
+        at = AppTest.from_file(script, default_timeout=60).run()
+        asked = (not at.exception and bool(at.warning)
+                 and "X-APP-ID" in at.warning[0].value and len(at.text_input) == 1)
+        if asked:
+            at.text_input[0].set_value("abc-123").run()
+        kept = tmp / "urc_app_id.txt"
+        passed &= check("with no X-APP-ID saved, the app asks for one and keeps it",
+                        asked and not at.exception and kept.exists()
+                        and kept.read_text() == "abc-123")
+        kept.unlink(missing_ok=True)
+        os.environ["URC_APP_ID"] = APP_ID
         try:
             real_get(s.FEED, timeout=5)
             reachable = True
@@ -261,7 +309,9 @@ def app_checks() -> bool:
             def raise_for_status(self):
                 pass
 
-        def fake_get(url, **_):
+        def fake_get(url, headers=None, **_):
+            # The real feed refuses a request without the id, so this one does too.
+            assert (headers or {}).get("X-APP-ID") == APP_ID, "no X-APP-ID sent"
             if m := re.search(r"/matches/(\d+)\?", url):
                 f = next(x for x in fixtures if x["id"] == int(m.group(1)))
                 stats = [{"name": "Tackles Made", "home": 140, "away": 131},
@@ -325,6 +375,9 @@ def app_checks() -> bool:
                             f"{len(at.dataframe)} table(s)")
     finally:
         requests.get = real_get
+        os.environ.pop("URC_APP_ID", None)
+        if saved_env is not None:
+            os.environ["URC_APP_ID"] = saved_env
         shutil.rmtree(tmp, ignore_errors=True)
     return passed
 

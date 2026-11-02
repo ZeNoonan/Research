@@ -93,3 +93,6 @@ ENV/
 experiments/results/*.tmp
 scratch/
 temp_data/
+
+# The URC feed's X-APP-ID, copied from the browser: kept off the public repo
+rugby_urc/urc_app_id.txt

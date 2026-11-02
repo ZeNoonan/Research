@@ -59,10 +59,10 @@ Thursday's that way.
    *Home advantage*.
 2. **Ten close-call lines from 2025-26** (optional) would firm up the backtest.
    See *Ten close calls*.
-3. **Your local `urc_scraper.py`** is an older copy. Replace it with the repo's:
-   that one shows the feed's reply when a request fails, offers the next
-   round's match ids when the fixture list will not load, and no longer writes
-   the junk `home_date = 2026` column.
+3. **Your local `urc_scraper.py`** is an older copy. Replace it with the repo's,
+   which the feed now needs: it sends the feed's `X-APP-ID` (see *The
+   scrapers*). It also shows the feed's reply when a request fails, and no
+   longer writes the junk `home_date = 2026` column.
 
 ## How it did on 2025-26
 
@@ -843,13 +843,22 @@ conversions, penalties and drop goals. The first live run turned up one bug,
 since fixed: the leading digits of a timestamp were read as a stat
 (`home_date = 2026`).
 
-**If the fixture list will not load**, as on 2 November 2026 when the
-season's match list began answering `400 Bad Request`, the scraper shows the
-feed's own reply with the error, and a way round that needs only the
-single-match feed. *Paste match links* takes bare match ids, and the error
-page lists the next round's. The feed has numbered each round's matches as a
-block of eight (round 1 was 292584–292591), so they follow the last round
-saved; the fetched table's team names confirm them.
+**It needs the feed's app id.** Since 2 November 2026 the feed has refused any
+request without an `X-APP-ID` header (`400 Bad Request`, `"X-APP-ID": "Missing
+header"`), the id the match centre's own pages send. Either scraper asks for it
+the first time it runs, with the steps: open a match on stats.unitedrugby.com,
+press F12, and copy `x-app-id` from the request headers of any call to
+`incrowd`. It is kept in `urc_app_id.txt` beside the script, which git ignores,
+so it never reaches this public repository; `URC_APP_ID`, if set, takes
+precedence. If the feed later refuses the saved one, the sidebar's *Forget the
+saved X-APP-ID* asks again. The feed's owner added the check on purpose, so it
+may change again: keep the requests to a round a week.
+
+**When a request fails**, the error shows the feed's own reply, not just the
+status. If the fixture list alone will not load, *Paste match links* takes bare
+match ids, and the error page lists the next round's: the feed has numbered
+each round's matches as a block of eight (round 1 was 292584–292591), so they
+follow the last round saved, and the fetched table's team names confirm them.
 
 **It saves every stat**, about 100 home/away pairs per match, in the round's
 CSV; `import_turnovers.py` keeps them in `data/stats_<year>.csv` for the shadow

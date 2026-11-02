@@ -12,6 +12,7 @@ Run: ``python test_season_scraper.py``
 
 from __future__ import annotations
 
+import os
 import re
 import tempfile
 from pathlib import Path
@@ -94,6 +95,9 @@ def pure_checks() -> bool:
     return passed
 
 
+APP_ID = "test-app-id"
+
+
 def app_checks() -> bool:
     try:
         from streamlit.testing.v1 import AppTest
@@ -114,7 +118,9 @@ def app_checks() -> bool:
         def raise_for_status(self):
             pass
 
-    def fake_get(url, **_):
+    def fake_get(url, headers=None, **_):
+        # The real feed refuses a request without the id, so this one does too.
+        assert (headers or {}).get("X-APP-ID") == APP_ID, "no X-APP-ID sent"
         if m := re.search(r"/matches/(\d+)\?", url):
             mid = m.group(1)
             detail_calls[mid] = detail_calls.get(mid, 0) + 1
@@ -129,15 +135,23 @@ def app_checks() -> bool:
             return Response({"data": fixtures})
         raise AssertionError(url)
 
-    real_get, real_out = requests.get, base.OUT
+    real_get, real_out, real_id_file = requests.get, base.OUT, base.APP_ID_FILE
+    saved_env = os.environ.pop("URC_APP_ID", None)
     out = Path(tempfile.mkdtemp())
     script = str(HERE / "urc_season_scraper.py")
     try:
         # The app imports urc_scraper, the same module object as here, so its
-        # CSV lands wherever base.OUT points - a temp folder, not entry/.
+        # CSV lands wherever base.OUT points - a temp folder, not entry/ - and
+        # it reads the X-APP-ID from wherever base.APP_ID_FILE points.
         base.OUT = out
+        base.APP_ID_FILE = out / "urc_app_id.txt"
         season.RETRY_WAIT = 0
         print("\n3. the app, headless")
+        at = AppTest.from_file(script, default_timeout=60).run()
+        passed &= check("with no X-APP-ID saved, the app asks for one first",
+                        not at.exception and bool(at.warning)
+                        and "X-APP-ID" in at.warning[0].value and len(at.text_input) == 1)
+        os.environ["URC_APP_ID"] = APP_ID
         try:
             real_get(base.FEED, timeout=5)
             reachable = True
@@ -196,7 +210,10 @@ def app_checks() -> bool:
         passed &= check("fetching again retries only the failed match",
                         fetched_again == {dead_id}, str(sorted(fetched_again)))
     finally:
-        requests.get, base.OUT = real_get, real_out
+        requests.get, base.OUT, base.APP_ID_FILE = real_get, real_out, real_id_file
+        os.environ.pop("URC_APP_ID", None)
+        if saved_env is not None:
+            os.environ["URC_APP_ID"] = saved_env
     return passed
 
 
