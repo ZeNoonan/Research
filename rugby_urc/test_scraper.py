@@ -161,7 +161,39 @@ def pure_checks() -> bool:
     passed &= check("a round's columns: the report's first, then the union of stats",
                     cols[:len(s.COLUMNS)] == s.COLUMNS
                     and {"home_tackles", "home_tackles_made"} <= set(cols))
+
+    # On 2 Nov 2026 the season's match list started answering 400 Bad Request.
+    print("\n4. when the fixture list will not load")
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp)
+        passed &= check("with no round saved, no ids are guessed",
+                        s.next_match_ids("202601", out) == [])
+        for first in (292608, 292584):
+            pd.DataFrame({"match_id": range(first, first + 8)}).to_csv(
+                out / f"urc_202601_{first}.csv", index=False)
+        passed &= check("the next round's ids follow the last round saved",
+                        s.next_match_ids("202601", out)
+                        == [str(i) for i in range(292616, 292624)])
+    real_get = requests.get
+    requests.get = lambda url, **_: Refused()
+    try:
+        s.fetch_json(f"{s.FEED}/matches?compId={s.COMP_ID}")
+        said = ""
+    except requests.HTTPError as exc:
+        said = str(exc)
+    finally:
+        requests.get = real_get
+    passed &= check("a refusal shows the feed's own reply, not just its status",
+                    "400 Client Error" in said and "Unknown season" in said, said)
     return passed
+
+
+class Refused:
+    """A feed that answers 400, with a reason in the body."""
+    status_code, text = 400, '{"message": "Unknown season"}'
+
+    def raise_for_status(self):
+        raise requests.HTTPError("400 Client Error: Bad Request", response=self)
 
 
 def import_turnovers_reads(csv: Path) -> bool:
@@ -188,7 +220,7 @@ def app_checks() -> bool:
     try:
         from streamlit.testing.v1 import AppTest
     except ImportError:
-        print("\n4. the app - skipped (streamlit not installed)")
+        print("\n5. the app - skipped (streamlit not installed)")
         return True
 
     passed = True
@@ -197,7 +229,7 @@ def app_checks() -> bool:
     script = str(tmp / "urc_scraper.py")
     real_get = requests.get
     try:
-        print("\n4. the app, headless")
+        print("\n5. the app, headless")
         try:
             real_get(s.FEED, timeout=5)
             reachable = True
@@ -273,7 +305,19 @@ def app_checks() -> bool:
             passed &= check("paste mode reads the example link", bool(at.success)
                             and at.dataframe[0].value["match_id"].iloc[0] == "292584")
 
-        print("\n5. the report viewer (app.py), headless")
+        import streamlit as st
+        st.cache_data.clear()            # the fixture list above is cached
+        requests.get = lambda url, **_: Refused()
+        at = AppTest.from_file(script, default_timeout=60).run()
+        ids = at.code[0].value.split() if at.code else []
+        passed &= check("a refused fixture list shows the feed's reply, and the ids "
+                        "after the last round saved, for paste mode",
+                        not at.exception and bool(at.error)
+                        and "Unknown season" in at.error[0].value
+                        and ids == [str(i) for i in range(292592, 292600)],
+                        f"ids {ids[:1]}..." if ids else "no ids shown")
+
+        print("\n6. the report viewer (app.py), headless")
         requests.get = real_get
         at = AppTest.from_file(str(HERE / "app.py"), default_timeout=60).run()
         if clean(at, "app.py renders"):

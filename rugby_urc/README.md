@@ -59,9 +59,10 @@ Thursday's that way.
    *Home advantage*.
 2. **Ten close-call lines from 2025-26** (optional) would firm up the backtest.
    See *Ten close calls*.
-3. **Your local `urc_scraper.py`** (optional) is an older copy: its CSVs carry a
-   junk `home_date = 2026` column. That is harmless, since the importers skip
-   it, but the copy in the repo no longer writes it.
+3. **Your local `urc_scraper.py`** is an older copy. Replace it with the repo's:
+   that one shows the feed's reply when a request fails, offers the next
+   round's match ids when the fixture list will not load, and no longer writes
+   the junk `home_date = 2026` column.
 
 ## How it did on 2025-26
 
@@ -841,6 +842,14 @@ the feed reports it, and every side's points reconcile with its tries,
 conversions, penalties and drop goals. The first live run turned up one bug,
 since fixed: the leading digits of a timestamp were read as a stat
 (`home_date = 2026`).
+
+**If the fixture list will not load**, as on 2 November 2026 when the
+season's match list began answering `400 Bad Request`, the scraper shows the
+feed's own reply with the error, and a way round that needs only the
+single-match feed. *Paste match links* takes bare match ids, and the error
+page lists the next round's. The feed has numbered each round's matches as a
+block of eight (round 1 was 292584–292591), so they follow the last round
+saved; the fetched table's team names confirm them.
 
 **It saves every stat**, about 100 home/away pairs per match, in the round's
 CSV; `import_turnovers.py` keeps them in `data/stats_<year>.csv` for the shadow

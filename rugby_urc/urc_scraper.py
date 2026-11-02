@@ -76,7 +76,14 @@ def parse_match_url(text: str, season: str = DEFAULT_SEASON) -> tuple[str, str]:
 
 def fetch_json(url: str) -> dict:
     response = requests.get(url, headers=HEADERS, timeout=20)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        # "400 Bad Request" alone does not say what the feed objects to; its
+        # own reply usually does, so it goes into the error shown.
+        reply = (response.text or "").strip()[:300] or "(an empty reply)"
+        raise requests.HTTPError(f"{exc} - the feed replied: {reply}",
+                                 response=response) from exc
     return response.json()
 
 
@@ -105,6 +112,20 @@ def fetch_fixtures(season: str) -> pd.DataFrame:
 
 def is_played(status: str) -> bool:
     return str(status).strip().lower() in PLAYED
+
+
+def next_match_ids(season: str, out: Path = OUT) -> list[str]:
+    """The eight match ids after the last round saved here, for when the fixture
+    list will not load: the feed has numbered each round's matches as a block
+    of eight (2026-27's round 1 was 292584-292591). A guess, so the fetched
+    table's team names are the check."""
+    ids: list[int] = []
+    for f in out.glob(f"urc_{season}_*.csv"):
+        try:
+            ids += pd.read_csv(f, usecols=["match_id"])["match_id"].dropna().astype(int).tolist()
+        except (ValueError, KeyError):
+            continue
+    return [str(max(ids) + i) for i in range(1, 9)] if ids else []
 
 
 # --- finding the stats without knowing where they are ------------------------
@@ -363,6 +384,15 @@ def main() -> None:
             fixtures = cached_fixtures(season)
         except requests.RequestException as exc:
             st.error(f"Could not load the {season} fixture list: {exc}")
+            ids = next_match_ids(season)
+            st.info("Single matches can still be fetched without the fixture list: "
+                    "choose *Paste match links* above and paste the round's match ids, "
+                    "one per line."
+                    + (" The feed numbers each round's matches in a block of eight, so "
+                       "the next round's should be these. The fetched table shows the "
+                       "teams, to confirm." if ids else ""))
+            if ids:
+                st.code("\n".join(ids), language=None)
             st.stop()
         if fixtures.empty:
             st.warning(f"The feed returned no matches for season {season}.")
