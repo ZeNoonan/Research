@@ -6,12 +6,12 @@
 
 ### ⚠️ Needed now
 
-1. **If you can, a fresh nflverse export before Sunday 1 Nov's kick-offs.**
-   Thursday's Panthers @ Packers is not a pick at any line. The **Seahawks pick
-   (Monday 2 Nov) is fragile**: at Seahawks −3.5 it drops out. Two games become
-   picks on a small move: Titans at Bengals −10.5, and Cardinals at Cowboys −8.5.
-2. **After Monday 2 Nov's Bears @ Seahawks, before Thursday 5 Nov:** week 8's
-   pro-football-reference rows, all 14 games, with `TOW`/`TOL`, plus a fresh
+1. **If you can, a fresh nflverse export (or a bookmaker screen) before Sunday 8
+   Nov's kick-offs** (first: Bengals @ Falcons in Madrid, 9:30am ET). Thursday's
+   Ravens pick holds at any line; the **Colts pick drops out at Colts +3.5**, and
+   Packers at Patriots becomes a Packers pick at Patriots −4.5.
+2. **After Monday 9 Nov's Bills @ Vikings, before Thursday 12 Nov:** week 9's
+   pro-football-reference rows, all 15 games, with `TOW`/`TOL`, plus a fresh
    nflverse export.
 
 ### Every week, to keep 2026–27 running
