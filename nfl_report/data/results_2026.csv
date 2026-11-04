@@ -106,20 +106,20 @@ Week,Day,Date,Time,Winner/tie,venue_marker,Loser/tie,Pts,Pts.1,TOW,TOL
 7,Sun,2026-10-25,4:25PM,Los Angeles Rams,@,Las Vegas Raiders,35.0,21.0,2.0,0.0
 7,Sun,2026-10-25,8:20PM,Seattle Seahawks,,Kansas City Chiefs,20.0,3.0,1.0,1.0
 7,Mon,2026-10-26,8:15PM,Dallas Cowboys,@,Philadelphia Eagles,38.0,21.0,0.0,1.0
-8,Thu,2026-10-29,8:15PM,Carolina Panthers,@,Green Bay Packers,,,,
-8,Sun,2026-11-01,1:00PM,Atlanta Falcons,@,Tampa Bay Buccaneers,,,,
-8,Sun,2026-11-01,1:00PM,Cleveland Browns,@,Pittsburgh Steelers,,,,
-8,Sun,2026-11-01,1:00PM,Indianapolis Colts,@,Jacksonville Jaguars,,,,
-8,Sun,2026-11-01,1:00PM,Arizona Cardinals,@,Dallas Cowboys,,,,
-8,Sun,2026-11-01,1:00PM,Minnesota Vikings,@,Detroit Lions,,,,
-8,Sun,2026-11-01,1:00PM,Tennessee Titans,@,Cincinnati Bengals,,,,
-8,Sun,2026-11-01,1:00PM,Las Vegas Raiders,@,New York Jets,,,,
-8,Sun,2026-11-01,1:00PM,Baltimore Ravens,@,Buffalo Bills,,,,
-8,Sun,2026-11-01,4:05PM,Los Angeles Chargers,@,Los Angeles Rams,,,,
-8,Sun,2026-11-01,4:25PM,Kansas City Chiefs,@,Denver Broncos,,,,
-8,Sun,2026-11-01,4:25PM,New England Patriots,@,Miami Dolphins,,,,
-8,Sun,2026-11-01,8:20PM,Philadelphia Eagles,@,Washington Commanders,,,,
-8,Mon,2026-11-02,8:15PM,Chicago Bears,@,Seattle Seahawks,,,,
+8,Thu,2026-10-29,8:15PM,Green Bay Packers,,Carolina Panthers,27.0,19.0,3.0,2.0
+8,Sun,2026-11-01,1:00PM,Tampa Bay Buccaneers,,Atlanta Falcons,16.0,0.0,1.0,4.0
+8,Sun,2026-11-01,1:00PM,Pittsburgh Steelers,,Cleveland Browns,27.0,6.0,1.0,2.0
+8,Sun,2026-11-01,1:00PM,Jacksonville Jaguars,,Indianapolis Colts,42.0,7.0,1.0,3.0
+8,Sun,2026-11-01,1:00PM,Arizona Cardinals,@,Dallas Cowboys,33.0,30.0,2.0,0.0
+8,Sun,2026-11-01,1:00PM,Detroit Lions,,Minnesota Vikings,19.0,15.0,1.0,1.0
+8,Sun,2026-11-01,1:00PM,Cincinnati Bengals,,Tennessee Titans,43.0,36.0,4.0,2.0
+8,Sun,2026-11-01,1:00PM,Las Vegas Raiders,@,New York Jets,38.0,33.0,0.0,1.0
+8,Sun,2026-11-01,1:00PM,Buffalo Bills,,Baltimore Ravens,36.0,10.0,2.0,3.0
+8,Sun,2026-11-01,4:05PM,Los Angeles Rams,,Los Angeles Chargers,24.0,9.0,1.0,2.0
+8,Sun,2026-11-01,4:25PM,Denver Broncos,,Kansas City Chiefs,28.0,24.0,0.0,0.0
+8,Sun,2026-11-01,4:25PM,New England Patriots,@,Miami Dolphins,24.0,19.0,1.0,1.0
+8,Sun,2026-11-01,8:20PM,Washington Commanders,,Philadelphia Eagles,27.0,10.0,1.0,2.0
+8,Mon,2026-11-02,8:15PM,Chicago Bears,@,Seattle Seahawks,34.0,17.0,1.0,1.0
 9,Thu,2026-11-05,8:15PM,Jacksonville Jaguars,@,Baltimore Ravens,,,,
 9,Sun,2026-11-08,9:30AM,Cincinnati Bengals,@,Atlanta Falcons,,,,
 9,Sun,2026-11-08,1:00PM,Cleveland Browns,@,New Orleans Saints,,,,
