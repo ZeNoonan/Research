@@ -266,8 +266,12 @@ def load_fbref(path: str | Path) -> pd.DataFrame:
 
     out = pd.concat(rows, ignore_index=True)
     out = out.rename(columns={"Sh": "shots", "PKatt": "pkatt", "Gls": "goals"})
-    out["fb_minutes"] = out["90s"] * 90
-    out["squads"] = [tuple(sorted(clubs[k], key=lambda s: (clubs[k][s], s)))
+    # fbref's 90s is minutes / 90 to one decimal, so 90s x 90 is a whole
+    # number of minutes — but a differenced 90s carries binary noise (0.9 -
+    # 0.7 is 0.20000000000000007), and a minutes gap of exactly MINUTES_TOL
+    # would then read as just over it. Rounding to the minute is exact.
+    out["fb_minutes"] = (out["90s"] * 90).round()
+    out["squads"] =[tuple(sorted(clubs[k], key=lambda s: (clubs[k][s], s)))
                      for k in zip(out["Player"], out["Nation"], out["Born"])]
     out["Squad"] = out["squads"].map(" / ".join)
     out = out[FBREF_ID + ["Squad", "squads", "round", "shots", "pkatt",
@@ -569,8 +573,12 @@ def board(ranked: pd.DataFrame, categories=None) -> pd.DataFrame:
     ranks = ranks.reindex(index=who["element"], columns=gameweeks)
 
     out = who.set_index("element")
+    # The per-gameweek columns — a dozen or more per week — are gathered here
+    # and joined once at the end: inserted one at a time they fragment the
+    # frame, and pandas warns about it from about the hundredth.
+    wide = {}
     for gw in gameweeks:
-        out[f"gw{gw}"] = ranks[gw]
+        wide[f"gw{gw}"] = ranks[gw]
     # A blank week costs last place. Without it the sort rewards absence:
     # a man who played once and came 40th would beat a man who played twice
     # and came 5th and 10th.
@@ -590,7 +598,7 @@ def board(ranked: pd.DataFrame, categories=None) -> pd.DataFrame:
     drop = worst_first.le(out["dropped"], axis=0)
     out["best_average"] = ranks.where(~drop).mean(axis=1)
     for gw in gameweeks:
-        out[f"drop_gw{gw}"] = drop[gw]
+        wide[f"drop_gw{gw}"] = drop[gw]
 
     for cat in categories:
         totals = ranked.pivot_table(index="element", columns="round",
@@ -604,8 +612,8 @@ def board(ranked: pd.DataFrame, categories=None) -> pd.DataFrame:
         for gw in gameweeks:
             # A rank exists exactly when he played, so it doubles as the mask
             # that keeps a blank week blank rather than showing it as zero.
-            out[f"{cat}_gw{gw}"] = totals[gw].where(ranks[gw].notna())
-            out[f"{cat}_rank_gw{gw}"] = cat_ranks[gw]
+            wide[f"{cat}_gw{gw}"] = totals[gw].where(ranks[gw].notna())
+            wide[f"{cat}_rank_gw{gw}"] = cat_ranks[gw]
         out[f"{cat}_total"] = totals.sum(axis=1).round(XG_DECIMALS)
 
     # Which weeks cleared the 2-point defensive bar, for the marker on the
@@ -615,8 +623,11 @@ def board(ranked: pd.DataFrame, categories=None) -> pd.DataFrame:
                               values="dc_hit", aggfunc="first")
     hits = hits.reindex(index=who["element"], columns=gameweeks).fillna(False)
     for gw in gameweeks:
-        out[f"dc_hit_gw{gw}"] = hits[gw].astype(bool)
+        wide[f"dc_hit_gw{gw}"] = hits[gw].astype(bool)
 
+    attrs = dict(out.attrs)
+    out = pd.concat([out, pd.DataFrame(wide, index=out.index)], axis=1)
+    out.attrs = attrs
     out.attrs["categories"] = tuple(categories)
     return out.sort_values(["total", "average"]).reset_index()
 
