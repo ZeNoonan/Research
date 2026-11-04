@@ -1,9 +1,9 @@
-"""Checks on ``urc_season_scraper.py``, runnable without reaching the live feed.
+"""Checks on ``urc_season_scraper.py``, runnable without reaching the live site.
 
 The stat-finding it borrows from ``urc_scraper`` is tested in
 ``test_scraper.py``; these cover only what the season scraper adds - playoff
 round numbering, the retry, and the whole-season app flow, run headless against
-a faked feed: a season's played matches fetched in one click, one flaky match
+a faked site: a season's played matches fetched in one click, one flaky match
 recovered by the retry, one dead match reported, the results surviving a rerun,
 and a second click fetching only what failed.
 
@@ -12,9 +12,10 @@ Run: ``python test_season_scraper.py``
 
 from __future__ import annotations
 
-import re
+import json
 import tempfile
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import requests
@@ -39,31 +40,45 @@ CLUBS = [("Leinster Rugby", "Munster Rugby"), ("Ulster Rugby", "Connacht Rugby")
 def fake_season() -> list[dict]:
     """Two regular rounds, the three playoff stages, and one unplayed fixture."""
     out, mid = [], 290000
-    def add(date, rnd, typ, home, away, status="Result"):
+    def add(date, rnd, home, away, status="result"):
         nonlocal mid
         mid += 1
         out.append({"id": mid, "date": f"{date}T15:00:00.000Z", "round": rnd,
-                    "roundTypeId": typ, "status": status,
-                    "homeTeam": {"name": home, "score": 24}, "awayTeam": {"name": away, "score": 17}})
+                    "status": status, "home": home, "away": away, "scores": (24, 17)})
     for rnd, day in ((1, "2025-09-27"), (2, "2025-10-04")):
         for home, away in CLUBS:
-            add(day, rnd, 1, home, away)
-    # Quarter-finals over a Friday and a Saturday; the feed's knockout round
-    # numbers are deliberately unhelpful (1, 1, 2, 3) - the week decides.
+            add(day, rnd, home, away)
+    # The site numbers the play-off stages 19, 20 and 21; the quarter-finals
+    # fall on a Friday and a Saturday, one week.
     for i, (home, away) in enumerate(CLUBS[:4]):
-        add("2026-05-29" if i == 0 else "2026-05-30", 1, 2, home, away)
-    add("2026-06-06", 2, 2, "Leinster Rugby", "Glasgow Warriors")
-    add("2026-06-06", 2, 2, "Vodacom Bulls", "DHL Stormers")
-    add("2026-06-19", 3, 2, "Leinster Rugby", "Vodacom Bulls")
-    add("2025-10-11", 3, 1, "Leinster Rugby", "Ulster Rugby", status="Fixture")
+        add("2026-05-29" if i == 0 else "2026-05-30", 19, home, away)
+    add("2026-06-06", 20, "Leinster Rugby", "Glasgow Warriors")
+    add("2026-06-06", 20, "Vodacom Bulls", "DHL Stormers")
+    add("2026-06-19", 21, "Leinster Rugby", "Vodacom Bulls")
+    add("2025-10-11", 3, "Leinster Rugby", "Ulster Rugby", status="fixture")
     return out
+
+
+class Reply:
+    """A site answering 200 with a JSON body."""
+    status_code = 200
+
+    def __init__(self, body):
+        self.body, self.text = body, json.dumps(body)
+
+    def json(self):
+        return self.body
+
+    def raise_for_status(self):
+        pass
 
 
 def pure_checks() -> bool:
     passed = True
     print("\n1. playoff rounds, by the week each stage is played")
     fx = pd.DataFrame([{"match_id": str(m["id"]), "date": m["date"][:10], "round": m["round"],
-                        "round_type": "league" if m["roundTypeId"] == 1 else "knockout"}
+                        "round_type": ("knockout" if m["round"] > base.REGULAR_ROUNDS
+                                       else "league")}
                        for m in fake_season()])
     fx["report_round"] = season.report_rounds(fx)
     ko = fx[fx["round_type"] == "knockout"].groupby("report_round").size().to_dict()
@@ -106,28 +121,34 @@ def app_checks() -> bool:
     flaky_id, dead_id = str(fixtures[3]["id"]), str(fixtures[5]["id"])
     detail_calls: dict[str, int] = {}
 
-    class Response:
-        def __init__(self, body):
-            self.body, self.status_code = body, 200
-        def json(self):
-            return self.body
-        def raise_for_status(self):
-            pass
+    def teams(f: dict, score: str) -> dict:
+        return {side: {"team": {"name": f[side[:4]]}, "score": {score: f["scores"][i]}}
+                for i, side in enumerate(("homeTeam", "awayTeam"))}
 
     def fake_get(url, **_):
-        if m := re.search(r"/matches/(\d+)\?", url):
-            mid = m.group(1)
+        """The site's GraphQL API: the season's matches, and each match's replies."""
+        q = parse_qs(urlparse(url).query)
+        op, var = q["operationName"][0], json.loads(q["variables"][0])
+        if op == "GetRoundsData":
+            return Reply({"data": {"matchstats": [
+                {"match_id": f["id"], "match_status": f["status"],
+                 "stats_data": {"dateTime": f["date"], "round": f["round"],
+                                **teams(f, "finalScore")}} for f in fixtures]}})
+        mid = str(var["match_id"][0] if isinstance(var["match_id"], list) else var["match_id"])
+        f = next(x for x in fixtures if str(x["id"]) == mid)
+        if op == "GetHomeTeamStatsQuery":        # the first of a match's three requests
             detail_calls[mid] = detail_calls.get(mid, 0) + 1
             if mid == dead_id or (mid == flaky_id and detail_calls[mid] == 1):
                 raise requests.ConnectionError(f"no response for {mid}")
-            f = next(x for x in fixtures if str(x["id"]) == mid)
-            return Response({"data": {**f, "stats": [
-                {"name": "Tackles Made", "home": 150, "away": 140},
-                {"name": "Turnovers Won", "home": 6, "away": 4},
-                {"name": "Turnovers Conceded", "home": 9, "away": 11}]}})
-        if "/matches?" in url:
-            return Response({"data": fixtures})
-        raise AssertionError(url)
+        if op == "GetMatchEventsByTeamsQuery":
+            return Reply({"data": {"matchstats": [{"match_status": f["status"], "stats_data": {
+                "dateTime": f["date"], **teams(f, "currentScore"), "events": []}}]}})
+        home = op == "GetHomeTeamStatsQuery"
+        return Reply({"data": {"matchstats": [{"stats_data": {
+            "homeTeam" if home else "awayTeam": {"teamStats": {
+                "attack": {"totalTurnovers": 9 if home else 11},
+                "defence": {"turnoverWon": 6 if home else 4,
+                            "totalSuccessfulTackles": 150 if home else 140}}}}}]}})
 
     real_get, real_out = requests.get, base.OUT
     out = Path(tempfile.mkdtemp())
@@ -139,7 +160,7 @@ def app_checks() -> bool:
         season.RETRY_WAIT = 0
         print("\n3. the app, headless")
         try:
-            real_get(base.FEED, timeout=5)
+            real_get(base.API, timeout=5)
             reachable = True
         except requests.RequestException:
             reachable = False
@@ -176,7 +197,7 @@ def app_checks() -> bool:
             passed &= check("with the report's columns first, then stage and every stat",
                             list(got.columns[:len(base.COLUMNS) + 2])
                             == base.COLUMNS + ["stage", "feed_round"]
-                            and "home_tackles_made" in got.columns)
+                            and "home_total_successful_tackles" in got.columns)
             playoff = got[got["stage"] == "playoff"].groupby("Round").size().to_dict()
             passed &= check("playoffs numbered 19, 20, 21 in the file",
                             playoff == {19: 4, 20: 2, 21: 1}, str(playoff))
