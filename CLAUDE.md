@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Research Repository
 
 **Repository**: Research
-**Last Updated**: 2026-10-31
+**Last Updated**: 2026-11-04
 **Status**: Active — several independent research projects
 
 ## Table of Contents
@@ -43,7 +43,7 @@ Research/
 ├── hurling/                  # GAA hurling Team/Hurler of the Week app (see below)
 ├── kelly_sim/                # Project folder
 ├── march_madness/            # Project folder
-├── nfl_report/               # Project folder
+├── nfl_report/               # NFL five-factor system: site, bet ledger, weekly routine (see below)
 ├── premier_league_handicap/  # Project folder
 └── rugby_urc/                # URC five-factor handicap system: site, app, weekly routine (see below)
 ```
@@ -68,6 +68,14 @@ Research/
 - **`bets/`** — `bet_log.csv`, the user's actual bets in every sport, one row per bet. Public, and
   read by `rugby_urc/my_bets.py`. Ids are never reused; special offers are left out. See
   `bets/README.md`.
+- **`nfl_report/`** — Aaron Brown's NFL five-factor against-the-spread system: the 2010-16
+  replication plus seasons generated from raw data, run weekly through 2026-27. Each week: load
+  the user's pro-football-reference rows into `data/results_2026.csv` **before** refreshing lines
+  (a game's line freezes once it is played), save the nflverse export as `data/schedule_lines.csv`,
+  then run `enrich_odds.py`, `season_report.py`, `build_site.py` (the GitHub Pages `index.html`)
+  and `ledger.py`. The user logs bets in a claude.ai ledger page (`ledger.html`); they are copied
+  to `data/my_bets_2026.csv`, public by the user's choice, with bonus bet builders left out.
+  `bets/bet_log.csv` is not read. See `nfl_report/README.md`, *Updating the season in progress*.
 - _Other project folders: document here when they are next worked on._
 
 ---
@@ -399,6 +407,9 @@ _To be documented: How to get help, who to contact for specific areas_
 ---
 
 ## Changelog
+
+### 2026-11-04 - Add nfl_report/
+- Documented the NFL system's weekly routine and where its bets are kept
 
 ### 2026-10-31 - Add rugby_urc/ and bets/
 - Documented the URC system's weekly routine and the shared bet log

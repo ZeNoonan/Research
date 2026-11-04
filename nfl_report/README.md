@@ -8,8 +8,10 @@
 
 1. **If you can, a fresh nflverse export (or a bookmaker screen) before Sunday 8
    Nov's kick-offs** (first: Bengals @ Falcons in Madrid, 9:30am ET). Thursday's
-   Ravens pick holds at any line; the **Colts pick drops out at Colts +3.5**, and
-   Packers at Patriots becomes a Packers pick at Patriots −4.5.
+   Ravens pick holds at any line; the **Colts pick drops out at Colts +3.5** and
+   the **Eagles pick at Eagles +0.5** (it needs +1 or more; the line moved 5
+   points on a quarterback change, so news of a starter returning could pull it
+   back). Packers at Patriots becomes a Packers pick at Patriots −4.5.
 2. **After Monday 9 Nov's Bills @ Vikings, before Thursday 12 Nov:** week 9's
    pro-football-reference rows, all 15 games, with `TOW`/`TOL`, plus a fresh
    nflverse export.

@@ -2,9 +2,11 @@
 
 Your actual bets, every sport, one row per bet, in **`bet_log.csv`**. It is
 kept here, outside any one project: `rugby_urc/` shows the URC rows beside its
-system's picks. `nfl_report/` does not read it. The NFL report keeps its own
-private ledger (`nfl_report/ledger.html`), so the NFL rows here are a record
-only.
+system's picks. `nfl_report/` does not read it: NFL bets are logged in the NFL
+ledger (`nfl_report/ledger.html`) and published from
+`nfl_report/data/my_bets_2026.csv`, which is the up-to-date NFL record (weeks
+filled in, cut-off lines corrected from settled slips, bonus bet builders left
+out). The NFL rows here are an older copy and may lag it.
 
 **This repository is public**, so anything in this file, stakes and returns
 included, can be read on GitHub, and the rugby site shows the URC bets.
