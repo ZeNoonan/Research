@@ -202,11 +202,25 @@ What it shows (as of 2026/27 game 5 and the complete 2025/26 season):
 pip install -r requirements.txt
 python build_site.py              # every season that has handicaps
 python build_site.py 2026_2027    # just one
+python test_pipeline.py           # check every built page against the raw data
+python test_pipeline.py --self-test   # plant faults; confirm each is caught
 streamlit run app.py              # interactive version, season picker in the sidebar
 ```
 
 `build_site.py` fills `template.html` with the season's data and writes
 `<season>/index.html`, plus `index.html` for the latest season.
+
+`test_pipeline.py` recomputes every figure on every page from the CSVs in
+`data/` and lists any that disagree. That covers standings, game-by-game
+results, both cumulative series, the market, the Asian handicap and both
+win-and-draw splits. The chance figures are checked against its own Monte
+Carlo. It also checks the source files themselves: FBref dates against FBref's
+weekday column, and FBref against football-data on every shared fixture. It
+**never imports `analysis.py` or `build_site.py`**: a check that shares the
+pipeline's code shares its mistakes. A same-code check passed the day-first
+date bug that turned 2026-09-05 into 9 May. `--self-test` plants 16 realistic
+faults, including that one, in copies of the pages and confirms each is
+caught.
 
 ## Layout
 
@@ -215,6 +229,7 @@ premier_league_handicap/
 ├── index.html        # latest season with results (generated)
 ├── template.html     # shared page source — edit this, not index.html
 ├── build_site.py     # renders template + season data -> pages
+├── test_pipeline.py  # independent check of every page against the raw data
 ├── analysis.py       # loading, handicap maths, standings
 ├── app.py            # Streamlit version
 ├── requirements.txt
@@ -235,4 +250,5 @@ file also carries `AvgH`/`AvgD`/`AvgA` prices.
 **Weekly update:** refresh `results.csv` and `football_data.csv`, then run
 `python build_site.py`. If the two files disagree on any fixture the build
 stops and lists it; if one is simply a week behind, the page says the two
-parts are not yet level.
+parts are not yet level. Then run `python test_pipeline.py`. It must end
+"All checks passed" before the update is committed.

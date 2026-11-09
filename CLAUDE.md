@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Research Repository
 
 **Repository**: Research
-**Last Updated**: 2026-11-04
+**Last Updated**: 2026-11-09
 **Status**: Active — several independent research projects
 
 ## Table of Contents
@@ -44,7 +44,7 @@ Research/
 ├── kelly_sim/                # Project folder
 ├── march_madness/            # Project folder
 ├── nfl_report/               # NFL five-factor system: site, bet ledger, weekly routine (see below)
-├── premier_league_handicap/  # Project folder
+├── premier_league_handicap/  # Handicap-adjusted Premier League: site and weekly routine (see below)
 └── rugby_urc/                # URC five-factor handicap system: site, app, weekly routine (see below)
 ```
 
@@ -76,6 +76,18 @@ Research/
   and `ledger.py`. The user logs bets in a claude.ai ledger page (`ledger.html`); they are copied
   to `data/my_bets_2026.csv`, public by the user's choice, with bonus bet builders left out.
   `bets/bet_log.csv` is not read. See `nfl_report/README.md`, *Updating the season in progress*.
+- **`premier_league_handicap/`** — the Premier League table re-scored with the user's
+  pre-season handicaps (earned pro rata: handicap × played / 38), plus Asian handicap covers
+  and win-and-draw bets. Published as a GitHub Pages site and updated weekly through 2026-27.
+  Each week:
+  - write the user's FBref paste to `data/2026_2027/results.csv`;
+  - save their football-data export as `data/2026_2027/football_data.csv`;
+  - run `python3 build_site.py`;
+  - run `python3 test_pipeline.py`, which must end "All checks passed".
+
+  The test recomputes every published figure **without importing the pipeline**. Keep it that
+  way: a shared-code check once passed a day/month transposition. See
+  `premier_league_handicap/README.md`.
 - _Other project folders: document here when they are next worked on._
 
 ---
@@ -407,6 +419,9 @@ _To be documented: How to get help, who to contact for specific areas_
 ---
 
 ## Changelog
+
+### 2026-11-09 - Add premier_league_handicap/
+- Documented the weekly routine and its independent check, `test_pipeline.py`
 
 ### 2026-11-04 - Add nfl_report/
 - Documented the NFL system's weekly routine and where its bets are kept
