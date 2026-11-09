@@ -908,9 +908,12 @@ rather than being ignored: a typo would otherwise leave an injured player
 quietly selectable. `squad.py` reports what the flag costs, and
 `build(..., respect_availability=False)` shows the squad you would have had.
 
-Currently out: **Saliba, Timber, Ekitiké**. That costs the factor squad one
-star (85 → 84) — Szoboszlai drops out alongside Saliba and Timber (Ekitiké
-was not in it), and Mbeumo, Richards and O'Reilly come in.
+Pre-season the file barred **Saliba, Timber, Ekitiké** (and later others).
+That cost the factor squad one star (85 → 84) — Szoboszlai dropped out
+alongside Saliba and Timber (Ekitiké was not in it), and Mbeumo, Richards
+and O'Reilly came in. The figures in this section come from that run. The
+list was only ever a pre-season tool and was emptied after GW9, so a fresh
+run of `squad.py` bars nobody.
 
 The pools differ on purpose. The factor squad uses players the board can
 rate (plus capped bench-forward filler); the crowd squad draws from
