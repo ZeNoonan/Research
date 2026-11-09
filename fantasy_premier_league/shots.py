@@ -7,7 +7,7 @@ Neither source has all three numbers, so the board is built from both:
   and each sheet is **cumulative to the end of that gameweek**. A single
   gameweek is therefore the sheet *minus* its predecessor; GW1 is itself.
   Add a sheet as the season goes on and it is picked up automatically.
-* **FPL** (``data/2026-27/all_gws.csv``, written by ``scraper_fpl.py``) has
+* **FPL** (``data/2026-27/all_gws.csv``, written by ``fpl_scraper_gw.py``) has
   **expected goals**, **expected assists** and **minutes**, already one row
   per player per gameweek.
 

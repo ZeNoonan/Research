@@ -595,7 +595,7 @@ def build(board: Board, data_dir: Path, out: Path) -> None:
     skipped = []
     for gws, why in ((week.attrs["fbref_only"],
                       "there is no FPL data for it yet — re-run "
-                      "<code>scraper_fpl.py</code>"),
+                      "<code>fpl_scraper_gw.py</code>"),
                      (week.attrs["fpl_only"],
                       "there is no fbref sheet for it yet — add a "
                       "<code>GW&lt;n&gt;</code> tab to the workbook")):
@@ -723,7 +723,7 @@ week: {esc(field_list)}.</p>
 {skipped_html}
 <p class="note"><b>Adding a gameweek.</b> Drop a new <code>GW&lt;n&gt;</code>
 sheet into <code>data/2026-27/fbref_shots.xlsx</code> — cumulative, like the
-others — re-run <code>scraper_fpl.py</code> for the FPL side, then
+others — re-run <code>fpl_scraper_gw.py</code> for the FPL side, then
 <code>python build_shots.py</code>. The sheet names are the gameweek
 numbers; the workbook's own <code>Week</code> column is a row rank and is
 ignored.</p>
