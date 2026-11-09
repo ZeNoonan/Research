@@ -1129,7 +1129,8 @@ objective_check.py  independent re-solve of the points objective, for
                     checking squad.py against a second implementation
 preseason.py        new-season price list x last season's record
 build_preseason.py  -> preseason.html, the draft board
-scraper_fpl.py      official FPL API -> data/2026-27/all_gws.csv + gw<N>.csv
+scraper_fpl.py      old FPL API scraper, no longer used: the FPL files now
+                    come from fpl_scraper_gw.py, kept outside this repo
 shots.py            fbref shots x FPL xG/xA/defcon, weekly, ranked
 build_shots.py      -> shots.html and defcon.html
 teams.py            club attack / defence / net per gameweek, ranked
@@ -1138,7 +1139,7 @@ data/2025-26/       the full 2025/26 season, gw1.csv .. gw38.csv
 data/2026-27/       player_listing.csv — 2026/27 prices + ownership
                     unavailable.csv    — injured/suspended, barred from squads
                     fbref_shots.xlsx   — fbref shooting, one sheet per GW
-                    all_gws.csv        — scraper_fpl.py dump, every GW
+                    all_gws.csv        — fpl_scraper_gw.py dump, every GW
                     gw<N>.csv          — the same, split by gameweek
                     fixture_list.csv   — every fixture, fbref layout (ticker)
 index.html          generated web view of the current picks
@@ -1557,7 +1558,11 @@ forward.
 ### Keeping it current
 
 1. Add the new `GW<n>` sheet to `data/2026-27/fbref_shots.xlsx`.
-2. `python scraper_fpl.py` for the FPL side.
+2. `streamlit run fpl_scraper_gw.py` for the FPL side. The script lives
+   outside this repo and writes `all_gws.csv` and `gw<n>.csv` to the
+   `data/2026-27/` folder beside it; copy those into `data/2026-27/` here.
+   It retries failed calls and writes nothing unless every player
+   downloaded, so a broken run can't leave a half-finished file.
 3. `python build_shots.py` — writes both boards (`--board defcon` for one).
 4. `python build_teams.py` — the team board. Its goals come from
    `premier_league_handicap/data/2026_2027/results.csv`, so that file needs
