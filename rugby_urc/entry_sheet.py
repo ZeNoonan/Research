@@ -184,6 +184,68 @@ def _differs(a: str, b: str) -> bool:
         return a != b
 
 
+def _fixture(row) -> tuple[str, str, str]:
+    """Which fixture a row is, whatever its date: round, home, away."""
+    return (str(row["round"]).strip().removesuffix(".0"), row["home"], row["away"])
+
+
+def keep_fixtures(sheet: pd.DataFrame, current: pd.DataFrame, redate: bool = False
+                  ) -> tuple[pd.DataFrame, pd.DataFrame, list[str], list[str]]:
+    """The season file, not the sheet, says which fixtures there are and when.
+
+    Fixtures come from ``import_fixtures.py``; the sheet is where values are
+    typed. Reading the sheet as the fixture list as well had two effects, both
+    silent:
+
+    * **a date changed back.** A row is matched to its fixture by date, so a
+      sheet exported before a date was corrected brought the fixture back
+      under the old date, and the corrected row, absent from the sheet, went.
+    * **a fixture disappeared.** One not yet played and missing from the sheet
+      was dropped, and each club's next match then read the wrong "last match".
+
+    So a sheet row for a stored fixture - the same round, home and away - under
+    another date takes the stored date, and is listed. ``redate=True``
+    (``--redate``) moves the stored fixture to the sheet's date instead, for a
+    match that really has moved. And a stored fixture the sheet does not list
+    is kept, and listed. A played one is still refused, by ``keep_existing``.
+
+    Returns the sheet, the season file (re-dated under ``redate``), the dates
+    that differed and the fixtures kept.
+    """
+    for col in SEASON_COLUMNS:
+        if col not in current.columns:
+            current[col] = ""
+    sheet, current = sheet.copy(), current.copy()
+    known = set(map(tuple, current[KEY].to_numpy()))
+    where: dict[tuple, list] = {}
+    for i, row in current.iterrows():
+        where.setdefault(_fixture(row), []).append(i)
+
+    redated = []
+    for i, row in sheet.iterrows():
+        if (row["date"], row["home"], row["away"]) in known:
+            continue
+        hits = where.get(_fixture(row), [])
+        if len(hits) != 1:
+            continue                              # a fixture the season file lacks
+        ours = current.at[hits[0], "date"]
+        if redate:
+            redated.append(f"{row['home']} v {row['away']}: {ours} -> {row['date']}")
+            current.at[hits[0], "date"] = row["date"]
+        else:
+            redated.append(f"{row['home']} v {row['away']}: kept {ours}, sheet has "
+                           f"{row['date'] or 'no date'}")
+            sheet.at[i, "date"] = ours
+
+    typed = set(map(tuple, sheet[KEY].to_numpy()))
+    unplayed = (current[RESULT_COLUMNS].apply(lambda c: c.str.strip()) == "").all(axis=1)
+    missing = current[unplayed & ~current[KEY].apply(tuple, axis=1).isin(typed)]
+    restored = [f"R{_fixture(r)[0]} {r['home']} v {r['away']}" for _, r in missing.iterrows()]
+    if len(missing):
+        sheet = pd.concat([sheet, missing[SEASON_COLUMNS]], ignore_index=True)
+    return sheet, current, redated, restored
+
+
 def keep_existing(sheet: pd.DataFrame, current: pd.DataFrame, name: str,
                   relines: bool = False) -> tuple[pd.DataFrame, int, list[str]]:
     """Merge a sheet over the season file without ever erasing a value.
@@ -245,7 +307,8 @@ def keep_existing(sheet: pd.DataFrame, current: pd.DataFrame, name: str,
     return sheet, kept, frozen
 
 
-def import_sheet(year: int, source: Path | None, relines: bool = False) -> Path:
+def import_sheet(year: int, source: Path | None, relines: bool = False,
+                 redate: bool = False) -> Path:
     df, path = read_filled(year, source)
     out = DATA_DIR / f"season_{year}.csv"
     absent = [c for c in SEASON_COLUMNS if c not in df.columns]
@@ -274,10 +337,11 @@ def import_sheet(year: int, source: Path | None, relines: bool = False) -> Path:
     if problems:
         raise ValueError("cannot import:\n  " + "\n  ".join(problems))
 
-    kept, frozen = 0, []
+    kept, frozen, redated, restored = 0, [], [], []
     if out.exists():
-        df, kept, frozen = keep_existing(df, pd.read_csv(out, dtype=str).fillna(""),
-                                         path.name, relines)
+        current = pd.read_csv(out, dtype=str).fillna("")
+        df, current, redated, restored = keep_fixtures(df, current, redate)
+        df, kept, frozen = keep_existing(df, current, path.name, relines)
 
     df = df.sort_values(["date", "round", "home"])
     if out.exists():
@@ -299,6 +363,16 @@ def import_sheet(year: int, source: Path | None, relines: bool = False) -> Path:
               f"to apply them:")
         for f in frozen:
             print(f"    {f}")
+    if redated and redate:
+        print(f"  {len(redated)} fixture(s) moved to the sheet's date (--redate):")
+    elif redated:
+        print(f"  {len(redated)} fixture date(s) differ in the sheet; the season file's "
+              f"date is kept (an older copy of the sheet?). Use --redate to apply them:")
+    for r in redated:
+        print(f"    {r}")
+    if restored:
+        print(f"  kept {len(restored)} fixture(s) the sheet does not list: "
+              + "; ".join(restored[:4]) + (" ..." if len(restored) > 4 else ""))
     if absent:
         print(f"  not in the sheet, so kept from {out.name}: {', '.join(absent)}")
     if ignored:
@@ -316,12 +390,14 @@ def main() -> None:
     ap.add_argument("--file", type=Path, help="explicit sheet to import")
     ap.add_argument("--relines", action="store_true",
                     help="apply changed lines even for matches already played")
+    ap.add_argument("--redate", action="store_true",
+                    help="move a fixture to the sheet's date where the two differ")
     args = ap.parse_args()
 
     if args.action == "export":
         export(args.season, args.skeleton)
     else:
-        import_sheet(args.season, args.file, args.relines)
+        import_sheet(args.season, args.file, args.relines, args.redate)
 
 
 if __name__ == "__main__":

@@ -574,6 +574,39 @@ def main() -> int:
                  - pd.to_numeric(before["closing_line"]))
         passed &= check("unless --relines says to", (shift == 2).all())
 
+        # (e) the season file owns the fixture list. An older copy of the sheet
+        # carries an unplayed fixture under the date it had before a correction.
+        season.to_csv(data / "season_2026.csv", index=False)
+        before = stored()
+        moved = season.index[season["round"] == 2][0]
+        pair = (season.at[moved, "home"], season.at[moved, "away"])
+        sheet = season.copy()
+        sheet.at[moved, "date"] = "2026-09-27"
+        sheet.at[moved, "closing_line"] = 12.5
+        sheet.to_csv(data / "redated.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "redated.csv")
+        after = stored()
+        row = after[(after["home"] == pair[0]) & (after["away"] == pair[1])]
+        passed &= check("an older sheet cannot move a fixture's date",
+                        len(after) == len(before) and after["date"].equals(before["date"]))
+        passed &= check("and the row's typed line is still applied",
+                        len(row) == 1 and float(row["closing_line"].iloc[0]) == 12.5)
+        season.to_csv(data / "season_2026.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "redated.csv", redate=True)
+        after = stored()
+        row = after[(after["home"] == pair[0]) & (after["away"] == pair[1])]
+        passed &= check("unless --redate says to, and then no second row appears",
+                        len(after) == len(before) and len(row) == 1
+                        and row["date"].iloc[0] == "2026-09-27")
+
+        # (f) a sheet that has lost an unplayed fixture must not drop it: the
+        # two clubs' next match would read the wrong "last match".
+        season.to_csv(data / "season_2026.csv", index=False)
+        sheet = season.drop(index=moved)
+        sheet.to_csv(data / "cut.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "cut.csv")
+        passed &= check("a fixture missing from the sheet is kept", stored().equals(before))
+
     print("\n14. LGT is the conceded differential, not own conceded minus own won")
     with tempfile.TemporaryDirectory() as tmp:
         data = Path(tmp)
