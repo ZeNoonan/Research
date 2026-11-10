@@ -6,10 +6,14 @@
 
 ### ⚠️ Needed now
 
-1. **After Monday 9 Nov's Bills @ Vikings, before Thursday 12 Nov** (Commanders @
-   Giants): week 9's pro-football-reference rows, all 14 remaining games, with
-   `TOW`/`TOL`, plus a fresh nflverse export. (Thursday's Jaguars @ Ravens is
-   already in.)
+1. **If you can, a fresh nflverse export (or a bookmaker screen) before Sunday 15
+   Nov's kick-offs** (first: Patriots @ Lions in Munich, 9:30am ET). Week 10's
+   six picks mostly have room to spare; the closest calls, each two points from
+   dropping out, are the **Jets (gone at Bills −6.5)** and the **Vikings (gone at
+   Packers −1.5)**.
+2. **After Monday 16 Nov's Chargers @ Ravens, before Thursday 19 Nov:** week 10's
+   pro-football-reference rows, all 14 games (Thursday's Commanders @ Giants
+   included), with `TOW`/`TOL`, plus a fresh nflverse export.
 
 ### Every week, to keep 2026–27 running
 
