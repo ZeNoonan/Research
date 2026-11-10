@@ -223,6 +223,19 @@ def main() -> int:
             and r.result != model.grade(r.system_num, r.home_score, r.away_score, r.line)
         ]
         passed &= check("graded results match model.grade", not bad, str(bad[:3]))
+        # 5.6 - 1.6 is 3.9999999999999996 in binary floats, so a 4.0 handicap the
+        # ratings imply exactly once read as a home vote (2025-26 round 8).
+        # Every pair of one-decimal ratings a half-point handicap can tie with,
+        # the handicap written as it is stored: a decimal, not a float difference.
+        ties = [model.power_factor(home / 10, away / 10, (away - home) / 10)
+                for home in range(-250, 251) for away in range(-250, 251)
+                if (away - home) % 5 == 0]
+        passed &= check("a handicap the ratings imply exactly gets no power vote",
+                        model.power_factor(1.6, 5.6, 4.0) == 0 and not any(ties),
+                        f"{sum(map(bool, ties))} of {len(ties)} ties cast a vote")
+        passed &= check("and a tenth either side of it still votes",
+                        (model.power_factor(1.6, 5.7, 4.0), model.power_factor(1.6, 5.5, 4.0))
+                        == (-1, 1))
 
         print("\n7. an unpriced round produces no report rows")
         unpriced = make_season(2026, range(1, 3), start="2026-09-18",

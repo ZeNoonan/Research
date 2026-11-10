@@ -72,8 +72,15 @@ def power_factor(home_power: float, away_power: float, line: float) -> int:
     systematic home-edge residual which makes this factor lean away. For the URC
     that residual is whatever ``season_report.HOME_ADVANTAGE`` is set to, which
     is still provisional - see ``calibrate.py``.
+
+    Ratings are held to one decimal and handicaps to half points, so the two
+    can agree exactly, and then the factor abstains. Binary floats miss that
+    tie about one time in ten: 5.6 - 1.6 is 3.9999999999999996, which made a
+    4.0 handicap look a hair above what the ratings implied and cast a home
+    vote (Connacht v Ulster, 2025-26 round 8: a System # of 2 where 1 was
+    right). Rounding the difference first restores the tie.
     """
-    return _sign(line - (away_power - home_power))
+    return _sign(round(line - (away_power - home_power), 6))
 
 
 def turnover_factor_home(home_lgt: float) -> int:
