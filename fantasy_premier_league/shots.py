@@ -92,6 +92,14 @@ XG_DECIMALS = 4
 # rounding; the two sources also differ on whether stoppage time counts.
 MINUTES_TOL = 10
 
+# The audit allows a pair this many more minutes for every gameweek the
+# player has played. The two counts drift apart by about a minute an
+# appearance, mostly over stoppage time, so a regular's season total can sit
+# further off than a debutant's with nothing wrong. Through GW10 no correct
+# pair was more than 1.7 a game out; a wrong match, or a week missing from
+# one source, is out by far more.
+MINUTES_PER_GAME = 1
+
 # fbref's club names against FPL's. Only the ones that differ.
 SQUAD_ALIASES = {
     "Leeds United": "Leeds",
@@ -164,18 +172,20 @@ def read_sheets(path: str | Path) -> tuple[dict, list]:
     gives him a zero week, which is right when he did not play and is
     flagged by ``report_join`` when FPL says he did.
 
-    Before carrying anything, a vanished spell is checked for a **rename**:
-    fbref relabelled "Jair Cunha" as plain "Jair" in the GW6 export. A new
-    row with the same nationality, birth year and club, whose totals are all
+    Before carrying anything, a vanished spell is checked for a **relabel**.
+    fbref has done it two ways: it renamed "Jair Cunha" plain "Jair" in the
+    GW6 export, and it moved Abdoul Ouattara's nationality from France to
+    Côte d'Ivoire in the GW10 one. A new row with the same birth year and
+    club, and the same nationality *or* the same name, whose totals are all
     at least the vanished row's, and the only such row, is the same man —
-    the earlier sheets are relabelled to his new name so he stays one
-    player. Carrying him forward instead would count him twice, the second
-    time as a debutant with two shots in a week he did not play.
+    the earlier sheets are relabelled to match so he stays one player.
+    Carrying him forward instead would count him twice, the second time as
+    a debutant with his whole season's shots in one week.
 
     Returns ``(sheets, carried)`` — ``{gw: rows}`` and a list of
     ``(gw, player, nation, born, squad)`` for every spell carried. The
-    renames are on ``read_sheets.renames`` after a call, as
-    ``(gw, old name, new name, squad)``.
+    relabels are on ``read_sheets.renames`` after a call, as
+    ``(gw, old name, new name, squad, old nation, new nation)``.
     """
     key = FBREF_ID + ["Squad"]
     sheets, carried, renames, prev = {}, [], [], None
@@ -196,17 +206,19 @@ def read_sheets(path: str | Path) -> tuple[dict, list]:
             keep = []
             # iterrows, not itertuples: "90s" is not a valid attribute name.
             for _, g in gone.iterrows():
-                twins = new[(new["Nation"] == g["Nation"]) & (new["Born"] == g["Born"])
-                            & (new["Squad"] == g["Squad"])
+                twins = new[((new["Nation"] == g["Nation"]) | (new["Player"] == g["Player"]))
+                            & (new["Born"] == g["Born"]) & (new["Squad"] == g["Squad"])
                             & (new[FBREF_SUMS] >= g[FBREF_SUMS].astype(float).values)
                             .all(axis=1)]
                 if len(twins) == 1:
-                    to = twins["Player"].iloc[0]
-                    renames.append((gw, g["Player"], to, g["Squad"]))
+                    to = twins.iloc[0]
+                    renames.append((gw, g["Player"], to["Player"], g["Squad"],
+                                    g["Nation"], to["Nation"]))
                     for s in sheets.values():
                         hit = ((s["Player"] == g["Player"]) & (s["Nation"] == g["Nation"])
                                & (s["Born"] == g["Born"]) & (s["Squad"] == g["Squad"]))
-                        s.loc[hit, "Player"] = to
+                        s.loc[hit, "Player"] = to["Player"]
+                        s.loc[hit, "Nation"] = to["Nation"]
                 else:
                     keep.append(g)
             if keep:
@@ -647,8 +659,8 @@ def report_join(week: pd.DataFrame) -> str:
 
     Says how each fbref player was matched, and — the part that matters —
     how far the two sources' minutes disagree. Anything unmatched, or
-    matched but disagreeing on minutes by more than ``MINUTES_TOL``, is
-    named worst-first: those are the rows where the board could be wrong
+    matched but disagreeing on minutes by more than ``MINUTES_TOL`` plus
+    ``MINUTES_PER_GAME`` for each gameweek he played, is named worst-first: those are the rows where the board could be wrong
     about who took the shots.
 
     The verdict on the first line is ``clean`` only when every fbref player
@@ -658,8 +670,10 @@ def report_join(week: pd.DataFrame) -> str:
     should never pass unnoticed.
     """
     join = week.attrs["join"]
-    gaps = join[join["element"].notna()]
-    bad = gaps[gaps["minutes_gap"] > MINUTES_TOL].sort_values(
+    games = week[week["played"]].groupby("element")["round"].nunique()
+    gaps = join[join["element"].notna()].copy()
+    gaps["allowed"] = MINUTES_TOL + MINUTES_PER_GAME * gaps["element"].map(games).fillna(0)
+    bad = gaps[gaps["minutes_gap"] > gaps["allowed"]].sort_values(
         "minutes_gap", ascending=False)
     unmatched = join[join["element"].isna()]
 
@@ -693,19 +707,24 @@ def report_join(week: pd.DataFrame) -> str:
     lines += [f"fbref players: {len(join)}",
               "matched: " + ", ".join(
                   f"{k} {v}" for k, v in join["how"].value_counts().items()),
-              f"minutes agree within {MINUTES_TOL}: "
+              f"minutes agree within {MINUTES_TOL} + {MINUTES_PER_GAME} a game: "
               f"{len(gaps) - len(bad)} of {len(gaps)}"]
 
     _named(lines, [f"  ? {r.Player} ({r.Squad}) — fbref {r.fb_minutes:.0f} min, "
                    f"FPL {r.fpl_minutes:.0f} min for {r.fpl_name}, "
-                   f"gap {r.minutes_gap:.0f}"
+                   f"gap {r.minutes_gap:.0f}, allowed {r.allowed:.0f}"
                    for r in bad.itertuples()], "disagreeing on minutes")
     _named(lines, [f"  UNMATCHED {r.Player} ({r.Squad}) — no shots for him"
                    for r in unmatched.itertuples()], "unmatched")
 
-    for gw, was, now, squad in week.attrs.get("renames", []):
-        lines.append(f"renamed by fbref in GW{gw}: {was!r} -> {now!r} ({squad}) "
-                     "— same nationality, birth year, club and totals; one player")
+    for gw, was, now, squad, nation_was, nation_now in week.attrs.get("renames", []):
+        if was != now:
+            lines.append(f"renamed by fbref in GW{gw}: {was!r} -> {now!r} ({squad}) "
+                         "— same nationality, birth year, club and totals; one player")
+        else:
+            lines.append(f"nationality changed by fbref in GW{gw}: {now} ({squad}) "
+                         f"{nation_was!r} -> {nation_now!r} — same name, birth year, "
+                         "club and totals; one player")
     lines.append(f"dropped from an fbref sheet, totals carried forward: "
                  f"{len(carried)}"
                  + (f" — {len(carried_played)} of them played that week"

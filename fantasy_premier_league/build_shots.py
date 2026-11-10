@@ -776,7 +776,10 @@ its <i>Costinha</i> is <i>joão pedro loureiro da costa</i>.</p>
 <p class="note">Minutes then <b>audit</b> every pair. Two sources that
 counted the same man's minutes independently are the check on whether the
 join is right, and anything they disagree on by more than
-{S.MINUTES_TOL} minutes is named here rather than quietly shipped. So is
+{S.MINUTES_TOL} minutes, plus {S.MINUTES_PER_GAME} for each gameweek the player has
+played, is named here rather than quietly shipped. The counts drift apart by
+about a minute an appearance, mostly over stoppage time, so a regular is
+allowed more than a debutant; a wrong match is out by far more. So is
 anyone FPL says was on the pitch that fbref does not list, because he would
 otherwise be ranked as having taken no shot when the truth is that nobody
 counted them.</p>
