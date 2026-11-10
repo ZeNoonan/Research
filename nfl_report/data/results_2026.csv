@@ -121,20 +121,20 @@ Week,Day,Date,Time,Winner/tie,venue_marker,Loser/tie,Pts,Pts.1,TOW,TOL
 8,Sun,2026-11-01,8:20PM,Washington Commanders,,Philadelphia Eagles,27.0,10.0,1.0,2.0
 8,Mon,2026-11-02,8:15PM,Chicago Bears,@,Seattle Seahawks,34.0,17.0,1.0,1.0
 9,Thu,2026-11-05,8:15PM,Jacksonville Jaguars,@,Baltimore Ravens,33.0,10.0,1.0,3.0
-9,Sun,2026-11-08,9:30AM,Cincinnati Bengals,@,Atlanta Falcons,,,,
-9,Sun,2026-11-08,1:00PM,Cleveland Browns,@,New Orleans Saints,,,,
-9,Sun,2026-11-08,1:00PM,Dallas Cowboys,@,Indianapolis Colts,,,,
-9,Sun,2026-11-08,1:00PM,Denver Broncos,@,Carolina Panthers,,,,
-9,Sun,2026-11-08,1:00PM,Detroit Lions,@,Miami Dolphins,,,,
-9,Sun,2026-11-08,1:00PM,New York Giants,@,Philadelphia Eagles,,,,
-9,Sun,2026-11-08,1:00PM,New York Jets,@,Kansas City Chiefs,,,,
-9,Sun,2026-11-08,1:00PM,Los Angeles Rams,@,Washington Commanders,,,,
-9,Sun,2026-11-08,4:05PM,Houston Texans,@,Los Angeles Chargers,,,,
-9,Sun,2026-11-08,4:05PM,Las Vegas Raiders,@,San Francisco 49ers,,,,
-9,Sun,2026-11-08,4:25PM,Arizona Cardinals,@,Seattle Seahawks,,,,
-9,Sun,2026-11-08,4:25PM,Green Bay Packers,@,New England Patriots,,,,
-9,Sun,2026-11-08,8:20PM,Tampa Bay Buccaneers,@,Chicago Bears,,,,
-9,Mon,2026-11-09,8:15PM,Buffalo Bills,@,Minnesota Vikings,,,,
+9,Sun,2026-11-08,9:30AM,Cincinnati Bengals,@,Atlanta Falcons,34.0,17.0,0.0,1.0
+9,Sun,2026-11-08,1:00PM,New Orleans Saints,,Cleveland Browns,23.0,22.0,2.0,0.0
+9,Sun,2026-11-08,1:00PM,Dallas Cowboys,@,Indianapolis Colts,27.0,23.0,2.0,2.0
+9,Sun,2026-11-08,1:00PM,Denver Broncos,@,Carolina Panthers,26.0,21.0,1.0,2.0
+9,Sun,2026-11-08,1:00PM,Detroit Lions,@,Miami Dolphins,19.0,9.0,1.0,1.0
+9,Sun,2026-11-08,1:00PM,New York Giants,@,Philadelphia Eagles,19.0,11.0,1.0,1.0
+9,Sun,2026-11-08,1:00PM,Kansas City Chiefs,,New York Jets,35.0,12.0,2.0,1.0
+9,Sun,2026-11-08,1:00PM,Los Angeles Rams,@,Washington Commanders,20.0,13.0,2.0,2.0
+9,Sun,2026-11-08,4:05PM,Houston Texans,@,Los Angeles Chargers,44.0,22.0,1.0,2.0
+9,Sun,2026-11-08,4:25PM,San Francisco 49ers,,Las Vegas Raiders,38.0,17.0,1.0,5.0
+9,Sun,2026-11-08,4:25PM,Seattle Seahawks,,Arizona Cardinals,17.0,3.0,0.0,0.0
+9,Sun,2026-11-08,4:25PM,Green Bay Packers,@,New England Patriots,45.0,27.0,0.0,4.0
+9,Sun,2026-11-08,8:20PM,Chicago Bears,,Tampa Bay Buccaneers,27.0,24.0,5.0,2.0
+9,Mon,2026-11-09,8:15PM,Buffalo Bills,@,Minnesota Vikings,23.0,6.0,1.0,3.0
 10,Thu,2026-11-12,8:15PM,Washington Commanders,@,New York Giants,,,,
 10,Sun,2026-11-15,9:30AM,New England Patriots,@,Detroit Lions,,,,
 10,Sun,2026-11-15,1:00PM,Buffalo Bills,@,New York Jets,,,,
