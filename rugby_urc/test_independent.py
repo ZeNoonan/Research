@@ -1140,12 +1140,146 @@ def run(root: Path, quiet: bool = False) -> Checks:
     return check
 
 
+# --- the self-test: plant a fault, expect a failure ---------------------------
+
+def _rows(path: Path) -> tuple[list[str], list[dict]]:
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        return list(reader.fieldnames), list(reader)
+
+
+def _save(path: Path, head: list[str], rows: list[dict]) -> None:
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=head, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _edit(path: Path, pick, change, also_append: bool = False) -> None:
+    """Change the first row of a CSV that ``pick`` accepts."""
+    head, rows = _rows(path)
+    row = next(r for r in rows if pick(r))
+    if also_append:
+        rows.append(dict(row))
+    else:
+        change(row)
+    _save(path, head, rows)
+
+
+def _bump(col: str, by) -> callable:
+    def change(row: dict) -> None:
+        row[col] = str(float(row[col]) + by) if "." in row[col] else str(int(row[col]) + by)
+    return change
+
+
+def _swap_text(path: Path, pattern: str, repl) -> None:
+    text = path.read_text(encoding="utf-8")
+    new, n = re.subn(pattern, repl, text, count=1)
+    assert n == 1, f"self-test: nothing to change in {path.name}"
+    path.write_text(new, encoding="utf-8")
+
+
+def self_test() -> int:
+    """Plant one fault at a time in a copy of the files; each must fail a check."""
+    year = max(seasons_present(HERE / "data"))
+    season, report = f"data/season_{year}.csv", f"data/report_{year}.csv"
+    graded = lambda r: r.get("result") in ("W", "L")
+    played = lambda r: r["home_score"].strip() != ""
+
+    def other_club(row: dict) -> None:
+        row["system_bet"] = row["away"] if row["system_bet"] == row["home"] else row["home"]
+
+    def regrade(row: dict) -> None:
+        row["result"] = "L" if row["result"] == "W" else "W"
+
+    faults = [
+        ("a score in the season file", "the scores match",
+         lambda root: _edit(root / season, played, _bump("home_score", 10))),
+        ("a closing line in the season file", "the round and both handicaps match",
+         lambda root: _edit(root / season, played, _bump("closing_line", -3.0))),
+        ("a turnover count in the season file", "last-game turnover margins match",
+         lambda root: _edit(root / season, played, _bump("home_turnovers_conceded", 9))),
+        ("a fixture listed twice", "eight matches a regular round, each club once",
+         lambda root: _edit(root / season, played, None, also_append=True)),
+        ("a turnover count in a scraped file",
+         "scraped files agree with the season file on scores and turnovers",
+         lambda root: _edit(sorted((root / "entry" / "scraped").glob(f"urc_{year}01_*.csv"))[0],
+                            lambda r: True, _bump("home_turnovers_lost", 1.0))),
+        ("a System # in the report", "the System # match",
+         lambda root: _edit(root / report, played, _bump("system_num", 1))),
+        ("a pick in the report", "the pick match",
+         lambda root: _edit(root / report, graded, other_club)),
+        ("a grade in the report", "the grade match",
+         lambda root: _edit(root / report, graded, regrade)),
+        ("a rating in the report", "power ratings match",
+         lambda root: _edit(root / report, played, _bump("home_power", 0.1))),
+        ("a season-to-date cover in the report", "season-to-date covers match",
+         lambda root: _edit(root / report, played, _bump("home_stdc", 1.0))),
+        ("a shadow-factor vote", "every shadow-factor vote matches",
+         lambda root: _edit(root / f"data/shadow_{year}.csv", lambda r: r["long_haul"] == "0",
+                            _bump("long_haul", 1))),
+        ("the record on the site", "the season's tiles match",
+         lambda root: _swap_text(root / "index.html",
+                                 r'(<div class="k">Record</div><div class="v ">)(\d+)',
+                                 lambda m: m.group(1) + str(int(m.group(2)) + 1))),
+        ("a System # on the site", "every row of Every match matches",
+         lambda root: _swap_text(root / "index.html", r"<strong>([+-]\d)</strong></td>",
+                                 lambda m: f"<strong>{int(m.group(1)) + 1:+d}</strong></td>")),
+        ("a rating in the site's heatmap", "the power heatmap matches, club by round",
+         lambda root: _swap_text(root / "index.html",
+                                 r"(Power rating, club . round.*?<td style=[^>]*>)([+-]\d+\.\d)",
+                                 lambda m: m.group(1) + f"{float(m.group(2)) + 1:+.1f}")),
+        ("a profit in the bet log", "each bet's stake, price, returns and profit agree",
+         lambda root: _edit(root.parent / "bets" / "bet_log.csv",
+                            lambda r: r["sport"] == "rugby" and r["profit_eur"].strip(),
+                            _bump("profit_eur", 1.0))),
+        ("a bet's result in the bet log",
+         "each settlement agrees with the score at the bet's own line",
+         lambda root: _edit(root.parent / "bets" / "bet_log.csv",
+                            lambda r: r["sport"] == "rugby" and r["result"] == "Won"
+                            and r["line"].strip(),
+                            lambda r: r.update(result="Lost"))),
+        ("a stale site: a result added to the bet log only", "the bet tracker's totals match",
+         lambda root: _edit(root.parent / "bets" / "bet_log.csv",
+                            lambda r: r["sport"] == "rugby" and r["result"] == "Lost",
+                            lambda r: r.update(stake_eur=str(float(r["stake_eur"]) + 5),
+                                               profit_eur=str(float(r["profit_eur"]) - 5)))),
+    ]
+
+    missed = 0
+    with tempfile.TemporaryDirectory() as tmp:
+        for i, (what, expect, plant) in enumerate(faults):
+            root = Path(tmp) / str(i) / HERE.name
+            root.mkdir(parents=True)
+            shutil.copytree(HERE / "data", root / "data")
+            shutil.copytree(HERE / "entry" / "scraped", root / "entry" / "scraped")
+            shutil.copy(HERE / "index.html", root / "index.html")
+            (root.parent / "bets").mkdir()
+            shutil.copy(HERE.parent / "bets" / "bet_log.csv", root.parent / "bets" / "bet_log.csv")
+            if i == 0 and run(root, quiet=True).failed:
+                print("  FAIL  the untouched copy does not pass; fix that first")
+                return 1
+            plant(root)
+            failed = run(root, quiet=True).failed
+            caught = expect in failed
+            missed += not caught
+            print(f"  {'PASS' if caught else 'FAIL'}  planted: {what} - "
+                  + (f"caught by '{expect}'" + (f" and {len(failed) - 1} more"
+                                                if len(failed) > 1 else "")
+                     if caught else f"NOT caught; failed only {failed or 'nothing'}"))
+    print(f"\n{len(faults)} faults planted; "
+          + ("every one was caught" if not missed else f"{missed} NOT caught"))
+    return 1 if missed else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--self-test", action="store_true",
                     help="plant faults in copies of the data and confirm each is caught")
     args = ap.parse_args()
+    if args.self_test:
+        return self_test()
     check = run(HERE)
     print(f"\n{check.count} checks; "
           + ("all checks passed" if not check.failed
