@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Research Repository
 
 **Repository**: Research
-**Last Updated**: 2026-11-09
+**Last Updated**: 2026-11-15
 **Status**: Active — several independent research projects
 
 ## Table of Contents
@@ -64,7 +64,10 @@ Research/
   2026-27 season. Each week: reconcile and load the scraped round (`import_turnovers.py`), the
   user's entry sheet (`entry_sheet.py import`), then run `season_report.py`, `shadow_factors.py`,
   `spot_check.py draw`, `build_site.py` (the GitHub Pages `index.html`) and
-  `entry_sheet.py export`; run `python3 test_pipeline.py`. See `rugby_urc/README.md`, *Each week*.
+  `entry_sheet.py export`. Then run `python3 test_independent.py`, which must end "all checks
+  passed": it recomputes every published figure (report, shadow votes, site, bet tracker)
+  **without importing the pipeline**; keep it that way. `python3 test_pipeline.py` checks the
+  plumbing on generated data. See `rugby_urc/README.md`, *Each week* and *Tests*.
 - **`bets/`** — `bet_log.csv`, the user's actual bets in every sport, one row per bet. Public, and
   read by `rugby_urc/my_bets.py`. Ids are never reused; special offers are left out. See
   `bets/README.md`.
@@ -419,6 +422,9 @@ _To be documented: How to get help, who to contact for specific areas_
 ---
 
 ## Changelog
+
+### 2026-11-15 - rugby_urc/ independent check
+- Documented `rugby_urc/test_independent.py`, run after every build
 
 ### 2026-11-09 - Add premier_league_handicap/
 - Documented the weekly routine and its independent check, `test_pipeline.py`

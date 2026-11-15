@@ -43,10 +43,11 @@ FIT_WEIGHTS = [1.0, 0.5, 0.25, 0.125]  # most recent source week first
 FIT_WEEKS = len(FIT_WEIGHTS)
 
 # Points of home advantage, applied inside the rating fit only (the ratings it
-# produces are neutral-venue). PROVISIONAL: the NFL system uses a well
-# established 3.0, but the URC has no equivalent settled number, and its
-# handicaps are wider. Run ``calibrate.py`` once a season of handicaps is
-# entered and set this from the fitted value rather than leaving the guess in.
+# produces are neutral-venue). The NFL system uses a well established 3.0; the
+# URC has no settled number. ``calibrate.py`` fits about 5.5 on 191 priced
+# matches, and the value matters little: with it at 3, 4, 6 or 7, none of
+# 2026-27's first fourteen picks changes. Left at 5.0 after round 5; see the
+# README, *Home advantage*.
 HOME_ADVANTAGE = 5.0
 
 # Extra points charged to a side crossing between Europe and South Africa.

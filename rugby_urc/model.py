@@ -70,8 +70,12 @@ def power_factor(home_power: float, away_power: float, line: float) -> int:
     fit (the ratings are neutral-venue) and is **not** re-added here. That is
     the construction that reproduced the published reports, and it leaves a
     systematic home-edge residual which makes this factor lean away. For the URC
-    that residual is whatever ``season_report.HOME_ADVANTAGE`` is set to, which
-    is still provisional - see ``calibrate.py``.
+    that residual is the home advantage in the handicaps themselves, about 7
+    points, almost whatever ``season_report.HOME_ADVANTAGE`` is set to: the
+    constant only stops a run of home matches passing for strength in the fit.
+    So here the factor votes away about nine times in ten (88% in 2025-26, 90%
+    in 2026-27 to round 5), against 73% in the NFL's 2016 reports. See the
+    README, *The power factor leans away*.
 
     Ratings are held to one decimal and handicaps to half points, so the two
     can agree exactly, and then the factor abstains. Binary floats miss that

@@ -45,23 +45,37 @@ python season_report.py                                                       # 
 python spot_check.py draw --season 2026 --round NN                            # the week's spot-check club
 python build_site.py                                                          # the site
 python entry_sheet.py export --season 2026                                    # a fresh sheet to type into
+python test_independent.py                                                    # every published number, recomputed
 ```
+
+The last line is the weekly audit: it works the report, the site and the bet
+tracker out again from the season files without the pipeline's code, and must
+end "all checks passed". See *Tests*.
 
 **An older copy of the entry sheet is safe to send.** A blank cell never
 erases anything, and once a match has a result its stored lines are frozen: a
 different line in the sheet is listed and left out (`--relines` applies it, for
 a genuine correction). Round 2's matchday lines were nearly overwritten with
-Thursday's that way.
+Thursday's that way. Nor can it move or drop a fixture: the season file owns
+the fixture list.
 
 ## Open items
 
-1. **Home advantage** is a provisional 5.0, to revisit around round 5. See
-   *Home advantage*.
-2. **Ten close-call lines from 2025-26** (optional) would firm up the backtest.
+1. **The power factor votes away nine times in ten.** It is the NFL rule
+   ported faithfully, but it behaves differently on URC handicaps. Yours to
+   decide whether that is wanted. See *The power factor leans away*.
+2. **Past picks are worked out afresh on every run.** Nothing holds a pick as
+   it stood at kick-off, so a change to a rule or a constant rewrites the
+   record behind it. It has happened twice, both disclosed: round 1's Friday
+   pick (*The line the model runs on*) and one 2025-26 System # (*Tests*).
+   Yours to decide whether picks should be frozen once a match is played.
+3. **Ten close-call lines from 2025-26** (optional) would firm up the backtest.
    See *Ten close calls*.
-3. **Your local `urc_scraper.py` and `urc_season_scraper.py`** are older
+4. **Your local `urc_scraper.py` and `urc_season_scraper.py`** are older
    copies. Replace them with the repo's: the old feed no longer answers, and
    these read the URC site's own API instead (see *The scrapers*).
+
+Home advantage, the open item until round 5, is settled: see *Home advantage*.
 
 ## How it did on 2025-26
 
@@ -502,12 +516,55 @@ priced matches. It fits **+5.4** for home advantage, close to the provisional
 5.0, and **+3.2** for a long-haul trip, a term currently switched off. The early
 read is +5.7 over 113 domestic matches and +8.3 over 62 long-haul ones.
 
-**Not adopted yet.** Most of those lines are 2025-26's, inferred rather than
-quoted, and one set of ratings is fitted across them all where the model refits
-every week. Adopting either number also did not help the 2025-26 backtest: 5.3
-did slightly worse than 5.0, and adding the long-haul term did clearly worse.
-Revisit around round 5, when this season's own quoted lines carry more of the
-fit.
+**Revisited after round 5, and left at 5.0.** With five rounds of quoted lines
+in, `calibrate.py` pools 191 priced matches and fits +5.5 for home advantage
+and +2.9 for a long-haul trip. But the constant turns out to matter very
+little. Both seasons were recomputed with it at 3, 4, 6 and 7: **none of
+2026-27's fourteen picks changes**. (At 0 one pick is added; at 8 one is lost.)
+The reason is in what the constant does. It sits inside the rating fit only,
+where it stops a run of home matches passing for strength, and over four weeks
+each club's home and away matches are close to balance, so the fitted rating
+differences barely move with it. Adopting a fitted value also did not help the
+2025-26 backtest, and the long-haul term did clearly worse.
+
+### The power factor leans away
+
+The factor compares the handicap with the difference between two neutral-venue
+ratings, and adds no home advantage back. That is the NFL system's rule. There
+it reproduces the published reports, which lean away too: 195 away votes to 72
+home in 2016, or 73%.
+
+In the URC the lean is much stronger:
+
+| power votes | away | home | none |
+|---|---|---|---|
+| 2025-26 | 126 (88%) | 16 | 1 |
+| 2026-27, rounds 1–5 | 36 (90%) | 4 | 0 |
+
+On average the handicap sits about 7 points below what the ratings imply (−6.8
+in 2025-26, −7.4 in 2026-27). That is the home advantage in the handicaps
+themselves, and it is there whatever `HOME_ADVANTAGE` is set to: the average
+runs from −7.7 with the constant at 0 to −6.3 with it at 8. The NFL's residual
+is about 2 points, on narrower lines.
+
+So in rugby the factor is close to a standing vote for the away side. The
+system then needs only two of the other four votes to bet an away side, but
+with the power vote against it needs all four to bet a home side. Eleven of
+2026-27's fourteen picks are away sides, and 34 of 2025-26's 46.
+
+This is the rule as ported, not a fault, and it is **left as it is**: the rule
+was fixed before the season, and changing it on fourteen bets would be tuning.
+For reference, adding points back before the comparison gives:
+
+| points added back | away votes, 2025-26 | 2026-27 | system, 2025-26 | 2026-27 |
+|---|---|---|---|---|
+| 0 (the rule) | 88% | 90% | 22–23 | 8–6 |
+| 3 | 69% | 78% | 23–25 | 8–6 |
+| 5 | 57% | 70% | 23–22 | 8–6 |
+| 7 | 47% | 55% | 25–21 | 6–5 |
+
+Three points back gives roughly the NFL's own split. The records do not
+separate the options.
 
 ## A turnover is not a giveaway
 
@@ -708,6 +765,7 @@ rugby_urc/
 ├── heatmaps.py           # club x round diverging heatmaps
 ├── build_site.py         # data -> index.html
 ├── app.py                # Streamlit viewer
+├── test_independent.py   # every published number recomputed, sharing no code
 ├── test_pipeline.py      # end-to-end checks on generated data
 ├── test_scraper.py       # scraper checks, incl. the app run headless
 ├── test_season_scraper.py # season-scraper checks: playoff rounds, retries, reruns
@@ -758,6 +816,12 @@ written to refuse silent damage rather than trust its input:
   change them; `--relines` overrides, for a genuine correction.
 - **A sheet missing a played match is refused**, since dropping the row would
   drop its result.
+- **The season file owns the fixture list.** A sheet row for a stored fixture
+  under another date takes the stored date, and is listed (`--redate` moves
+  the fixture instead, for a match that really has moved). An unplayed fixture
+  the sheet lacks is kept. Before, an older sheet silently undid a date
+  correction, and a missing row silently dropped the fixture, which would have
+  given two clubs the wrong "last match".
 - **Odd turnover counts are flagged**, such as a negative one (most likely a
   net figure); `--strict` refuses them.
 - **Each scraped round is reconciled before it is loaded**: every side's points
@@ -767,10 +831,28 @@ written to refuse silent damage rather than trust its input:
 ## Tests
 
 There is no replication, and there cannot be — no published rugby reports
-exist. What there is instead is `test_pipeline.py`, which generates handicaps
-from **known** power ratings and turnover counts and asserts the pipeline
-recovers them, plus `test_scraper.py` and `test_season_scraper.py` for the
-scrapers:
+exist. What there is instead comes in two halves.
+
+**`test_independent.py` checks the real numbers.** It takes the season files
+and works every published figure out again from the written rules, then
+compares: the source data and every scraped file; the report row by row (line,
+turnover margins, covers, ratings, System #, pick, grade); every shadow-factor
+vote, from the scraped files; and the site itself, read back as data — tiles,
+*Every match*, the profit curve, both heatmaps, the shadow table and the bet
+tracker. It imports nothing from the project: its own club list, parsing and
+grading, and a rating fit in exact fractions where the pipeline uses
+floating-point least squares. `--self-test` plants 17 faults in copies of the
+files and confirms each is caught. **Run it after every build**; a page left
+stale fails it.
+
+On its first run it found a fault the other tests could not: a handicap the
+ratings imply exactly should get no power vote, and binary floats gave it one
+(5.6 − 1.6 is 3.9999999999999996). It had happened once, in 2025-26's round 8,
+and changed no pick.
+
+**`test_pipeline.py` checks the plumbing.** It generates handicaps from
+**known** power ratings and turnover counts and asserts the pipeline recovers
+them, with `test_scraper.py` and `test_season_scraper.py` for the scrapers:
 
 | Check | result |
 |---|---|
@@ -796,6 +878,10 @@ scrapers:
 | A win with no price stays out of the totals until its settled slip arrives | pass |
 | A cash-out stands at the amount paid: never regraded, its loss in the totals | pass |
 | The spot-check draw is reproducible and takes every club in turn; each card agrees with the report | pass |
+| A handicap the ratings imply exactly gets no power vote, for every rating pair that can tie | pass |
+| The season file owns the fixture list: an older sheet cannot move or drop a fixture | pass |
+| `test_independent.py`: every published number recomputed without the pipeline's code | 63 checks pass |
+| `test_independent.py --self-test`: planted faults caught | 17 of 17 |
 | An older copy of the entry sheet cannot change a played match's line | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.
@@ -805,7 +891,9 @@ That is a test of the plumbing, not evidence the system works on rugby.
 ```bash
 pip install -r requirements.txt
 
-python test_pipeline.py                            # the checks above
+python test_independent.py                         # the real numbers, recomputed
+python test_independent.py --self-test             # plant faults; each must be caught
+python test_pipeline.py                            # the plumbing, on generated data
 python season_report.py                            # -> data/report_<year>.csv
 python build_site.py                               # -> index.html
 streamlit run app.py                               # browse it
