@@ -1076,6 +1076,15 @@ def check_site(check: Checks, root: Path, seasons: dict[int, list[Match]]) -> No
         return
     page = Page(path.read_text(encoding="utf-8"))
     rows = read_bets(root.parent / "bets" / "bet_log.csv")
+    todo = sorted((m for m in seasons[max(seasons)] if m.line is None and not m.played),
+                  key=lambda m: m.day)
+    if todo:
+        if not check.quiet:
+            print("\nthe site: what is needed next")
+        count = sum(m.round == todo[0].round for m in todo)
+        want = f"Round {todo[0].round}'s handicaps. {count} match"
+        check("the lead card names the next round to price",
+              [] if want in page.words("top") else [f"expected to read: {want}..."])
     for year in sorted(seasons, reverse=True):
         label = f"{year}-{(year + 1) % 100:02d}"
         if not check.quiet:

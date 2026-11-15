@@ -499,9 +499,17 @@ def status_panel(seasons: dict[int, pd.DataFrame]) -> str:
                          f"fixture list.</strong> Only {have} loaded. Paste the "
                          f"published list into a text file and run "
                          f"<code>python import_fixtures.py paste.txt --season 2026</code>.")
-        unpriced = int(cur["line"].isna().sum())
-        if unpriced:
-            needs.append(f"<strong>{unpriced} handicap{'s' if unpriced > 1 else ''}.</strong> "
+        # The next round to price, not every fixture still unpriced: "104
+        # handicaps" was true all season and told nobody what to do next.
+        unpriced = cur[cur["line"].isna() & ~cur["played"]].sort_values("date")
+        if len(unpriced):
+            nxt = unpriced[unpriced["round"] == unpriced["round"].iloc[0]]
+            first, last = nxt["date"].min(), nxt["date"].max()
+            days = (f"{first.day} {first:%B}" if first == last
+                    else f"{first.day}–{last.day} {last:%B}" if first.month == last.month
+                    else f"{first.day} {first:%B} – {last.day} {last:%B}")
+            needs.append(f"<strong>Round {int(nxt['round'].iloc[0])}'s handicaps.</strong> "
+                         f"{len(nxt)} match{'es' if len(nxt) > 1 else ''}, {days}. "
                          "Enter in <code>entry/urc_2026_entry.xlsx</code>, "
                          "negative when the home side is favoured.")
     if not needs:
