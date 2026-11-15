@@ -265,9 +265,10 @@ def add_powers(combined: pd.DataFrame) -> pd.DataFrame:
         if ratings is None:
             home_power.append(np.nan)
             away_power.append(np.nan)
-        else:  # one decimal, as the published NFL reports display and use
-            home_power.append(round(ratings[r.home], 1))
-            away_power.append(round(ratings[r.away], 1))
+        else:  # one decimal, as the published NFL reports display and use;
+            # ``+ 0.0`` folds the -0.0 a rating just below zero rounds to
+            home_power.append(round(ratings[r.home], 1) + 0.0)
+            away_power.append(round(ratings[r.away], 1) + 0.0)
     g["home_power"] = home_power
     g["away_power"] = away_power
     return g.drop(columns=["week_key"])

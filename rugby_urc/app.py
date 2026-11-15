@@ -68,7 +68,8 @@ def betting_summary(df: pd.DataFrame) -> dict:
         "bets": int(df["system_bet"].notna().sum()),
         "wins": wins, "losses": losses,
         "win_rate": wins / (wins + losses) if (wins + losses) else None,
-        "profit": wins - JUICE * losses,
+        # Rounded: eleven wins less ten losses at 1.1 is a hair below zero in floats.
+        "profit": round(wins - JUICE * losses, 1) + 0.0,
     }
 
 

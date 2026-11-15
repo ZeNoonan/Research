@@ -142,7 +142,9 @@ def esc(x) -> str:
 
 
 def fmt_signed(x, dp: int = 1) -> str:
-    return "" if pd.isna(x) else f"{float(x):+.{dp}f}"
+    """A signed number. Rounded first, so a float a hair below zero - eleven
+    wins less ten losses at 1.1 - reads +0.0, not -0.0."""
+    return "" if pd.isna(x) else f"{round(float(x), dp) + 0.0:+.{dp}f}"
 
 
 def stats(df: pd.DataFrame) -> dict:
@@ -163,7 +165,7 @@ def tiles(s: dict) -> str:
     items = [("Matches", str(s["matches"]), ""), ("Priced", str(s["priced"]), ""),
              ("Played", str(s["played"]), ""), ("Bets", str(s["bets"]), ""),
              ("Record", f"{s['w']}–{s['l']}", ""), ("Win rate", rate, ""),
-             ("Profit (units)", f"{s['profit']:+.1f}", cls)]
+             ("Profit (units)", fmt_signed(s["profit"]), cls)]
     return ('<div class="tiles">' + "".join(
         f'<div class="tile"><div class="k">{k}</div>'
         f'<div class="v {c}">{v}</div></div>' for k, v, c in items) + "</div>")
@@ -177,7 +179,8 @@ def profit_chart(df: pd.DataFrame) -> str:
 
     running, series = 0.0, []
     for r in graded.itertuples():
-        running += 1.0 if r.result == "W" else -JUICE
+        # Rounded as it goes: 0.1 has no exact binary form, and the errors add up.
+        running = round(running + (1.0 if r.result == "W" else -JUICE), 1) + 0.0
         series.append((r.date, r.home, r.away, r.result, running))
 
     W, H, PAD_L, PAD_R, PAD_T, PAD_B = 1000, 400, 52, 16, 20, 34
@@ -321,7 +324,7 @@ def shadow_table(table: pd.DataFrame, first_look: bool,
         band = f"{r.rate:.0%} ± {r.band:.0%} (95%)" if n else ""
         mark = ("<sup title='direction chosen on this season'>†</sup>"
                 if first_look and r.group == "situational" else "")
-        units = f"{r.sys_units:+.1f}"
+        units = fmt_signed(r.sys_units)
         last = ""
         if prior is not None:
             p = before.get(r.key)

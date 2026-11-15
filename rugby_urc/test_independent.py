@@ -702,6 +702,395 @@ def check_shadow_file(check: Checks, matches: list[Match], path: Path) -> None:
           f"{len(listed)} matches x {len(SHADOWS)} factors")
 
 
+# --- the bet tracker, from the bet log ----------------------------------------
+
+STANDARD_PRICE = F(21, 11)          # 1.91: what a unit at -110 pays back
+SETTLEMENTS = {"won": "Won", "lost": "Lost", "void": "Void", "cashed out": "Cashed Out"}
+
+
+def read_bets(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    with open(path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def verdict(system: int, backing_home: bool) -> str:
+    if abs(system) < BET_AT:
+        return "no"
+    return "yes" if (system > 0) == backing_home else "against"
+
+
+def assess_bets(rows: list[dict], matches: list[Match], year: int, current: bool) -> list[dict]:
+    """The season's URC bets, each matched to its fixture and graded."""
+    out = []
+    for b in rows:
+        if b["sport"].strip().lower() != "rugby" or b["competition"].strip().upper() not in ("URC", ""):
+            continue
+        when = b["event_date"].strip() or b["placed"].strip()
+        if when:
+            if not date(year, 8, 1) <= date.fromisoformat(when[:10]) <= date(year + 1, 7, 31):
+                continue
+        elif not current:
+            continue
+        club = b["team"].strip()
+        mine = [m for m in matches if club in (m.home, m.away) and m.listed]
+        if b["event_date"].strip():
+            mine = [m for m in mine if m.day.isoformat() == b["event_date"].strip()[:10]]
+        else:
+            rnd = re.search(r"\d+", b["round_week"])
+            mine = [m for m in mine if rnd and m.round == int(rnd.group())]
+        if len(mine) != 1:
+            out.append({"id": b["bet_id"], "problem": f"bet {b['bet_id']} ({club}) fits "
+                                                       f"{len(mine)} matches"})
+            continue
+        m = mine[0]
+        home = club == m.home
+        line = number(b["line"])
+        close = None if m.line is None else (m.line if home else -m.line)
+        rated = m.home_power is not None and not m.held
+        at_close = verdict(m.system, home) if rated and m.line is not None else "?"
+        if line is None:
+            label = "?" if at_close == "?" else f"{at_close} at close"
+        else:
+            power = sign((line if home else -line) - (m.away_power - m.home_power)) if rated else 0
+            yours = verdict(power + sum(m.votes[1:]), home) if rated else "?"
+            label = yours if at_close in (yours, "?") else f"{yours}, {at_close} at close"
+        margin = ((m.home_score - m.away_score) * (1 if home else -1)) if m.played else None
+        graded = None
+        if margin is not None and line is not None:
+            graded = {1: "Won", -1: "Lost", 0: "Void"}[sign(margin + line)]
+        logged = SETTLEMENTS.get(b["result"].strip().lower())
+        result = logged or graded or "Pending"
+        stake, odds = number(b["stake_eur"]), number(b["decimal_odds"])
+        if logged and number(b["profit_eur"]) is not None:
+            profit = number(b["profit_eur"])
+        elif result == "Won":
+            profit = None if odds is None else stake * (odds - 1)
+        else:
+            profit = {"Lost": -stake, "Void": F(0)}.get(result)
+        tail = b["selection"].split()[-1] if b["selection"].split() else ""
+        out.append({
+            "id": int(b["bet_id"]), "match": m, "home": home, "club": club, "line": line,
+            "label": (f"{club} {float(line):+g}" if line is not None
+                      else f"{club} {tail if tail[:1] in '+-' and tail else '?'}"),
+            "opponent": m.away if home else m.home, "odds": odds, "stake": stake,
+            "close": close, "value": None if line is None or close is None else line - close,
+            "system": label, "result": result, "profit": profit, "logged": logged,
+            "graded": graded, "returns": number(b["returns_eur"]),
+        })
+    return sorted(out, key=lambda x: (x["match"].day, x["id"]) if "match" in x else (date.max, 0))
+
+
+def bet_summary(bets: list[dict], matches: list[Match]) -> dict:
+    bets = [b for b in bets if "match" in b]
+    won = sum(b["result"] == "Won" for b in bets)
+    lost = sum(b["result"] == "Lost" for b in bets)
+    priced = [b for b in bets if b["result"] in ("Won", "Lost", "Cashed Out")
+              and b["profit"] is not None]
+    staked = sum((b["stake"] for b in priced), F(0))
+    profit = sum((b["profit"] for b in priced), F(0))
+    per_match: dict[tuple, F] = defaultdict(F)
+    for b in bets:
+        per_match[b["match"].key] += b["stake"]
+    stakes = sorted(per_match.values())
+    n = len(stakes)
+    stake = F(25) if not n else (stakes[n // 2] if n % 2 else (stakes[n // 2 - 1] + stakes[n // 2]) / 2)
+    rounds = {b["match"].round for b in bets}
+    sys_won = sum(m.result == "W" for m in matches if m.round in rounds)
+    sys_lost = sum(m.result == "L" for m in matches if m.round in rounds)
+    values = [b["value"] for b in bets if b["value"] is not None]
+    return {"won": won, "lost": lost, "pending": sum(b["result"] == "Pending" for b in bets),
+            "cashed": sum(b["result"] == "Cashed Out" for b in bets),
+            "staked": staked, "profit": profit, "roi": profit / staked if staked else None,
+            "value": sum(values, F(0)) / len(values) if values else None,
+            "sys_won": sys_won, "sys_lost": sys_lost, "stake": stake,
+            "sys_profit": sys_won * stake * (STANDARD_PRICE - 1) - sys_lost * stake}
+
+
+def check_bet_log(check: Checks, bets: list[dict]) -> None:
+    """The log's own arithmetic, and each settlement against the score."""
+    sums, grades = [], []
+    for b in bets:
+        if "problem" in b:
+            sums.append(b["problem"])
+            continue
+        if b["logged"] and b["returns"] is not None and b["profit"] is not None:
+            if b["returns"] - b["stake"] != b["profit"]:
+                sums.append(f"bet {b['id']}: returns {float(b['returns'])} less stake "
+                            f"{float(b['stake'])} is not profit {float(b['profit'])}")
+            if (b["logged"] == "Won" and b["odds"] is not None
+                    and abs(b["stake"] * b["odds"] - b["returns"]) > F(1, 100)):
+                sums.append(f"bet {b['id']}: {float(b['stake'])} at {float(b['odds'])} "
+                            f"does not return {float(b['returns'])}")
+            if b["logged"] == "Lost" and b["returns"] != 0:
+                sums.append(f"bet {b['id']}: a lost bet with returns")
+        if b["logged"] in ("Won", "Lost", "Void") and b["graded"] and b["logged"] != b["graded"]:
+            grades.append(f"bet {b['id']} {b['label']}: settled {b['logged']}, the score "
+                          f"makes it {b['graded']}")
+    check("each bet's stake, price, returns and profit agree", sums, f"{len(bets)} URC bets")
+    check("each settlement agrees with the score at the bet's own line", grades)
+
+
+# --- the site ----------------------------------------------------------------
+
+class Page(HTMLParser):
+    """The built page as data: tiles, tables and charts, by section."""
+
+    VOID = {"br", "meta", "link", "img", "input", "hr"}
+
+    def __init__(self, source: str):
+        super().__init__(convert_charrefs=True)
+        self.stack: list[str] = []
+        self.marks: list[tuple[int, str]] = []         # (depth, id) of open sections
+        self.heading = ""
+        self.tiles: dict[tuple, dict] = defaultdict(dict)
+        self.tables: list[dict] = []
+        self.charts: dict[str, list[str]] = {}
+        self.text: dict[str, str] = defaultdict(str)
+        self._caps: list[list] = []                    # [depth, kind, text]
+        self._table = self._row = None
+        self._label = ""
+        self.feed(source)
+
+    @property
+    def section(self) -> str:
+        return self.marks[-1][1] if self.marks else "top"
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag in self.VOID:
+            if tag == "br":
+                self.handle_data(" / ")
+            return
+        self.stack.append(tag)
+        depth, cls = len(self.stack), (a.get("class") or "").split()
+        if "id" in a:
+            self.marks.append((depth, a["id"]))
+            self.heading = ""
+        self.text[self.section] += " "
+        if tag in ("h2", "h3"):
+            self._caps.append([depth, "heading", ""])
+        elif tag == "div" and cls[:1] == ["k"]:
+            self._caps.append([depth, "label", ""])
+        elif tag == "div" and cls[:1] == ["v"]:
+            self._caps.append([depth, "value", ""])
+        elif tag == "table":
+            self._table = {"section": self.section, "heading": self.heading,
+                           "head": [], "rows": []}
+            self.tables.append(self._table)
+        elif tag == "tr" and self._table is not None:
+            self._row = []
+        elif tag in ("td", "th") and self._row is not None:
+            self._caps.append([depth, "cell", ""])
+        elif tag == "figure" and "chart" in cls and a.get("data-points"):
+            self.charts[self.section] = [pt["label"] for pt in json.loads(a["data-points"])]
+
+    def handle_startendtag(self, tag, attrs):
+        pass                                           # self-closed SVG shapes
+
+    def handle_endtag(self, tag):
+        if tag in self.VOID or tag not in self.stack:
+            return
+        in_head = "thead" in self.stack
+        while self.stack.pop() != tag:
+            pass
+        depth = len(self.stack)
+        while self._caps and self._caps[-1][0] > depth:
+            _, kind, text = self._caps.pop()
+            text = " ".join(text.split())
+            if kind == "heading":
+                self.heading = text
+            elif kind == "label":
+                self._label = text
+            elif kind == "value":
+                self.tiles[(self.section, self.heading)][self._label] = text
+            elif kind == "cell" and self._row is not None:
+                self._row.append(text)
+        if tag == "tr" and self._row is not None and self._table is not None:
+            self._table["head" if in_head else "rows"].append(self._row)
+            self._row = None
+        elif tag == "table":
+            self._table = None
+        self.text[self.section] += " "
+        while self.marks and self.marks[-1][0] > depth:
+            self.marks.pop()
+
+    def handle_data(self, data):
+        for cap in self._caps:
+            cap[2] += data
+        self.text[self.section] += data
+
+    def table(self, section: str, heading: str) -> dict | None:
+        return next((tb for tb in self.tables
+                     if tb["section"] == section and tb["heading"] == heading), None)
+
+    def words(self, section: str) -> str:
+        return " ".join(self.text[section].split())
+
+
+def signed(x, places: int = 1) -> str:
+    return "" if x is None else f"{float(x):+.{places}f}"
+
+
+def euros(x) -> str:
+    if x is None:
+        return "?"
+    return ("+" if x > 0 else "\u2212" if x < 0 else "") + f"\u20ac{abs(float(x)):.2f}"
+
+
+def percent(won: int, lost: int) -> str:
+    return "\u2014" if not won + lost else f"{float(F(won, won + lost)):.0%}"
+
+
+def compare(got: list, want: list, what: str) -> list[str]:
+    """Row-by-row differences between two tables of text."""
+    problems = []
+    if len(got) != len(want):
+        problems.append(f"{what}: {len(got)} rows on the page, {len(want)} expected")
+    for g, w in zip(got, want):
+        if g != w:
+            where = next((i for i, (x, y) in enumerate(zip(g, w)) if x != y), min(len(g), len(w)))
+            problems.append(f"{what} {' '.join(w[:4])}: column {where + 1} shows "
+                            f"{g[where] if where < len(g) else 'nothing'!r}, expected "
+                            f"{w[where] if where < len(w) else 'nothing'!r}")
+    return problems
+
+
+def check_site_season(check: Checks, page: Page, year: int, matches: list[Match],
+                      before: list[Match] | None) -> None:
+    section = f"s{year}"
+    listed = sorted((m for m in matches if m.listed), key=lambda m: (m.day, m.round, m.home))
+    r = record(matches)
+    want = {"Matches": str(r["matches"]), "Priced": str(r["priced"]), "Played": str(r["played"]),
+            "Bets": str(r["bets"]), "Record": f"{r['won']}\u2013{r['lost']}",
+            "Win rate": percent(r["won"], r["lost"]),
+            "Profit (units)": f"{float(r['units']):+.1f}"}
+    got = page.tiles.get((section, ""), {})
+    check("the season's tiles match",
+          [f"{k}: page {got.get(k)!r}, recomputed {v!r}" for k, v in want.items()
+           if got.get(k) != v])
+
+    has_open = any(m.opening is not None for m in listed)
+    rows = []
+    for m in listed:
+        rated = m.home_power is not None and m.away_power is not None
+        rows.append(
+            [m.day.isoformat(), str(m.round), m.home, m.away]
+            + ([signed(m.opening)] if has_open else [])
+            + [signed(m.line),
+               f"{m.home_score}\u2013{m.away_score}" if m.played else "\u2014",
+               signed(m.home_lgt, 0), signed(m.home_stdc, 0), signed(m.home_power),
+               signed(m.away_lgt, 0), signed(m.away_stdc, 0), signed(m.away_power),
+               "\u2014" if m.held or not rated else f"{m.system:+d}",
+               "held" if m.held else (m.bet or ""),
+               m.result or ("\u00b7" if m.bet else "")])
+    table = page.table(section, "Every match")
+    check("every row of Every match matches",
+          compare(table["rows"], rows, "row") if table else ["the table is missing"],
+          f"{len(rows)} rows")
+
+    running, labels = F(0), []
+    for m in listed:
+        if m.result:
+            running += 1 if m.result == "W" else -JUICE
+            labels.append(f"{m.day.isoformat()} \u00b7 {m.home} v {m.away} \u00b7 {m.result} "
+                          f"\u00b7 {float(running):+.1f}u")
+    check("the profit curve is the graded bets in order",
+          [f"point {i + 1}: page {g!r}, recomputed {w!r}"
+           for i, (g, w) in enumerate(zip(page.charts.get(section, []), labels)) if g != w]
+          + ([] if len(page.charts.get(section, [])) == len(labels)
+             else [f"{len(page.charts.get(section, []))} points, {len(labels)} expected"]))
+
+    for heading, attr, places in (("Season to date cover, club \u00d7 round", "stdc", 0),
+                                  ("Power rating, club \u00d7 round", "power", 1)):
+        table, problems = page.table(section, heading), []
+        if table is None:
+            problems.append("the table is missing")
+        else:
+            rounds = table["head"][0][1:]
+            cell = {(m.home if side == "home" else m.away, str(m.round)):
+                    getattr(m, f"{side}_{attr}") for m in listed for side in ("home", "away")}
+            means = []
+            for row in table["rows"]:
+                club, shown = row[0], row[1:]
+                vals = [cell.get((club, rnd)) for rnd in rounds]
+                for rnd, got_v, v in zip(rounds, shown, vals):
+                    if got_v != signed(v, places):
+                        problems.append(f"{club} round {rnd}: page {got_v!r}, "
+                                        f"recomputed {signed(v, places)!r}")
+                known = [v for v in vals if v is not None]
+                means.append(sum(known, F(0)) / len(known) if known else None)
+            if {row[0] for row in table["rows"]} != {c for c, _ in cell if cell[(c, _)] is not None}:
+                problems.append("the clubs listed are not the clubs rated")
+            if any(a < b for a, b in zip(means, means[1:]) if a is not None and b is not None):
+                problems.append("clubs are not in order of their season mean")
+        check(f"the {attr} heatmap matches, club by round", problems)
+
+    mine = shadow_table(matches)
+    prior = shadow_table(before) if before else None
+    rows = []
+    for f, label in SHADOWS.items():
+        s = mine[f]
+        rows.append([label, str(s["votes"]), f"{s['won']}\u2013{s['lost']}",
+                     percent(s["won"], s["lost"])]
+                    + ([percent(prior[f]["won"], prior[f]["lost"])] if prior else [])
+                    + [f"{s['sys_won']}\u2013{s['sys_lost']} / {float(s['sys_units']):+.1f}"])
+    table = page.table(section, "Shadow factors")
+    shown = [[row[0].rstrip("\u2020").strip()] + row[1:] for row in table["rows"]] if table else []
+    check("the shadow-factor table matches", compare(shown, rows, "factor")
+          if table else ["the table is missing"])
+
+
+def check_site_tracker(check: Checks, page: Page, label: str, bets: list[dict],
+                       matches: list[Match]) -> None:
+    good = [b for b in bets if "match" in b]
+    s = bet_summary(bets, matches)
+    want = {"Record": f"{s['won']}\u2013{s['lost']}" + (f" +{s['pending']}" if s["pending"] else ""),
+            "Staked": f"\u20ac{float(s['staked']):.0f}", "Profit": euros(s["profit"]),
+            "Return": "\u2014" if s["roi"] is None else f"{float(s['roi']):+.0%}",
+            "Line v close": "\u2014" if s["value"] is None else f"{float(s['value']):+.1f}",
+            "System, same rounds": f"{s['sys_won']}\u2013{s['sys_lost']} \u00b7 {euros(s['sys_profit'])}"}
+    got = page.tiles.get(("tracker", label), {})
+    check("the bet tracker's totals match",
+          [f"{k}: page {got.get(k)!r}, recomputed {v!r}" for k, v in want.items()
+           if got.get(k) != v])
+    tags = {"Won": "W", "Lost": "L", "Void": "void", "Cashed Out": "cashed out"}
+    rows = []
+    for b in good:
+        odds = "" if b["odds"] is None else f" \u00b7 {float(b['odds']):.2f}"
+        money = "" if b["profit"] is None else f" / {euros(b['profit'])}"
+        rows.append([f"{b['label']} / R{b['match'].round} v {b['opponent']}{odds}",
+                     signed(b["close"]), signed(b["value"]), b["system"],
+                     tags.get(b["result"], "pending") + money])
+    table = page.table("tracker", label)
+    check("every row of the bet tracker matches",
+          compare(table["rows"], rows, "bet") if table else ["the table is missing"],
+          f"{len(rows)} bets")
+
+
+def check_site(check: Checks, root: Path, seasons: dict[int, list[Match]]) -> None:
+    path = root / "index.html"
+    if not path.exists():
+        check("the site has been built", False, "no index.html")
+        return
+    page = Page(path.read_text(encoding="utf-8"))
+    rows = read_bets(root.parent / "bets" / "bet_log.csv")
+    for year in sorted(seasons, reverse=True):
+        label = f"{year}-{(year + 1) % 100:02d}"
+        if not check.quiet:
+            print(f"\n{label}: the site")
+        if not any(m.listed for m in seasons[year]):
+            continue
+        check_site_season(check, page, year, seasons[year], seasons.get(year - 1))
+        bets = assess_bets(rows, seasons[year], year, year == max(seasons))
+        if bets:
+            check_bet_log(check, bets)
+            check_site_tracker(check, page, label, bets, seasons[year])
+        elif page.table("tracker", label):
+            check("the bet tracker shows no bets for a season without any", False)
+
+
 def record(matches: list[Match]) -> dict:
     won = sum(m.result == "W" for m in matches)
     lost = sum(m.result == "L" for m in matches)
@@ -747,6 +1136,7 @@ def run(root: Path, quiet: bool = False) -> Checks:
             print(f"  ....  {r['bets']} bets, {r['won']}-{r['lost']}, "
                   f"{float(r['units']):+.1f} units" + (f", {r['held']} held back"
                                                        if r["held"] else ""))
+    check_site(check, root, seasons)
     return check
 
 
