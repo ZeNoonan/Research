@@ -248,6 +248,7 @@ tr:last-child td { border-bottom: 0; }
 .checks li { margin: 0 0 10px; }
 footer { margin-top: 46px; padding-top: 16px; border-top: 1px solid var(--grid); font-size: 13.5px; color: var(--ink-2); }
 footer p { margin: 0 0 8px; max-width: 70ch; }
+.nowrap { white-space: nowrap; }
 .notice {
   margin: 20px 0; padding: 12px 14px;
   background: var(--fail-bg); border-radius: 8px; font-size: 14.5px;
@@ -350,7 +351,7 @@ footer p { margin: 0 0 8px; max-width: 70ch; }
   <footer>
     <p><strong>Data.</strong> <a href="https://fred.stlouisfed.org/series/NASDAQCOM">FRED
     <code>NASDAQCOM</code></a>, <span id="src-line"></span> Simple daily returns; dollar loss =
-    −$1M × return. The first 750 trading days seed the three-year windows.</p>
+    <span class="nowrap">−$1M × return</span>. The first 750 trading days seed the three-year windows.</p>
     <p><strong>Code.</strong> <a href="https://github.com/ZeNoonan/Research/tree/HEAD/VAR">github.com/ZeNoonan/Research · VAR</a>:
     <code>var_backtest.py</code> runs the backtests, <code>build_site.py</code> builds this page,
     <code>test_pipeline.py</code> checks it. The
