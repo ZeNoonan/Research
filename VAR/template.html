@@ -7,8 +7,9 @@
 <meta name="description" content="Historical simulation, RiskMetrics EWMA and Aaron Brown's double-on-break rule, each put through the three backtests in “Forced by the Sternest Circumstances” on 52 years of NASDAQ Composite data.">
 <link rel="canonical" href="https://zenoonan.github.io/Research/VAR/">
 <style>
-/* ---------- tokens ---------- */
+/* One reading column; charts drawn to its width; everything from these tokens. */
 :root {
+  color-scheme: light;
   --page: #f6f5f1;
   --surface: #fcfcfb;
   --ink: #0b0b0b;
@@ -33,6 +34,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --page: #0d0d0d;
     --surface: #1a1a19;
     --ink: #f2f1ec;
@@ -54,6 +56,7 @@
   }
 }
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --page: #0d0d0d;
   --surface: #1a1a19;
   --ink: #f2f1ec;
@@ -83,7 +86,12 @@ body {
   color: var(--ink);
   font: 16px/1.6 var(--sans);
 }
-.wrap { max-width: 800px; margin: 0 auto; padding: 28px 18px 64px; }
+.wrap {
+  max-width: 800px; margin: 0 auto;
+  padding-block: 28px 64px;
+  padding-left: max(18px, env(safe-area-inset-left, 0px));    /* clear of a notch */
+  padding-right: max(18px, env(safe-area-inset-right, 0px));
+}
 a { color: var(--accent); text-underline-offset: 2px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
 code { font-family: var(--mono); font-size: 0.9em; }
