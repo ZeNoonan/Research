@@ -238,11 +238,9 @@ h4 {
 h4 .flag { font-weight: 700; letter-spacing: 0; text-transform: none; }
 .flag.pass { color: var(--pass); }
 .flag.fail { color: var(--fail); }
-.scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { padding: 6px 12px 6px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--grid); }
-th { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
-td.num, th.num { text-align: right; padding-right: 0; padding-left: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td { padding: 6px 12px 6px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--grid); }
+td.num { text-align: right; padding-right: 0; padding-left: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 tr:last-child td { border-bottom: 0; }
 
 /* ---------- checks, footer ---------- */
@@ -469,19 +467,13 @@ function flag(v) {
   return el("span", { class: "flag " + (v.pass ? "pass" : "fail"),
     text: (v.pass ? "✓ PASS" : "✕ FAIL") + (v.borderline ? " (borderline)" : "") });
 }
-function table(head, rows) {
-  var t = el("table"), tr;
-  if (head) {
-    tr = el("tr");
-    head.forEach(function (h, i) { tr.appendChild(el("th", { class: i ? "num" : "", text: h })); });
-    t.appendChild(tr);
-  }
+/* two columns, label and figure, so a table never outgrows a phone */
+function table(rows) {
+  var t = el("table");
   rows.forEach(function (r) {
-    tr = el("tr");
-    r.forEach(function (c, i) { tr.appendChild(el("td", { class: i ? "num" : "", text: c })); });
-    t.appendChild(tr);
+    t.appendChild(el("tr", null, el("td", { text: r[0] }), el("td", { class: "num", text: r[1] })));
   });
-  return el("div", { class: "scroll" }, t);
+  return t;
 }
 function detail(m) {
   var marks = el("span", { class: "marks", "aria-hidden": "true" });
@@ -491,20 +483,22 @@ function detail(m) {
   var body = el("div", { class: "d-body" },
     el("p", { class: "d-desc", text: m.description }),
     el("h4", null, "Test 1 · " + TEST_TITLES[0] + " — ", flag(m.verdicts[0])),
-    table(null, [
+    table([
       ["VaR breaks (observed / expected)", int(m.t1.breaks) + " / " + int(D.expected)],
       ["Break rate", (100 * m.t1.rate).toFixed(2) + "%"],
       ["z-score against 1%", (m.t1.z >= 0 ? "+" : "−") + Math.abs(m.t1.z).toFixed(1)],
       ["Kupiec test p-value", pFull(m.t1.p)]
     ]),
     el("h4", null, "Test 2 · " + TEST_TITLES[1] + " — ", flag(m.verdicts[1])),
-    table(["Diagnostic", "Observed", "Expected", "p-value"], [
-      ["Breaks the day after a break", int(m.t2.next_day), m.t2.next_day_expected.toFixed(1), pFull(m.t2.next_day_p)],
-      ["Breaks within 10 days of a break", int(m.t2.within10), m.t2.within10_expected.toFixed(1), pFull(m.t2.within10_p)],
-      ["Christoffersen independence test", "–", "–", pFull(m.t2.christoffersen_p)]
+    table([
+      ["Breaks the day after a break (observed / expected)", int(m.t2.next_day) + " / " + m.t2.next_day_expected.toFixed(1)],
+      ["Binomial test p-value for that count", pFull(m.t2.next_day_p)],
+      ["Breaks within 10 days of a break (observed / expected)", int(m.t2.within10) + " / " + m.t2.within10_expected.toFixed(1)],
+      ["Binomial test p-value for that count", pFull(m.t2.within10_p)],
+      ["Christoffersen independence test p-value", pFull(m.t2.christoffersen_p)]
     ]),
     el("h4", null, "Test 3 · " + TEST_TITLES[2] + " — ", flag(m.verdicts[2])),
-    table(null, [
+    table([
       ["Average VaR", usd(m.t3.avg_var)],
       ["Average VaR on break days", usd(m.t3.avg_var_breaks)],
       ["Ratio, break days to all days", m.t3.ratio.toFixed(2)],
