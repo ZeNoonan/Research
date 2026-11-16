@@ -41,7 +41,7 @@ Brown's double-on-break rule — the article's parameters untouched, nothing fit
 
 ### A. Historical simulation (3yr, 1st pct)
 
-The 1% loss point of the last 750 daily returns — the "distribution-free" method in every textbook. It sits between the 7th and 8th worst days of the window, where a break has exactly a 1% chance if returns are independent draws from one distribution.
+The 1% loss point of the last 750 daily returns — the "distribution-free" method in every textbook. It sits between the 7th and 8th worst days of the window, where a break has a 1% chance if returns are independent draws from one distribution.
 
 **Test 1 — break frequency is 1%: PASS (borderline)**
 

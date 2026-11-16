@@ -85,18 +85,19 @@ def sorted_windows(returns):
 def hs_var(sorted_wins, percentile):
     """Historical simulation VaR at the given percentile (in %).
 
-    The article builds this so a break has exactly the stated probability
-    when returns are independent draws from one distribution: a new day is
+    The article builds this so a break has the stated probability when
+    returns are independent draws from one distribution: a new day is
     equally likely to rank anywhere among the n window days and itself, so
     "worse than the k-th worst of the last n" has probability k / (n + 1)
     (its example: the fifth worst of the last 499 days, for 1%). The
     percentile therefore sits at rank p x (n + 1) counted from the worst
-    day — 7.51 for 1% of 750 days — interpolating between the neighbouring
-    days when the rank is fractional.
+    day. For 1% of 750 days that is rank 7.51, so the VaR is interpolated
+    between the 7th and 8th worst days.
 
     The usual spreadsheet / numpy percentile puts it at rank p x (n - 1) + 1
-    instead (8.49 here), nearly one whole day less extreme. That version
-    breaks on 1.12% of days even on ideal data, not 1%.
+    instead (8.49 here), nearly one whole day less extreme. On simulated
+    independent returns that version breaks on 1.12% of days, and this one
+    on 1.00%; test_pipeline.py repeats the simulation.
     """
     rank = percentile / 100.0 * (WINDOW + 1)
     pos = min(max(rank - 1.0, 0.0), WINDOW - 1.0)   # 0-indexed, ascending
@@ -642,8 +643,8 @@ def run():
             "A", "Historical simulation", "3yr, 1st pct",
             "The 1% loss point of the last 750 daily returns — the "
             '"distribution-free" method in every textbook. It sits between the '
-            "7th and 8th worst days of the window, where a break has exactly a "
-            "1% chance if returns are independent draws from one distribution.",
+            "7th and 8th worst days of the window, where a break has a 1% "
+            "chance if returns are independent draws from one distribution.",
             hs_var(wins, 100 * VAR_LEVEL), losses,
         ),
         backtest(

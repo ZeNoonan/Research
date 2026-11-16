@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Is it actually a VaR? Three VaR methods backtested on the NASDAQ</title>
+<meta name="description" content="Historical simulation, RiskMetrics EWMA and Aaron Brown's double-on-break rule, each put through the three backtests in “Forced by the Sternest Circumstances” on 52 years of NASDAQ Composite data.">
+<link rel="canonical" href="https://zenoonan.github.io/Research/VAR/">
+<style>
+/* ---------- tokens ---------- */
+:root {
+  --page: #f6f5f1;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #76746e;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --hairline: rgba(11, 11, 11, 0.10);
+  --accent: #2a78d6;
+  --a: #2a78d6;            /* series, fixed order: A historical simulation */
+  --b: #1baf7a;            /* B parametric EWMA */
+  --c: #eda100;            /* C Brown's rule */
+  --break: #d03b3b;        /* a VaR break, always with its label */
+  --dot: rgba(82, 81, 78, 0.34);
+  --pass: #006300;
+  --pass-bg: rgba(12, 163, 12, 0.10);
+  --fail: #b13030;
+  --fail-bg: rgba(208, 59, 59, 0.09);
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f2f1ec;
+    --ink-2: #c3c2b7;
+    --muted: #918f88;
+    --grid: #2c2c2a;
+    --baseline: #45453f;
+    --hairline: rgba(255, 255, 255, 0.10);
+    --accent: #5b9df0;
+    --a: #3987e5;
+    --b: #199e70;
+    --c: #c98500;
+    --break: #d03b3b;
+    --dot: rgba(195, 194, 183, 0.34);
+    --pass: #3dbb3d;
+    --pass-bg: rgba(12, 163, 12, 0.16);
+    --fail: #e66767;
+    --fail-bg: rgba(230, 103, 103, 0.14);
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #f2f1ec;
+  --ink-2: #c3c2b7;
+  --muted: #918f88;
+  --grid: #2c2c2a;
+  --baseline: #45453f;
+  --hairline: rgba(255, 255, 255, 0.10);
+  --accent: #5b9df0;
+  --a: #3987e5;
+  --b: #199e70;
+  --c: #c98500;
+  --break: #d03b3b;
+  --dot: rgba(195, 194, 183, 0.34);
+  --pass: #3dbb3d;
+  --pass-bg: rgba(12, 163, 12, 0.16);
+  --fail: #e66767;
+  --fail-bg: rgba(230, 103, 103, 0.14);
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 16px/1.6 var(--sans);
+}
+.wrap { max-width: 800px; margin: 0 auto; padding: 28px 18px 64px; }
+a { color: var(--accent); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+code { font-family: var(--mono); font-size: 0.9em; }
+.eyebrow {
+  margin: 0 0 10px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent);
+}
+h1, h2, h3 { text-wrap: balance; }
+h1 {
+  margin: 0 0 12px;
+  font: 400 clamp(30px, 7vw, 42px)/1.15 var(--serif);
+}
+h2 { margin: 44px 0 6px; font: 400 25px/1.2 var(--serif); }
+h3 { margin: 30px 0 4px; font-size: 17px; line-height: 1.3; }
+.dek { margin: 0 0 24px; max-width: 62ch; color: var(--ink-2); }
+.sub { margin: 0 0 16px; max-width: 66ch; font-size: 14.5px; color: var(--ink-2); }
+.cap { margin: 8px 0 0; max-width: 66ch; font-size: 13.5px; color: var(--muted); }
+.prose p { max-width: 66ch; margin: 0 0 14px; }
+
+/* ---------- headline tiles ---------- */
+.stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.tile {
+  flex: 1 1 150px;
+  padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px;
+}
+.tile-v { font-size: 25px; font-weight: 600; line-height: 1.25; }
+.tile-l { font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+
+/* ---------- the three tests ---------- */
+.tests {
+  margin: 28px 0;
+  padding: 4px 0 4px 18px;
+  border-left: 3px solid var(--accent);
+  font: 17.5px/1.55 var(--serif);
+}
+.tests p { margin: 0 0 8px; font-style: italic; color: var(--ink-2); }
+.tests ol { margin: 0; padding-left: 22px; }
+.tests li { margin: 6px 0; }
+.tests cite { display: block; margin-top: 10px; font: normal 13.5px var(--sans); color: var(--muted); }
+
+/* ---------- scorecard ---------- */
+.cards { display: grid; gap: 12px; }
+.card {
+  padding: 16px 16px 14px;
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px;
+}
+.card h3 { margin: 0; font-size: 16.5px; }
+.card-breaks { margin: 2px 0 12px; font-size: 14px; color: var(--ink-2); }
+.card-breaks strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.key {
+  display: inline-block; width: 14px; height: 3px; margin-right: 8px;
+  border-radius: 2px; background: var(--k); vertical-align: middle;
+}
+/* phone: one test per row, name left and verdict right; wider: three across */
+.chips { display: grid; gap: 8px; }
+.chip {
+  display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; align-items: baseline;
+  padding: 8px 10px;
+  border: 1px solid transparent; border-radius: 7px;
+  font-size: 13px; line-height: 1.35;
+}
+.chip-t { font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+.chip-v { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.chip-p { grid-column: 1 / -1; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+@media (min-width: 600px) {
+  .chips { grid-template-columns: repeat(3, 1fr); }
+  .chip { grid-template-columns: 1fr; }
+}
+.chip.pass { background: var(--pass-bg); }
+.chip.pass .chip-v { color: var(--pass); }
+.chip.fail { background: var(--fail-bg); }
+.chip.fail .chip-v { color: var(--fail); }
+.chip.pass.close { border: 1px dashed var(--pass); }
+.chip.fail.close { border: 1px dashed var(--fail); }
+.reading { margin-top: 22px; }
+
+/* ---------- charts ---------- */
+.seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.seg button {
+  padding: 6px 12px;
+  font: 500 13.5px var(--sans); color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: 999px;
+  cursor: pointer;
+}
+.seg button:hover { color: var(--ink); border-color: var(--baseline); }
+.seg button[aria-pressed="true"] { color: var(--surface); background: var(--ink); border-color: var(--ink); }
+.rangeline { margin: 0 0 12px; font-size: 13.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.chartbox {
+  position: relative;
+  padding: 12px 10px 8px;
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px;
+}
+.panel + .panel { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--grid); }
+.panel-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0 0 4px 2px; font-size: 13.5px; }
+.panel-h strong { font-weight: 650; }
+.panel-h span.n { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 8px; font-size: 13px; color: var(--ink-2); }
+.legend span { white-space: nowrap; }
+.sw-dot, .sw-break {
+  display: inline-block; width: 8px; height: 8px; margin-right: 6px;
+  border-radius: 50%; vertical-align: baseline;
+}
+.sw-dot { background: var(--dot); }
+.sw-break { background: var(--break); }
+.sw-line {
+  display: inline-block; width: 16px; height: 0; margin-right: 6px;
+  border-top: 2px solid var(--k); vertical-align: middle;
+}
+.tip {
+  position: absolute; z-index: 2; top: 0; left: 0;
+  min-width: 150px; padding: 8px 10px;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--baseline); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  font-size: 12.5px; line-height: 1.5; font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.tip[hidden] { display: none; }
+.tip b { display: block; font-weight: 650; }
+.tip-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tip-row .v { margin-left: auto; padding-left: 10px; }
+.tip-brk { color: var(--fail); font-weight: 600; }
+
+/* ---------- method detail ---------- */
+details {
+  margin: 0 0 10px;
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px;
+  overflow: hidden;
+}
+summary {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 13px 16px;
+  font-size: 15px; font-weight: 600;
+  list-style: none; cursor: pointer;
+}
+summary::-webkit-details-marker { display: none; }
+summary:focus-visible { outline-offset: -2px; }
+.marks { font-size: 13px; white-space: nowrap; }
+.marks .p { color: var(--pass); }
+.marks .f { color: var(--fail); }
+details[open] summary { border-bottom: 1px solid var(--grid); }
+.d-body { padding: 4px 16px 14px; }
+.d-desc { margin: 10px 0 0; max-width: 66ch; font-size: 14px; color: var(--ink-2); }
+h4 {
+  margin: 18px 0 6px;
+  font-size: 12.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+h4 .flag { font-weight: 700; letter-spacing: 0; text-transform: none; }
+.flag.pass { color: var(--pass); }
+.flag.fail { color: var(--fail); }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 6px 12px 6px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--grid); }
+th { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+td.num, th.num { text-align: right; padding-right: 0; padding-left: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+
+/* ---------- checks, footer ---------- */
+.checks { margin: 0; padding-left: 20px; max-width: 66ch; }
+.checks li { margin: 0 0 10px; }
+footer { margin-top: 46px; padding-top: 16px; border-top: 1px solid var(--grid); font-size: 13.5px; color: var(--ink-2); }
+footer p { margin: 0 0 8px; max-width: 70ch; }
+.notice {
+  margin: 20px 0; padding: 12px 14px;
+  background: var(--fail-bg); border-radius: 8px; font-size: 14.5px;
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <p class="eyebrow">Research · VaR</p>
+    <h1>Is it actually a VaR?</h1>
+    <p class="dek">Three ways of setting a daily 99% Value at Risk on $1,000,000 of the NASDAQ
+    Composite, each put through the three backtests in Aaron Brown's <em>“Forced by the Sternest
+    Circumstances”</em> (Wilmott, 2009). A <em>break</em> is a day the portfolio loses more than
+    its VaR. There should be one in a hundred: no more, no fewer, and no pattern to when.</p>
+  </header>
+
+  <noscript><p class="notice">This page draws its tables and charts with JavaScript. The same
+  results are in the
+  <a href="https://github.com/ZeNoonan/Research/blob/HEAD/VAR/results/backtest_report.md">written report</a>.</p></noscript>
+  <p class="notice" id="app-error" hidden>The results did not load. Rebuild the page with
+  <code>python3 build_site.py</code>.</p>
+
+  <div class="stats" id="stats"></div>
+
+  <blockquote class="tests">
+    <p>The three most important tests for a VaR methodology are:</p>
+    <ol>
+      <li>The actual fraction of VaR break days is 1 percent, within statistical tolerance;</li>
+      <li>The VaR breaks are randomly distributed in time;</li>
+      <li>The VaR breaks are independent of the level of VaR.</li>
+    </ol>
+    <cite>Aaron Brown, Wilmott magazine, July 2009</cite>
+  </blockquote>
+
+  <section aria-labelledby="h-score">
+    <h2 id="h-score">Scorecard</h2>
+    <p class="sub" id="score-sub"></p>
+    <div class="cards" id="cards"></div>
+    <div class="prose reading" id="commentary"></div>
+  </section>
+
+  <section aria-labelledby="h-charts">
+    <h2 id="h-charts">VaR against what actually happened</h2>
+    <p class="sub">Each grey dot is one day's loss on the $1M position, the line is that day's
+    VaR, and a red dot is a break. Pick a period to see how each method behaves when the
+    market turns.</p>
+    <div class="seg" id="ranges" role="group" aria-label="Period shown"></div>
+    <p class="rangeline" id="rangeline" aria-live="polite"></p>
+    <div class="legend">
+      <span><i class="sw-dot"></i>Daily loss</span>
+      <span><i class="sw-line" style="--k: var(--ink-2)"></i>VaR (99%)</span>
+      <span><i class="sw-break"></i>VaR break</span>
+    </div>
+    <div class="chartbox" id="panels"><div class="tip" id="tip1" hidden></div></div>
+    <p class="cap">Vertical axis: loss in $ thousands, the same scale in all three panels.
+    Days that made money sit below the axis and are not drawn.</p>
+
+    <h3>Breaks piling up against the 1% line</h3>
+    <div class="legend" id="legend2"></div>
+    <div class="chartbox"><canvas id="cum"></canvas><div class="tip" id="tip2" hidden></div></div>
+    <p class="cap">A VaR doing its job tracks the grey line. A step is a cluster: several
+    breaks in a short time.</p>
+
+    <h3>Every break day</h3>
+    <div class="legend" id="legend3"></div>
+    <div class="chartbox"><canvas id="strip"></canvas><div class="tip" id="tip3" hidden></div></div>
+    <p class="cap">One tick per break. Bunched ticks are Test 2 failing before any arithmetic.</p>
+  </section>
+
+  <section aria-labelledby="h-detail">
+    <h2 id="h-detail">The checks, method by method</h2>
+    <p class="sub">Open a method for all three tests and their p-values.</p>
+    <div id="details"></div>
+  </section>
+
+  <section aria-labelledby="h-recal">
+    <h2 id="h-recal">“Should we try for two out of three?”</h2>
+    <p class="sub" id="recal-note"></p>
+    <div id="recal-details"></div>
+  </section>
+
+  <section aria-labelledby="h-checked">
+    <h2 id="h-checked">How this page is checked</h2>
+    <ul class="checks">
+      <li><strong>Recomputed from scratch.</strong> A second program, sharing no code with the
+      first, rebuilds every VaR series, break day, count and p-value on this page from the raw
+      FRED file and compares them one by one.</li>
+      <li><strong>Tested where the answer is known.</strong> On simulated returns with nothing
+      to cluster, the historical-simulation rule has to break on 1% of days, as the article
+      says it must, and it does. The usual spreadsheet percentile sits nearly a whole day
+      less extreme and breaks too often even there, which would have overstated that method's
+      failure on real data.</li>
+      <li><strong>Faults planted on purpose.</strong> The checker is run against copies of
+      this page with deliberate errors in them (a VaR series shifted by a day, two p-values
+      swapped, a verdict flipped) and has to catch every one.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p><strong>Data.</strong> <a href="https://fred.stlouisfed.org/series/NASDAQCOM">FRED
+    <code>NASDAQCOM</code></a>, <span id="src-line"></span> Simple daily returns; dollar loss =
+    −$1M × return. The first 750 trading days seed the three-year windows.</p>
+    <p><strong>Code.</strong> <a href="https://github.com/ZeNoonan/Research/tree/HEAD/VAR">github.com/ZeNoonan/Research · VAR</a>:
+    <code>var_backtest.py</code> runs the backtests, <code>build_site.py</code> builds this page,
+    <code>test_pipeline.py</code> checks it. The
+    <a href="https://github.com/ZeNoonan/Research/blob/HEAD/VAR/results/backtest_report.md">written report</a>
+    has the same results as plain tables.</p>
+  </footer>
+</main>
+
+<script>
+window.VAR_DATA = /*__DATA__*/null/*__END_DATA__*/;
+</script>
+<script>
+(function () {
+"use strict";
+
+var D = window.VAR_DATA;
+var $ = function (id) { return document.getElementById(id); };
+if (!D) { $("app-error").hidden = false; return; }
+
+var S = D.settings, DAYS = D.days, LOSS = D.loss, N = D.n, METHODS = D.methods;
+var SERIES = ["--a", "--b", "--c"];
+var TESTS = ["Frequency", "Random in time", "Level-independent"];
+var TEST_TITLES = ["Break frequency is 1%", "Breaks random in time", "Breaks independent of VaR level"];
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+var DAY_MS = 86400000;
+
+/* ---------- formatting ---------- */
+function int(x) { return Math.round(x).toLocaleString("en-US"); }
+function usd(x) { return "$" + int(x); }
+function dateOf(day) { return new Date(day * DAY_MS); }
+function dayOf(iso) { return Math.round(Date.parse(iso + "T00:00:00Z") / DAY_MS); }
+function fmtDate(day) {
+  var t = dateOf(day);
+  return WEEKDAYS[t.getUTCDay()] + " " + t.getUTCDate() + " " + MONTHS[t.getUTCMonth()] + " " + t.getUTCFullYear();
+}
+function fmtIso(iso) {
+  var t = dateOf(dayOf(iso));
+  return t.getUTCDate() + " " + MONTHS[t.getUTCMonth()] + " " + t.getUTCFullYear();
+}
+/* p-value for a chip: enough digits to see which side of the line it is on */
+function pShort(p) {
+  if (p >= 0.1) return "p = " + p.toFixed(2);
+  if (p >= 0.001) return "p = " + p.toFixed(3);
+  return "p < 0.001";
+}
+/* p-value for a table: two significant figures, however small */
+var SUP = { "-": "⁻", "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+function pFull(p, monteCarlo) {
+  var floor = 2 / S.perm_draws;
+  if (monteCarlo && p < floor) return "< " + floor.toFixed(5);
+  if (p >= 0.0001) return String(Number(p.toPrecision(2)));
+  var parts = p.toExponential(1).split("e");
+  return parts[0] + " × 10" + String(Number(parts[1])).split("").map(function (c) { return SUP[c]; }).join("");
+}
+
+/* ---------- small DOM helper ---------- */
+function el(tag, attrs) {
+  var node = document.createElement(tag), k, i, c;
+  if (attrs) for (k in attrs) {
+    if (k === "class") node.className = attrs[k];
+    else if (k === "text") node.textContent = attrs[k];
+    else node.setAttribute(k, attrs[k]);
+  }
+  for (i = 2; i < arguments.length; i++) {
+    c = arguments[i];
+    if (c == null) continue;
+    node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  return node;
+}
+function keySwatch(k) { return el("i", { class: "key", style: "--k: var(" + SERIES[k] + ")" }); }
+
+/* ---------- headline tiles ---------- */
+(function () {
+  var tiles = [
+    [int(N), "daily VaR predictions, " + D.first.slice(0, 4) + " – " + D.last.slice(0, 4)],
+    [int(D.expected), "breaks expected at the " + (100 * S.var_level) + "% level"],
+    ["3", "tests a real VaR has to pass"]
+  ];
+  tiles.forEach(function (t) {
+    $("stats").appendChild(el("div", { class: "tile" },
+      el("div", { class: "tile-v", text: t[0] }), el("div", { class: "tile-l", text: t[1] })));
+  });
+  $("score-sub").textContent = "The article's parameters, nothing fitted to this data. A test passes at p ≥ " +
+    S.alpha + ". “Borderline” marks a p-value between " + S.borderline[0] + " and " + S.borderline[1].toFixed(2) +
+    ": a stricter or looser tolerance would have flipped the call.";
+  $("src-line").textContent = "daily closes " + fmtIso(D.source.first_close) + " to " + fmtIso(D.source.last_close) +
+    ". " + int(D.source.blank) + " blank observations (market holidays) dropped, leaving " + int(D.source.closes) + " closes.";
+  $("recal-note").textContent = D.recalibrated_note;
+})();
+
+/* ---------- scorecard ---------- */
+function chip(i, v) {
+  return el("div", { class: "chip " + (v.pass ? "pass" : "fail") + (v.borderline ? " close" : "") },
+    el("span", { class: "chip-t", text: (i + 1) + " · " + TESTS[i] }),
+    el("span", { class: "chip-v", text: v.pass ? "✓ Pass" : "✕ Fail" }),
+    el("span", { class: "chip-p", text: pShort(v.p) + (v.borderline ? " · borderline" : "") }));
+}
+METHODS.forEach(function (m, k) {
+  var chips = el("div", { class: "chips" });
+  m.verdicts.forEach(function (v, i) { chips.appendChild(chip(i, v)); });
+  $("cards").appendChild(el("div", { class: "card", "data-method": m.key },
+    el("h3", null, keySwatch(k), m.key + " — " + m.name),
+    el("p", { class: "card-breaks" },
+      el("strong", { text: int(m.t1.breaks) }), " breaks · ",
+      el("strong", { text: int(D.expected) }), " expected · " + m.spec),
+    chips));
+});
+D.commentary.forEach(function (text) { $("commentary").appendChild(el("p", { text: text })); });
+
+/* ---------- method detail ---------- */
+function flag(v) {
+  return el("span", { class: "flag " + (v.pass ? "pass" : "fail"),
+    text: (v.pass ? "✓ PASS" : "✕ FAIL") + (v.borderline ? " (borderline)" : "") });
+}
+function table(head, rows) {
+  var t = el("table"), tr;
+  if (head) {
+    tr = el("tr");
+    head.forEach(function (h, i) { tr.appendChild(el("th", { class: i ? "num" : "", text: h })); });
+    t.appendChild(tr);
+  }
+  rows.forEach(function (r) {
+    tr = el("tr");
+    r.forEach(function (c, i) { tr.appendChild(el("td", { class: i ? "num" : "", text: c })); });
+    t.appendChild(tr);
+  });
+  return el("div", { class: "scroll" }, t);
+}
+function detail(m) {
+  var marks = el("span", { class: "marks", "aria-hidden": "true" });
+  m.verdicts.forEach(function (v) {
+    marks.appendChild(el("span", { class: v.pass ? "p" : "f", text: v.pass ? "✓ " : "✕ " }));
+  });
+  var body = el("div", { class: "d-body" },
+    el("p", { class: "d-desc", text: m.description }),
+    el("h4", null, "Test 1 · " + TEST_TITLES[0] + " — ", flag(m.verdicts[0])),
+    table(null, [
+      ["VaR breaks (observed / expected)", int(m.t1.breaks) + " / " + int(D.expected)],
+      ["Break rate", (100 * m.t1.rate).toFixed(2) + "%"],
+      ["z-score against 1%", (m.t1.z >= 0 ? "+" : "−") + Math.abs(m.t1.z).toFixed(1)],
+      ["Kupiec test p-value", pFull(m.t1.p)]
+    ]),
+    el("h4", null, "Test 2 · " + TEST_TITLES[1] + " — ", flag(m.verdicts[1])),
+    table(["Diagnostic", "Observed", "Expected", "p-value"], [
+      ["Breaks the day after a break", int(m.t2.next_day), m.t2.next_day_expected.toFixed(1), pFull(m.t2.next_day_p)],
+      ["Breaks within 10 days of a break", int(m.t2.within10), m.t2.within10_expected.toFixed(1), pFull(m.t2.within10_p)],
+      ["Christoffersen independence test", "–", "–", pFull(m.t2.christoffersen_p)]
+    ]),
+    el("h4", null, "Test 3 · " + TEST_TITLES[2] + " — ", flag(m.verdicts[2])),
+    table(null, [
+      ["Average VaR", usd(m.t3.avg_var)],
+      ["Average VaR on break days", usd(m.t3.avg_var_breaks)],
+      ["Ratio, break days to all days", m.t3.ratio.toFixed(2)],
+      ["Permutation test p-value", pFull(m.t3.perm_p, true)],
+      ["Welch t-test p-value", pFull(m.t3.welch_p)]
+    ]));
+  return el("details", { "data-method": m.key },
+    el("summary", null, el("span", { text: m.key + " — " + m.name + " (" + m.spec + ")" }), marks), body);
+}
+METHODS.forEach(function (m) { $("details").appendChild(detail(m)); });
+D.recalibrated.forEach(function (m) { $("recal-details").appendChild(detail(m)); });
+
+/* =====================================================================
+   Charts. Drawn on canvas at the size of their container, so nothing is
+   scaled down or cropped on a phone. Colours come from the CSS tokens.
+   ===================================================================== */
+var FONT = "11px system-ui, -apple-system, 'Segoe UI', sans-serif";
+var PAD = { l: 40, r: 10, t: 8, b: 22 };
+var TAU = 2 * Math.PI;
+
+function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function tokens() {
+  return {
+    surface: css("--surface"), ink: css("--ink"), ink2: css("--ink-2"), muted: css("--muted"),
+    grid: css("--grid"), baseline: css("--baseline"), dot: css("--dot"), brk: css("--break"),
+    series: SERIES.map(css)
+  };
+}
+function narrow() { return window.innerWidth < 560; }
+
+/* size a canvas to its box at the device's pixel ratio */
+function prep(cv, height) {
+  var dpr = Math.min(window.devicePixelRatio || 1, 3);
+  var w = Math.max(120, Math.floor(cv.clientWidth));
+  cv.style.height = height + "px";
+  cv.width = Math.round(w * dpr);
+  cv.height = Math.round(height * dpr);
+  var ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.font = FONT;
+  return { ctx: ctx, w: w, h: height, dpr: dpr };
+}
+function lowerBound(arr, x) {
+  var lo = 0, hi = arr.length, mid;
+  while (lo < hi) { mid = (lo + hi) >> 1; if (arr[mid] < x) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+function nearest(day, i0, i1) {
+  var i = lowerBound(DAYS, day);
+  if (i > i1) i = i1;
+  if (i > i0 && Math.abs(DAYS[i - 1] - day) <= Math.abs(DAYS[i] - day)) i -= 1;
+  return Math.max(i0, Math.min(i1, i));
+}
+function niceStep(max, target) {
+  var raw = max / target, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+}
+/* the finest step that still leaves room between labels */
+function timeTicks(d0, d1, plotW) {
+  var years = (d1 - d0) / 365.25, out = [], step, i, y, m, day, t;
+  if (years > 2.5) {
+    var ys = [1, 2, 5, 10, 20, 50];
+    step = ys[ys.length - 1];
+    for (i = 0; i < ys.length; i++) if (plotW * ys[i] / years >= 44) { step = ys[i]; break; }
+    for (y = Math.ceil(dateOf(d0).getUTCFullYear() / step) * step; ; y += step) {
+      day = Date.UTC(y, 0, 1) / DAY_MS;
+      if (day > d1) break;
+      if (day >= d0) out.push({ day: day, label: String(y) });
+    }
+  } else {
+    var ms = [1, 2, 3, 6, 12];
+    step = 12;
+    for (i = 0; i < ms.length; i++) if (plotW * ms[i] / (years * 12) >= 60) { step = ms[i]; break; }
+    t = dateOf(d0);
+    y = t.getUTCFullYear();
+    for (m = Math.ceil(t.getUTCMonth() / step) * step; ; m += step) {
+      day = Date.UTC(y, m, 1) / DAY_MS;
+      if (day > d1) break;
+      if (day < d0) continue;
+      t = dateOf(day);
+      out.push({ day: day, label: MONTHS[t.getUTCMonth()] + (out.length === 0 || t.getUTCMonth() === 0 ? " " + t.getUTCFullYear() : "") });
+    }
+  }
+  return out;
+}
+
+/* grid, axes and tick labels; returns the two scales */
+function frame(ctx, g, pad, T, d0, d1, yMax, yStep, yLabel) {
+  var pw = g.w - pad.l - pad.r, ph = g.h - pad.t - pad.b;
+  function x(day) { return pad.l + (day - d0) / (d1 - d0) * pw; }
+  function y(v) { return pad.t + ph - v / yMax * ph; }
+  ctx.clearRect(0, 0, g.w, g.h);
+  ctx.font = FONT;
+  ctx.lineWidth = 1;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "right";
+  var v, yy;
+  if (yStep) for (v = 0; v <= yMax + 1e-9; v += yStep) {
+    yy = Math.round(y(v)) + 0.5;
+    ctx.strokeStyle = v === 0 ? T.baseline : T.grid;
+    ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(g.w - pad.r, yy); ctx.stroke();
+    ctx.fillStyle = T.muted;
+    ctx.fillText(yLabel(v), pad.l - 6, yy);
+  }
+  ctx.textBaseline = "top";
+  ctx.textAlign = "center";
+  timeTicks(d0, d1, pw).forEach(function (tk) {
+    var xx = Math.round(x(tk.day)) + 0.5, half = ctx.measureText(tk.label).width / 2;
+    ctx.strokeStyle = T.baseline;
+    ctx.beginPath(); ctx.moveTo(xx, pad.t + ph); ctx.lineTo(xx, pad.t + ph + 4); ctx.stroke();
+    ctx.fillStyle = T.muted;
+    ctx.fillText(tk.label, Math.min(Math.max(xx, half + 1), g.w - half - 1), pad.t + ph + 7);
+  });
+  return { x: x, y: y, pw: pw, ph: ph };
+}
+
+/* keep an untouched copy of each chart, so a crosshair is a quick redraw */
+function snapshot(c) {
+  if (!c.cache) c.cache = document.createElement("canvas");
+  c.cache.width = c.cv.width; c.cache.height = c.cv.height;
+  c.cache.getContext("2d").drawImage(c.cv, 0, 0);
+}
+function restore(c) {
+  var ctx = c.g.ctx;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, c.cv.width, c.cv.height);
+  ctx.drawImage(c.cache, 0, 0);
+  ctx.setTransform(c.g.dpr, 0, 0, c.g.dpr, 0, 0);
+  ctx.font = FONT;
+}
+function crosshair(c, xx, T) {
+  var ctx = c.g.ctx;
+  ctx.strokeStyle = T.ink2; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(Math.round(xx) + 0.5, c.pad.t); ctx.lineTo(Math.round(xx) + 0.5, c.g.h - c.pad.b); ctx.stroke();
+}
+function ring(ctx, xx, yy, r, fill, T, width) {
+  ctx.beginPath(); ctx.arc(xx, yy, r, 0, TAU);
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.lineWidth = width || 1.5; ctx.strokeStyle = T.surface; ctx.stroke();
+}
+/* beside the crosshair, flipping to its left near the right edge; `above`
+   lifts it clear of a chart too short to share */
+function placeTip(tip, box, cv, xx, above) {
+  tip.hidden = false;
+  var boxR = box.getBoundingClientRect(), cvR = cv.getBoundingClientRect();
+  var left = cvR.left - boxR.left + xx + 12, top = cvR.top - boxR.top + 6;
+  if (left + tip.offsetWidth > box.clientWidth - 4) left = cvR.left - boxR.left + xx - 12 - tip.offsetWidth;
+  if (above) {
+    left = cvR.left - boxR.left + xx - tip.offsetWidth / 2;
+    left = Math.min(left, box.clientWidth - tip.offsetWidth - 4);
+    top = cvR.top - boxR.top - tip.offsetHeight - 8;
+  }
+  tip.style.left = Math.max(4, left) + "px";
+  tip.style.top = top + "px";
+}
+function tipRow(k, label, value, isBreak) {
+  var row = el("div", { class: "tip-row" });
+  if (k != null) row.appendChild(el("i", { class: "sw-line", style: "--k: var(" + SERIES[k] + ")" }));
+  row.appendChild(el("span", { text: label }));
+  if (isBreak) row.appendChild(el("span", { class: "tip-brk", text: "● break" }));
+  row.appendChild(el("span", { class: "v", text: value }));
+  return row;
+}
+function pointerDay(c, ev) {
+  var r = c.cv.getBoundingClientRect(), px = ev.clientX - r.left;
+  return c.d0 + (px - c.pad.l) / c.sc.pw * (c.d1 - c.d0);
+}
+/* mouse: follow the pointer, clear on leave. Touch: tap or drag, and the
+   reading stays until the next tap outside the chart. */
+var clearers = [];
+function wire(cv, onMove, onClear) {
+  cv.addEventListener("pointermove", onMove);
+  cv.addEventListener("pointerdown", onMove);
+  cv.addEventListener("pointerleave", function (ev) { if (ev.pointerType === "mouse") onClear(); });
+  clearers.push({ cv: cv, clear: onClear });
+}
+document.addEventListener("pointerdown", function (ev) {
+  clearers.forEach(function (c) { if (ev.target !== c.cv && ev.target.tagName !== "CANVAS") c.clear(); });
+});
+
+/* per-method lookups */
+var isBreak = METHODS.map(function (m) {
+  var a = new Uint8Array(N);
+  m.breaks.forEach(function (i) { a[i] = 1; });
+  return a;
+});
+var cum = METHODS.map(function (m, k) {
+  var a = new Uint16Array(N), n = 0, i;
+  for (i = 0; i < N; i++) { n += isBreak[k][i]; a[i] = n; }
+  return a;
+});
+
+/* ---------- 1. VaR against daily losses: one panel per method ---------- */
+var RANGES = [
+  { label: "All years" },
+  { label: "1987", from: "1987-07-01", to: "1988-06-30" },
+  { label: "2000–02", from: "2000-01-01", to: "2002-12-31" },
+  { label: "2008–09", from: "2008-06-01", to: "2009-06-30" },
+  { label: "2020", from: "2020-01-01", to: "2020-12-31" },
+  { label: "2025", from: "2025-01-01", to: "2025-12-31" }
+].filter(function (r) { return !r.from || (dayOf(r.to) > DAYS[0] && dayOf(r.from) < DAYS[N - 1]); });
+
+var view = { range: 0, d0: 0, d1: 0, i0: 0, i1: 0, yMax: 1, yStep: 1, hover: -1 };
+var panels = METHODS.map(function (m, k) {
+  var cv = el("canvas", { role: "img" });
+  var box = el("div", { class: "panel", "data-method": m.key },
+    el("div", { class: "panel-h" }, keySwatch(k), el("strong", { text: m.key + " — " + m.name }),
+      el("span", { class: "n" })),
+    cv);
+  $("panels").insertBefore(box, $("tip1"));
+  return { cv: cv, box: box, m: m, k: k, pad: PAD };
+});
+
+function setRange(index) {
+  var r = RANGES[index], i, k, top = 0;
+  view.range = index;
+  view.d0 = r.from ? Math.max(dayOf(r.from), DAYS[0]) : DAYS[0];
+  view.d1 = r.to ? Math.min(dayOf(r.to), DAYS[N - 1]) : DAYS[N - 1];
+  view.i0 = lowerBound(DAYS, view.d0);
+  view.i1 = lowerBound(DAYS, view.d1 + 1) - 1;
+  for (i = view.i0; i <= view.i1; i++) {
+    if (LOSS[i] > top) top = LOSS[i];
+    for (k = 0; k < METHODS.length; k++) if (METHODS[k].var[i] > top) top = METHODS[k].var[i];
+  }
+  view.yStep = niceStep(top, 5);
+  view.yMax = top * 1.06;                 /* just clear of the tallest point */
+  view.hover = -1;
+  var days = view.i1 - view.i0 + 1;
+  var counts = METHODS.map(function (m, k2) {
+    return cum[k2][view.i1] - (view.i0 > 0 ? cum[k2][view.i0 - 1] : 0);
+  });
+  $("rangeline").textContent = fmtIso(isoOf(DAYS[view.i0])) + " to " + fmtIso(isoOf(DAYS[view.i1])) + ": " +
+    int(days) + " trading days, " + (days * S.var_level).toFixed(1) + " breaks expected. " +
+    METHODS.map(function (m, k2) { return m.key + " had " + counts[k2]; }).join(", ") + ".";
+  panels.forEach(function (p, k2) {
+    p.box.querySelector(".n").textContent = counts[k2] + (counts[k2] === 1 ? " break" : " breaks") +
+      (index === 0 ? " · " + int(D.expected) + " expected" : " in this period");
+    p.cv.setAttribute("aria-label", "Daily losses and the " + p.m.name + " VaR, " +
+      fmtIso(isoOf(DAYS[view.i0])) + " to " + fmtIso(isoOf(DAYS[view.i1])) + ": " + counts[k2] + " breaks.");
+  });
+  Array.prototype.forEach.call($("ranges").children, function (b, j) {
+    b.setAttribute("aria-pressed", j === index ? "true" : "false");
+  });
+  $("tip1").hidden = true;
+  drawPanels();
+}
+function isoOf(day) { return dateOf(day).toISOString().slice(0, 10); }
+
+function drawPanels() {
+  var T = tokens(), h = narrow() ? 164 : 190;
+  var days = view.i1 - view.i0 + 1;
+  panels.forEach(function (p) {
+    var g = p.g = prep(p.cv, h), ctx = g.ctx, i, xx, yy;
+    var sc = p.sc = frame(ctx, g, PAD, T, view.d0, view.d1, view.yMax, view.yStep,
+      function (v) { return v === 0 ? "0" : Math.round(v / 1000) + "k"; });
+    p.d0 = view.d0; p.d1 = view.d1;
+    var dense = days > 1500;              /* several years: draw small */
+    ctx.save();
+    ctx.beginPath(); ctx.rect(PAD.l, PAD.t - 6, sc.pw, sc.ph + 6); ctx.clip();
+    /* the day's loss */
+    ctx.fillStyle = T.dot;
+    for (i = view.i0; i <= view.i1; i++) {
+      if (LOSS[i] <= 0 || isBreak[p.k][i]) continue;
+      xx = sc.x(DAYS[i]); yy = sc.y(LOSS[i]);
+      if (dense) ctx.fillRect(xx - 0.9, yy - 0.9, 1.8, 1.8);
+      else { ctx.beginPath(); ctx.arc(xx, yy, 2.2, 0, TAU); ctx.fill(); }
+    }
+    /* the VaR in force that day */
+    ctx.strokeStyle = T.series[p.k];
+    ctx.lineWidth = dense ? 1.4 : 2;
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.beginPath();
+    for (i = view.i0; i <= view.i1; i++) {
+      xx = sc.x(DAYS[i]); yy = sc.y(p.m.var[i]);
+      if (i === view.i0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+    }
+    ctx.stroke();
+    /* breaks, on top, each with a ring of surface so neighbours stay apart */
+    for (i = view.i0; i <= view.i1; i++) {
+      if (isBreak[p.k][i]) ring(ctx, sc.x(DAYS[i]), sc.y(LOSS[i]), dense ? 2.3 : 4.2, T.brk, T, dense ? 1 : 1.5);
+    }
+    ctx.restore();
+    snapshot(p);
+  });
+  if (view.hover >= 0) hoverPanels(view.hover, null);
+}
+function hoverPanels(i, from) {
+  var T = tokens();
+  view.hover = i;
+  panels.forEach(function (p) {
+    restore(p);
+    var xx = p.sc.x(DAYS[i]);
+    crosshair(p, xx, T);
+    if (LOSS[i] > 0) ring(p.g.ctx, xx, p.sc.y(LOSS[i]), 4.2, isBreak[p.k][i] ? T.brk : T.ink2, T);
+    ring(p.g.ctx, xx, p.sc.y(p.m.var[i]), 3.6, T.series[p.k], T);
+  });
+  if (!from) return;
+  var tip = $("tip1");
+  tip.textContent = "";
+  tip.appendChild(el("b", { text: fmtDate(DAYS[i]) }));
+  tip.appendChild(tipRow(null, LOSS[i] >= 0 ? "Loss" : "Gain", usd(Math.abs(LOSS[i]))));
+  METHODS.forEach(function (m, k) { tip.appendChild(tipRow(k, m.key + " VaR", usd(m.var[i]), isBreak[k][i])); });
+  placeTip(tip, $("panels"), from.cv, from.sc.x(DAYS[i]));
+}
+function clearPanels() {
+  if (view.hover < 0) return;
+  view.hover = -1;
+  $("tip1").hidden = true;
+  panels.forEach(restore);
+}
+panels.forEach(function (p) {
+  wire(p.cv, function (ev) { hoverPanels(nearest(pointerDay(p, ev), view.i0, view.i1), p); }, clearPanels);
+});
+RANGES.forEach(function (r, j) {
+  var b = el("button", { type: "button", text: r.label });
+  b.addEventListener("click", function () { setRange(j); });
+  $("ranges").appendChild(b);
+});
+
+/* ---------- 2. cumulative breaks against the 1% line ---------- */
+var cumChart = { cv: $("cum"), pad: { l: 40, r: 62, t: 10, b: 22 }, hover: -1 };
+function drawCum() {
+  var T = tokens(), c = cumChart, g = c.g = prep(c.cv, narrow() ? 240 : 310), ctx = g.ctx;
+  var top = Math.max.apply(null, METHODS.map(function (m) { return m.t1.breaks; }).concat([D.expected]));
+  var step = niceStep(top, 4), yMax = Math.ceil(top / step) * step;
+  c.d0 = DAYS[0]; c.d1 = DAYS[N - 1];
+  var sc = c.sc = frame(ctx, g, c.pad, T, c.d0, c.d1, yMax, step, function (v) { return String(v); });
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  /* what a perfect VaR would average: 1% of the days so far */
+  ctx.strokeStyle = T.baseline; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(sc.x(DAYS[0]), sc.y(S.var_level));
+  for (var i = 250; i < N; i += 250) ctx.lineTo(sc.x(DAYS[i]), sc.y(S.var_level * (i + 1)));
+  ctx.lineTo(sc.x(DAYS[N - 1]), sc.y(S.var_level * N));
+  ctx.stroke();
+  METHODS.forEach(function (m, k) {
+    ctx.strokeStyle = T.series[k]; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sc.x(DAYS[0]), sc.y(0));
+    m.breaks.forEach(function (b, n) {
+      ctx.lineTo(sc.x(DAYS[b]), sc.y(n)); ctx.lineTo(sc.x(DAYS[b]), sc.y(n + 1));
+    });
+    ctx.lineTo(sc.x(DAYS[N - 1]), sc.y(m.breaks.length));
+    ctx.stroke();
+  });
+  /* label each line at its end, nudged apart where two finish together */
+  var ends = METHODS.map(function (m, k) { return { text: m.key + " " + m.breaks.length, v: m.breaks.length, color: T.series[k] }; });
+  ends.push({ text: "1% " + Math.round(D.expected), v: D.expected, color: T.baseline });
+  ends.sort(function (a, b) { return b.v - a.v; });
+  var last = -Infinity;
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ends.forEach(function (e) {
+    var yEnd = sc.y(e.v), yText = Math.max(yEnd, last + 13);
+    last = yText;
+    ctx.strokeStyle = e.color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(g.w - c.pad.r + 2, yEnd); ctx.lineTo(g.w - c.pad.r + 8, yText); ctx.stroke();
+    ctx.fillStyle = T.ink2;
+    ctx.fillText(e.text, g.w - c.pad.r + 11, yText);
+  });
+  c.cv.setAttribute("aria-label", "Cumulative VaR breaks for each method against the 1% line: " +
+    METHODS.map(function (m) { return m.key + " " + m.breaks.length; }).join(", ") + ", expected " + Math.round(D.expected) + ".");
+  snapshot(c);
+  if (c.hover >= 0) hoverCum(c.hover);
+}
+function hoverCum(i) {
+  var T = tokens(), c = cumChart, xx = c.sc.x(DAYS[i]);
+  c.hover = i;
+  restore(c);
+  crosshair(c, xx, T);
+  METHODS.forEach(function (m, k) { ring(c.g.ctx, xx, c.sc.y(cum[k][i]), 3.6, T.series[k], T); });
+  var tip = $("tip2");
+  tip.textContent = "";
+  tip.appendChild(el("b", { text: fmtDate(DAYS[i]) }));
+  METHODS.forEach(function (m, k) { tip.appendChild(tipRow(k, m.key + " breaks so far", String(cum[k][i]))); });
+  tip.appendChild(tipRow(null, "1% of days so far", (S.var_level * (i + 1)).toFixed(0)));
+  placeTip(tip, c.cv.parentNode, c.cv, xx);
+}
+wire(cumChart.cv, function (ev) { hoverCum(nearest(pointerDay(cumChart, ev), 0, N - 1)); }, function () {
+  if (cumChart.hover < 0) return;
+  cumChart.hover = -1; $("tip2").hidden = true; restore(cumChart);
+});
+
+/* ---------- 3. every break day ---------- */
+var strip = { cv: $("strip"), pad: { l: 40, r: 10, t: 6, b: 22 }, hover: null, row: 26 };
+var byYear = {};
+METHODS.forEach(function (m, k) {
+  m.breaks.forEach(function (b) {
+    var y = dateOf(DAYS[b]).getUTCFullYear();
+    if (!byYear[y]) byYear[y] = METHODS.map(function () { return 0; });
+    byYear[y][k] += 1;
+  });
+});
+function drawStrip() {
+  var T = tokens(), c = strip, rows = METHODS.length;
+  var g = c.g = prep(c.cv, c.pad.t + rows * c.row + c.pad.b), ctx = g.ctx;
+  c.d0 = DAYS[0]; c.d1 = DAYS[N - 1];
+  var sc = c.sc = frame(ctx, g, c.pad, T, c.d0, c.d1, 1, 0, null);
+  ctx.strokeStyle = T.baseline; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(c.pad.l, g.h - c.pad.b + 0.5); ctx.lineTo(g.w - c.pad.r, g.h - c.pad.b + 0.5); ctx.stroke();
+  METHODS.forEach(function (m, k) {
+    var mid = c.pad.t + k * c.row + c.row / 2;
+    ctx.fillStyle = T.ink2; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(m.key, 4, mid);
+    ctx.fillStyle = T.muted;
+    ctx.fillText(String(m.breaks.length), 16, mid);
+    ctx.strokeStyle = T.series[k]; ctx.lineWidth = 1;
+    ctx.beginPath();
+    m.breaks.forEach(function (b) {
+      var xx = Math.round(sc.x(DAYS[b])) + 0.5;
+      ctx.moveTo(xx, mid - 9); ctx.lineTo(xx, mid + 9);
+    });
+    ctx.stroke();
+  });
+  c.cv.setAttribute("aria-label", "Timeline of every VaR break day for each method, " +
+    D.first.slice(0, 4) + " to " + D.last.slice(0, 4) + ".");
+  snapshot(c);
+  if (c.hover != null) hoverStrip(c.hover);
+}
+function hoverStrip(year) {
+  var T = tokens(), c = strip, ctx;
+  var x0 = Math.max(c.sc.x(Date.UTC(year, 0, 1) / DAY_MS), c.pad.l);
+  var x1 = Math.min(c.sc.x(Date.UTC(year + 1, 0, 1) / DAY_MS), c.g.w - c.pad.r);
+  c.hover = year;
+  restore(c);
+  ctx = c.g.ctx;
+  ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = T.ink2;
+  ctx.fillRect(x0, c.pad.t, Math.max(1, x1 - x0), c.g.h - c.pad.t - c.pad.b);
+  ctx.restore();
+  var tip = $("tip3"), counts = byYear[year] || METHODS.map(function () { return 0; });
+  tip.textContent = "";
+  tip.appendChild(el("b", { text: "Breaks in " + year }));
+  METHODS.forEach(function (m, k) { tip.appendChild(tipRow(k, m.key, String(counts[k]))); });
+  placeTip(tip, c.cv.parentNode, c.cv, (x0 + x1) / 2, true);
+}
+wire(strip.cv, function (ev) {
+  var day = Math.max(strip.d0, Math.min(strip.d1, pointerDay(strip, ev)));
+  hoverStrip(dateOf(day).getUTCFullYear());
+}, function () {
+  if (strip.hover == null) return;
+  strip.hover = null; $("tip3").hidden = true; restore(strip);
+});
+
+/* legends for the two all-years charts */
+["legend2", "legend3"].forEach(function (id) {
+  METHODS.forEach(function (m, k) {
+    $(id).appendChild(el("span", null,
+      el("i", { class: "sw-line", style: "--k: var(" + SERIES[k] + ")" }), m.key + " " + m.name));
+  });
+});
+$("legend2").appendChild(el("span", null,
+  el("i", { class: "sw-line", style: "--k: var(--baseline)" }), "1% of days so far"));
+
+/* ---------- draw, and redraw when the box or the theme changes ---------- */
+function drawAll() { drawPanels(); drawCum(); drawStrip(); }
+setRange(0);
+drawCum();
+drawStrip();
+
+var pending = 0, lastWidth = $("panels").clientWidth;
+function schedule() {
+  if (pending) return;
+  pending = requestAnimationFrame(function () { pending = 0; setRange(view.range); drawCum(); drawStrip(); });
+}
+if (window.ResizeObserver) {
+  new ResizeObserver(function () {
+    var w = $("panels").clientWidth;
+    if (w !== lastWidth) { lastWidth = w; schedule(); }
+  }).observe($("panels"));
+} else {
+  window.addEventListener("resize", schedule);
+}
+if (window.matchMedia) {
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  if (mq.addEventListener) mq.addEventListener("change", drawAll); else if (mq.addListener) mq.addListener(drawAll);
+}
+if (window.MutationObserver) {
+  new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+}
+})();
+</script>
+</body>
+</html>
