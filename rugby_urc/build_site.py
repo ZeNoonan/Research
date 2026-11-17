@@ -311,11 +311,14 @@ System #; the system bets home at +3 or more and away at −3 or less, and passe
 
 def shadow_table(table: pd.DataFrame, first_look: bool,
                  prior: pd.DataFrame | None = None, prior_label: str = "") -> str:
-    """The nine candidate factors for one season: tracked, not bet.
+    """The ten candidate factors for one season: tracked, not bet.
 
     ``first_look`` marks the season the situational directions were chosen on.
-    ``prior``, the season before's table, adds its rate beside this one's.
+    ``prior``, the season before's table, adds its rate beside this one's. A
+    factor that stands in for one of the five (the power variant) is marked ‡:
+    its *With it* is scored in that vote's place, not as a sixth vote.
     """
+    swaps = {f.key for f in shadow_factors.FACTORS if f.replaces}
     before = {} if prior is None else {r.key: r for r in prior.itertuples()}
     rows = []
     for r in table.itertuples():
@@ -323,7 +326,9 @@ def shadow_table(table: pd.DataFrame, first_look: bool,
         rate = f"{r.rate:.0%}" if n else "—"
         band = f"{r.rate:.0%} ± {r.band:.0%} (95%)" if n else ""
         mark = ("<sup title='direction chosen on this season'>†</sup>"
-                if first_look and r.group == "situational" else "")
+                if first_look and r.group == "situational" else
+                "<sup title='added after round 5 of 2026-27; With it puts it in "
+                "place of the power vote'>‡</sup>" if r.key in swaps else "")
         units = fmt_signed(r.sys_units)
         last = ""
         if prior is not None:
@@ -335,8 +340,8 @@ def shadow_table(table: pd.DataFrame, first_look: bool,
             f"<tr><td class='l' style='white-space:normal'>{esc(r.factor)}{mark}</td>"
             f"<td>{r.votes}</td><td>{r.W}–{r.L}</td><td title='{band}'>{rate}</td>{last}"
             f"<td>{r.sys_W}–{r.sys_L}<br><span class='pending'>{units}</span></td></tr>")
-    note = ("<p class='sub'>Nine candidate factors, <strong>tracked but not bet</strong>. "
-            "Their rules were fixed before any results were run. Voting about 100 times, "
+    note = ("<p class='sub'>Ten candidate factors, <strong>tracked but not bet</strong>. "
+            "The first nine had their rules fixed before any results were run. Voting about 100 times, "
             "a factor with no edge lands anywhere from about 40% to 60% by chance, so "
             "one season settles nothing: 2025-26 is the first look and 2026-27 the test."
             + (" † The direction of the four situational factors was chosen on this "
@@ -345,7 +350,13 @@ def shadow_table(table: pd.DataFrame, first_look: bool,
                f"season, to set this season's to-date rate against."
                if prior is not None else "")
             + " <em>With it</em> is the system's record with the factor added as a "
-            "sixth vote.</p>")
+            "sixth vote."
+            + (" ‡ The power factor with 3 points of home advantage added back, the "
+               "version the system may switch to for 2027-28. It was added after round 5 "
+               "of 2026-27, with the records to then already seen, so only later matches "
+               "test it, and its <em>With it</em> puts it in place of the power vote, not "
+               "beside it." if swaps & set(table["key"]) else "")
+            + "</p>")
     prior_head = (f"<th title='The rate over all of {prior_label}'>{prior_label}</th>"
                   if prior is not None else "")
     head = ("<tr><th class='l' style='white-space:normal'>Shadow factor</th>"
@@ -469,9 +480,11 @@ def shadow_legend() -> str:
         rule = f.rule if d != -1 else f.rule + " — <em>tracked reversed</em>"
         items.append(f"<tr><td>{i}</td><td class='l'>{esc(f.label)}</td>"
                      f"<td class='l' style='white-space:normal'>{rule}</td></tr>")
-    return ('<div class="card"><h3>The nine shadow factors</h3>'
+    return ('<div class="card"><h3>The ten shadow factors</h3>'
             '<p class="sub">Tracked alongside the five, not counted in the System #. '
-            'Luck (1–4) compares each club with its opponent in its last match.</p>'
+            'Luck (1–4) compares each club with its opponent in its last match. '
+            'The last is the power factor with one change, tracked in case the system '
+            'switches to it, and is scored in the power vote\'s place.</p>'
             '<div class="scroll"><table><thead><tr><th>#</th><th class="l">Factor</th>'
             '<th class="l">Rule</th></tr></thead><tbody>' + "".join(items)
             + "</tbody></table></div></div>")
@@ -512,6 +525,14 @@ def status_panel(seasons: dict[int, pd.DataFrame]) -> str:
                          f"{len(nxt)} match{'es' if len(nxt) > 1 else ''}, {days}. "
                          "Enter in <code>entry/urc_2026_entry.xlsx</code>, "
                          "negative when the home side is favoured.")
+    if due := season_report.power_rule_due(list(seasons)):
+        label = season_report.season_label(due)
+        needs.append(f"<strong>Your decision on the power rule for {label}.</strong> As "
+                     "written, the power factor adds no home advantage back and votes "
+                     "away about nine times in ten. Since round 5 of 2026-27 the version "
+                     "with 3 points added back has been tracked as a shadow factor "
+                     "(<em>Power, 3-point home edge</em>). Keep the rule or switch, "
+                     f"before {label}'s first picks.")
     if not needs:
         return ""
     return ('<div class="card"><h3>What the model still needs</h3><ul class="todo">'

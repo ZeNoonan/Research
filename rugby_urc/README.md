@@ -61,21 +61,21 @@ the fixture list.
 
 ## Open items
 
-1. **The power factor votes away nine times in ten.** It is the NFL rule
-   ported faithfully, but it behaves differently on URC handicaps. Yours to
-   decide whether that is wanted. See *The power factor leans away*.
-2. **Past picks are worked out afresh on every run.** Nothing holds a pick as
-   it stood at kick-off, so a change to a rule or a constant rewrites the
-   record behind it. It has happened twice, both disclosed: round 1's Friday
-   pick (*The line the model runs on*) and one 2025-26 System # (*Tests*).
-   Yours to decide whether picks should be frozen once a match is played.
-3. **Ten close-call lines from 2025-26** (optional) would firm up the backtest.
+1. **Before 2027-28: keep the power rule, or switch to the 3-point version?**
+   The power factor votes away nine times in ten. After round 5 you chose to
+   keep it for the rest of 2026-27 and to track the version with 3 points of
+   home advantage added back, as shadow factor 10. The question comes back to
+   you before 2027-28's first picks: once next season's fixtures are loaded,
+   `season_report.py`, `import_fixtures.py` and the site's lead card all raise
+   it. See *The power factor leans away*.
+2. **Ten close-call lines from 2025-26** (optional) would firm up the backtest.
    See *Ten close calls*.
-4. **Your local `urc_scraper.py` and `urc_season_scraper.py`** are older
+3. **Your local `urc_scraper.py` and `urc_season_scraper.py`** are older
    copies. Replace them with the repo's: the old feed no longer answers, and
    these read the URC site's own API instead (see *The scrapers*).
 
-Home advantage, the open item until round 5, is settled: see *Home advantage*.
+Settled after round 5: home advantage stays at 5.0 (*Home advantage*), and past
+picks are not frozen, because your bets are the frozen record (*Your bets*).
 
 ## How it did on 2025-26
 
@@ -207,6 +207,17 @@ side; separate, so neither is read as the other. It shows:
   split across two slips) at the standard 1.91, so the two profits compare like
   with like.
 
+**Your bets are the frozen record; the system's picks are not.** Every run
+works out the system's picks afresh from the season files, and nothing stores a
+pick as it stood at kick-off. So a change to a rule or a constant rewrites the
+system's record behind it. That has happened twice, both disclosed: round 1's
+Friday pick (*The line the model runs on*) and one 2025-26 System # (*Tests*).
+After round 5 you chose not to freeze picks: storing every pick as it stood
+would be more machinery than it is worth, and the bet log already freezes what
+matters, the bets placed, at the line and price taken. So the system's record
+is always the current rules applied to every match, and any change to a rule is
+recorded in this README with what it moved.
+
 Two gaps the screenshots leave, and how they are handled:
 
 - **Prices.** The open-bets screen shows the cash-out value, not the price, and
@@ -251,22 +262,23 @@ comes up twice. Rerunning it gives the same club. The card also works each
 number out again from the season files and sets it beside what the report
 used, so a disagreement between the two shows on the card before you check.
 
-## Shadow factors: nine candidates, tracked but not bet
+## Shadow factors: ten candidates, tracked but not bet
 
-Nine candidate factors run alongside the five in `shadow_factors.py`. Each
+Ten candidate factors run alongside the five in `shadow_factors.py`. Each
 casts the same kind of vote (+1 home, −1 away, 0 neither), but **none counts
 towards the System # or the picks**. They are there to be tested.
 
 ### The protocol
 
-Testing nine things on one season is the easiest way there is to find an edge
+Testing ten things on one season is the easiest way there is to find an edge
 that is not there. A factor that votes about 100 times has a 95% band of
-roughly 40–60% with no edge at all, so on nine factors one or two will look
+roughly 40–60% with no edge at all, so on ten factors one or two will look
 good by chance. So:
 
 1. **The rules below were fixed and committed before any of them was run on
    real data**, and are not tuned afterwards. The commit history shows the
-   order.
+   order. The one exception is number 10, added after round 5 of 2026-27
+   with its record to then already seen; only the matches after that test it.
 2. **2025-26 is the first look; 2026-27 is the test.** Only a factor that
    holds up on a season it was not chosen on is a candidate for the system.
 3. **Every factor is reported**, not only the ones that look good.
@@ -308,6 +320,13 @@ first look).
 | # | factor | votes | as written |
 |---|---|---|---|
 | 9 | **Line move** | the close is 2 or more points from the open | backs the side the line moved against: fades the move, the over-reaction reading the power factor already takes |
+
+**Variant** (one of the five with a single change, tracked in case the system
+switches to it: see *The power factor leans away*).
+
+| # | factor | votes | as written |
+|---|---|---|---|
+| 10 | **Power, 3-point home edge** | the line and both ratings are known | the power factor with 3 points of home advantage added back (none at a neutral venue). Its *With it* puts it **in place of** the power vote, not beside it |
 
 ### First look: 2025-26
 
@@ -362,7 +381,9 @@ running record, season by season, under each season's tab.
 For each factor and season: how often it voted, its record on the matches it
 voted on (pushes excluded), a 95% band, and **the system's record with it
 added as a sixth vote**. That is the five-factor System # plus this vote,
-betting at the same ±3, and only where the system itself could bet. The
+betting at the same ±3, and only where the system itself could bet. Number 10
+is the exception, marked ‡: it replaces the power vote, so its record is the
+system as it would be after a switch. The
 current season's table also gives each factor's rate over all of last season,
 to set the rate to date against.
 
@@ -566,6 +587,21 @@ For reference, adding points back before the comparison gives:
 Three points back gives roughly the NFL's own split. The records do not
 separate the options.
 
+**Decided after round 5: keep the rule for 2026-27, and track the 3-point
+version.** The power vote with 3 points added back (none at a neutral venue) is
+shadow factor 10, *Power, 3-point home edge*, on the site every week. Its *With
+it* record is the system with it in place of the power vote: to round 5, the
+23–25 and 8–6 of the table above. Both were seen before it was added, so the
+fair test is 2026-27 from round 6 on: the system as it is against the system
+with the switch, over the same matches.
+
+**The question comes back to you before 2027-28.** `POWER_RULE_DECIDED_FOR` in
+`season_report.py` is the last season the rule was decided for (2026). Once a
+later season's fixtures are loaded, `season_report.py`, `import_fixtures.py`
+and the site's lead card all raise it, until it has been put to you and the
+constant is moved on. A switch would apply from 2027-28 on, leaving 2025-26 and
+2026-27 as they were run.
+
 ## A turnover is not a giveaway
 
 The NFL system's turnover factor reads `giveaways − takeaways`: how much ball a
@@ -757,7 +793,7 @@ rugby_urc/
 ├── spread_from_odds.py   # 1X2 decimal odds -> a handicap (Shin de-vig + normal)
 ├── line_check.py         # inferred lines against real ones; the close calls
 ├── match_stats.py        # every scraped stat per match -> data/stats_<year>.csv
-├── shadow_factors.py     # nine candidate factors, tracked but not bet
+├── shadow_factors.py     # ten candidate factors, tracked but not bet
 ├── my_bets.py            # your bets from ../bets/bet_log.csv, beside the system
 ├── spot_check.py         # the weekly spot check: a club drawn, its inputs to check
 ├── calibrate.py          # fit HOME_ADVANTAGE from the handicaps
@@ -841,7 +877,7 @@ vote, from the scraped files; and the site itself, read back as data — tiles,
 *Every match*, the profit curve, both heatmaps, the shadow table and the bet
 tracker. It imports nothing from the project: its own club list, parsing and
 grading, and a rating fit in exact fractions where the pipeline uses
-floating-point least squares. `--self-test` plants 17 faults in copies of the
+floating-point least squares. `--self-test` plants 19 faults in copies of the
 files and confirms each is caught. **Run it after every build**; a page left
 stale fails it.
 
@@ -880,8 +916,10 @@ them, with `test_scraper.py` and `test_season_scraper.py` for the scrapers:
 | The spot-check draw is reproducible and takes every club in turn; each card agrees with the report | pass |
 | A handicap the ratings imply exactly gets no power vote, for every rating pair that can tie | pass |
 | The season file owns the fixture list: an older sheet cannot move or drop a fixture | pass |
-| `test_independent.py`: every published number recomputed without the pipeline's code | 63 checks pass |
-| `test_independent.py --self-test`: planted faults caught | 17 of 17 |
+| The power variant: 3 points back, none at a neutral venue, scored in the power vote's place | pass |
+| The power rule comes back to you before a season it has not been decided for | pass |
+| `test_independent.py`: every published number recomputed without the pipeline's code | 65 checks pass |
+| `test_independent.py --self-test`: planted faults caught | 19 of 19 |
 | An older copy of the entry sheet cannot change a played match's line | pass |
 
 That is a test of the plumbing, not evidence the system works on rugby.
@@ -899,7 +937,7 @@ python build_site.py                               # -> index.html
 streamlit run app.py                               # browse it
 python calibrate.py                                # fit the home-advantage terms
 python factor_analysis.py                          # per-factor diagnostics
-python shadow_factors.py                           # the nine candidate factors
+python shadow_factors.py                           # the ten candidate factors
 python my_bets.py                                  # your bets beside the system
 python spot_check.py draw --season 2026 --round 5  # the week's spot-check club
 python import_fixtures.py paste.txt --season 2026  # fixture text -> season file (once a season)
@@ -1015,13 +1053,18 @@ Done:
 - The turnover definition settled on the conceded differential.
 - Opening and closing lines recorded, with the model running on the close.
 - Nine shadow factors, their rules fixed before any results; first look on
-  2025-26.
+  2025-26. A tenth, the power factor with 3 points of home advantage added
+  back, from round 6 of 2026-27.
+- `HOME_ADVANTAGE` reviewed on this season's quoted lines after round 5, and
+  left at 5.0.
 - Your actual bets tracked beside the system, on the site and in the app.
 - Older copies of the entry sheet barred from changing a played match's lines.
 
 Next:
 
-1. **Calibrate `HOME_ADVANTAGE`** on this season's quoted lines, around round 5.
-2. **Judge the shadow factors** at the end of 2026-27, both seasons pooled. The
-   line-move factor gets its first look this season.
+1. **Judge the shadow factors** at the end of 2026-27, both seasons pooled. The
+   line-move factor gets its first look this season. The power variant is
+   judged on the matches after round 5 only.
+2. **Before 2027-28, decide the power rule** with you: keep it, or switch to
+   the 3-point version. See *The power factor leans away*.
 3. Firm up the backtest with the ten close-call lines (optional).

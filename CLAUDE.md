@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Research Repository
 
 **Repository**: Research
-**Last Updated**: 2026-11-15
+**Last Updated**: 2026-11-17
 **Status**: Active — several independent research projects
 
 ## Table of Contents
@@ -68,6 +68,11 @@ Research/
   passed": it recomputes every published figure (report, shadow votes, site, bet tracker)
   **without importing the pipeline**; keep it that way. `python3 test_pipeline.py` checks the
   plumbing on generated data. See `rugby_urc/README.md`, *Each week* and *Tests*.
+  **Before setting up 2027-28**, ask the user whether the power factor keeps its rule or switches
+  to the 3-point version (shadow factor `power_3`), then move `POWER_RULE_DECIDED_FOR` in
+  `season_report.py` on; `season_report.py`, `import_fixtures.py` and the site raise it once the
+  new season's fixtures are loaded. Past picks are not frozen, by the user's choice: the bet log
+  is the record of what was bet, and any rule change is written up in the README.
 - **`bets/`** — `bet_log.csv`, the user's actual bets in every sport, one row per bet. Public, and
   read by `rugby_urc/my_bets.py`. Ids are never reused; special offers are left out. See
   `bets/README.md`.
@@ -422,6 +427,9 @@ _To be documented: How to get help, who to contact for specific areas_
 ---
 
 ## Changelog
+
+### 2026-11-17 - rugby_urc/ power rule
+- Documented that the power rule is put to the user before 2027-28, and that picks are not frozen
 
 ### 2026-11-15 - rugby_urc/ independent check
 - Documented `rugby_urc/test_independent.py`, run after every build

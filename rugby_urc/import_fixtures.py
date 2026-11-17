@@ -34,7 +34,7 @@ from pathlib import Path
 import pandas as pd
 
 import teams
-from season_report import SEASON_COLUMNS
+from season_report import SEASON_COLUMNS, power_rule_due, power_rule_reminder
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -260,6 +260,8 @@ def main() -> None:
             print(f"  - {p}")
     else:
         print("\nshape checks pass: every round pairs all 16 clubs once.")
+    if due := power_rule_due([season]):
+        print(f"\n{power_rule_reminder(due)}")
 
 
 if __name__ == "__main__":

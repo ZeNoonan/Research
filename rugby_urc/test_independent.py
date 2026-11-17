@@ -77,7 +77,7 @@ JUICE = F(11, 10)                   # a losing bet costs 1.1 units
 NEUTRAL_MARKS = {"Y", "YES", "TRUE", "1", "N/V"}
 MATCH_DAYS = {4, 5, 6}              # Friday, Saturday, Sunday
 
-# The nine shadow factors: tracked beside the five, never bet.
+# The ten shadow factors: tracked beside the five, never bet.
 COUNTRY = {"Leinster": "IE", "Munster": "IE", "Ulster": "IE", "Connacht": "IE",
            "Cardiff": "WA", "Dragons": "WA", "Ospreys": "WA", "Scarlets": "WA",
            "Edinburgh": "SC", "Glasgow": "SC", "Benetton": "IT", "Zebre": "IT",
@@ -86,11 +86,12 @@ BIG_MISS = 10                       # missed or beat the last line by this much
 TOUR_GAP_DAYS = 8                   # two long-haul away matches this close are a tour
 BIG_LINE = 14                       # a handicap this big
 BIG_MOVE = 2                        # the close this far from the open
+HOME_BACK = 3                       # the power variant adds this much home advantage back
 SHADOWS = {                         # key -> the name the site shows
     "last_cover": "Last result v the line", "cards": "Cards", "kicking": "Goal-kicking",
     "red_zone": "Scoring from the 22", "long_haul": "Long-haul trip",
     "tour_leg2": "Second match of a tour", "derby": "Derby", "big_line": "Big handicap",
-    "line_move": "Line move"}
+    "line_move": "Line move", "power_3": "Power, 3-point home edge"}
 
 
 # --- reading -----------------------------------------------------------------
@@ -361,7 +362,7 @@ def run_model(seasons: dict[int, list[Match]], reported: dict | None = None) -> 
                 m.result = "W" if (m.bet == m.home) == (cover(m) > 0) else "L"
 
 
-# --- the nine shadow factors, from their written rules ------------------------
+# --- the ten shadow factors, from their written rules -------------------------
 
 def scraped_stats(root: Path, year: int) -> dict:
     """Each scraped match's cards, missed kicks and visits to the 22, by side,
@@ -425,6 +426,10 @@ def shadow_votes(seasons: dict[int, list[Match]], root: Path) -> None:
                                     and abs(m.line) >= BIG_LINE else 0)
             move = diff(m.closing, m.opening)
             m.shadow["line_move"] = sign(move) if move is not None and abs(move) >= BIG_MOVE else 0
+            # The power vote, with home advantage added back (none at a neutral venue).
+            rated = None not in (m.line, m.home_power, m.away_power)
+            m.shadow["power_3"] = (sign(m.line + (0 if m.neutral else HOME_BACK)
+                                        - (m.away_power - m.home_power)) if rated else None)
 
             # What this match says about each club, for its next one.
             s = stats.get(m.key)
@@ -464,7 +469,8 @@ def shadow_votes(seasons: dict[int, list[Match]], root: Path) -> None:
 
 def shadow_table(matches: list[Match]) -> dict[str, dict]:
     """Each factor's season: votes cast, its record, and the system's with it
-    counted as a sixth vote."""
+    counted as a sixth vote - or, for the power variant, in place of the power
+    vote."""
     out = {}
     listed = [m for m in matches if m.listed]
     for f in SHADOWS:
@@ -476,6 +482,8 @@ def shadow_table(matches: list[Match]) -> dict[str, dict]:
                 won += c != 0 and vote == c
                 lost += c != 0 and vote != c
             total = m.system + (vote or 0)
+            if f == "power_3":                      # stands in for the power vote
+                total -= m.votes[0]
             pick = sign(total) if abs(total) >= BET_AT else 0
             if (pick and c and m.line is not None and m.home_power is not None
                     and not m.held):
@@ -1037,9 +1045,15 @@ def check_site_season(check: Checks, page: Page, year: int, matches: list[Match]
                     + ([percent(prior[f]["won"], prior[f]["lost"])] if prior else [])
                     + [f"{s['sys_won']}\u2013{s['sys_lost']} / {float(s['sys_units']):+.1f}"])
     table = page.table(section, "Shadow factors")
-    shown = [[row[0].rstrip("\u2020").strip()] + row[1:] for row in table["rows"]] if table else []
+    marks = "\u2020\u2021"
+    shown = [[row[0].rstrip(marks).strip()] + row[1:] for row in table["rows"]] if table else []
     check("the shadow-factor table matches", compare(shown, rows, "factor")
           if table else ["the table is missing"])
+    # ‡ tells the reader its With it is in place of the power vote, not a sixth.
+    swapped = [row[0].rstrip(marks).strip() for row in (table or {}).get("rows", [])
+               if row[0].rstrip("\u2020").endswith("\u2021")]
+    check("only the power variant is marked as standing in for the power vote",
+          swapped == [SHADOWS["power_3"]], f"marked: {swapped}")
 
 
 def check_site_tracker(check: Checks, page: Page, label: str, bets: list[dict],
@@ -1227,6 +1241,13 @@ def self_test() -> int:
         ("a shadow-factor vote", "every shadow-factor vote matches",
          lambda root: _edit(root / f"data/shadow_{year}.csv", lambda r: r["long_haul"] == "0",
                             _bump("long_haul", 1))),
+        ("a 3-point power vote", "every shadow-factor vote matches",
+         lambda root: _edit(root / f"data/shadow_{year}.csv", lambda r: r["power_3"] == "-1",
+                            lambda r: r.update(power_3="1"))),
+        ("the power variant's With it on the site", "the shadow-factor table matches",
+         lambda root: _swap_text(root / "index.html",
+                                 r"(Power, 3-point home edge.*?<td>)(\d+)(\u2013\d+<br>)",
+                                 lambda m: m.group(1) + str(int(m.group(2)) + 1) + m.group(3))),
         ("the record on the site", "the season's tiles match",
          lambda root: _swap_text(root / "index.html",
                                  r'(<div class="k">Record</div><div class="v ">)(\d+)',
