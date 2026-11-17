@@ -60,7 +60,9 @@ Research/
   exports. The repo is public, so **never commit real bank data**: the user's exports, mapping and
   balances live outside the repo, and only the generated `sample_data/` is tracked (`.gitignore`
   enforces this). Regenerate sample data with `python3 generate_sample_data.py`; run
-  `pytest test_finance.py` inside `expense/`. See `expense/README.md`.
+  `pytest test_finance.py` inside `expense/`. The user runs **Streamlit 1.45** locally, so run the
+  tests under `streamlit==1.45.1` (in a venv) as well as the latest before relying on any newer
+  Streamlit API: `width='stretch'` passed the latest and crashed theirs. See `expense/README.md`.
 - **`rugby_urc/`** — the URC five-factor against-the-spread system, run weekly through the
   2026-27 season. Each week: reconcile and load the scraped round (`import_turnovers.py`), the
   user's entry sheet (`entry_sheet.py import`), then run `season_report.py`, `shadow_factors.py`,
@@ -441,6 +443,9 @@ _To be documented: How to get help, who to contact for specific areas_
 ---
 
 ## Changelog
+
+### 2026-11-17 - expense/ Streamlit version
+- Noted that the user runs Streamlit 1.45 locally and the app must be tested against it
 
 ### 2026-11-17 - rugby_urc/ power rule
 - Documented that the power rule is put to the user before 2027-28, and that picks are not frozen

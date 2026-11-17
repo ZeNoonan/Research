@@ -501,7 +501,10 @@ def apply_color_negative(series):
 # Apply styling
 styled_df = display_df.style.format(format_values).apply(apply_color_negative, axis=1)
 
-st.dataframe(styled_df, width='stretch')
+# Tables and charts get no width argument. The default (full width, faceted charts at their natural
+# width) is the same in every Streamlit from 1.45 on, but asking for full width differs by version:
+# use_container_width=True in older ones, width='stretch' in newer ones, and the wrong one crashes
+st.dataframe(styled_df)
 
 # -----------------------
 # Drill-down by Category
@@ -520,10 +523,7 @@ if selected_category:
     ].sort_values('Date', ascending=False)
     
     st.write(f"**{selected_category}** - {len(category_transactions)} transactions, Total: €{category_transactions['amount'].sum():,.2f}")
-    st.dataframe(
-        category_transactions[['Date', 'Description', 'amount', 'source']],
-        width='stretch'
-    )
+    st.dataframe(category_transactions[['Date', 'Description', 'amount', 'source']])
 
 # -----------------------
 # Prepare expense data for chart
@@ -616,7 +616,7 @@ display_df_with_alt = display_df_with_alt.reindex(row_order)
 st.subheader("Monthly Cash Movement by Category (User-Friendly Names)")
 
 styled_df_alt = display_df_with_alt.style.format(format_values).apply(apply_color_negative, axis=1)
-st.dataframe(styled_df_alt, width='stretch')
+st.dataframe(styled_df_alt)
 
 # -----------------------
 # Prepare data for charts with Alt_Coding
@@ -685,7 +685,7 @@ chart_altair = alt.Chart(expense_long_alt).mark_bar().encode(
     labelLimit=200
 )
 
-st.altair_chart(chart_altair, width='stretch')
+st.altair_chart(chart_altair)
 
 # =============================================================================
 # Faceted Bar Charts - One per Category
@@ -719,4 +719,4 @@ chart_faceted = alt.Chart(facet_data).mark_bar().encode(
     y='independent'
 )
 
-st.altair_chart(chart_faceted, width='stretch')
+st.altair_chart(chart_faceted)
