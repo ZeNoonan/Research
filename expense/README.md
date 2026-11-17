@@ -193,9 +193,12 @@ Found by running it on the sample data.
 5. **The reconciliation only checked the net of both accounts**, where an error
    in one could hide behind the other. It is now per account, plus the daily
    current account check.
-6. `use_container_width` is deprecated (its announced removal date was
-   2025-12-31) and replaced with `width='stretch'`, which needs Streamlit 1.51
-   or later. If you see an error about `width`, run `pip install -U streamlit`.
+6. **Table and chart widths.** Current Streamlit deprecates
+   `use_container_width=True`, but its replacement, `width='stretch'`, crashes
+   older versions: 1.45 raises `TypeError: 'str' object cannot be interpreted
+   as an integer`. Both versions already default to full width (faceted charts
+   to their natural width), so the tables and charts now pass neither. Tested
+   on Streamlit 1.45.1 and 1.67.
 7. Sheet2 was read twice; once is enough. A row-count check now sits next to
    the sum-preservation test.
 
