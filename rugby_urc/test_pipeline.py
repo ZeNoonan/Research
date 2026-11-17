@@ -38,7 +38,9 @@ depends on hold:
     line, checked against the bookmaker's settlement, and set beside the
     system's picks in the same rounds; a cash-out stands at the amount paid;
 20. the weekly spot check draws fairly - reproducibly, every club in turn -
-    its card agrees with the report, and each confirmation is logged.
+    its card agrees with the report, and each confirmation is logged;
+21. the power rule is put to you before a season it has not been decided for:
+    in the weekly report's output and on the site.
 
 Run: ``python test_pipeline.py``
 """
@@ -223,6 +225,19 @@ def main() -> int:
             and r.result != model.grade(r.system_num, r.home_score, r.away_score, r.line)
         ]
         passed &= check("graded results match model.grade", not bad, str(bad[:3]))
+        # 5.6 - 1.6 is 3.9999999999999996 in binary floats, so a 4.0 handicap the
+        # ratings imply exactly once read as a home vote (2025-26 round 8).
+        # Every pair of one-decimal ratings a half-point handicap can tie with,
+        # the handicap written as it is stored: a decimal, not a float difference.
+        ties = [model.power_factor(home / 10, away / 10, (away - home) / 10)
+                for home in range(-250, 251) for away in range(-250, 251)
+                if (away - home) % 5 == 0]
+        passed &= check("a handicap the ratings imply exactly gets no power vote",
+                        model.power_factor(1.6, 5.6, 4.0) == 0 and not any(ties),
+                        f"{sum(map(bool, ties))} of {len(ties)} ties cast a vote")
+        passed &= check("and a tenth either side of it still votes",
+                        (model.power_factor(1.6, 5.7, 4.0), model.power_factor(1.6, 5.5, 4.0))
+                        == (-1, 1))
 
         print("\n7. an unpriced round produces no report rows")
         unpriced = make_season(2026, range(1, 3), start="2026-09-18",
@@ -561,6 +576,39 @@ def main() -> int:
                  - pd.to_numeric(before["closing_line"]))
         passed &= check("unless --relines says to", (shift == 2).all())
 
+        # (e) the season file owns the fixture list. An older copy of the sheet
+        # carries an unplayed fixture under the date it had before a correction.
+        season.to_csv(data / "season_2026.csv", index=False)
+        before = stored()
+        moved = season.index[season["round"] == 2][0]
+        pair = (season.at[moved, "home"], season.at[moved, "away"])
+        sheet = season.copy()
+        sheet.at[moved, "date"] = "2026-09-27"
+        sheet.at[moved, "closing_line"] = 12.5
+        sheet.to_csv(data / "redated.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "redated.csv")
+        after = stored()
+        row = after[(after["home"] == pair[0]) & (after["away"] == pair[1])]
+        passed &= check("an older sheet cannot move a fixture's date",
+                        len(after) == len(before) and after["date"].equals(before["date"]))
+        passed &= check("and the row's typed line is still applied",
+                        len(row) == 1 and float(row["closing_line"].iloc[0]) == 12.5)
+        season.to_csv(data / "season_2026.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "redated.csv", redate=True)
+        after = stored()
+        row = after[(after["home"] == pair[0]) & (after["away"] == pair[1])]
+        passed &= check("unless --redate says to, and then no second row appears",
+                        len(after) == len(before) and len(row) == 1
+                        and row["date"].iloc[0] == "2026-09-27")
+
+        # (f) a sheet that has lost an unplayed fixture must not drop it: the
+        # two clubs' next match would read the wrong "last match".
+        season.to_csv(data / "season_2026.csv", index=False)
+        sheet = season.drop(index=moved)
+        sheet.to_csv(data / "cut.csv", index=False)
+        entry_sheet.import_sheet(2026, data / "cut.csv")
+        passed &= check("a fixture missing from the sheet is kept", stored().equals(before))
+
     print("\n14. LGT is the conceded differential, not own conceded minus own won")
     with tempfile.TemporaryDirectory() as tmp:
         data = Path(tmp)
@@ -706,7 +754,8 @@ def main() -> int:
     def match(date, home, away, line, hs, as_, home_stats, away_stats, opening=np.nan):
         row = {"date": date, "round": 1, "home": home, "away": away, "season": 2025,
                "block": 0, "neutral": False, "line": line, "opening_line": opening,
-               "home_score": hs, "away_score": as_}
+               "home_score": hs, "away_score": as_,
+               "home_power": np.nan, "away_power": np.nan}   # unrated: power_3 abstains
         row.update({f"home_{k}": v for k, v in zip(stat_names, home_stats)})
         row.update({f"away_{k}": v for k, v in zip(stat_names, away_stats)})
         return row
@@ -750,6 +799,25 @@ def main() -> int:
                     leg2["big_line"] == -1 and trip["big_line"] == 0)
     passed &= check("the second match reads the first, not a later one",
                     leg2["cards"] == 0 and leg2["kicking"] == 0)
+    passed &= check("with no ratings the power variant abstains", v["power_3"].isna().all())
+
+    # The power variant: home 10.0, away 5.0, so the ratings imply home -5.
+    pv = pd.DataFrame({"line": [-7.0, -8.0, -7.0, -7.0],
+                       "home_power": [10.0, 10.0, 10.0, np.nan],
+                       "away_power": [5.0, 5.0, 5.0, 5.0],
+                       "neutral": [False, False, True, False]})
+    as_cast = shadow_factors.power_votes(pv)
+    back = shadow_factors.power_votes(pv, shadow_factors.HOME_BACK)
+    passed &= check("with nothing added back it is the power factor itself",
+                    list(as_cast[:3]) == [model.power_factor(10.0, 5.0, x)
+                                          for x in (-7.0, -8.0, -7.0)])
+    passed &= check("3 points back turns an away power vote at -7 into a home one",
+                    (as_cast[0], back[0]) == (-1, 1), f"{as_cast[0]}, {back[0]}")
+    passed &= check("a handicap exactly 3 points from the ratings' line gets no vote",
+                    back[1] == 0, f"vote {back[1]}")
+    passed &= check("at a neutral venue nothing is added back",
+                    back[2] == as_cast[2] == -1, f"{as_cast[2]}, {back[2]}")
+    passed &= check("no rating, no vote", np.isnan(back[3]))
 
     print("\n18. shadow factors end to end: stats file, scoring, direction")
     with tempfile.TemporaryDirectory() as tmp:
@@ -798,6 +866,16 @@ def main() -> int:
         shadow_factors.DIRECTION["cards"] = was
         passed &= check("reversing a direction swaps its record",
                         (flipped["W"], flipped["L"]) == (t.loc["cards", "L"], t.loc["cards", "W"]))
+        passed &= check("the power variant votes wherever there are ratings and a line",
+                        t.loc["power_3", "votes"] > 0)
+        was = shadow_factors.HOME_BACK
+        shadow_factors.HOME_BACK = 0.0
+        same = shadow_factors.build()[2025].set_index("key").loc["power_3"]
+        shadow_factors.HOME_BACK = was
+        passed &= check("it stands in for the power vote: with nothing added back, the "
+                        "system's record is the five's own",
+                        (same["sys_W"], same["sys_L"]) == (bw, bl),
+                        f"{same['sys_W']}-{same['sys_L']}, the five {bw}-{bl}")
         passed &= check("each match's votes are written out",
                         (data / "shadow_2025.csv").exists())
 
@@ -940,6 +1018,36 @@ def main() -> int:
                         "Spot check, round 17" in site and site.count("<tr><td>") == 16
                         + len(cards[-1]["covers"]) and "✓ agreed" in site
                         and "LGT 4, not 5" in site)
+
+    print("\n21. the power rule is put to you before a season it has not been decided for")
+    with tempfile.TemporaryDirectory() as tmp:
+        data = Path(tmp)
+        season_report.DATA_DIR = data
+        decided = season_report.POWER_RULE_DECIDED_FOR
+        for year in (decided - 1, decided):
+            make_season(year, range(1, 19), start=f"{year}-09-19").to_csv(
+                data / f"season_{year}.csv", index=False)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            season_report.main()
+        passed &= check("nothing is raised while every season loaded has been decided",
+                        season_report.power_rule_due() is None
+                        and "POWER RULE" not in out.getvalue())
+        later = decided + 1
+        make_season(later, range(1, 3), start=f"{later}-09-19", played=False,
+                    turnovers=False, priced=False).to_csv(
+            data / f"season_{later}.csv", index=False)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            season_report.main()
+        label = season_report.season_label(later)
+        passed &= check(f"{label}'s fixtures raise it in the weekly report",
+                        season_report.power_rule_due() == later
+                        and f"POWER RULE: {label}" in out.getvalue())
+        panel = build_site.status_panel(
+            {y: season_report.load_season(y) for y in season_report.available_seasons()})
+        passed &= check("and on the site's lead card",
+                        f"decision on the power rule for {label}" in panel)
 
     print("\n" + ("all checks passed" if passed else "SOME CHECKS FAILED"))
     return 0 if passed else 1

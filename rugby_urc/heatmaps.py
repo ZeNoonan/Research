@@ -91,7 +91,7 @@ def heatmap_html(pivot: pd.DataFrame, *, decimals: int, caption: str) -> str:
             dbg, dfg = colour(v, cap, "dark")
             cells.append(
                 f'<td style="--lbg:{lbg};--lfg:{lfg};--dbg:{dbg};--dfg:{dfg}">'
-                f'{v:+.{decimals}f}</td>')
+                f'{round(float(v), decimals) + 0.0:+.{decimals}f}</td>')
         rows.append(f"<tr><th>{club}</th>{''.join(cells)}</tr>")
     return (f'<figure class="heat"><figcaption>{caption}</figcaption>'
             f'<div class="scroll"><table><thead><tr><th>Club</th>{head}</tr></thead>'

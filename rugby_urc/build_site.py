@@ -142,7 +142,9 @@ def esc(x) -> str:
 
 
 def fmt_signed(x, dp: int = 1) -> str:
-    return "" if pd.isna(x) else f"{float(x):+.{dp}f}"
+    """A signed number. Rounded first, so a float a hair below zero - eleven
+    wins less ten losses at 1.1 - reads +0.0, not -0.0."""
+    return "" if pd.isna(x) else f"{round(float(x), dp) + 0.0:+.{dp}f}"
 
 
 def stats(df: pd.DataFrame) -> dict:
@@ -163,7 +165,7 @@ def tiles(s: dict) -> str:
     items = [("Matches", str(s["matches"]), ""), ("Priced", str(s["priced"]), ""),
              ("Played", str(s["played"]), ""), ("Bets", str(s["bets"]), ""),
              ("Record", f"{s['w']}–{s['l']}", ""), ("Win rate", rate, ""),
-             ("Profit (units)", f"{s['profit']:+.1f}", cls)]
+             ("Profit (units)", fmt_signed(s["profit"]), cls)]
     return ('<div class="tiles">' + "".join(
         f'<div class="tile"><div class="k">{k}</div>'
         f'<div class="v {c}">{v}</div></div>' for k, v, c in items) + "</div>")
@@ -177,7 +179,8 @@ def profit_chart(df: pd.DataFrame) -> str:
 
     running, series = 0.0, []
     for r in graded.itertuples():
-        running += 1.0 if r.result == "W" else -JUICE
+        # Rounded as it goes: 0.1 has no exact binary form, and the errors add up.
+        running = round(running + (1.0 if r.result == "W" else -JUICE), 1) + 0.0
         series.append((r.date, r.home, r.away, r.result, running))
 
     W, H, PAD_L, PAD_R, PAD_T, PAD_B = 1000, 400, 52, 16, 20, 34
@@ -308,11 +311,14 @@ System #; the system bets home at +3 or more and away at −3 or less, and passe
 
 def shadow_table(table: pd.DataFrame, first_look: bool,
                  prior: pd.DataFrame | None = None, prior_label: str = "") -> str:
-    """The nine candidate factors for one season: tracked, not bet.
+    """The ten candidate factors for one season: tracked, not bet.
 
     ``first_look`` marks the season the situational directions were chosen on.
-    ``prior``, the season before's table, adds its rate beside this one's.
+    ``prior``, the season before's table, adds its rate beside this one's. A
+    factor that stands in for one of the five (the power variant) is marked ‡:
+    its *With it* is scored in that vote's place, not as a sixth vote.
     """
+    swaps = {f.key for f in shadow_factors.FACTORS if f.replaces}
     before = {} if prior is None else {r.key: r for r in prior.itertuples()}
     rows = []
     for r in table.itertuples():
@@ -320,8 +326,10 @@ def shadow_table(table: pd.DataFrame, first_look: bool,
         rate = f"{r.rate:.0%}" if n else "—"
         band = f"{r.rate:.0%} ± {r.band:.0%} (95%)" if n else ""
         mark = ("<sup title='direction chosen on this season'>†</sup>"
-                if first_look and r.group == "situational" else "")
-        units = f"{r.sys_units:+.1f}"
+                if first_look and r.group == "situational" else
+                "<sup title='added after round 5 of 2026-27; With it puts it in "
+                "place of the power vote'>‡</sup>" if r.key in swaps else "")
+        units = fmt_signed(r.sys_units)
         last = ""
         if prior is not None:
             p = before.get(r.key)
@@ -332,8 +340,8 @@ def shadow_table(table: pd.DataFrame, first_look: bool,
             f"<tr><td class='l' style='white-space:normal'>{esc(r.factor)}{mark}</td>"
             f"<td>{r.votes}</td><td>{r.W}–{r.L}</td><td title='{band}'>{rate}</td>{last}"
             f"<td>{r.sys_W}–{r.sys_L}<br><span class='pending'>{units}</span></td></tr>")
-    note = ("<p class='sub'>Nine candidate factors, <strong>tracked but not bet</strong>. "
-            "Their rules were fixed before any results were run. Voting about 100 times, "
+    note = ("<p class='sub'>Ten candidate factors, <strong>tracked but not bet</strong>. "
+            "The first nine had their rules fixed before any results were run. Voting about 100 times, "
             "a factor with no edge lands anywhere from about 40% to 60% by chance, so "
             "one season settles nothing: 2025-26 is the first look and 2026-27 the test."
             + (" † The direction of the four situational factors was chosen on this "
@@ -342,7 +350,13 @@ def shadow_table(table: pd.DataFrame, first_look: bool,
                f"season, to set this season's to-date rate against."
                if prior is not None else "")
             + " <em>With it</em> is the system's record with the factor added as a "
-            "sixth vote.</p>")
+            "sixth vote."
+            + (" ‡ The power factor with 3 points of home advantage added back, the "
+               "version the system may switch to for 2027-28. It was added after round 5 "
+               "of 2026-27, with the records to then already seen, so only later matches "
+               "test it, and its <em>With it</em> puts it in place of the power vote, not "
+               "beside it." if swaps & set(table["key"]) else "")
+            + "</p>")
     prior_head = (f"<th title='The rate over all of {prior_label}'>{prior_label}</th>"
                   if prior is not None else "")
     head = ("<tr><th class='l' style='white-space:normal'>Shadow factor</th>"
@@ -466,9 +480,11 @@ def shadow_legend() -> str:
         rule = f.rule if d != -1 else f.rule + " — <em>tracked reversed</em>"
         items.append(f"<tr><td>{i}</td><td class='l'>{esc(f.label)}</td>"
                      f"<td class='l' style='white-space:normal'>{rule}</td></tr>")
-    return ('<div class="card"><h3>The nine shadow factors</h3>'
+    return ('<div class="card"><h3>The ten shadow factors</h3>'
             '<p class="sub">Tracked alongside the five, not counted in the System #. '
-            'Luck (1–4) compares each club with its opponent in its last match.</p>'
+            'Luck (1–4) compares each club with its opponent in its last match. '
+            'The last is the power factor with one change, tracked in case the system '
+            'switches to it, and is scored in the power vote\'s place.</p>'
             '<div class="scroll"><table><thead><tr><th>#</th><th class="l">Factor</th>'
             '<th class="l">Rule</th></tr></thead><tbody>' + "".join(items)
             + "</tbody></table></div></div>")
@@ -496,11 +512,27 @@ def status_panel(seasons: dict[int, pd.DataFrame]) -> str:
                          f"fixture list.</strong> Only {have} loaded. Paste the "
                          f"published list into a text file and run "
                          f"<code>python import_fixtures.py paste.txt --season 2026</code>.")
-        unpriced = int(cur["line"].isna().sum())
-        if unpriced:
-            needs.append(f"<strong>{unpriced} handicap{'s' if unpriced > 1 else ''}.</strong> "
+        # The next round to price, not every fixture still unpriced: "104
+        # handicaps" was true all season and told nobody what to do next.
+        unpriced = cur[cur["line"].isna() & ~cur["played"]].sort_values("date")
+        if len(unpriced):
+            nxt = unpriced[unpriced["round"] == unpriced["round"].iloc[0]]
+            first, last = nxt["date"].min(), nxt["date"].max()
+            days = (f"{first.day} {first:%B}" if first == last
+                    else f"{first.day}–{last.day} {last:%B}" if first.month == last.month
+                    else f"{first.day} {first:%B} – {last.day} {last:%B}")
+            needs.append(f"<strong>Round {int(nxt['round'].iloc[0])}'s handicaps.</strong> "
+                         f"{len(nxt)} match{'es' if len(nxt) > 1 else ''}, {days}. "
                          "Enter in <code>entry/urc_2026_entry.xlsx</code>, "
                          "negative when the home side is favoured.")
+    if due := season_report.power_rule_due(list(seasons)):
+        label = season_report.season_label(due)
+        needs.append(f"<strong>Your decision on the power rule for {label}.</strong> As "
+                     "written, the power factor adds no home advantage back and votes "
+                     "away about nine times in ten. Since round 5 of 2026-27 the version "
+                     "with 3 points added back has been tracked as a shadow factor "
+                     "(<em>Power, 3-point home edge</em>). Keep the rule or switch, "
+                     f"before {label}'s first picks.")
     if not needs:
         return ""
     return ('<div class="card"><h3>What the model still needs</h3><ul class="todo">'

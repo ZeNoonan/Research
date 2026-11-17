@@ -371,6 +371,8 @@ def app_checks() -> bool:
         passed &= check("the round is saved for import_turnovers.py", len(saved) == 1)
         if saved:
             got = pd.read_csv(saved[0])
+            passed &= check("each row carrying its round, from the fixture list",
+                            (got["Round"] == 1).all(), str(got["Round"].tolist()))
             passed &= check("with the report's columns first, then every stat",
                             list(got.columns[:len(s.COLUMNS)]) == s.COLUMNS
                             and "home_total_successful_tackles" in got.columns

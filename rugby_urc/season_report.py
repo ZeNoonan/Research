@@ -43,11 +43,23 @@ FIT_WEIGHTS = [1.0, 0.5, 0.25, 0.125]  # most recent source week first
 FIT_WEEKS = len(FIT_WEIGHTS)
 
 # Points of home advantage, applied inside the rating fit only (the ratings it
-# produces are neutral-venue). PROVISIONAL: the NFL system uses a well
-# established 3.0, but the URC has no equivalent settled number, and its
-# handicaps are wider. Run ``calibrate.py`` once a season of handicaps is
-# entered and set this from the fitted value rather than leaving the guess in.
+# produces are neutral-venue). The NFL system uses a well established 3.0; the
+# URC has no settled number. ``calibrate.py`` fits about 5.5 on 191 priced
+# matches, and the value matters little: with it at 3, 4, 6 or 7, none of
+# 2026-27's first fourteen picks changes. Left at 5.0 after round 5; see the
+# README, *Home advantage*.
 HOME_ADVANTAGE = 5.0
+
+# The power factor's rule is decided season by season. As written it adds no
+# home advantage back (the NFL construction), and in the URC that makes it
+# vote away about nine times in ten. After round 5 of 2026-27 the user chose to
+# keep it for the rest of the season, and to track the version with 3 points
+# added back as a shadow factor (``shadow_factors``, power_3). This is the last
+# season the rule was decided for. A later season's file brings the question
+# up - in this script's output, in ``import_fixtures.py`` and on the site -
+# until it has been put to the user and this is moved on. See the README,
+# *The power factor leans away*.
+POWER_RULE_DECIDED_FOR = 2026
 
 # Extra points charged to a side crossing between Europe and South Africa.
 # Off by default so the model is a straight port; ``calibrate.py`` estimates it.
@@ -88,6 +100,21 @@ def available_seasons() -> list[int]:
 
 def season_label(year: int) -> str:
     return f"{year}-{(year + 1) % 100:02d}"
+
+
+def power_rule_due(seasons: list[int] | None = None) -> int | None:
+    """The first season loaded that the power rule has not been decided for."""
+    later = [y for y in (available_seasons() if seasons is None else seasons)
+             if y > POWER_RULE_DECIDED_FOR]
+    return min(later) if later else None
+
+
+def power_rule_reminder(year: int) -> str:
+    return (f"POWER RULE: {season_label(year)} is loaded, and whether its power factor "
+            f"keeps the rule or switches to the 3-point version (shadow factor power_3) "
+            f"has not been decided. Raise it with the user before {season_label(year)}'s "
+            f"first picks, then set POWER_RULE_DECIDED_FOR = {year} in season_report.py. "
+            f"See the README, The power factor leans away.")
 
 
 # --- loading -----------------------------------------------------------------
@@ -265,9 +292,10 @@ def add_powers(combined: pd.DataFrame) -> pd.DataFrame:
         if ratings is None:
             home_power.append(np.nan)
             away_power.append(np.nan)
-        else:  # one decimal, as the published NFL reports display and use
-            home_power.append(round(ratings[r.home], 1))
-            away_power.append(round(ratings[r.away], 1))
+        else:  # one decimal, as the published NFL reports display and use;
+            # ``+ 0.0`` folds the -0.0 a rating just below zero rounds to
+            home_power.append(round(ratings[r.home], 1) + 0.0)
+            away_power.append(round(ratings[r.away], 1) + 0.0)
     g["home_power"] = home_power
     g["away_power"] = away_power
     return g.drop(columns=["week_key"])
@@ -367,6 +395,8 @@ def main() -> None:
         print(f"{season_label(year)}: {len(report):3d} matches | {bets:2d} bets | "
               f"{w:2d}-{l:2d} ({wr}) | {w - 1.1 * l:+5.1f}u"
               + (f" | {held} held back for missing turnovers" if held else ""))
+    if due := power_rule_due():
+        print(f"\n{power_rule_reminder(due)}")
 
 
 if __name__ == "__main__":

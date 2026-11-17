@@ -1,17 +1,17 @@
-"""Shadow factors: nine candidate factors, tracked alongside the five but not bet.
+"""Shadow factors: ten candidate factors, tracked alongside the five but not bet.
 
 Each casts the same kind of vote as the five in ``model.py`` - **+1** backs the
 home side, **-1** the away side, **0** neither - but none of them counts
 towards the System # or the picks. They are here to be tested.
 
-The protocol, because testing nine things on one season is the easiest way
+The protocol, because testing ten things on one season is the easiest way
 there is to find an edge that is not there:
 
 * **The rules are fixed before any results are looked at.** Every definition,
   threshold and sign below was written down and committed before the first
   run on 2025-26, and is not tuned afterwards.
 * **2025-26 is the first look; 2026-27 is the test.** A factor that votes
-  ~100 times has a 95% band of roughly 40-60% with no edge at all, so on nine
+  ~100 times has a 95% band of roughly 40-60% with no edge at all, so on ten
   factors one or two will look good by chance. Only one that holds up on a
   season it was not chosen on is a candidate for the system.
 * **Every factor is reported**, not only the ones that look good.
@@ -30,6 +30,15 @@ it.
 **Market** (9) - needs opening lines, which only 2026-27 has. Written as
 fading the move, the over-reaction reading the power factor already takes;
 2026-27 is its first look.
+
+**Variant** (10) - one of the five with a single change: the power factor with
+3 points of home advantage added back, the NFL's own figure. As written the
+power factor votes away about nine times in ten (README, *The power factor
+leans away*), and this is the version the system may switch to. It came in
+after round 5 of 2026-27, with both seasons' records to then already seen, so
+only the matches after that test it. The rule is decided season by season:
+``season_report.POWER_RULE_DECIDED_FOR``. Its "with it" record puts it **in
+place of** the power vote, not beside it.
 
 A factor **abstains** (no vote) when it cannot be computed: the club's first
 match of a run of seasons, a previous match with no stats or no line.
@@ -57,6 +66,7 @@ BIG_MISS = 10.0        # 1: missed / beat last match's line by this many points
 TOUR_GAP_DAYS = 8      # 6: previous match abroad at most this many days before
 BIG_LINE = 14.0        # 8: a handicap of at least this many points
 BIG_MOVE = 2.0         # 9: the close at least this far from the open
+HOME_BACK = 3.0        # 10: points of home advantage added back to the power vote
 
 
 @dataclass(frozen=True)
@@ -65,6 +75,7 @@ class Factor:
     label: str
     group: str
     rule: str          # what a +1 vote means, as written
+    replaces: str = ""  # one of the five it stands in for, when the system is scored
 
 
 FACTORS = [
@@ -93,14 +104,20 @@ FACTORS = [
     Factor("line_move", "Line move", "market",
            f"backs the side the line moved against, when the close is "
            f"{BIG_MOVE:g}+ points from the open"),
+    Factor("power_3", f"Power, {HOME_BACK:g}-point home edge", "variant",
+           f"backs home when the handicap makes home a bigger underdog than the "
+           f"ratings imply once home is given {HOME_BACK:g} points for home advantage "
+           f"(none at a neutral venue): the power factor with that one change",
+           replaces="power"),
 ]
 BY_KEY = {f.key: f for f in FACTORS}
 
 # Which way each factor is tracked: +1 as its rule is written, -1 the reverse.
-# Luck factors and the line move are fixed by theory. The situational ones were
-# undecided (None) until 2025-26 had been run, and were then set from it, once,
-# by the rule "whichever way won more often" - so 2025-26 flatters them by
-# construction, and 2026-27 is their test. Do not change these again.
+# Luck factors, the line move and the power variant are fixed by theory. The
+# situational ones were undecided (None) until 2025-26 had been run, and were
+# then set from it, once, by the rule "whichever way won more often" - so
+# 2025-26 flatters them by construction, and 2026-27 is their test. Do not
+# change these again.
 #   long_haul  as written 30-23 (56.6%) -> backs home
 #   tour_leg2  as written 13-10 (56.5%) -> backs home
 #   derby      as written 24-14 (63.2%) -> backs the underdog
@@ -108,7 +125,7 @@ BY_KEY = {f.key: f for f in FACTORS}
 DIRECTION: dict[str, int | None] = {
     "last_cover": 1, "cards": 1, "kicking": 1, "red_zone": 1,
     "long_haul": 1, "tour_leg2": 1, "derby": 1, "big_line": -1,
-    "line_move": 1,
+    "line_move": 1, "power_3": 1,
 }
 
 # The stat pairs the luck factors read, from data/stats_<year>.csv.
@@ -229,7 +246,20 @@ def votes(g: pd.DataFrame) -> pd.DataFrame:
     out["big_line"] = underdog.where(line.abs() >= BIG_LINE, 0.0)
     move = line - g["opening_line"]
     out["line_move"] = np.sign(move).where(move.abs() >= BIG_MOVE, 0.0)
+    out["power_3"] = power_votes(g, HOME_BACK)
     return out
+
+
+def power_votes(g: pd.DataFrame, home_back: float = 0.0) -> pd.Series:
+    """The power factor's vote on every match, with ``home_back`` points of home
+    advantage added back (none at a neutral venue); 0 points is the factor as
+    the system casts it. Abstains where the line or a rating is unknown."""
+    known = g["line"].notna() & g["home_power"].notna() & g["away_power"].notna()
+    back = np.where(g["neutral"], 0.0, home_back)
+    return pd.Series([float(model.power_factor(h, a, line + b))
+                      for h, a, line, b in zip(g["home_power"], g["away_power"],
+                                               g["line"], back)],
+                     index=g.index).where(known)
 
 
 # --- scoring --------------------------------------------------------------------
@@ -242,14 +272,16 @@ def evaluate(g: pd.DataFrame, v: pd.DataFrame, year: int) -> pd.DataFrame:
     """Per factor: its own record when it votes, and the system's with it added.
 
     ``standalone`` is every match the factor voted on and the line settled
-    (no push). ``as a 6th vote`` adds the vote to the five-factor System # and
-    bets at the same +/-3, only where the system itself could bet - a line,
-    ratings, and turnovers known.
+    (no push). The system's record adds the vote to the five-factor System #
+    as a sixth vote - or, for a factor that ``replaces`` one of the five, puts
+    it in that vote's place - and bets at the same +/-3, only where the system
+    itself could bet: a line, ratings, and turnovers known.
     """
     in_season = g["season"] == year
     cover = pd.Series([model.cover(r.home_score, r.away_score, r.line)
                        for r in g.itertuples()], index=g.index)
     eligible = g["line"].notna() & g["home_power"].notna() & ~g["lgt_unknown"]
+    stands_in = {"power": power_votes(g).fillna(0)}
     rows = []
     for f in FACTORS:
         d = DIRECTION[f.key] or 1
@@ -258,6 +290,8 @@ def evaluate(g: pd.DataFrame, v: pd.DataFrame, year: int) -> pd.DataFrame:
         settled = voted & cover.ne(0)
         w, l = _record((vote[settled] == cover[settled]).map({True: 1, False: -1}))
         total = g["system_num"] + vote.fillna(0)
+        if f.replaces:
+            total = total - stands_in[f.replaces]
         pick = np.sign(total).where(total.abs() >= model.BET_THRESHOLD, 0)
         bet = in_season & eligible & pick.ne(0) & cover.ne(0)
         bw, bl = _record((pick[bet] == cover[bet]).map({True: 1, False: -1}))
@@ -301,12 +335,16 @@ def main() -> None:
         print(f"\n{season_report.season_label(year)} - the five alone: {w}-{l}, "
               f"{w - 1.1 * l:+.1f}u\n")
         print(f"  {'factor':<26}{'dir':<11}{'votes':>6}{'W-L':>9}{'rate':>8}"
-              f"{'±95%':>7}   {'as a 6th vote':>14}")
+              f"{'±95%':>7}   {'with it':>14}")
         for r in table.itertuples():
             rate = "-" if math.isnan(r.rate) else f"{r.rate:.1%}"
             band = "" if math.isnan(r.band) else f"{r.band:.0%}"
             print(f"  {r.factor:<26}{r.direction:<11}{r.votes:>6}{f'{r.W}-{r.L}':>9}"
                   f"{rate:>8}{band:>7}   {f'{r.sys_W}-{r.sys_L}':>7} {r.sys_units:+6.1f}u")
+        swaps = [f"{f.label}: in place of the {f.replaces} vote"
+                 for f in FACTORS if f.replaces]
+        print("\n  with it: the system with the factor as a sixth vote"
+              + "".join(f"; {x}" for x in swaps) + ".")
 
 
 if __name__ == "__main__":

@@ -501,6 +501,7 @@ def main() -> None:
             st.info(f"{len(chosen) - len(ready)} of {len(chosen)} not marked as played "
                     f"yet - only played matches have stats to fetch.")
         targets = [(m, season) for m in ready["match_id"]]
+        round_of = dict(zip(fixtures["match_id"], fixtures["round"]))
         label = f"round{int(rnd):02d}"
     else:
         pasted = st.text_area(
@@ -514,6 +515,11 @@ def main() -> None:
             except ValueError as exc:
                 st.warning(str(exc))
         label = "pasted"
+        try:        # a match's own replies do not say which round it is
+            listed = cached_fixtures(season)
+            round_of = dict(zip(listed["match_id"], listed["round"]))
+        except requests.RequestException:
+            round_of = {}
 
     if not st.button(f"Fetch stats for {len(targets)} match(es)", type="primary",
                      disabled=not targets):
@@ -525,7 +531,10 @@ def main() -> None:
         try:
             body = cached_match(match_id, s)
             raw[match_id] = body
-            rows.append(match_row(body, match_id))
+            row = match_row(body, match_id)
+            if row["Round"] is None:
+                row["Round"] = round_of.get(match_id)
+            rows.append(row)
         except requests.RequestException as exc:
             st.error(f"Match {match_id}: {exc}")
         progress.progress(i / len(targets))
