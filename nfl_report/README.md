@@ -6,10 +6,11 @@
 
 ### ⚠️ Needed now
 
-1. **After Monday 9 Nov's Bills @ Vikings, before Thursday 12 Nov** (Commanders @
-   Giants): week 9's pro-football-reference rows, all 14 remaining games, with
-   `TOW`/`TOL`, plus a fresh nflverse export. (Thursday's Jaguars @ Ravens is
-   already in.)
+1. **After Monday 16 Nov's Chargers @ Ravens, before Thursday 19 Nov:** week 10's
+   pro-football-reference rows, **all 14 games including Thursday's Commanders @
+   Giants**, with `TOW`/`TOL`, plus a fresh nflverse export. Thursday's score is
+   in from nflverse (Commanders 24–21) but its turnovers are not, and week 11
+   needs them.
 
 ### Every week, to keep 2026–27 running
 

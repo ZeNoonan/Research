@@ -1367,7 +1367,7 @@ penalties rather than who is getting shots away. Left in, one spot kick
 outranks four good chances in the same week. So every attempt fbref records
 costs its taker **`PENALTY_XG = 0.75`** in that gameweek, subtracted from
 the *weekly* count so a penalty is charged once, in its own week. Through
-GW9 that is fifteen kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
+GW10 that is twenty-one kicks; Gibbs-White's 0.79 xG week becomes 0.04, which is
 the check that the constant is the right size.
 
 ### Ranking
@@ -1410,24 +1410,26 @@ not built from. Where weeks tie at the cut-off, the earlier one goes.
 `DROP_COUNT = 2` in `shots.py`. It began as one week per 5 and was doubled
 after GW8.
 
-Through GW9, 323 of the 454 players have two weeks left out, and the top of
+Through GW10, 340 of the 459 players have weeks left out: 213 have two
+dropped, and the 127 who have played all ten gameweeks have four. The top of
 the board moves:
-* Saka is 1st (11.6), up from 4th, without his 36th in GW2 and his 142nd
+* Saka is 1st (11.6), up from 5th, without his 36th in GW2 and his 142nd
   in GW7.
-* Enciso is 2nd (15.3), up from 7th, without his 38th in GW4 and his 190th
-  in GW7.
-* Doku, 1st on the full average, is 3rd (16.7). He has played only five
-  gameweeks, so his Avg is his best three (4th, 10th and 36th). At five
-  gameweeks a player is judged on three, so the **GWs** column matters
-  here.
+* Enciso is 2nd (12.7), up from 7th. He has played all ten gameweeks, so
+  his four worst go: 31st, 38th, 190th and 32nd.
+* Mbeumo is 3rd (13.5), up from 6th.
+* Bruno Fernandes, 1st on the full average, is 8th (18.0).
+
+A player at five gameweeks is judged on his best three, so the **GWs**
+column matters here.
 
 Sorting on the average has one failure mode, and the page says so rather
 than hiding it: **one cameo ranked well is an average of one number**, and
 it lands near the top. Through GW5 the shots board had five one-gameweek
 players inside the top twenty — Tyler Dibling was 2nd off 24 minutes; by
 GW6, as more weeks filled in, it was down to one (Jack Hinshelwood, 11th
-off 63 minutes), and by GW7 none. Through GW9 the highest is Ryan Yates,
-66th off 45 minutes. So a
+off 63 minutes), and by GW7 none. Through GW10 the highest is Fábio
+Carvalho, 124th off 3 minutes. So a
 **gameweeks played** filter sits with the search and position controls, and
 Total, which already charges absence, is one click on its heading away.
 Nothing is filtered by default: the board opens showing everyone.
@@ -1451,7 +1453,7 @@ people. The key is **name + nationality + birth year**, and his spells are
 summed *before* the sheets are differenced — his club totals are each
 cumulative, so their sum is the cumulative total for the man, and
 differencing that gives his week. Five players have two fbref rows through
-GW9; the page lists them, oldest club first.
+GW10; the page lists them, oldest club first.
 
 Leftovers are settled on **minutes**: a club he has played for, and accepted
 only when exactly one unclaimed candidate is within `MINUTES_TOL = 10`. That
@@ -1466,26 +1468,37 @@ believable rather than plausible:
 
 ```
 verdict: clean (0 rows to check)
-gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7, GW8, GW9
-fbref players: 454
-matched: exact 383, partial 55, surname 9, minutes 4, token 3
-minutes agree within 10: 454 of 454
+gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7, GW8, GW9, GW10
+fbref players: 459
+matched: exact 387, partial 55, surname 10, minutes 4, token 3
+minutes agree within 10 + 1 a game: 459 of 459
 renamed by fbref in GW6: 'Jair Cunha' -> 'Jair' (Nott'm Forest) — same nationality, birth year, club and totals; one player
+nationality changed by fbref in GW10: Abdoul Ouattara (Ipswich Town) 'fr FRA' -> 'ci CIV' — same name, birth year, club and totals; one player
 dropped from an fbref sheet, totals carried forward: 0
 played but absent from fbref: 0
 ```
 
 Two sources that counted the same minutes independently agreeing on **all
-454** players is the evidence. The residual disagreement is fbref quoting
+459** players is the evidence. The residual disagreement is fbref quoting
 `90s` to one decimal — 9-minute steps — plus the two disagreeing on
-stoppage time. fbref's minutes are rounded to the whole minute before the
+stoppage time. The stoppage-time part adds up: the counts drift apart by
+about a minute an appearance. So the audit allows 10 minutes plus 1 for
+every gameweek a player has played (`MINUTES_PER_GAME`). Through GW10 no
+correct pair is more than 1.7 minutes a game out. The widest is Rodrigo
+Muniz, 12 minutes over eight substitute appearances, which a flat 10
+flagged for nothing. A wrong match, or a week missing from one source, is
+out by far more: Abdoul Ouattara's broken GW10 (below) showed as 86
+minutes against an allowance of 20.
+
+fbref's minutes are also rounded to the whole minute before the
 comparison. Computed from one-decimal 90s they are always whole, but the
 arithmetic leaves binary noise. At GW9 that turned Rio Ngumoha's gap of
 exactly 10 into 10.000000000000028, just over the tolerance, until the
-rounding went in. And 454 is not a coincidence either: FPL says 310 played
-GW1, 312 GW2, 307 GW3, 307 GW4, 302 GW5, 315 GW6, 305 GW7, 303 GW8 and 310
-GW9; fbref's cumulative GW1 sheet has exactly 310 rows, and its GW9 sheet's
-459 rows are those 454 people plus the five movers counted twice. The two sources agree on *who has played*,
+rounding went in. And 459 is not a coincidence either: FPL says 310 played
+GW1, 312 GW2, 307 GW3, 307 GW4, 302 GW5, 315 GW6, 305 GW7, 303 GW8, 310 GW9
+and 313 GW10; fbref's cumulative GW1 sheet has exactly 310 rows, and its
+GW10 sheet's 464 rows are those 459 people plus the five movers counted
+twice. The two sources agree on *who has played*,
 not just on how long.
 
 The audit earned its place on the GW3 update: fbref's per-club split was new
@@ -1502,7 +1515,13 @@ stopped the build, as it should when a season total goes backwards.
 `shots.read_sheets` now recognises a rename on exactly that evidence — the
 same nationality, birth year and club, every total at least the vanished
 row's, and only one such row — and relabels the earlier sheets so he stays
-one player. Anything that vanishes without such a twin is **carried
+one player. In GW10 fbref did the mirror image: Abdoul Ouattara of Ipswich
+kept his name, but his nationality moved from France to Côte d'Ivoire. A
+player is keyed on name, nationality and birth year, so he looked like a
+vanished player plus a debutant with his whole season's 4 shots in one
+week. The check now takes either case — the same nationality **or** the
+same name, with the same birth year, club and growing totals — and the
+audit names every relabel. Anything that vanishes without such a twin is **carried
 forward** at its last totals, which makes it a zero week; the audit marks
 that harmless when FPL agrees he did not play and flags it when FPL says he
 did, because then his shots for the week are genuinely missing. The team
@@ -1518,9 +1537,9 @@ like a broken join — but it never passes unnoticed.
 `defcon.html`, built by the same command, is the same board narrowed and
 widened at once: **defenders and midfielders only**, on the same three
 categories **plus FPL's defensive contributions**. It has the same tabs,
-including the worst-weeks-dropped aggregate. There Dewsbury-Hall leads
-(11.3), up from 4th, once his 114th and 101st in GW7 and GW8 are set aside.
-Rogers, 1st on the full average, is 5th.
+including the worst-weeks-dropped aggregate. There Tavernier leads (7.0),
+up from 12th, once his four worst weeks are set aside. Rogers, 1st on the
+full average, is 3rd.
 
 **Ranked against each other.** The population is cut *before* the ranking,
 not after, so a defender's three shots are ranked against other defenders
@@ -1540,19 +1559,19 @@ midfielder** — so the raw count and the reward do not line up: a midfielder's
 count includes recoveries and needs two more of them. Rather than distort
 the ranking to patch that, the threshold is displayed: a cell that cleared
 it carries a green ✓, and a **DC pts** column counts the gameweeks a player
-has done it. Through GW9 that is defenders 205 of 943 player-gameweeks (22%),
-midfielders 106 of 1,326 (8%).
+has done it. Through GW10 that is defenders 230 of 1,048 player-gameweeks
+(22%), midfielders 121 of 1,476 (8%).
 
 **Three of the four categories are attacking**, so the aggregate leans that
-way — 46 of the top 50 are midfielders, and the first defender is 31st.
+way — 46 of the top 50 are midfielders, and the first defender is 24th.
 That is the honest consequence of the categories asked for, not a bug, and
 there are two ways round it on the page: the position filter reads it as a
 defenders' board, and the **Defensive contributions** tab opens on the
-season total, which reads it as a purely defensive one. Chris Richards
-leads that tab on 105 defensive actions, with seven weeks over the bar, but
-sits 134th on the aggregate. James Hill has 101 and five weeks over the
-bar, and sits 159th. Both are good illustrations of how far apart the two
-questions are. Vitaly Janelt, on 104, is 55th, because he also gets
+season total, which reads it as a purely defensive one. James Hill leads
+that tab on 115 defensive actions, with six weeks over the bar, but sits
+134th on the aggregate. Tarik Muharemović has 112 and seven weeks over the
+bar, and sits 113th. Both are good illustrations of how far apart the two
+questions are. Vitaly Janelt, on 111, is 74th, because he also gets
 forward.
 
 ### Keeping it current
@@ -1607,13 +1626,13 @@ season fills in.
 **Net is a difference, not a sum of the other two boards.** Adding the
 attack and defence composite ranks would throw away the margins twice; the
 differences keep them, so a club that outshoots its opponent by ten ranks
-above one that edges it by two. Through GW9 the three sides are led by
+above one that edges it by two. Through GW10 the three sides are led by
 Man City (attack), Arsenal (defence) and Man City (net).
 
 ### The fixture ticker
 
-At the foot of the team board: every club's remaining fixtures — GW10 to
-GW38 as of the GW9 update — one column a gameweek, each cell shaded by the **opponent's season
+At the foot of the team board: every club's remaining fixtures — GW11 to
+GW38 as of the GW10 update — one column a gameweek, each cell shaded by the **opponent's season
 rank on the Defence composite** — the same ramp as the boards above, so the
 leakiest defence so far is deep green and the meanest deep red. Under each
 opponent's three-letter code is H or A and that defence rank. **Next 6**
@@ -1646,9 +1665,9 @@ both fixtures in the one cell.
   a player at home was on the home team, and the home team is the opponent
   named by anyone who played away in the same fixture.
 * **Goals — the handicap app's results file**, not fbref. fbref's `Gls`
-  counts goals by players, so it misses own goals: twelve through GW9, and
-  each accounts for exactly one of the twelve team-games where fbref and the
-  score disagree.
+  counts goals by players, so it misses own goals: thirteen through GW10,
+  and each accounts for exactly one of the thirteen team-games where fbref
+  and the score disagree.
 
 Penalties follow the player boards' rule: every attempt costs the attacking
 club 0.75 xG in its week, and so comes off the opponent's xG conceded too.
@@ -1668,22 +1687,22 @@ The audit runs on every build and is on the page, verdict first:
 
 ```
 verdict: clean (0 rows to check)
-gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7, GW8, GW9
-matches: 90 in the results file, 90 found in FPL's fixtures
-scores agree with FPL: 90 of 90
-FPL round agrees with the results gameweek: 90 of 90
-clubs per gameweek: GW1 20, GW2 20, GW3 20, GW4 20, GW5 20, GW6 20, GW7 20, GW8 20, GW9 20
+gameweeks ranked: GW1, GW2, GW3, GW4, GW5, GW6, GW7, GW8, GW9, GW10
+matches: 100 in the results file, 100 found in FPL's fixtures
+scores agree with FPL: 100 of 100
+FPL round agrees with the results gameweek: 100 of 100
+clubs per gameweek: GW1 20, GW2 20, GW3 20, GW4 20, GW5 20, GW6 20, GW7 20, GW8 20, GW9 20, GW10 20
 club shots add up to the league's every week: yes
 doubles (shots conceded left blank): 0
 player-weeks whose xG goes to the club he played for, not FPL's current club: 6
-own goals (in the results, missed by fbref's Gls): 12
+own goals (in the results, missed by fbref's Gls): 13
 ```
 
 Beyond those lines the board is **conserved**: every shot, xG, goal and
 penalty counted *for* one club is counted *against* its opponent, to the
 last hundredth, and the three differences sum to zero across the league
 every week. Club xG sums exactly to FPL's per-round total, and club
-penalties to the fifteen the player boards charge.
+penalties to the twenty-one the player boards charge.
 
 ## Roadmap
 

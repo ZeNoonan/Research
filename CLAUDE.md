@@ -36,6 +36,7 @@ Research/
 ├── README.md                 # Repository readme
 ├── index.html                # Root landing page
 ├── .gitignore
+├── VAR/                      # Brown's three VaR backtests on the NASDAQ: site and independent check (see below)
 ├── baseball_var/             # Project folder
 ├── bets/                     # Shared log of the user's actual bets, every sport (see below)
 ├── expense/                  # Personal cash-flow Streamlit app on bank exports (see below)
@@ -96,6 +97,19 @@ Research/
   The test recomputes every published figure **without importing the pipeline**. Keep it that
   way: a shared-code check once passed a day/month transposition. See
   `premier_league_handicap/README.md`.
+- **`VAR/`** — Aaron Brown's VaR article (*Forced by the Sternest Circumstances*, Wilmott
+  2009): three daily 99% VaR methods on the NASDAQ Composite, each scored against his three
+  backtests. Published as a GitHub Pages site. After any change to the data,
+  `var_backtest.py` or `template.html`:
+  - run `python3 build_site.py` (the report, the charts and `index.html`, in one go);
+  - run `python3 test_pipeline.py`, which must end "All checks passed";
+  - run `python3 test_pipeline.py --self-test`, which must catch every planted fault.
+
+  The test recomputes every published figure from the raw CSV with the standard library
+  alone and **never imports the pipeline**. Keep it that way. The historical-simulation
+  percentile follows the article's rank rule, `p × (n + 1)`, not numpy's default: the
+  default breaks on 1.12% of ideal days and once overstated that method's failure, and a
+  check built on the same numpy call would have agreed with it. See `VAR/README.md`.
 - _Other project folders: document here when they are next worked on._
 
 ---
@@ -430,6 +444,9 @@ _To be documented: How to get help, who to contact for specific areas_
 
 ### 2026-11-17 - rugby_urc/ power rule
 - Documented that the power rule is put to the user before 2027-28, and that picks are not frozen
+
+### 2026-11-16 - Add VAR/
+- Documented the VaR site's build, its independent check, and the percentile rule
 
 ### 2026-11-15 - rugby_urc/ independent check
 - Documented `rugby_urc/test_independent.py`, run after every build

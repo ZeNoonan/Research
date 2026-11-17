@@ -21,7 +21,7 @@ Most projects generate a **self-contained, phone-friendly web page**
 | [`pulling_the_goalie/`](pulling_the_goalie/) | Replication of Asness & Brown (2018), *Pulling the Goalie: Hockey and Investment Implications* | [open](https://zenoonan.github.io/Research/pulling_the_goalie/) |
 | [`monopoly/`](monopoly/) | Brown's "Monopoly 101" (Wilmott 2003): Monopoly as quantitative finance, recreated, validated and extended | [open](https://zenoonan.github.io/Research/monopoly/) |
 | [`security_trading_game/`](security_trading_game/) | Brown's "Rouge et Noir" (Wilmott 2013): a security-pricing dice game | [open](https://zenoonan.github.io/Research/security_trading_game/) |
-| [`VAR/`](VAR/) | Value-at-Risk backtesting on the NASDAQ Composite, from Brown's *"Forced by the Sternest Circumstances"* (Wilmott 2009) | — |
+| [`VAR/`](VAR/) | Value-at-Risk backtesting on the NASDAQ Composite, from Brown's *"Forced by the Sternest Circumstances"* (Wilmott 2009): historical simulation, RiskMetrics and Brown's double-on-break rule scored against his three tests, with every published figure recomputed by an independent check | [open](https://zenoonan.github.io/Research/VAR/) |
 | [`expense/`](expense/) | Personal cash-flow app (Streamlit) on Visa and current account bank exports: codes and reconciles transactions, and stitches every download together so the history keeps a fixed start date past the bank's 24-month export limit. Runs on generated sample data; real data never enters the repo | — |
 | [`kelly_sim/`](kelly_sim/) | Kelly Criterion coin-flip game: optimal bet sizing, in web and Python CLI versions | [open](https://zenoonan.github.io/Research/kelly_sim/) |
 | [`premier_league_handicap/`](premier_league_handicap/) | Per-team handicap (bonus points) applied to the Premier League: adjusted table, game-by-game race, cumulative and position grids, the odds market on winning the handicap league, and each club's record against the weekly Asian handicap set beside its pre-season table position. 2026/27 live and updated weekly; 2025/26 complete (web + Streamlit) | [26/27](https://zenoonan.github.io/Research/premier_league_handicap/) · [25/26](https://zenoonan.github.io/Research/premier_league_handicap/2025_2026/) |
@@ -67,4 +67,4 @@ is merged.
 
 **Status**: Active
 
-**Last Updated**: 2026-10-06
+**Last Updated**: 2026-11-16
