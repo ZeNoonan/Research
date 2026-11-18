@@ -1400,28 +1400,26 @@ total, so:
   you need to see which you are reading.
 
 **Aggregate, worst weeks dropped** is a second version of the ranking tab.
-Under this rule a couple of bad afternoons should not sink a season. For
-every 5 gameweeks a player has played, his **two** worst ranks are left out
-of **Avg**: two of 5, four of 10, six of 15. The tab opens sorted on that
-Avg. A player with fewer than 5 keeps every week. The dropped weeks stay on
-the row, **amber and struck through**, so you can see what the average is
-not built from. Where weeks tie at the cut-off, the earlier one goes.
-**Total** still counts every week. The rule is `DROP_EVERY = 5` and
-`DROP_COUNT = 2` in `shots.py`. It began as one week per 5 and was doubled
-after GW8.
+Under this rule a bad afternoon in three should not sink a season. For every
+3 gameweeks a player has played, his worst rank is left out of **Avg**: one
+of 3, two of 6, three of 9. The tab opens sorted on that Avg. A player with
+fewer than 3 keeps every week. The dropped weeks stay on the row, **amber
+and struck through**, so you can see what the average is not built from.
+Where weeks tie at the cut-off, the earlier one goes. **Total** still counts
+every week. The rule is `DROP_EVERY = 3` and `DROP_COUNT = 1` in
+`shots.py`. It began as one week per 5, became two per 5 after GW8, and
+one per 3 after GW10.
 
-Through GW10, 340 of the 459 players have weeks left out: 213 have two
-dropped, and the 127 who have played all ten gameweeks have four. The top of
-the board moves:
-* Saka is 1st (11.6), up from 5th, without his 36th in GW2 and his 142nd
-  in GW7.
-* Enciso is 2nd (12.7), up from 7th. He has played all ten gameweeks, so
-  his four worst go: 31st, 38th, 190th and 32nd.
-* Mbeumo is 3rd (13.5), up from 6th.
-* Bruno Fernandes, 1st on the full average, is 8th (18.0).
+Through GW10, 395 of the 459 players have weeks left out: 91 have one
+dropped, 129 two and 175 three. The top of the board:
+* Saka is 1st (11.6), up from 5th on the full average, without his 36th in
+  GW2 and his 142nd in GW7.
+* Bruno Fernandes, 1st on the full average, is 2nd (13.5), without his
+  58th, 83rd and 45th.
+* Enciso is 3rd (15.3), up from 7th, without his 38th, 190th and 32nd.
 
-A player at five gameweeks is judged on his best three, so the **GWs**
-column matters here.
+A player at three gameweeks is judged on his best two, so the **GWs** column
+matters here: Sávio, from four gameweeks, is 7th.
 
 Sorting on the average has one failure mode, and the page says so rather
 than hiding it: **one cameo ranked well is an average of one number**, and
@@ -1537,9 +1535,9 @@ like a broken join — but it never passes unnoticed.
 `defcon.html`, built by the same command, is the same board narrowed and
 widened at once: **defenders and midfielders only**, on the same three
 categories **plus FPL's defensive contributions**. It has the same tabs,
-including the worst-weeks-dropped aggregate. There Tavernier leads (7.0),
-up from 12th, once his four worst weeks are set aside. Rogers, 1st on the
-full average, is 3rd.
+including the worst-weeks-dropped aggregate. There Tavernier leads (8.6),
+up from 12th, once his three worst weeks are set aside. Rogers, 1st on the
+full average, is 4th.
 
 **Ranked against each other.** The population is cut *before* the ranking,
 not after, so a defender's three shots are ranked against other defenders
