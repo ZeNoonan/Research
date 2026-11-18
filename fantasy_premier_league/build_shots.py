@@ -314,7 +314,8 @@ def table_html(board: Board, table: pd.DataFrame, view: str,
     if ranking:
         avg_note = ("" if view == "rank" else
                     f' title="Mean rank over the gameweeks played, leaving '
-                    f'out the worst {S.DROP_COUNT} in every {S.DROP_EVERY}"')
+                    f'out the worst {"one" if S.DROP_COUNT == 1 else S.DROP_COUNT} '
+                    f'in every {S.DROP_EVERY}"')
         heads += ['<th class="num">Total</th>',
                   f'<th class="num" data-dir="asc"{avg_note}>Avg</th>']
     else:
@@ -619,6 +620,8 @@ def build(board: Board, data_dir: Path, out: Path) -> None:
     n_dropping = int((table["dropped"] > 0).sum())
     drop_examples = ", ".join(f"{n * S.DROP_COUNT} of {n * S.DROP_EVERY}"
                               for n in (1, 2, 3))
+    drop_what = ("his worst rank is" if S.DROP_COUNT == 1
+                 else f"his {S.DROP_COUNT} worst ranks are")
     n_gws = len(gameweeks)
 
     n_cats = len(board.categories)
@@ -691,7 +694,7 @@ column; blanks always sink.</p>
 
 <p class="note"><b>Aggregate, worst weeks dropped</b> is the same ranking
 with a player's worst weeks forgiven. For every {S.DROP_EVERY} gameweeks he
-has played, his {S.DROP_COUNT} worst ranks are left out of <b>Avg</b>
+has played, {drop_what} left out of <b>Avg</b>
 &mdash; {drop_examples} &mdash; and that tab opens sorted on it. Under
 {S.DROP_EVERY} gameweeks nothing is dropped; through {n_gws} gameweeks
 {n_dropping} of the {len(table)} players have weeks left out. The weeks

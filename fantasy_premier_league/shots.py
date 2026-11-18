@@ -58,9 +58,9 @@ the total asks who has been most useful so far, the average asks who is
 best when he plays.
 
 A third measure forgives the odd bad week: the **worst-weeks-dropped
-average** leaves out a player's ``DROP_COUNT`` (2) worst gameweek ranks for
-every ``DROP_EVERY`` (5) he has played — two of 5, four of 10 — and is
-otherwise the same average.
+average** leaves out a player's ``DROP_COUNT`` (1) worst gameweek rank for
+every ``DROP_EVERY`` (3) he has played — one of 3, two of 6, three of 9 —
+and is otherwise the same average.
 """
 
 from __future__ import annotations
@@ -125,11 +125,11 @@ CATEGORY_NAMES = {"shots": "Shots", "xg": "xG (pen-adj)", "xa": "xA",
 DC_THRESHOLD = {"DF": 10, "MD": 12, "FW": 12}
 
 # The worst-weeks-dropped average leaves out a player's DROP_COUNT worst
-# gameweeks for every DROP_EVERY he has played: two of 5, four of 10, six of
-# 15. The user's rule — a couple of bad afternoons should not sink a season,
+# gameweeks for every DROP_EVERY he has played: one of 3, two of 6, three of
+# 9. The user's rule — a bad afternoon in three should not sink a season,
 # but a player with fewer than DROP_EVERY weeks behind him has none to spare.
-DROP_EVERY = 5
-DROP_COUNT = 2
+DROP_EVERY = 3
+DROP_COUNT = 1
 
 
 # --- loading -----------------------------------------------------------------
