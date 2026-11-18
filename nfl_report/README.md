@@ -6,11 +6,11 @@
 
 ### ⚠️ Needed now
 
-1. **After Monday 16 Nov's Chargers @ Ravens, before Thursday 19 Nov:** week 10's
-   pro-football-reference rows, **all 14 games including Thursday's Commanders @
-   Giants**, with `TOW`/`TOL`, plus a fresh nflverse export. Thursday's score is
-   in from nflverse (Commanders 24–21) but its turnovers are not, and week 11
-   needs them.
+1. **After Monday 23 Nov's Bengals @ Commanders, before Wednesday 25 Nov's
+   Packers @ Rams (8pm ET):** week 11's pro-football-reference rows, **all 13
+   games including Thursday's Colts @ Texans**, with `TOW`/`TOL`, plus a fresh
+   nflverse export. Week 12 opens on the Wednesday, so Tuesday 24 Nov is the
+   day; Thanksgiving's three games follow on Thursday 26 Nov.
 
 ### Every week, to keep 2026–27 running
 
