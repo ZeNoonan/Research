@@ -11,6 +11,11 @@
    games including Thursday's Colts @ Texans**, with `TOW`/`TOL`, plus a fresh
    nflverse export. Week 12 opens on the Wednesday, so Tuesday 24 Nov is the
    day; Thanksgiving's three games follow on Thursday 26 Nov.
+2. **When convenient:** the next screenshot of your Settled bets, scrolled down
+   past *PHI Eagles +3.5*. A won slip is cut off at the bottom of the last one,
+   and no week-8 bets are logged yet. The system's week-8 picks were Lions −3.5
+   (W), Titans +12.5 (W), Ravens +3.5 (L) and Eagles +6.5 (L), plus week 9's
+   Thursday Ravens +10 (L).
 
 ### Every week, to keep 2026–27 running
 
