@@ -56,10 +56,13 @@ def late_pick_note(year: int, df: pd.DataFrame) -> str:
     late = df.apply(lambda r: is_late(year, r), axis=1)
     s = season_stats(df[~late])
     n = int(late.sum())
+    rec = f"{s['wins']}&ndash;{s['losses']}"
+    if s["pushes"]:
+        rec += f"&ndash;{s['pushes']}"
     return (f" <b>&dagger;</b> {n} picks were published only after their game had "
             f"kicked off (from pre-game data, so they count, but could not have been "
             f"bet). Counting only picks published before kick-off: "
-            f"{s['wins']}&ndash;{s['losses']}, {s['profit']:+.1f}u.")
+            f"{rec}, {s['profit']:+.1f}u.")
 
 
 def season_note(year: int) -> str | None:
@@ -326,13 +329,15 @@ def season_panel(year: int, df: pd.DataFrame, active: bool) -> str:
     labels = week_labels(year, df["week"])
     rows = "\n".join(game_row(r, labels[int(r.week)], is_late(year, r))
                      for r in df.itertuples())
+    push_note = (f'; {s["pushes"]} push{"es" if s["pushes"] != 1 else ""} '
+                 f'add{"s" if s["pushes"] == 1 else ""} nothing') if s["pushes"] else ""
     return f"""
   <section class="panel{" active" if active else ""}" id="season-{year}">
     {cards}{note_html}
     <div class="chart-card">
       {profit_chart(df)}
-      <div class="cap">Cumulative units over the season&rsquo;s {s["wins"] + s["losses"]} graded bets
-      (win +1, loss &minus;{JUICE}). Dashed line is break-even.</div>
+      <div class="cap">Cumulative units over the season&rsquo;s {graded} wins and losses
+      (win +1, loss &minus;{JUICE}{push_note}). Dashed line is break-even.</div>
     </div>
     {my_bets_block(year, df)}
     <h2>Game by game &mdash; {season_label(year)}</h2>

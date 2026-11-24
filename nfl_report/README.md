@@ -7,11 +7,13 @@
 ### ⚠️ Needed now
 
 1. **Before Sunday 29 Nov's 1pm games:** a fresh nflverse export. Week 11's
-   results came without one, so week 12 is priced on 18 Nov's lines. Sunday's
-   five picks each hold only down to a line (Saints +8.5, Colts +3, Titans
-   +13.5, Cardinals +2.5; Seahawks at any line), and a fresh export re-prices
-   them on the current numbers. Wednesday's Packers (any line) and Thursday's
-   Eagles (+6 or more) can be checked against the bookmaker directly.
+   results came without one, so week 12 is priced on 18 Nov's lines. Four of
+   Sunday's five picks hold only down to a line (Saints +8.5, Colts +3, Titans
+   +13.5, Cardinals +2.5; the Seahawks hold at any line), and a fresh export
+   re-prices them on the current numbers. Wednesday's Packers (any line) and
+   Thursday's Eagles (+6 or more) can be checked against the bookmaker
+   directly. Games already played by then (Wednesday to Friday) get their
+   scores loaded from that export first, so their lines stay as published.
 2. **After Monday 30 Nov's Panthers @ Buccaneers, before Thursday 3 Dec's
    Chiefs @ Rams (8:15pm ET):** week 12's pro-football-reference rows, **all 16
    games including Wednesday's, Thanksgiving's and Friday's**, with
@@ -31,8 +33,11 @@
 2. **Odds** — the nflverse `games` export (what you have been sending). Send it
    **as late as practical before the Thursday kick-off**, and send it again
    mid-week if you like: an *unplayed* game's line now tracks the latest export,
-   so each one moves the number closer to the close. A game's line freezes the
-   moment it is played, so a later export can never revise a settled result.
+   so each one moves the number closer to the close. A game's line freezes once
+   its score is loaded, and the scores of games already played are loaded
+   (from pro-football-reference, or score-only from the export itself) before
+   any export refreshes lines, so a later export can never revise a settled
+   result.
 
 ### Nothing needed for these
 
