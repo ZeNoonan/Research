@@ -6,11 +6,23 @@
 
 ### ⚠️ Needed now
 
-1. **After Monday 23 Nov's Bengals @ Commanders, before Wednesday 25 Nov's
-   Packers @ Rams (8pm ET):** week 11's pro-football-reference rows, **all 13
-   games including Thursday's Colts @ Texans**, with `TOW`/`TOL`, plus a fresh
-   nflverse export. Week 12 opens on the Wednesday, so Tuesday 24 Nov is the
-   day; Thanksgiving's three games follow on Thursday 26 Nov.
+1. **Before Sunday 29 Nov's 1pm games:** a fresh nflverse export. Week 11's
+   results came without one, so week 12 is priced on 18 Nov's lines. Four of
+   Sunday's five picks hold only down to a line (Saints +8.5, Colts +3, Titans
+   +13.5, Cardinals +2.5; the Seahawks hold at any line), and a fresh export
+   re-prices them on the current numbers. Wednesday's Packers (any line) and
+   Thursday's Eagles (+6 or more) can be checked against the bookmaker
+   directly. Games already played by then (Wednesday to Friday) get their
+   scores loaded from that export first, so their lines stay as published.
+2. **After Monday 30 Nov's Panthers @ Buccaneers, before Thursday 3 Dec's
+   Chiefs @ Rams (8:15pm ET):** week 12's pro-football-reference rows, **all 16
+   games including Wednesday's, Thanksgiving's and Friday's**, with
+   `TOW`/`TOL`, plus a fresh nflverse export.
+3. **When convenient:** the next screenshot of your Settled bets, scrolled down
+   past *PHI Eagles +3.5*. A won slip is cut off at the bottom of the last one,
+   and no week-8 bets are logged yet. The system's week-8 picks were Lions −3.5
+   (W), Titans +12.5 (W), Ravens +3.5 (L) and Eagles +6.5 (L), plus week 9's
+   Thursday Ravens +10 (L).
 
 ### Every week, to keep 2026–27 running
 
@@ -21,8 +33,11 @@
 2. **Odds** — the nflverse `games` export (what you have been sending). Send it
    **as late as practical before the Thursday kick-off**, and send it again
    mid-week if you like: an *unplayed* game's line now tracks the latest export,
-   so each one moves the number closer to the close. A game's line freezes the
-   moment it is played, so a later export can never revise a settled result.
+   so each one moves the number closer to the close. A game's line freezes once
+   its score is loaded, and the scores of games already played are loaded
+   (from pro-football-reference, or score-only from the export itself) before
+   any export refreshes lines, so a later export can never revise a settled
+   result.
 
 ### Nothing needed for these
 
