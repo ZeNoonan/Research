@@ -7,9 +7,10 @@
 ### ⚠️ Needed now
 
 1. **After Monday 30 Nov's Panthers @ Buccaneers, before Thursday 3 Dec's
-   Chiefs @ Rams (8:15pm ET):** week 12's pro-football-reference rows, **all 16
-   games including Wednesday's, Thanksgiving's and Friday's**, with
-   `TOW`/`TOL`, plus a fresh nflverse export.
+   Chiefs @ Rams (8:15pm ET):** week 12's remaining pro-football-reference rows,
+   **the 12 games from Friday's Broncos @ Steelers to Monday's**, with
+   `TOW`/`TOL`, plus a fresh nflverse export. Wednesday's and Thanksgiving's
+   four games are already in.
 2. **When convenient:** the next screenshot of your Settled bets, scrolled down
    past *PHI Eagles +3.5*. A won slip is cut off at the bottom of the last one,
    and no week-8 bets are logged yet. The system's week-8 picks were Lions −3.5

@@ -162,10 +162,10 @@ Week,Day,Date,Time,Winner/tie,venue_marker,Loser/tie,Pts,Pts.1,TOW,TOL
 11,Sun,2026-11-22,4:25PM,Denver Broncos,,Las Vegas Raiders,38.0,24.0,1.0,1.0
 11,Sun,2026-11-22,8:20PM,San Francisco 49ers,,Minnesota Vikings,35.0,10.0,0.0,2.0
 11,Mon,2026-11-23,8:15PM,Washington Commanders,,Cincinnati Bengals,22.0,20.0,0.0,0.0
-12,Wed,2026-11-25,8:00PM,Green Bay Packers,@,Los Angeles Rams,,,,
-12,Thu,2026-11-26,1:00PM,Chicago Bears,@,Detroit Lions,,,,
-12,Thu,2026-11-26,4:30PM,Philadelphia Eagles,@,Dallas Cowboys,,,,
-12,Thu,2026-11-26,8:20PM,Kansas City Chiefs,@,Buffalo Bills,,,,
+12,Wed,2026-11-25,8:00PM,Los Angeles Rams,,Green Bay Packers,26.0,13.0,1.0,3.0
+12,Thu,2026-11-26,1:00PM,Chicago Bears,@,Detroit Lions,39.0,35.0,1.0,1.0
+12,Thu,2026-11-26,4:30PM,Philadelphia Eagles,@,Dallas Cowboys,39.0,38.0,1.0,1.0
+12,Thu,2026-11-26,8:20PM,Buffalo Bills,,Kansas City Chiefs,13.0,10.0,2.0,0.0
 12,Fri,2026-11-27,3:00PM,Denver Broncos,@,Pittsburgh Steelers,,,,
 12,Sun,2026-11-29,1:00PM,Atlanta Falcons,@,Minnesota Vikings,,,,
 12,Sun,2026-11-29,1:00PM,New Orleans Saints,@,Cincinnati Bengals,,,,
