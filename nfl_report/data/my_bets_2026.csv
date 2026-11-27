@@ -36,5 +36,9 @@ week,home,away,kind,side,line,odds,stake,result,note,created,id
 10,Jets,Bills,single,Jets,7.5,,25,L,,2026-11-15T12:00:01.000Z,w10-jets
 10,Browns,Texans,single,Texans,-4.5,,25,L,Line cut off on the slip; line as published with the pick (10 Nov),2026-11-15T12:00:02.000Z,w10-texans
 10,Packers,Vikings,single,Vikings,3.5,1.8852,25,W,Slip shows +3…; line as published with the pick (10 Nov),2026-11-15T12:00:03.000Z,w10-vikings
-10,Cardinals,Rams,single,Cardinals,9.5,,25,L,Line cut off on the slip; line as published with the pick (10 Nov),2026-11-15T12:00:04.000Z,w10-cardinals
-10,Cowboys,49ers,single,Cowboys,3.5,,25,L,Line cut off on the slip; line as published with the pick (10 Nov),2026-11-15T12:00:05.000Z,w10-cowboys
+10,Cardinals,Rams,single,Cardinals,9.5,1.91,25,L,,2026-11-15T12:00:04.000Z,w10-cardinals
+10,Cowboys,49ers,single,Cowboys,3.5,1.94,25,L,,2026-11-15T12:00:05.000Z,w10-cowboys
+11,Chiefs,Cardinals,single,Cardinals,16.5,1.85,25,L,,2026-11-22T12:00:00.000Z,w11-cardinals
+11,Bears,Saints,single,Saints,11.5,1.9092,25,W,,2026-11-22T12:00:01.000Z,w11-saints
+11,Panthers,Ravens,single,Ravens,2.5,1.9176,25,W,,2026-11-22T12:00:02.000Z,w11-ravens
+12,Cowboys,Eagles,single,Eagles,8.5,1.9176,25,W,,2026-11-26T12:00:00.000Z,w12-eagles
