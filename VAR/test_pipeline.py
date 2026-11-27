@@ -6,9 +6,10 @@ index.html carries its numbers as JSON between ``/*__DATA__*/`` and
 
 1. the page: it is template.html with only the data dropped in, it loads
    nothing from anywhere else, and it quotes the article's three tests;
-2. the source data: one row per weekday, in order, a blank only where the
-   market was shut, no move too large to be real, and the row counts and
-   dates the page states;
+2. the source data: dates in order and on weekdays only, never more than
+   five weekdays running without a close (a holiday is a blank row, or now
+   and then no row at all), no move too large to be real, and the row counts
+   and dates the page states;
 3. the series: every prediction day, each day's dollar loss, and the VaR
    each of the three methods set for it;
 4. the breaks: the days each method's VaR was exceeded;
@@ -325,14 +326,12 @@ def read_csv(path):
         rows = list(csv.reader(handle))
     return rows[0], rows[1:]
 
-def next_weekday(day):
-    return day + timedelta(days=3 if day.weekday() == 4 else 1)
-
 def check_source(ck, header, rows, source):
-    """Checks the file, and returns its closes as (day, value)."""
+    """Checks the file. Returns its closes as (day, value), and the weekdays
+    it has no row for at all."""
     ck.start("source data")
     ck.eq("CSV header", header, ["observation_date", "NASDAQCOM"])
-    closes, problems = [], []
+    closes, absent, problems = [], [], []
     blank = run = longest = 0
     previous = None
     for line, row in enumerate(rows, start=2):
@@ -344,10 +343,21 @@ def check_source(ck, header, rows, source):
             continue
         if day.weekday() > 4:
             problems.append(f"line {line}: {day} is at a weekend")
-        elif previous is not None and day != next_weekday(previous):
-            problems.append(f"line {line}: {day} does not follow {previous}")
+        if previous is not None and day <= previous:
+            problems.append(f"line {line}: {day} does not come after {previous}")
+        elif previous is not None:
+            # FRED leaves a holiday as a blank row, and now and then leaves
+            # the row out altogether (Labor Day 2026). Either way there was
+            # no close that day, and the next return runs from the last one.
+            gap = previous + timedelta(days=1)
+            while gap < day:
+                if gap.weekday() < 5:
+                    absent.append(gap)
+                    run += 1
+                gap += timedelta(days=1)
+            longest = max(longest, run)
         previous = day
-        if text in ("", "."):               # FRED leaves a holiday blank
+        if text in ("", "."):
             blank += 1
             run += 1
             longest = max(longest, run)
@@ -362,7 +372,7 @@ def check_source(ck, header, rows, source):
             problems.append(f"line {line}: a close of {value}")
         closes.append((day, value))
     ck.ok(not problems, "; ".join(problems[:3]) + (f"; and {len(problems) - 3} more" if len(problems) > 3 else ""))
-    ck.ok(longest <= 5, f"{longest} blank weekdays in a row, longer than any market closure")
+    ck.ok(longest <= 5, f"{longest} weekdays in a row without a close, longer than any market closure")
     if len(closes) > 1:
         move, when = max((abs(b[1] / a[1] - 1.0), b[0]) for a, b in zip(closes, closes[1:]))
         ck.ok(move < 0.20, f"a {move:.1%} move on {when}: check the file for a typo")
@@ -373,7 +383,7 @@ def check_source(ck, header, rows, source):
     if closes:
         ck.eq("source.first_close", source.get("first_close"), closes[0][0].isoformat())
         ck.eq("source.last_close", source.get("last_close"), closes[-1][0].isoformat())
-    return closes
+    return closes, absent
 
 
 # ---------------------------------------------------------------------------
@@ -685,10 +695,12 @@ def check_case(case, truth):
 def load():
     case = Case()
     ck = Checks()
-    closes = check_source(ck, case.header, case.rows, case.data.get("source", {}))
+    closes, absent = check_source(ck, case.header, case.rows, case.data.get("source", {}))
     if len(closes) <= WINDOW + 1:
         sys.exit("data/NASDAQCOM.csv could not be read: " + "; ".join(ck.failures))
-    return case, recompute(closes)
+    truth = recompute(closes)
+    truth["absent"] = absent
+    return case, truth
 
 def run():
     started = time.time()
@@ -699,6 +711,9 @@ def run():
     n = len(truth["loss"])
     print(f"VaR page: {n:,} predictions, {truth['first']} to {truth['last']}, "
           f"{VAR_LEVEL * n:.0f} breaks expected")
+    absent = [day.isoformat() for day in truth["absent"]]
+    listed = ", ".join(absent[:6]) + (" ..." if len(absent) > 6 else "") if absent else "none"
+    print(f"  weekdays with no row in the file: {listed}")
     for key, tests in truth["tests"].items():
         print(f"  {key}: {tests['count']} breaks recomputed; "
               f"p = {tests['kupiec_p']:.3g}, "
@@ -760,10 +775,12 @@ def fault_break_count(case, truth):
     method(case, "A")["t1"]["breaks"] += 1
 
 def fault_one_sided_p(case, truth):
-    """A's Test 1 p-value from a one-sided z-test, which would fail it"""
+    """A's Test 1 p-value from a one-sided z-test instead of Kupiec's"""
     v = method(case, "A")
-    v["t1"]["p"] = v["verdicts"][0]["p"] = 0.023
-    v["verdicts"][0]["pass"] = False
+    p = 0.5 * math.erfc(abs(v["t1"]["z"]) / math.sqrt(2.0))
+    v["t1"]["p"] = v["verdicts"][0]["p"] = p
+    v["verdicts"][0]["pass"] = p >= ALPHA
+    v["verdicts"][0]["borderline"] = BORDERLINE[0] <= p < BORDERLINE[1]
 
 def fault_p_values_swapped(case, truth):
     """A's two clustering p-values under each other's labels"""
@@ -776,12 +793,14 @@ def fault_expected_clusters(case, truth):
     t2["next_day_expected"] = VAR_LEVEL * (method(case, "C")["t1"]["breaks"] - 1)
 
 def fault_verdict_flipped(case, truth):
-    """C marked as passing Test 3"""
-    method(case, "C")["verdicts"][2]["pass"] = True
+    """C's Test 3 verdict the wrong way round"""
+    v = method(case, "C")["verdicts"][2]
+    v["pass"] = not v["pass"]
 
 def fault_borderline_dropped(case, truth):
-    """A's Test 1 pass shown as a comfortable one"""
-    method(case, "A")["verdicts"][0]["borderline"] = False
+    """A's Test 1 borderline mark the wrong way round"""
+    v = method(case, "A")["verdicts"][0]
+    v["borderline"] = not v["borderline"]
 
 def fault_level_average(case, truth):
     """B's average VaR on break days given as its average on all days"""
@@ -789,10 +808,11 @@ def fault_level_average(case, truth):
     t3["avg_var_breaks"] = t3["avg_var"]
 
 def fault_permutation_p(case, truth):
-    """C's permutation p-value nudged over the line, with a verdict to match"""
+    """C's permutation p-value moved across the 5% line, with a verdict to match"""
     v = method(case, "C")
-    v["t3"]["perm_p"] = v["verdicts"][2]["p"] = 0.06
-    v["verdicts"][2]["pass"] = True
+    p = 0.06 if v["t3"]["perm_p"] < ALPHA else 0.04
+    v["t3"]["perm_p"] = v["verdicts"][2]["p"] = p
+    v["verdicts"][2]["pass"] = p >= ALPHA
 
 def fault_expected_breaks(case, truth):
     """breaks expected from every return, warm-up included"""
@@ -811,9 +831,15 @@ def fault_recalibration_stale(case, truth):
     """A2 still at the 1.00 percentile it was meant to be moved from"""
     method(case, "A2")["parameter"] = 1.0
 
+def spreadsheet_breaks(truth):
+    """A's break count with the spreadsheet percentile, as this project first had it."""
+    quantile = window_quantile(truth["returns"], spreadsheet_position(VAR_LEVEL))
+    return sum(lost > -PORTFOLIO * q for lost, q in zip(truth["loss"], quantile))
+
 def fault_prose_figure(case, truth):
-    """the commentary quoting the break count from before the percentile fix"""
-    case.data["commentary"][0] = case.data["commentary"][0].replace("155", "176")
+    """the commentary quoting A's break count from before the percentile fix"""
+    count = str(method(case, "A")["t1"]["breaks"])
+    case.data["commentary"][0] = case.data["commentary"][0].replace(count, str(spreadsheet_breaks(truth)), 1)
 
 def fault_holiday_filled(case, truth):
     """a holiday filled in with the previous close, as a day with no move"""
@@ -841,8 +867,14 @@ def fault_outside_script(case, truth):
     case.template = case.template.replace("</body>", '<script src="https://cdn.example.com/chart.js"></script></body>')
 
 def fault_report_stale(case, truth):
-    """the written report still showing A as failing Test 1"""
-    case.report = case.report.replace("| 155 / 132 exp. | PASS (borderline) |", "| 176 / 132 exp. | FAIL |")
+    """the written report's scorecard still giving A's count from before the percentile fix"""
+    case.report = re.sub(r"(?m)^(\| A\. [^|]*\| )\d+( / )",
+                         lambda m: f"{m.group(1)}{spreadsheet_breaks(truth)}{m.group(2)}", case.report, count=1)
+
+def fault_week_missing(case, truth):
+    """six trading days missing from the middle of the file"""
+    start = next(i for i, row in enumerate(case.rows) if i > 9000 and row[1].strip())
+    del case.rows[start:start + 6]
 
 FAULTS = [
     fault_spreadsheet_percentile, fault_look_ahead, fault_decay, fault_not_doubled,
@@ -851,7 +883,7 @@ FAULTS = [
     fault_borderline_dropped, fault_level_average, fault_permutation_p,
     fault_expected_breaks, fault_loss_sign, fault_days_late, fault_recalibration_stale,
     fault_prose_figure, fault_holiday_filled, fault_date_day_first, fault_price_typo,
-    fault_stale_page, fault_outside_script, fault_report_stale,
+    fault_stale_page, fault_outside_script, fault_report_stale, fault_week_missing,
 ]
 
 def self_test():
