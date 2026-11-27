@@ -5,8 +5,11 @@ magazine, September 2013): roll a hidden die `D`, put `D` black and `6 − D`
 red chips in a hat, and auction — six times, one draw per round — a security
 that pays **$100 if the next chip out is black**.
 
-**➤ Open [`index.html`](index.html) for the interactive site** (works from
-GitHub Pages or a local file — fully self-contained, no dependencies).
+**▶ [Open the interactive site](https://zenoonan.github.io/Research/security_trading_game/)**
+— served by GitHub Pages from the default branch. (Clicking `index.html` in the
+GitHub file browser only shows its source code; to run it offline, download
+the file and open it in a browser — it's fully self-contained, no
+dependencies.)
 
 The point of the page is the thing that's hard to get from the article alone:
 **how the payoff/fair value in every state is actually calculated.** Every one
