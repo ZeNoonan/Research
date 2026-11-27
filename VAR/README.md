@@ -31,19 +31,19 @@ dataset:
 | B | Parametric (RiskMetrics) | EWMA variance: 0.94 × yesterday's variance + 0.06 × today's move²; VaR = 2.33σ |
 | C | Brown's "Bayesian" VaR | Start from 2.33 × 3-year standard deviation. After a break, **double** the estimate; otherwise take 0.94 × yesterday's estimate + 0.06 × the simple estimate |
 
-## Results (1974-01-29 to 2026-07-02, 13,218 predictions, 132 breaks expected)
+## Results (1974-01-29 to 2026-11-17, 13,314 predictions, 133 breaks expected)
 
 | Method | Breaks | Test 1: frequency | Test 2: random in time | Test 3: independent of level |
 |---|---|---|---|---|
-| A. Historical simulation (3yr, 1st pct) | 155 | PASS (borderline, p = 0.052) | FAIL | FAIL |
-| B. Parametric EWMA (0.94, 2.33σ) | 269 | FAIL | FAIL | FAIL |
-| C. Brown's Bayesian VaR (double on break) | 134 | **PASS** | **PASS** (borderline, p = 0.063) | FAIL (borderline, p = 0.018) |
+| A. Historical simulation (3yr, 1st pct) | 156 | PASS (borderline, p = 0.053) | FAIL | FAIL |
+| B. Parametric EWMA (0.94, 2.33σ) | 273 | FAIL | FAIL | FAIL |
+| C. Brown's Bayesian VaR (double on break) | 135 | **PASS** | **PASS** (borderline, p = 0.064) | FAIL (borderline, p = 0.018) |
 
 A test passes at p ≥ 0.05. *Borderline* marks a p-value between 0.01 and
 0.10, where a 1% or a 10% tolerance would have given the other answer.
 
-**Historical simulation** gets the number of breaks roughly right — 155
-against 132, inside tolerance but only just. It fails on *when* they come:
+**Historical simulation** gets the number of breaks roughly right — 156
+against 133, inside tolerance but only just. It fails on *when* they come:
 15 breaks landed the day after another break where independence predicts
 about 2, and 66 within ten days of one where it predicts 17. Volatility
 clusters, and a three-year window cannot see it.
@@ -53,9 +53,9 @@ should, and its breaks still cluster. Both textbook methods also break
 disproportionately when they say things are safe: VaR on break days averages
 9% (A) and 19% (B) below the overall average.
 
-**Brown's double-on-break rule**, with no tuning at all, has 134 breaks
-against 132 expected, and most of the clustering is gone (4 next-day breaks
-against 1.3 expected). It passes Test 2, narrowly. It does not pass Test 3
+**Brown's double-on-break rule**, with no tuning at all, has 135 breaks
+against 133 expected, and most of the clustering is gone (4 next-day breaks
+against 1.4 expected). It passes Test 2, narrowly. It does not pass Test 3
 on this series: its VaR on break days averages 10% below its overall
 average, where the article's S&P 500 run erred slightly the other way. It is
 the only one of the three that no test rejects decisively — but a
@@ -68,6 +68,13 @@ passed all three). Recalibrating the textbook methods to give exactly the
 expected break count — the article's "two out of three?" exercise: the 0.82
 percentile, or 2.95σ — fixes Test 1 by construction and leaves Tests 2 and 3
 failing. The break count is not the problem; the clustering is.
+
+The months added in November 2026 (3 July to 17 November, about one break
+expected) included a fall of nearly 12% from the 6 October peak, with a 5.5%
+drop on 5 November. Historical simulation and Brown's rule each broke once,
+on 5 November. EWMA broke four times in three weeks, from 16 October to
+5 November: its breaks cluster again. No verdict changed. The page's *2026*
+button shows the year.
 
 Full numbers and p-values: the [live page](https://zenoonan.github.io/Research/VAR/)
 or **[results/backtest_report.md](results/backtest_report.md)**.
@@ -87,9 +94,10 @@ The first version of this project (July 2026) took the 1st percentile from
 numpy instead. That is the spreadsheet convention, rank *p × (n − 1) + 1* =
 8.49: nearly one whole day less extreme. On simulated returns with nothing to
 cluster it breaks on **1.12%** of days, not 1%; the article's rule breaks on
-**0.99%**. On NASDAQ the bias was about half of historical simulation's
-excess breaks: it reported 176 and a decisive Test 1 failure (p = 0.0003)
-where the method as the article specifies it has 155 and a borderline pass.
+**0.99%**. On the NASDAQ data through 2 July 2026 the bias was about half of
+historical simulation's excess breaks: it reported 176 and a decisive Test 1
+failure (p = 0.0003) where the method as the article specifies it has 155 and
+a borderline pass.
 Tests 2 and 3, and methods B and C, were unaffected.
 
 ## How the checks are computed
@@ -150,9 +158,13 @@ VAR/
 ## Data notes
 
 - Source: FRED `NASDAQCOM` (NASDAQ Composite index, daily close),
-  1971-02-05 to 2026-07-02: 14,455 weekday rows, of which 486 are blank.
+  1971-02-05 to 2026-11-17: 14,552 rows, of which 487 are blank.
 - Blank observations (market holidays) are dropped, per FRED convention —
   the return across a holiday is treated as an ordinary one-day return.
+  FRED's file has no row at all for Labor Day 2026 (7 September), where every
+  other holiday is a blank row. It comes to the same thing, and
+  `test_pipeline.py` treats a weekday with no row as a blank and lists any it
+  finds.
 - Returns are simple daily percentage changes; dollar loss is
   −$1M × return.
 - The first 750 trading days seed the 3-year windows, so VaR predictions
